@@ -1,0 +1,391 @@
+2012-03-26  Simson Garfinkel  <simsong@imac3.home>
+
+	* src/xml.cpp (xml::add_cpuid): better handling of CPUID instruction. Now it really should not show up on non-Intel architectures.
+
+2012-03-19  Simson Garfinkel  <simsong@imac3.home>
+
+	* src/xml.cpp: added unistd.h
+
+2012-03-18  Simson Garfinkel  <simsong@imac3.local>
+
+	* src/main.cpp (main): added printing stats for debug level 3.
+
+	* src/datalink.cpp (find_handler): changed 'looking for handler' to debug level 2.
+
+2012-03-18  Simson Garfinkel  <simsong@imac3.home>
+
+	* src/tcpip.cpp (tcpdemux::close_all): Jeremey's FD ring has been replaced with an unordere dset.
+
+	* src/tcpdemux.h (class tcpdemux): tcpdemux is now a class. By 1.3 it will be a linkable class separate from this program.
+
+2012-03-11  Simson L. Garfinkel  <simsong@ps14412.dreamhostps.com>
+
+	* configure.ac: added -funit-at-a-time 
+
+2012-03-10  Simson Garfinkel  <simsong@imac3.home>
+
+	* COPYING: updated to GPLv3
+
+2012-03-10  Simson Garfinkel  <simsong@mucha>
+
+	* src/xml.cpp (xml::xmlout): writing with size-length tag just outputs the value now.
+
+2012-03-03  Simson Garfinkel  <simsong@it152983.ern.nps.edu>
+
+	* configure.ac: changed verison number to 1.2.1
+
+	* src/xml.cpp (xml::cpuid): added another #if defined(HAVE_ASM_CPUID) to protect another __asm__("cpuid")
+
+2012-03-03  Simson Garfinkel  <simsong@imac3.home>
+
+	* configure.ac: changed version number to 1.2.0
+
+2012-03-09  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/tcpip.cpp (tcpip::attempt_fopen): output files now opened in binary mode
+	(tcpip::store_packet): added error message for packet received after flow finished
+
+	* src/md5.c: added file.
+
+	* src/md5.h: added file.
+
+	* src/tcpip.cpp (tcpip::open_file): removed "done" variable, as it was not needed.
+	(tcpip): string constants that are converted to strings are now const statics.
+
+2012-02-26  Simson Garfinkel  <simsong@mucha>
+
+	* src/flow.cpp (flow::filename): completely rewrote to support templates.
+	(flow::print_usage): added to give information on templates.
+
+	* src/flow.h (class flow): renamed flow_t to flow
+
+	* src/main.cpp (main): removed last vistaves of DEFAULT_FILTER
+	(main): error is now a local variable.
+
+2012-02-23  Simson Garfinkel  <simsong@mucha>
+
+	* src/sysdep.h: changed to C++ headers for stdio, stdlib, cctype, cstdarg and cerrorno
+
+	* src/tcpip.cpp (tcpip::tcpip): outdir changed from const char *
+	to std::string.  Flow names no longer have ./ prepended if outdir
+	is ".".
+
+2012-01-18  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/tcpip.cpp (tcpip::process_tcp): converted dir_cs and dir_sc to a single dir enum type.
+
+2012-01-15  Simson Garfinkel  <simsong@mucha.home>
+
+	* src/tcpip.cpp (tcpip): fixed crashing bug when no XML file was being generated.
+
+2012-01-06  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/flow.h (class tcpip): replaced std::map with std::tr1::unordered_map. Old performance:
+	  <rusage>
+	    <utime>2.879478</utime>
+	    <stime>3.227067</stime>
+	    <maxrss>7675904</maxrss>
+	    <minflt>1953</minflt>
+	    <majflt>26</majflt>
+	    <nswap>0</nswap>
+	    <inblock>3</inblock>
+	    <oublock>4649</oublock>
+	    <clocktime>14.634266</clocktime>
+	  </rusage>
+
+	new performance:
+	  <rusage>
+	    <utime>1.323023</utime>
+	    <stime>2.676657</stime>
+	    <maxrss>7430144</maxrss>
+	    <minflt>1921</minflt>
+	    <majflt>0</majflt>
+	    <nswap>0</nswap>
+	    <inblock>0</inblock>
+	    <oublock>4739</oublock>
+	    <clocktime>8.399374</clocktime>
+	  </rusage>
+	
+
+2012-01-05  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/tcpip.cpp (do_strip_nonprint): do_strip_nonprint is now threadsafe
+
+	* src/flow.h (class tcpip): pos changed from long to uint64_t
+
+	* src/tcpip.cpp (tcpip::process_tcp): whoops; only drop the connection if the seek is bigger than min_offset
+
+2012-01-04  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* configure.ac: incremented version counter to beta2
+
+	* src/main.cpp (main): fixed option parsing bug.
+
+2012-01-03  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/tcpip.cpp (do_strip_nonprint): removed; do_strip_nonprint is now embedded in the caller, and is now thread-safe.
+
+	* src/util.cpp (check_malloc): removed
+
+	* src/tcpip.cpp (tcpip::store_packet): flow_state renamed tcpip (because it is).
+
+	* src/flow.h (class flow_state): first is now called tstart and appears in the flow_t.
+	(class flow_addr): renamed flow_t to flow_addr; it's the flow address.
+	(class flow_t): created this class which has additional per-flow information
+	(class flow_addr): moved vlan to flow_t from flow_addr
+
+2012-01-01  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/tcpflow.h (struct): flow_t renamed to be the flow class.
+	(class ipaddr): created class for IP addresses
+	(class flow_state_struct): created class from struct
+
+	* src/main.cpp (print_usage): -X added for XML output.
+
+2011-12-29  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/main.cpp (main): changed bytes_per_flow from int to uint64_t
+	progname is now a global.
+
+	added support for named semaphores to lock output between invocations.
+
+	* src/util.cpp: removed cvsid
+
+	* src/tcpip.cpp: removed cvsid
+
+	* src/datalink.cpp: removed cvsid
+
+	* src/flow.cpp: removed cvsid
+
+	* Makefile.am (EXTRA_DIST): added m4/ax_pthread.m4 to EXTRA_DIST
+
+	* configure.ac: increased version number to 1.0.7
+
+	* src/main.cpp (main): added -B option to force binary output.
+
+	* doc/tcpflow.1: corrected typo in -c/-C which crept it.
+
+2011-12-23  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/util.cpp: removed copy_argv(); replaced with a simple std::string manipulation.
+	(flow_filename): modified to work with outdir
+
+	* src/tcpip.cpp: renamed from tcpip.c to tcpip.cpp
+
+	* src/main.cpp: renamed from main.c to main.cpp;
+
+	* src/util.cpp: renamed util.c; changed most "char *" to "const char *"
+
+	* src/flow.cpp: renamed flow.c to flow.cpp
+
+2011-12-04  Simson Garfinkel  <simsong@Alphonse-Mucha.local>
+
+
+	* configure.ac: increased version counter to 1.0.6
+
+	* src/tcpflow.h (flow_state_struct): added bytes_printed counter
+
+	* src/tcpip.c (print_packet): modified to respect bytes_per_flow
+
+	* configure.ac: increased version counter to 1.0.5
+
+	* src/sysdep.h: added #ifndef for ETHERTYPE_VLAN for Oracle Enterprise Linux.
+
+2011-11-24  Simson Garfinkel  <simsong@it006834.ern.nps.edu>
+
+	* configure.ac: increased version counter to 1.0.4
+
+2011-10-13  Simson Garfinkel  <simsong@alphonse-mucha.home>
+
+	* src/main.c (main): removed prepending of (ip or ip6 or vlan) from user expressions. We now just use what the user provided.
+
+2011-09-30  Simson Garfinkel  <simsong@alphonse-mucha.home>
+
+	* configure.ac: incremented version counter to 1.0.2 and re-released.
+
+2011-09-20  Simson Garfinkel  <simsong@alphonse-mucha>
+
+	* src/flow.c (open_file): replaced FGETPOS(flow_state->fp, &(flow_state->pos)) with ftell()
+
+	* src/tcpip.c (store_packet): FSETPOS replaced with fseek (it's better now than in 1999)
+
+2011-09-20  Simson Garfinkel  <simsong@Alphonse-Mucha.local>
+
+	* src/util.c: applied ipv6 patches
+
+	* src/tcpip.c: applied ipv6 patches
+
+	* src/tcpflow.h: applied ipv6 patches
+
+	* src/sysdep.h: applied ipv6 patches
+
+	* src/main.c: applied ipv6 patches
+
+	* src/datalink.c: applied ipv6 patches
+
+	* configure.ac: applied ipv6 patches.
+
+	* src/sysdep.h: removed standards.h and added sys/cdefs.h.
+
+2011-04-14  Simson Garfinkel  <simsong@Magneto.local>
+
+	* Makefile.am (EXTRA_DIST): added TODO.txt
+
+2011-03-12  Simson Garfinkel  <simsong@imac3.home>
+
+	* doc/tcpflow.1.in: updated doc to reflect new author and distribution point.
+
+	* src/main.c (print_usage): removed  "by Jeremy Elson <jelson@circlemud.org>" from usage.
+
+	* src/util.c (flow_filename): vlan changed from [42] to --42 to avoid some shell issues.
+
+	* Applied debian patch 20_fix-usage, which fixed the usage statement.
+
+2011-02-27  Simson Garfinkel  <simsong@Silver-Surfer.local>
+
+	* manually applied debian patch 10_extra-opts, which improves color rendering and passes the state structure, rather than forcing it to be re-calculated.
+
+2008-10-06  Simson Garfinkel  <simsong@Silver-Surfer.local>
+
+	* src/flow.c (flow_same): created a flow_same() function to return true if two flows are the same (because we will be adding additional information to the flow)
+	(close_file): modified so that flows are timestamped with the time of the closing
+
+	* src/tcpflow.h: reimplemented portable_signal to return void, rather than RETSIGTYPE, since RETSIGTYPE hasn't been used for at least 15 years.
+
+	* src/sysdep.h: added #include <net/if_var.h> before #include <net/if.h>
+
+	* configure.ac: rewrote to remove patches for circa 2002 Linux bugs. Fixed prerequisite header for net/if.h
+
+2003-08-07  Jeremy Elson  <jelson@circlemud.org>
+	* Released v0.21.  Sticking to my strict schedule of releasing at
+	least one minor release per year. :-)
+	
+2003-08-07  Jeremy Elson  <jelson@circlemud.org>
+
+	* src/main.c: Fixed format string attack.  Found by David
+	Goldsmith of atstake.com.
+	
+2002-03-29  Jeremy Elson  <jelson@concorde.cs.ucla.edu>
+
+	* configure.in: Fixed --with-pcap (was broken since moving sources
+	into src)
+
+2002-03-29  Jeremy Elson  <jelson@circlemud.org>
+
+	* src/datalink.c: Added support for ISDN (/dev/ippp0), datalink
+	handler for DLT_LINUX_SLL.  Contributed by Detlef Conradin
+	<dconradin at gmx.net>
+
+2001-08-23  Jeremy Elson  <jelson@circlemud.org>
+
+	* src/tcpip.c: fflush stdout in console print mode, from
+	suggestion of Andreas Schweitzer <andy at physast.uga.edu>, who
+	says "Otherwise, I can't redirect or pipe the console output. At
+	least on FreeBSD. I will check later today if this also cures the
+	same problems I had on OpenBSD."
+	
+
+2001-02-26  Jeremy Elson  <jelson@circlemud.org>
+
+	* Released version 0.20.
+	
+	* util.c, main.c: we now catch SIGTERM, SIGINT and SIGHUP, and
+	call exit().  Should give libpcap a chance to reset the interface
+	state (it calls onexit()).
+	
+	* main.c, tcpflow.1.in: Added patch from "Jose M. Alcaide" <jose
+	at we.lc.ehu.es> (FreeBSD port maintainer) so that tcpflow can
+	read from tcpdump output files.
+
+2000-01-12  Jeremy Elson  <jelson@circlemud.org>
+
+	* tcpflow.spec.in: New file for creating RPMs, submitted by Ross
+	Golder <rossigee at bigfoot.com>.
+
+	* configure.in: Added generation of tcpflow.spec
+	* Makefile.am: Added distribution of tcpflow.spec.in
+
+1999-04-20  Jeremy Elson  <jelson@circlemud.org>
+
+	* Released version 0.12.
+	
+1999-04-20  Jeremy Elson  <jelson@circlemud.org>
+
+	* tcpflow.1.in: Updated man page.
+
+	* main.c (main): libpcap, when running under Linux, doesn't seem
+	to be able to handle filtering expressions when using DLT_NULL
+	(usually the loopback interface -- i.e. "localhost"), so we don't
+	allow those expressions and print a warning if the user is trying
+	to use one.  Controlled via the DLT_NULL_BROKEN define in conf.h.
+	* datalink.c (dl_null): We no longer check that the datalink type
+	is AF_INET if DLT_NULL_BROKEN is defined.
+	* configure.in: Added AC_CANONICAL_SYSTEM, and define
+	DLT_NO_BROKEN if we are using Linux.
+	* acconfig.h: Added entry for DLT_NULL_BROKEN.
+
+	* tcpflow.h: We use __attribute__ now only if __GNUC__ is defined,
+	so that the code compiles on non-GCC compilers.
+	
+	* configure.in: Check for standards.h, for IRIX compatibility.
+	(I have a custom autoconf that I changed to automatically #include
+	standards.h, if the check succeeds, in future header file checks.)
+	* sysdep.h: Conditional #include <standards.h> added.
+	
+	* configure.in: Only check for -lnsl if gethostbyaddr() doesn't
+	work without it; same for -lsocket and socket().
+	
+	* tcpip.c (process_ip, process_tcp, do_strip_nonprint,
+	print_packet, store_packet): Changed to take a u_char.
+	* tcpflow.h: Changed packet handling function argument prototypes
+	and return values to use u_char instead of char.
+	* configure.in: Added checking for u_char.
+	* acconfig.h: Added entry for u_char.
+
+	* tcpip.c (process_ip, process_tcp): Added debugging messages.
+
+	* tcpip.c (store_packet): Changed debug level of messages.
+
+1999-04-14  Jeremy Elson  <jelson@circlemud.org>
+
+	* tcpip.c (store_packet): Now correctly checking the return value
+	of fwrite().  Pointed out by Johnny Tevessen <j.tevessen at gmx.net>.
+
+1999-04-13  Jeremy Elson  <jelson@circlemud.org>
+
+	* Released version 0.11.
+	
+1999-04-13  Jeremy Elson  <jelson@circlemud.org>
+
+	* tcpip.c (process_ip): Portability: added typecast of an int to a
+	long, and changed the printf format to use a long (%ld) instead of
+	an int (%d).  This is because some systems define these variables
+	as long to begin with.
+	* tcpip.c (store_packet): Same thing.
+	* util.c (init_debug): Same thing.
+
+	* main.c (print_usage): Added function to give help.
+
+	* sysdep.h: Linux libc5 systems have different names for certain
+	structures.  Patch sent by Johnny Tevessen <j.tevessen at gmx.net>
+	
+	* configure.in: All system header files are now detected by
+	autoconf and conditionally included in sysdep.h.
+	* sydep.h: Same.
+	* main.c: Same.
+	* tcpip.c: Same.
+
+	* Makefile.am (EXTRA_DIST): Changed from tcpflow.1 to tcpflow.1.in
+	to reflect the fact that tcpflow.1 is now created by 'configure'.
+	* configure.in: Same.
+	* tcpflow.1.in: Same.
+	
+	* AUTHORS: Created & added initial entries.
+
+1999-04-12  Jeremy Elson  <jelson@circlemud.org>
+
+	* Initial public release.
+	
+
+	
+

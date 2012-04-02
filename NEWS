@@ -1,0 +1,166 @@
+Version 1.2 March 15 2012 (SVN )
+
+I am pleased to announce the release of tcpflow version 1.2.
+
+Version 1.2 is the first to include post-processing of TCP connections
+integrated directly into the tcpflow program itself. post-processing
+is optional and is performed on a per-connection basis when the
+connection is closed. 
+
+The following post-processing method methods are currently defined.
+
+ -FM - Compute the MD5 hash value of every stream on close. Currently
+       MD5 hashes are only computed for TCP streams that contain
+       packets transmitted contigiously. -FM processing can happen
+       even when output is suppressed. The MD5 is written into the
+       DFXML file. 
+
+ -AH - Detect Email/HTTP responses and separate headers from
+       body. This requires that the output files be captured.
+
+       If the output file is
+          208.111.153.175.00080-192.168.001.064.37314,
+
+       Then the post-processing will create the files:
+          208.111.153.175.00080-192.168.001.064.37314-HTTP
+          208.111.153.175.00080-192.168.001.064.37314-HTTPBODY
+
+       If the HTTPBODY was compressed with GZIP, you may get a 
+       third file as well:
+
+          208.111.153.175.00080-192.168.001.064.37314-HTTPBODY-GZIP
+
+       Additional information about these streams, such as their MD5
+       hash value, is also written to the DFXML file
+
+These features are all present in Version 1.2.2, which is available
+now for download from http://afflib.org/
+
+
+Version 1.1.0 19 January 2012 (SVN 8118)
+
+I am pleased to announce the release of tcpflow version 1.1.
+
+Version 1.1 represents a significant rewrite of tcpflow. All users are
+encouraged to upgrade.
+
+Significant changes include:
+
+* Entire code base migrated to C++ ; code generally
+  improved. tcpflow's original hash table has been replaced with a
+  tr1::unordered_map which should offer significantly more
+  scalability. 
+
+* tcpflow now automatically expires out old connections. This finally
+  end the program's memory-hogging problem. (You can disable this
+  behavior with -P, which makes tcpflow run faster because it never
+  cleans up after itself. That's fine if you are working with less
+  than a million connections.)
+
+* Multiple connections with the same (source/destination) are now
+  detected and stored in different files. This is significant, as the
+  previous implementation would make a single file 1-2GB in length if
+  you the same host/port pairs with two different flows. Additional
+  files have the same filename and a "c0001", "c0002" appended.
+
+* Filenames may now be prefixed with either the ISO8601 time or a Unix
+  timestamp  indicating the time that the connection was first seen.
+
+* tcpflow will now save a DFXML file containing information for each
+  flow that it reconstructs.
+
+* The following new options are now implemented:
+
+  -o outdir --- now works (previously was not implemented)
+  -X xmfile --- now reports execution results in a DFXML
+                file. (Version 1.1 will include complete notion in the XML file of
+                every TCP connection as a DFXML <fileobject>
+  -Fc       --- Every file has the 'cXXXX' postfix, rather than just
+                the files with duplicate source/destination.
+  -Ft       --- Every file has the <time_t>T prefix.
+  -FT       --- Every file has an ISO8601 time prefix, 
+                e.g. 2012-01-01T09:45:15Z
+  -mNNNN    --- Specifies the minimum number of bytes that need to be
+                skipped in a TCP connection before a new 
+  -Lname    --- use the named semaphore 'name' to prevent multiple tcpflow 
+                processes printing to standard output from overprinting each other.
+  -P        --- do not prune the tcp connection table.
+
+
+Other improvements include:
+
+* Support for IPv6
+
+* Support for VLANs
+
+* The default filter which was causing problems under MacOS has been removed.
+
+tcpflow can be downloaded from:
+	http://afflib.org/
+	http://afflib.org/software/tcpflow
+
+Finally, because the previous maintainer had lost control of the old
+tcpflow mailing list, a new one has been created at Google Groups. You
+can subscribe at:
+
+    http://groups.google.com/group/tcpflow-users
+
+
+
+Version 1.0.4 November 24, 2011
+* Default fitler changed to ""; previous default filter was causing problems on macs.
+
+Version 1.0.2 September 30, 2011
+* IPv6 code added
+
+Version 1.0.0 January 2011
+* Updated to support VLANs. VLAN packets are marked by hex 0x8100 following
+  the destination and source mac addresses, followed by the 16-bit VLAN address,
+  followed by 0x0800 marking the beginning of the traditional IP header.
+
+Version 0.30 October 2007
+* Simson Garfinkel <simsong@acm.org> is now the maintainer of this package
+* Modified to set the time of each tcpflow with the time of the first packet.
+* Created a regression test, so "make check" and "make distcheck" now work.
+* Updated to modern autoconf tools.
+
+Version 0.20 (February 26, 2001):
+
+* A bug was fixed that caused out-of-order reassembly to generate
+seemingly very large files on some systems (specifically, those that
+support fgetpos/fsetpos).
+
+* Bug fixed that caused the interface to be left in promiscuous mode
+after tcpflow terminated
+
+* The -r option was added, contributed by Jose M. Alcaide
+<jose@we.lc.ehu.es>
+
+* We now distribute tcpflow RPMs, thanks to a spec file submitted by
+  Ross Golder <rossigee@bigfoot.com>.
+
+
+Version 0.12 (April 20, 1999):
+
+* Now compiles under IRIX, and using non-GCC compilers.
+
+* Workaround for the Linux/libpcap bug that prevented tcpflow from
+  listening to packets on the Linux loopback interface.  It's not
+  perfect -- it appears impossible to install a libpcap filtering
+  expression when listening to the Linux loopback interface.  Thus,
+  *all* flows on that interface are recorded.  Someday I may try to
+  fix either libpcap or the Linux kernel so that this workaround is
+  not necessary.
+
+
+Version 0.11 (April 13, 1999):
+
+* Support for older (libc5) Linux systems (submitted by Johnny Tevessen
+  <j.tevessen@gmx.net>).
+
+* Some minor fixes.
+
+
+Version 0.10 (April 12, 1999):
+
+* First public release. 

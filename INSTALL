@@ -1,0 +1,51 @@
+Supported Platforms
+===================
+
+I've personally compiled and tested tcpflow 0.11 on the following platforms:
+
+    FreeBSD 2.2.1-RELEASE
+    FreeBSD 2.2.8-RELEASE
+    FreeBSD 3.1-RELEASE
+    Solaris 2.6
+    SunOS 4.1.3
+    SunOS 4.1.3 U1
+    IRIX 6.5
+    Linux kernel 2.0.36, glibc2 (RedHat 5.2)
+    Linux kernel 2.2.5, glibc2 (RedHat 5.2 with kernel 2.2 upgrade RPMs)
+
+Others have reported it compiling successfully under:
+
+    Linux kernel 2.2.5, libc5
+
+If you have any reports of tcpflow working (or breaking) on other
+platforms, please let me know (jelson@circlemud.org).
+
+
+Installing tcpflow
+==================
+
+tcpflow requires the pcap library from LBL; first, download it from
+ftp://ftp.ee.lbl.gov/libpcap.tar.Z and install it using
+
+   ./configure
+   make
+   make install
+   make install-incl
+   make install-man
+
+Next, you can compile and install tcpflow like this:
+
+   ./configure
+   make
+   make install
+
+If your pcap library is installed somewhere that the compiler can't find
+it, use the --with-pcap=PATH option to tell 'configure' where it is.  For
+example:
+   ./configure --with-pcap=../libpcap-0.4
+
+Next, take a look at the man page to see how it works.
+
+
+Jeremy Elson
+jelson@circlemud.org

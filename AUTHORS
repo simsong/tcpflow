@@ -1,0 +1,20 @@
+New Primary Maintainer:
+  Simson L. Garfinkel <simsong@acm.org>
+  http://www.simson.net/
+
+Original author:
+  Jeremy Elson <jelson@circlemud.org>
+  http://www.circlemud.org/~jelson
+
+
+Contributions were made by:
+
+-- Johnny Tevessen <j.tevessen@gmx.net>, for Linux systems still
+   using libc5.
+
+-- Ross Golder <rossigee@bigfoot.com>, for a spec file for generating
+   tcpflow RPMs.
+
+-- Jose M. Alcaide <jose@we.lc.ehu.es>, patch for the -r option
+
+

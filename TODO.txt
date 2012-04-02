@@ -1,0 +1,66 @@
+* discover and create MIME objects.
+* Run a subprocess when each file is opened or closed.
+================
+Hi:
+
+I managed to port tcpflow 1.0.2 to FreeBSD 7, by adding the following
+to tcpflow.h - its quite possible that a number of the libraries are
+not necessary, but I just cut and pasted the libraries from a working
+libpcap program, and it works, so I didn't go further....  Thanks for
+the ipv6 support, thats what I needed it for....
+
+# diff -c /home/melland/src/tcpflow-1.0.2/src/tcpflow.h tcpflow.h
+
+*** /home/melland/src/tcpflow-1.0.2/src/tcpflow.h	Tue Sep 20 06:00:42 2011
+--- tcpflow.h						Tue Dec  6 14:29:28 2011
+***************
+*** 36,41 ****
+--- 36,66 ----
+  *
+  */
+
++ #include <sys/types.h>
++ #include <net/ethernet.h>
++
++
++ #include <sys/types.h>
++ #include <sys/stat.h>
++
++ #include <netinet/in.h>
++ #include <netinet/in_systm.h>
++ #include <netinet/ip.h>
++ #include <netinet/ip_var.h>
++ #include <netinet/tcp.h>
++ #include <netinet/tcpip.h>
++
++ #include <arpa/inet.h>
++
++ #include <ctype.h>
++ #include <pcap.h>
++ #include <stdio.h>
++ #include <stdlib.h>
++ #include <string.h>
++ #include <syslog.h>
++ #include <unistd.h>
++
++
+ #ifndef __TCPFLOW_H__
+ #define __TCPFLOW_H__
+================
+Here is my currently plan for the plugin approach:
+
+-Ps "command"   --- Run command at the start of each flow; pipe the flow to stdin
+-Pe "command"   --- Run command at the end of each flow; pipe the flow to stdin (from the file)
+-PE "command"  ---  Run command at the end of each flow, but do not pipe flow to stdin
+
+Substitution options for command:
+
+%t - time_t of the flow start
+%T - ISO8601 time for the flow start
+%s - source IP address
+%S - source Port
+%d - destination IP address
+%D - destination IP port
+%l - length of the flow (only useful for -Pe, of course)
+%f - filename of the flow 
+
