@@ -267,7 +267,8 @@ private:
 	    return "copying tcpdemux objects is not implemented.";
 	}
     };
-    tcpdemux(const tcpdemux &t):outdir(),flow_counter(),packet_time(),xreport(),max_fds(),flow_map(),openflows(),opt_output_enabled(),
+    tcpdemux(const tcpdemux &t):outdir(),flow_counter(),packet_time(),xreport(),
+				max_fds(),flow_map(),openflows(),opt_output_enabled(),
 				opt_md5(),opt_after_header(),opt_gzip_decompress(),
 				max_bytes_per_flow(),max_desired_fds(){
 	throw new not_impl();

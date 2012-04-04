@@ -1,3 +1,9 @@
+2012-04-03  Simson Garfinkel  <simsong@imac3.home>
+
+	* src/main.cpp (print_usage): fixed misspelling of name
+
+	* src/tcpip.cpp (tcpdemux::tcpdemux): default outdir is now "."
+
 2012-03-26  Simson Garfinkel  <simsong@imac3.home>
 
 	* src/xml.cpp (xml::add_cpuid): better handling of CPUID instruction. Now it really should not show up on non-Intel architectures.

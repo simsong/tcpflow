@@ -588,7 +588,7 @@ unsigned int tcpdemux::get_max_fds(void)
 }
 
 
-tcpdemux::tcpdemux():outdir(),flow_counter(0),packet_time(0),
+tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_time(0),
 		     xreport(0),max_fds(10),flow_map(),
 		     openflows(),
 		     opt_output_enabled(true),opt_md5(false),

@@ -68,7 +68,7 @@ void print_usage()
     std::cerr << "        -FT : prepend the ISO8601 timestamp to ALL filenames\n";
     std::cerr << "        -FX : Do not output any files (other than report files)\n";
     std::cerr << "        -FM : Calculate the MD5 for every flow\n";
-    std::cerr << "        -T<template> : sepcify an arbitrary filename template (default " << flow::filename_template << ")\n";
+    std::cerr << "        -T<template> : specify an arbitrary filename template (default " << flow::filename_template << ")\n";
 #if ENABLE_GZIP
     std::cerr << "        -Z: do not decompress gzip-compressed HTTP transactions\n";
 #endif
@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
     pcap_handler	handler;
 
     progname = argv[0];
+    
     init_debug(argv);
     opterr = 0;
     bool force_binary_output = false;
