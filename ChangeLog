@@ -1,3 +1,7 @@
+2012-04-11  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* created version 1.2.4 tag
+
 2012-04-03  Simson Garfinkel  <simsong@imac3.home>
 
 	* src/main.cpp (print_usage): fixed misspelling of name
