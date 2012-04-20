@@ -1,6 +1,7 @@
 2012-04-19  Simson Garfinkel  <simsong@imac3.home>
 
-	* configure.ac: incremented version to 1.2.5
+	* configure.ac: incremented version to 1.2.6 (1.2.5 had a bad tag)
+	
 
 	* src/tcpip.cpp (tcpip::print_packet): fixed error in fwrite().
 
