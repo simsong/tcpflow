@@ -1,3 +1,9 @@
+2012-04-19  Simson Garfinkel  <simsong@imac3.home>
+
+	* configure.ac: incremented version to 1.2.5
+
+	* src/tcpip.cpp (tcpip::print_packet): fixed error in fwrite().
+
 2012-04-11  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* created version 1.2.4 tag

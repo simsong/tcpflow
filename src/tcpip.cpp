@@ -414,7 +414,7 @@ void tcpip::print_packet(const u_char *data, u_int32_t length)
 	printf("%s: ", flow_pathname.c_str());
     }
 
-    if(length != fwrite(data, length, 1, stdout)){
+    if(length != fwrite(data, 1, length, stdout)){
 	std::cerr << "\nwrite error to fwrite?\n";
     }
     bytes_printed += length;
