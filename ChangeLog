@@ -1,3 +1,11 @@
+2012-05-16  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/main.cpp (main): removed global "tcpdemux demux"
+	variable. Now it's passed as *user in the datalink methods, as it
+	should be.
+
+	* src/tcpdemux.h (class tcpip): bytes_printed renamed to bytes_processed, as it will be used in packet processing as well.
+
 2012-04-19  Simson Garfinkel  <simsong@imac3.home>
 
 	* configure.ac: incremented version to 1.2.6 (1.2.5 had a bad tag)

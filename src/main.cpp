@@ -13,9 +13,7 @@
 
 #define ENABLE_GZIP 0
 
-tcpdemux demux;				// the demux object
 int debug_level = DEFAULT_DEBUG_LEVEL;
-int no_promisc = 0;
 int max_flows = 0;
 int console_only = 0;
 int suppress_header = 0;
@@ -54,7 +52,8 @@ void print_usage()
     std::cerr << "        -L: lock; specifies that writes are locked using a named semaphore\n";
     std::cerr << "        -p: don't use promiscuous mode\n";
     std::cerr << "        -P: don't purge tcp connections on FIN\n";
-    std::cerr << "        -r: read packets from tcpdump output file\n";
+    std::cerr << "        -r: read packets from tcpdump pcap file\n";
+    std::cerr << "        -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
     std::cerr << "        -s: strip non-printable characters (change to '.')\n";
     std::cerr << "        -v: verbose operation equivalent to -d 10\n";
     std::cerr << "        -V  print version number and exit\n";
@@ -77,13 +76,6 @@ void print_usage()
     std::cerr << "\nSee the man page for additional information.\n\n";
 }
 
-
-void terminate(int sig) __attribute__ ((__noreturn__));
-void terminate(int sig)
-{
-    DEBUG(1) ("terminating");
-    exit(0); /* libpcap uses onexit to clean up */
-}
 
 
 /**
@@ -129,16 +121,13 @@ void replace(std::string &str,const std::string &from,const std::string &to)
 
 int main(int argc, char *argv[])
 {
-    int arg, dlt;
+    tcpdemux demux;			// the demux object we will be using.
+    int arg;
     int need_usage = 0;
-    char error[PCAP_ERRBUF_SIZE];
 
     const char *lockname = 0;
     char *device = NULL;
     char *infile = NULL;
-    pcap_t *pd;
-    struct bpf_program	fcode;
-    pcap_handler	handler;
 
     progname = argv[0];
     
@@ -148,7 +137,7 @@ int main(int argc, char *argv[])
     std::string xmlout;
     bool opt_all = true;
 
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eF:f:hi:L:m:o:Ppr:sT:VvX:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eF:f:hi:L:m:o:PpR:r:sT:VvX:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt_after_header = true;
@@ -223,7 +212,7 @@ int main(int argc, char *argv[])
 	    min_skip = atoi(optarg);    DEBUG(10) ("min_skip set to %d",min_skip); break;
 	case 'o': demux.outdir = optarg; break;
 	case 'P': opt_no_purge = true; break;
-	case 'p': no_promisc = 1;
+	case 'p': demux.opt_no_promisc = true;
 	    DEBUG(10) ("NOT turning on promiscuous mode");
 	    break;
 	case 'r': infile = optarg; break;
@@ -253,6 +242,13 @@ int main(int argc, char *argv[])
     if (need_usage) {
 	print_usage();
 	exit(1);
+    }
+
+    /* get the user's expression out of remainder of the arg... */
+    std::string expression = "";
+    for(int i=0;i<argc;i++){
+	if(expression.size()>0) expression+=" ";
+	expression += argv[i];
     }
 
     struct stat sbuf;
@@ -294,78 +290,7 @@ int main(int argc, char *argv[])
     /* hello, world */
     DEBUG(10) ("%s version %s ", PACKAGE, VERSION);
 
-    if (infile != NULL) {
-	/* Since we don't need network access, drop root privileges */
-	setuid(getuid());
-
-	/* open the capture file */
-	if ((pd = pcap_open_offline(infile, error)) == NULL)
-	    die("%s", error);
-
-	/* get the handler for this kind of packets */
-	dlt = pcap_datalink(pd);
-	handler = find_handler(dlt, infile);
-    } else {
-	/* if the user didn't specify a device, try to find a reasonable one */
-	if (device == NULL)
-	    if ((device = pcap_lookupdev(error)) == NULL)
-		die("%s", error);
-
-	/* make sure we can open the device */
-	if ((pd = pcap_open_live(device, SNAPLEN, !no_promisc, 1000, error)) == NULL)
-	    die("%s", error);
-
-	/* drop root privileges - we don't need them any more */
-	setuid(getuid());
-
-	/* get the handler for this kind of packets */
-	dlt = pcap_datalink(pd);
-	handler = find_handler(dlt, device);
-    }
-
-    /* get the user's expression out of remainder of the arg... */
-    std::string expression = "";
-    for(int i=0;i<argc;i++){
-	if(expression.size()>0) expression+=" ";
-	expression += argv[i];
-    }
-
-    /* If DLT_NULL is "broken", giving *any* expression to the pcap
-     * library when we are using a device of type DLT_NULL causes no
-     * packets to be delivered.  In this case, we use no expression, and
-     * print a warning message if there is a user-specified expression */
-#ifdef DLT_NULL_BROKEN
-    if (dlt == DLT_NULL && expression != ""){
-	DEBUG(1)("warning: DLT_NULL (loopback device) is broken on your system;");
-	DEBUG(1)("         filtering does not work.  Recording *all* packets.");
-    }
-#endif /* DLT_NULL_BROKEN */
-
-    DEBUG(20) ("filter expression: '%s'",expression.c_str());
-
-    /* install the filter expression in libpcap */
-    if (pcap_compile(pd, &fcode, expression.c_str(), 1, 0) < 0){
-	die("%s", pcap_geterr(pd));
-    }
-
-    if (pcap_setfilter(pd, &fcode) < 0){
-	die("%s", pcap_geterr(pd));
-    }
-
-    /* initialize our flow state structures */
-
-    /* set up signal handlers for graceful exit (pcap uses onexit to put
-     * interface back into non-promiscuous mode
-     */
-    portable_signal(SIGTERM, terminate);
-    portable_signal(SIGINT, terminate);
-    portable_signal(SIGHUP, terminate);
-
-    /* start listening! */
-    if (infile == NULL) DEBUG(1) ("listening on %s", device);
-    if (pcap_loop(pd, -1, handler, NULL) < 0){
-	die("%s", pcap_geterr(pd));
-    }
+    demux.process_infile(expression,device,infile);
 
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */
 

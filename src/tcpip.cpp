@@ -143,8 +143,8 @@ void tcpdemux::flow_map_clear()
 }
 
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
-    demux(demux_),myflow(flow_),isn(isn_),flow_pathname(),fp(0),pos(0),pos_max(0),
-    last_packet_time(0),bytes_printed(0),finished(0),file_created(false),dir(unknown),
+    demux(demux_),myflow(flow_),isn(isn_),flow_pathname(),fp(0),pos(0),pos_min(0),pos_max(0),
+    last_packet_time(0),bytes_processed(0),finished(0),file_created(false),dir(unknown),
     out_of_order_count(0),md5(0)
 {
     /* If we are outputting the transcripts, compute the filename */
@@ -390,9 +390,9 @@ void tcpip::print_packet(const u_char *data, u_int32_t length)
     const char *color[3] = { "\033[0;32m", "\033[0;34m", "\033[0;31m" };
 
     if(demux.max_bytes_per_flow>0){
-	if(bytes_printed > demux.max_bytes_per_flow) return; /* too much has been printed */
-	if(length > demux.max_bytes_per_flow - bytes_printed){
-	    length = demux.max_bytes_per_flow - bytes_printed; /* can only output this much */
+	if(bytes_processed > demux.max_bytes_per_flow) return; /* too much has been printed */
+	if(length > demux.max_bytes_per_flow - bytes_processed){
+	    length = demux.max_bytes_per_flow - bytes_processed; /* can only output this much */
 	    if(length==0) return;
 	}
     }
@@ -417,7 +417,7 @@ void tcpip::print_packet(const u_char *data, u_int32_t length)
     if(length != fwrite(data, 1, length, stdout)){
 	std::cerr << "\nwrite error to fwrite?\n";
     }
-    bytes_printed += length;
+    bytes_processed += length;
 
     if (use_color) printf("\033[0m");
 
@@ -507,9 +507,12 @@ void tcpip::store_packet(const u_char *data, u_int32_t length, u_int32_t seq, in
 	fflush(fp);
     }
 
-    /* remember the position for next time */
-    pos = offset + length;
-    if(pos>pos_max) pos_max = pos;
+    /* update instance variables */
+    if(bytes_processed==0 || pos<pos_min) pos_min = pos;
+
+    bytes_processed += length;		// more bytes have been processed
+    pos = offset + length;		// new pos
+    if (pos>pos_max) pos_max = pos;	// new max
 
     if (finished) {
 	DEBUG(5) ("%s: stopping capture", flow_pathname.c_str());
@@ -593,6 +596,7 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_time(0),
 		     openflows(),
 		     opt_output_enabled(true),opt_md5(false),
 		     opt_after_header(false),opt_gzip_decompress(true),
+		     opt_no_promisc(false),
 		     max_bytes_per_flow(),max_desired_fds()
 {
     /* Find out how many files we can have open safely...subtract 4 for
@@ -895,3 +899,92 @@ void tcpdemux::process_ip(const struct timeval *ts,const u_char *data, u_int32_t
 }
  
  
+/* This has to go somewhere; might as well be here */
+static void terminate(int sig) __attribute__ ((__noreturn__));
+static void terminate(int sig)
+{
+    DEBUG(1) ("terminating");
+    exit(0); /* libpcap uses onexit to clean up */
+}
+
+
+
+/*
+ * process an input file or device
+ * May be repeated.
+ */
+void tcpdemux::process_infile(const std::string &expression,const char *device,const char *infile)
+{
+    char error[PCAP_ERRBUF_SIZE];
+    pcap_t *pd;
+    int dlt;
+    pcap_handler handler;
+
+    if (infile != NULL) {
+	/* Since we don't need network access, drop root privileges */
+	setuid(getuid());
+
+	/* open the capture file */
+	if ((pd = pcap_open_offline(infile, error)) == NULL)
+	    die("%s", error);
+
+	/* get the handler for this kind of packets */
+	dlt = pcap_datalink(pd);
+	handler = find_handler(dlt, infile);
+    } else {
+	/* if the user didn't specify a device, try to find a reasonable one */
+	if (device == NULL)
+	    if ((device = pcap_lookupdev(error)) == NULL)
+		die("%s", error);
+
+	/* make sure we can open the device */
+	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL)
+	    die("%s", error);
+
+	/* drop root privileges - we don't need them any more */
+	setuid(getuid());
+
+	/* get the handler for this kind of packets */
+	dlt = pcap_datalink(pd);
+	handler = find_handler(dlt, device);
+    }
+
+    /* If DLT_NULL is "broken", giving *any* expression to the pcap
+     * library when we are using a device of type DLT_NULL causes no
+     * packets to be delivered.  In this case, we use no expression, and
+     * print a warning message if there is a user-specified expression */
+#ifdef DLT_NULL_BROKEN
+    if (dlt == DLT_NULL && expression != ""){
+	DEBUG(1)("warning: DLT_NULL (loopback device) is broken on your system;");
+	DEBUG(1)("         filtering does not work.  Recording *all* packets.");
+    }
+#endif /* DLT_NULL_BROKEN */
+
+    DEBUG(20) ("filter expression: '%s'",expression.c_str());
+
+    /* install the filter expression in libpcap */
+    struct bpf_program	fcode;
+    if (pcap_compile(pd, &fcode, expression.c_str(), 1, 0) < 0){
+	die("%s", pcap_geterr(pd));
+    }
+
+    if (pcap_setfilter(pd, &fcode) < 0){
+	die("%s", pcap_geterr(pd));
+    }
+
+    /* initialize our flow state structures */
+
+    /* set up signal handlers for graceful exit (pcap uses onexit to put
+     * interface back into non-promiscuous mode
+     */
+    portable_signal(SIGTERM, terminate);
+    portable_signal(SIGINT, terminate);
+    portable_signal(SIGHUP, terminate);
+
+    /* start listening! */
+    if (infile == NULL) DEBUG(1) ("listening on %s", device);
+    if (pcap_loop(pd, -1, handler, (u_char *)this) < 0){
+	die("%s", pcap_geterr(pd));
+    }
+}
+

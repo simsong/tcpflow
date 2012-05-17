@@ -47,6 +47,7 @@
 
 void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
     uint32_t family = *(uint32_t *)p;;
@@ -86,6 +87,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  * make sure it's marked as being IP. */
 void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
     struct ether_header *eth_header = (struct ether_header *) p;
@@ -144,6 +146,7 @@ if (ntohs(*ether_type) == ETHERTYPE_IP) {
 
 void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -166,6 +169,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  * and IRIX. */
 void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -180,6 +184,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #define SLL_HDR_LEN       16
 
 void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
+    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -197,7 +202,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
 }
 
 
-pcap_handler find_handler(int datalink_type, char *device)
+pcap_handler find_handler(int datalink_type, const char *device)
 {
     int i;
 

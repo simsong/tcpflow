@@ -195,10 +195,11 @@ typedef struct {
 
 
 /*
- * A tcpip is a flow with an initial sequence number.
- * We might be able to make this a subclass of a flow,
- * but that doesn't seem right, since the tcpip structure
- * also has information about where the flow is written.
+ * A tcpip is a flow that is being reconstructed.
+ * It includes:
+ *   - the flow (as an embedded object)
+ *   - Information about where the flow is written.
+ *   - Information about how much of the flow has been captured.
  */
 
 class tcpip {
@@ -210,22 +211,21 @@ public:
     } dir_t;
 	
 private:
+    /*** Begin Effective C++ error suppression                ***
+     *** This class does not implement assignment or copying. ***
+     ***/
     class not_impl: public std::exception {
-	virtual const char *what() const throw() {
-	    return "copying tcpip objects is not implemented.";
-	}
+	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
-    tcpip(const tcpip &t):demux(t.demux),myflow(),isn(),flow_pathname(),fp(),pos(),pos_max(),last_packet_time(),
-			  bytes_printed(),
-			  finished(),file_created(),dir(),out_of_order_count(),md5(){
+    tcpip(const tcpip &t):demux(t.demux),myflow(),isn(),flow_pathname(),fp(),pos(),pos_min(),pos_max(),last_packet_time(),
+			  bytes_processed(),finished(),file_created(),dir(),out_of_order_count(),md5(){
 	throw new not_impl();
     }
-    tcpip &operator=(const tcpip &that) {
-	throw new not_impl();
-    }
+    tcpip &operator=(const tcpip &that) { throw new not_impl(); }
+    /*** End Effective C++ error suppression */
 public:;
     /* instances - individual tcp/ip flows */
-    tcpip(class tcpdemux &demux_,const flow &flow_,tcp_seq isn_);    /* constructors */
+    tcpip(class tcpdemux &demux_,const flow &flow_,tcp_seq isn_);    /* constructor in tcpip.cpp */
     virtual ~tcpip();			// destructor
     class tcpdemux &demux;		// our demultiplexer
     flow	myflow;			/* Description of this flow */
@@ -233,14 +233,15 @@ public:;
     std::string flow_pathname;		// path where flow is stored
     FILE	*fp;			// Pointer to file storing this flow's data 
     uint64_t	pos;			// Current write position in fp 
+    uint64_t    pos_min;		// first byte written; default -1 means no 
     uint64_t	pos_max;		// highest pos has gotten
     int		last_packet_time;	// packet_timegtre of last access; used to sort the open flows to figure out which to close 
-    uint64_t	bytes_printed;		// for -b and -c used together
+    uint64_t	bytes_processed;	// number of bytes processed by demultiplxier
     bool	finished;
     bool	file_created;		// true if file was created
     dir_t	dir;			// direction of flow
-    uint64_t	out_of_order_count;		// all packets were contigious
-    context_md5_t *md5;			// md5 context if MD5 calculation in use
+    uint64_t	out_of_order_count;	// all packets were contigious
+    context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
 
     /* Methods */
     void process_gzip(std::stringstream &ss,
@@ -258,6 +259,7 @@ inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
 
 /**
  * the tcp demultiplixer
+ * This is a singleton class; we only need a single demultiplexer.
  */
 class tcpdemux {
 private:
@@ -270,6 +272,7 @@ private:
     tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_time(),xreport(),
 				max_fds(),flow_map(),openflows(),opt_output_enabled(),
 				opt_md5(),opt_after_header(),opt_gzip_decompress(),
+				opt_no_promisc(),
 				max_bytes_per_flow(),max_desired_fds(){
 	throw new not_impl();
     }
@@ -291,6 +294,7 @@ public:
     bool	opt_md5;		// do we calculate MD5 on DFXML output?
     bool	opt_after_header;	// decode headers after tcp connection closes
     bool	opt_gzip_decompress;
+    bool	opt_no_promisc;		// do not be promiscious
     uint64_t	max_bytes_per_flow;
     int		max_desired_fds;
     
@@ -315,6 +319,7 @@ public:
     void process_ip6(const struct timeval *ts,const u_char *data, const u_int32_t caplen, const int32_t vlan);
     void process_ip(const struct timeval *ts,const u_char *data, u_int32_t caplen,int32_t vlan);
     void flow_map_clear();		// clears out the map
+    void process_infile(const std::string &expression,const char *device,const char *infile);
 };
 
 inline std::ostream & operator << (std::ostream &os,const tcpdemux::flow_map_t &fm) {

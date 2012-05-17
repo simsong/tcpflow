@@ -70,7 +70,7 @@ extern int debug_level;
 /************************* Function prototypes ****************************/
 
 /* datalink.cpp - callback for libpcap */
-pcap_handler find_handler(int datalink_type, char *device); // callback for pcap
+pcap_handler find_handler(int datalink_type, const char *device); // callback for pcap
 
 /* flow.cpp - handles the flow database */
 void flow_close_all();
@@ -104,6 +104,6 @@ void die(const char *fmt, ...)
 ;
 
 
-extern tcpdemux demux;				// the demux object
+//extern tcpdemux demux;				// the demux object
 
 #endif /* __TCPFLOW_H__ */
