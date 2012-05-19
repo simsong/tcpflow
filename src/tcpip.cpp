@@ -593,6 +593,7 @@ unsigned int tcpdemux::get_max_fds(void)
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_time(0),
 		     xreport(0),max_fds(10),flow_map(),
+		     start_new_connections(false),
 		     openflows(),
 		     opt_output_enabled(true),opt_md5(false),
 		     opt_after_header(false),opt_gzip_decompress(true),
@@ -693,8 +694,11 @@ void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, u_int32_
     data   += tcp_header_len;
     length -= tcp_header_len;
 
-    /* see if we have state about this flow; if not, create it (from Debian patch 10) */
+    /* see if we have state about this flow; if not, create it */
     tcpip *tcp = find_tcpip(this_flow);
+    
+    if(tcp==0 && start_new_connections==false) return; // don't start new ones
+
     uint64_t connection_count = 0;
     if(tcp){
 	/* If offset will be too much, throw away this_flow and create a new one */
@@ -702,14 +706,19 @@ void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, u_int32_
 	if(syn_set){
 	    isn2 = seq - tcp->pos + 1;
 	}
-	tcp_seq offset = seq - isn2;
+	tcp_seq offset  = seq - isn2;	// offset from the last seen packet to beginning of current
+	tcp_seq roffset = isn2 - seq;
 	if(offset != tcp->pos) {
-	    /* there will be a seek to pos. */
+            /** We need to seek if offset doesn't match current position.
+	     * If the seek is too much, start a new connection.
+	     * roffset handles reverse seek, which happens with out-of-order packet delivery.
+	     */
 	    if((offset > tcp->pos)
 	       && (offset > tcp->pos_max)
 	       && (length > 0)
 	       && (max_bytes_per_flow==0) 
-	       && ((uint64_t)offset > (uint64_t)tcp->pos +  min_skip)){
+	       && ((uint64_t)offset > (uint64_t)tcp->pos +  min_skip)
+	       && (roffset > min_skip)){
 		//std::cerr << "tcp->pos=" << tcp->pos << " tcp->pos_max="
 		//<< tcp->pos_max << " offset=" << offset << " min_skip="
 		//<< min_skip << "  this_flow=" << this_flow << "\n";
@@ -912,34 +921,35 @@ static void terminate(int sig)
 /*
  * process an input file or device
  * May be repeated.
+ * If start is false, do not initiate new connections
  */
-void tcpdemux::process_infile(const std::string &expression,const char *device,const char *infile)
+void tcpdemux::process_infile(const std::string &expression,const char *device,const std::string &infile,bool start)
 {
     char error[PCAP_ERRBUF_SIZE];
-    pcap_t *pd;
-    int dlt;
+    pcap_t *pd=0;
+    int dlt=0;
     pcap_handler handler;
 
-    if (infile != NULL) {
-	/* Since we don't need network access, drop root privileges */
-	setuid(getuid());
-
-	/* open the capture file */
-	if ((pd = pcap_open_offline(infile, error)) == NULL)
+    start_new_connections = start;
+    if (infile!=""){
+	if ((pd = pcap_open_offline(infile.c_str(), error)) == NULL){	/* open the capture file */
 	    die("%s", error);
+	}
 
-	/* get the handler for this kind of packets */
-	dlt = pcap_datalink(pd);
-	handler = find_handler(dlt, infile);
+	dlt = pcap_datalink(pd);	/* get the handler for this kind of packets */
+	handler = find_handler(dlt, infile.c_str());
     } else {
 	/* if the user didn't specify a device, try to find a reasonable one */
-	if (device == NULL)
-	    if ((device = pcap_lookupdev(error)) == NULL)
+	if (device == NULL){
+	    if ((device = pcap_lookupdev(error)) == NULL){
 		die("%s", error);
+	    }
+	}
 
 	/* make sure we can open the device */
-	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL)
+	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
 	    die("%s", error);
+	}
 
 	/* drop root privileges - we don't need them any more */
 	setuid(getuid());
@@ -952,7 +962,8 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
     /* If DLT_NULL is "broken", giving *any* expression to the pcap
      * library when we are using a device of type DLT_NULL causes no
      * packets to be delivered.  In this case, we use no expression, and
-     * print a warning message if there is a user-specified expression */
+     * print a warning message if there is a user-specified expression
+     */
 #ifdef DLT_NULL_BROKEN
     if (dlt == DLT_NULL && expression != ""){
 	DEBUG(1)("warning: DLT_NULL (loopback device) is broken on your system;");
@@ -982,7 +993,7 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
     portable_signal(SIGHUP, terminate);
 
     /* start listening! */
-    if (infile == NULL) DEBUG(1) ("listening on %s", device);
+    if (infile == "") DEBUG(1) ("listening on %s", device);
     if (pcap_loop(pd, -1, handler, (u_char *)this) < 0){
 	die("%s", pcap_geterr(pd));
     }

@@ -103,7 +103,4 @@ void die(const char *fmt, ...)
 #endif
 ;
 
-
-//extern tcpdemux demux;				// the demux object
-
 #endif /* __TCPFLOW_H__ */

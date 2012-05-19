@@ -270,7 +270,7 @@ private:
 	}
     };
     tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_time(),xreport(),
-				max_fds(),flow_map(),openflows(),opt_output_enabled(),
+				max_fds(),flow_map(),start_new_connections(),openflows(),opt_output_enabled(),
 				opt_md5(),opt_after_header(),opt_gzip_decompress(),
 				opt_no_promisc(),
 				max_bytes_per_flow(),max_desired_fds(){
@@ -289,6 +289,7 @@ public:
     unsigned int max_fds;		// maximum number of file descriptors for this tcpdemux
 
     flow_map_t	flow_map;		// the database
+    bool	start_new_connections;	// true if we should start new connections
     tcpset	openflows;		// the tcpip flows with open FPs 
     bool	opt_output_enabled;	// do we output?
     bool	opt_md5;		// do we calculate MD5 on DFXML output?
@@ -319,7 +320,7 @@ public:
     void process_ip6(const struct timeval *ts,const u_char *data, const u_int32_t caplen, const int32_t vlan);
     void process_ip(const struct timeval *ts,const u_char *data, u_int32_t caplen,int32_t vlan);
     void flow_map_clear();		// clears out the map
-    void process_infile(const std::string &expression,const char *device,const char *infile);
+    void process_infile(const std::string &expression,const char *device,const std::string &infile,bool start);
 };
 
 inline std::ostream & operator << (std::ostream &os,const tcpdemux::flow_map_t &fm) {

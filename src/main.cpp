@@ -10,6 +10,7 @@
 #define __MAIN_C__
 
 #include "tcpflow.h"
+#include <vector>
 
 #define ENABLE_GZIP 0
 
@@ -36,7 +37,7 @@ void print_usage()
 {
     std::cerr << PACKAGE << " version " << VERSION << "\n\n";
     std::cerr << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
-    std::cerr << "          [-i iface] [-L semlock] [-r file] [-o outdir] [-X xmlfile]\n";
+    std::cerr << "          [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
     std::cerr << "          [-m min_bytes] [-F[ct]] [expression]\n\n";
     std::cerr << "        -a: do ALL processing (http expansion, create report.xml, etc.)\n";
     std::cerr << "        -b: max number of bytes per flow to save\n";
@@ -49,10 +50,10 @@ void print_usage()
     std::cerr << "        -h: print this help message\n";
     std::cerr << "        -i: network interface on which to listen\n";
     std::cerr << "            (type \"ifconfig -a\" for a list of interfaces)\n";
-    std::cerr << "        -L: lock; specifies that writes are locked using a named semaphore\n";
+    std::cerr << "        -L semlock - specifies that writes are locked using a named semaphore\n";
     std::cerr << "        -p: don't use promiscuous mode\n";
     std::cerr << "        -P: don't purge tcp connections on FIN\n";
-    std::cerr << "        -r: read packets from tcpdump pcap file\n";
+    std::cerr << "        -r: read packets from tcpdump pcap file (may be repeated)\n";
     std::cerr << "        -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
     std::cerr << "        -s: strip non-printable characters (change to '.')\n";
     std::cerr << "        -v: verbose operation equivalent to -d 10\n";
@@ -127,7 +128,8 @@ int main(int argc, char *argv[])
 
     const char *lockname = 0;
     char *device = NULL;
-    char *infile = NULL;
+    std::vector<std::string> rfiles;	// files to read
+    std::vector<std::string> Rfiles;	// files for finishing
 
     progname = argv[0];
     
@@ -215,7 +217,12 @@ int main(int argc, char *argv[])
 	case 'p': demux.opt_no_promisc = true;
 	    DEBUG(10) ("NOT turning on promiscuous mode");
 	    break;
-	case 'r': infile = optarg; break;
+	case 'R':
+	    Rfiles.push_back(optarg);
+	    break;
+	case 'r':
+	    rfiles.push_back(optarg);
+	    break;
 	case 's':
 	    strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'"); break;
 	case 'T': flow::filename_template = optarg;break;
@@ -233,6 +240,8 @@ int main(int argc, char *argv[])
 	    break;
 	}
     }
+    argc -= optind;
+    argv += optind;
 
     if(opt_all){
 	xmlout = demux.outdir + "/report.xml";
@@ -287,10 +296,19 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    /* hello, world */
     DEBUG(10) ("%s version %s ", PACKAGE, VERSION);
 
-    demux.process_infile(expression,device,infile);
+    if(rfiles.size()==0 && Rfiles.size()==0){
+	/* live capture */
+	setuid(getuid());	/* Since we don't need network access, drop root privileges */
+    }
+
+    for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
+	demux.process_infile(expression,device,*it,true);
+    }
+    for(std::vector<std::string>::const_iterator it=Rfiles.begin();it!=Rfiles.end();it++){
+	demux.process_infile(expression,device,*it,false);
+    }
 
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */
 
