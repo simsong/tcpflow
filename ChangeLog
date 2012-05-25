@@ -1,3 +1,11 @@
+2012-05-24  Simson Garfinkel  <simsong@it153582.ern.nps.edu>
+
+	* configure.ac: increased version to 1.2.7.
+
+	* src/main.cpp (main):  -r option now allows for multiple files to be specified.
+
+	* src/main.cpp (main):  -R option now allows for incomplete tcp connections to be finished.
+
 2012-05-16  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/main.cpp (main): removed global "tcpdemux demux"

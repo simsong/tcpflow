@@ -21,7 +21,10 @@ tcpflow \- TCP flow recorder
 .BI \-i \ iface\fR\c
 ]
 [\c
-.BI \-r \ file\fR\c
+.BI \-r \ file1.pcap\fR\c
+]
+[\c
+.BI \-R \ file0.pcap\fR\c
 ]
 [\c
 .BI \-m \ minskip\fR\c
@@ -215,11 +218,29 @@ Read from file.  Read packets from \fIfile\fP, which was created using the
 .B \-w
 option of
 .IR tcpdump (1).
+This option may be repeated any number of times as of 
+.IR tcpflow
+version 1.2.7.
 Standard input is used if \fIfile\fP is ``-''.
 Note that for this option to be useful, tcpdump's
 .B \-s
 option should be used to set the snaplen to the MTU of the interface
 (e.g., 1500) while capturing packets.
+.TP
+.B \-R
+Read from a file, but only to complete TCP flows. This option is used when 
+.IR tcpflow
+is used to process a series of files that are captured over time.
+For each time period
+.I n,
+file 
+.I filen.pcap
+should be processed with 
+.IR -r filen.pcap,
+while 
+.I file(n-1).pcap
+should be processed with
+.IR -R file(n-1).pcap.
 .TP
 .B \-s
 Strip non-printables.  Convert all non-printable characters to the

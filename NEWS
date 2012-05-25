@@ -1,3 +1,28 @@
+Version 1.2.6 May 24 2012 (GIT)
+
+I am pleased to announce the release of tcpflow version 1.2.7
+
+Version 1.2.7 offers two significant features over previous versions
+relating to the processing of the -r and the new -R options.
+
+  -r file1.pcap - This option specifies a pcap file to be read. 
+                  New with version 1.2.7, the -r flag may be
+                  repeated any number of times.
+
+  -R file0.pcap - This option, new with version 1.2.7, allows a file
+                  to be specified that was captured in time *before*
+                  the file specified with -r. This option allows TCP
+                  sessions that started in file0.pcap and which
+                  continued into file1.pcap to be properly
+                  started. This option is useful when some external
+                  process makes packet capture files at regular
+                  intervals and then the files are reassembled
+                  later. Typically these files result from tcpdump run
+                  with the -w or -C options.
+
+
+
+
 Version 1.2 March 15 2012 (SVN )
 
 I am pleased to announce the release of tcpflow version 1.2.
