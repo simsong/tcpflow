@@ -192,10 +192,7 @@
 /****************************************************************
  *** pcap.h (very improtant to this program)
  ***/
-#if !defined(HAVE_PCAP_H) && !defined(HAVE_PCAP_PCAP_H)
-#error tcpflow requires pcap.h or pcap/pcap.h
-#endif
-
+#ifdef HAVE_LIBPCAP
 
 /* pcap.h has redundant definitions */
 #ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
@@ -206,6 +203,9 @@
 #  include <pcap/pcap.h>
 #else
 #  include <pcap.h>
+#endif
+#else
+#include "pcap_fake.h"
 #endif
 
 

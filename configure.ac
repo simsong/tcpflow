@@ -24,18 +24,22 @@ AC_PROG_INSTALL
 # pcap support. A bit more involved than normal due to the error message
 #
 AC_CHECK_LIB(pcap, pcap_lookupdev, , [
-	AC_MSG_ERROR([
-Can't find the pcap library (libpcap.a); install the pcap and/or pcap-dev library.
-Please execute this command:
+	AC_MSG_WARN([
+Can't find the pcap library (libpcap.a). 
+tcpflow will not live capture or compile rules without pcap!
+
+If you need rules or live capture, you must install the pcap and/or
+pcap-dev library.  Please execute this command:
 
   UBUNTU: sudo apt-get install libpcap-dev
   DEBIAN: sudo apt-get install libpcap-dev
   FEDORA: sudo yum install libpcap-devel
+  MINGW:  Sorry!  libpcap is not currently 
+          available when cross-compiling.
 
-If your libpcap is installed in a non-standard location, you will 
-need to use the --with-pcap=directory to specify where your pcap is located.
-
-When installing libpcap from sources, do both 'make install' and 'make install-incl'
+If your libpcap is installed in a non-standard location, you will need
+to use the --with-pcap=directory to specify where your pcap is
+located.
 ])])
 
 
