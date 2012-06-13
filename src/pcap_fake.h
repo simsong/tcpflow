@@ -17,7 +17,8 @@ extern "C" {
 #define PCAP_VERSION_MINOR 4
 
 #define PCAP_ERRBUF_SIZE 256
-
+    
+    
     typedef struct pcap pcap_t;
     struct pcap_file_header {
 	uint32_t magic;
@@ -33,6 +34,37 @@ extern "C" {
 	uint32_t caplen;	/* length of portion present */
 	uint32_t len;	/* length this packet (off wire) */
     };
+
+    /*
+     * Taken from pcap-int.h -- For reading saved files
+     */    
+    struct pcap_sf {
+	FILE *rfile;
+	int32_t (*next_packet_op)(pcap_t *, struct pcap_pkthdr *, u_char **);
+	int32_t swapped;
+	size_t hdrsize;
+	swapped_type_t lengths_swapped;
+	int32_t version_major;
+	int32_t version_minor;
+	uint32_t ifcount;    /* number of interfaces seen in this capture */
+	uint32_t tsresol;    /* time stamp resolution */
+	uint32_t tsscale;    /* scaling factor for resolution -> microseconds */
+	uint64_t tsoffset;   /* time stamp offset */
+    };
+
+    /*
+     * Taken from pcap-int.h
+     */
+    typedef int (*read_op_t)(pcap_t *, int cnt, pcap_handler, u_char *);
+    read_op_t read_op;
+
+    /*
+     * Taken from pcap-int.h
+     */
+    typedef int (*setfilter_op_t)(pcap_t *, struct bpf_program *);
+    setfilter_op_t setfilter_op;
+    
+    typedef void (*pcap_handler)(u_char *, const struct pcap_pkthdr *, const u_char *);
 
     struct bpf_program {
 	void *error;			// don't use program in pcap_fake
@@ -50,7 +82,7 @@ extern "C" {
     int	pcap_datalink(pcap_t *);			  // noop
     int	pcap_setfilter(pcap_t *, struct bpf_program *);	  // noop
     int	pcap_compile(pcap_t *, struct bpf_program *, const char *, int, uint32_t); // generate error if filter provided
-    
+    int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #ifdef __cplusplus
     };
 #endif
