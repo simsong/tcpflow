@@ -1,3 +1,7 @@
+2012-06-18  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* bootstrap.sh: added --add-missing to bootstrap.sh
+
 2012-05-24  Simson Garfinkel  <simsong@it153582.ern.nps.edu>
 
 	* configure.ac: increased version to 1.2.7.

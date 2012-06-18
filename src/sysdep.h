@@ -192,20 +192,20 @@
 /****************************************************************
  *** pcap.h (very improtant to this program)
  ***/
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP)
 
 /* pcap.h has redundant definitions */
-#ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
-#  pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
+#  ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
+#    pragma GCC diagnostic ignored "-Wredundant-decls"
+#  endif
 
-#ifdef HAVE_PCAP_PCAP_H
-#  include <pcap/pcap.h>
+#  ifdef HAVE_PCAP_PCAP_H
+#    include <pcap/pcap.h>
+#  else
+#    include <pcap.h>
+#  endif
 #else
-#  include <pcap.h>
-#endif
-#else
-#include "pcap_fake.h"
+#  include "pcap_fake.h"
 #endif
 
 
