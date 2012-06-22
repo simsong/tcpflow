@@ -136,7 +136,7 @@ int pcap_setfilter(pcap_t *p, struct bpf_program *prog) {
 }
 
 
-int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
+int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
 {
     while(cnt !=0 && !feof(p->fp) && p->break_loop==false){
 	uint32_t tv_sec;

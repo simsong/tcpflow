@@ -45,6 +45,22 @@
 #error something is messed up
 #endif
 
+#ifdef WIN32
+#  include <winsock2.h>
+#  include <windows.h>
+#  include <windowsx.h>
+#endif
+
+/* required per C++ standard */
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
+#ifdef _WIN32
+/* For some reason this doesn't work properly with mingw */
+#undef HAVE_EXTERN_PROGNAME
+#endif
+
 /**************************** Constants ***********************************/
 
 #define DEFAULT_DEBUG_LEVEL 1

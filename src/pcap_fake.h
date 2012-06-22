@@ -39,7 +39,7 @@ typedef struct pcap pcap_t;
  * Taken from pcap-int.h
  */
 //typedef int (*setfilter_op_t)(pcap_t *, struct bpf_program *);
-typedef void (*pcap_handler)(u_char *, const struct pcap_pkthdr *, const u_char *);
+typedef void (*pcap_handler)(uint8_t *, const struct pcap_pkthdr *, const uint8_t *);
 
 struct bpf_program {
     int valid;				// set true if filter is valid
@@ -50,7 +50,7 @@ pcap_t	*pcap_open_live(const char *, int, int, int, char *); // not implemented
 pcap_t	*pcap_open_offline(const char *, char *); // open the file; set f
 pcap_t	*pcap_fopen_offline(FILE *fp,char *errbuf);
 void	pcap_close(pcap_t *);			  // close the file
-int	pcap_loop(pcap_t *, int, pcap_handler, u_char *); // read the file and call loopback on each packet
+int	pcap_loop(pcap_t *, int, pcap_handler, uint8_t *); // read the file and call loopback on each packet
 int	pcap_datalink(pcap_t *);			  // noop
 int	pcap_setfilter(pcap_t *, struct bpf_program *);	  // noop
 int	pcap_compile(pcap_t *, struct bpf_program *, const char *, int, uint32_t); // generate error if filter provided
