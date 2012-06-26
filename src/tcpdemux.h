@@ -11,13 +11,63 @@
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
+#ifdef WIN32
+typedef uint8_t u_int8_t ;
+typedef uint16_t u_int16_t ;
+#define ETH_ALEN 6
+#include "net_ethernet.h"
+#endif
+
 /** On windows, there is no in_addr_t; this is from
  * /usr/include/netinet/in.h
  */
 #ifndef HAVE_NETINET_IN_H
 typedef uint32_t in_addr_t;
 #endif
+#ifndef HAVE_SA_FAMILY_T
+typedef unsigned short int sa_family_t;
+#endif
+#ifndef HAVE_TCP_SEQ
+#ifdef WIN32
+#define __LITTLE_ENDIAN 1234
+#define __BIG_ENDIAN 4321
+#define __BYTE_ORDER __LITTLE_ENDIAN
+#endif
 
+/* If we don't have tcp_seq, we probably don't have struct tcphdr.
+ * Bring it all in... (from /usr/include/netinet/tcp.h)
+ */
+typedef	uint32_t tcp_seq;
+/*
+ * TCP header.
+ * Per RFC 793, September, 1981.
+ */
+struct tcphdr
+  {
+    uint16_t th_sport;		/* source port */
+    uint16_t th_dport;		/* destination port */
+    tcp_seq th_seq;		/* sequence number */
+    tcp_seq th_ack;		/* acknowledgement number */
+#  if __BYTE_ORDER == __LITTLE_ENDIAN
+    uint8_t th_x2:4;		/* (unused) */
+    uint8_t th_off:4;		/* data offset */
+#  endif
+#  if __BYTE_ORDER == __BIG_ENDIAN
+    uint8_t th_off:4;		/* data offset */
+    uint8_t th_x2:4;		/* (unused) */
+#  endif
+    uint8_t th_flags;
+#  define TH_FIN	0x01
+#  define TH_SYN	0x02
+#  define TH_RST	0x04
+#  define TH_PUSH	0x08
+#  define TH_ACK	0x10
+#  define TH_URG	0x20
+    uint16_t th_win;		/* window */
+    uint16_t th_sum;		/* checksum */
+    uint16_t th_urp;		/* urgent pointer */
+};
+#endif
 
 /**
  * ipaddress class.

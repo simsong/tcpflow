@@ -1,3 +1,8 @@
+2012-06-26  mike  <mike@reem>
+
+	* src/datalink.cpp (dl_null): moved ETHERTYPE_IPV6 from sysdep.h
+	to datalink.cpp 
+
 2012-06-18  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* bootstrap.sh: added --add-missing to bootstrap.sh

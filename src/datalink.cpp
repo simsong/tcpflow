@@ -45,6 +45,11 @@
  * DLT_NULL is used by the localhost interface. */
 #define	NULL_HDRLEN 4
 
+/* Some systems hasn't defined ETHERTYPE_IPV6 */
+#ifndef ETHERTYPE_IPV6
+# define ETHERTYPE_IPV6 0x86DD
+#endif
+
 void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     tcpdemux &demux = *(tcpdemux *)user;

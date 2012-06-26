@@ -47,6 +47,29 @@ void flow::print_usage()
     std::cerr << "Default filename template is " << filename_template << "\n";
 }
 
+#define ETH_ALEN 6
+
+#ifndef HAVE_INET_NTOP
+/* Fake this code for Windows */
+#define MAX_IPv4_STR_LEN (3*4+3)
+#define MAX_IPv6_STR_LEN 256
+#define bcopy(src,dst,len) memcpy(dst,src,len)
+#define bzero(dst,len) memset(dst,0,len)
+typedef size_t socklen_t;
+#define IN6_IS_ADDR_V4MAPPED(x) 0
+#define IN6_IS_ADDR_V4COMPAT(x) 0
+struct in6_addr {
+    union {
+	uint8_t   __u6_addr8[16];
+	uint16_t  __u6_addr16[8];
+	uint32_t  __u6_addr32[4];
+    } __u6_addr;                    /* 128-bit IP6 address */
+};
+
+#include "inet_ntop.c"
+#endif
+
+
 std::string flow::filename()
 {
     std::stringstream ss;

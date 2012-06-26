@@ -261,8 +261,54 @@ AC_CHECK_HEADERS([net/if_var.h net/if.h], [], [],
 #endif
 ]])
  
-AC_CHECK_FUNCS([sigaction sigset strnstr])
-AC_CHECK_TYPES([sa_family_t])
+AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr])
+AC_CHECK_TYPES([sa_family_t], [], [], 
+[[
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+]]
+)
+
+AC_CHECK_TYPES([tcp_seq], [], [], 
+[[
+/* from sysdep.h */
+#include <stdio.h>
+#include <stdlib.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
+#ifndef __FAVOR_BSD
+#define __FAVOR_BSD
+#endif
+
+#ifndef __USE_BSD
+#define __USE_BSD
+#endif
+
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+]]
+)
 
 ############## drop optimization flags if requested ################
 AC_ARG_WITH(noopt, AC_HELP_STRING([--with-noopt], [Drop -O C flags]))

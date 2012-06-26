@@ -179,11 +179,6 @@
 # define ETHERTYPE_VLAN 0x8100
 #endif
 
-/* Some systems hasn't defined ETHERTYPE_IPV6 */
-#ifndef ETHERTYPE_IPV6
-# define ETHERTYPE_IPV6 0x86DD
-#endif
-
 #ifdef HAVE_SIGNAL_H
 # include <signal.h>
 #endif
