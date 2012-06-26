@@ -11,6 +11,14 @@
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
+/** On windows, there is no in_addr_t; this is from
+ * /usr/include/netinet/in.h
+ */
+#ifndef HAVE_NETINET_IN_H
+typedef uint32_t in_addr_t;
+#endif
+
+
 /**
  * ipaddress class.
  * represents IPv4 and IPv6 addresses.
@@ -32,7 +40,7 @@ public:;
 	memcpy(addr,a,16);
     }
 
-    u_int8_t addr[16];			// holds v4 or v16
+    uint8_t addr[16];			// holds v4 or v16
     inline bool operator ==(const ipaddr &b) const{
 	return 	memcmp(this->addr,b.addr,sizeof(addr))==0;
     };
@@ -247,8 +255,8 @@ public:;
     void process_gzip(std::stringstream &ss,
 		      const std::string &fname,const unsigned char *base,size_t len);
     void close_file();				// close fp
-    void print_packet(const u_char *data, u_int32_t length);
-    void store_packet(const u_char *data, u_int32_t length, u_int32_t seq, int syn_set);
+    void print_packet(const u_char *data, uint32_t length);
+    void store_packet(const u_char *data, uint32_t length, uint32_t seq, int syn_set);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
@@ -314,11 +322,11 @@ public:
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn,
 			       const timeval &ts,uint64_t connection_count);
     tcpip *find_tcpip(const flow_addr &flow);
-    void process_tcp(const struct timeval *ts,const u_char *data, u_int32_t length,
+    void process_tcp(const struct timeval *ts,const u_char *data, uint32_t length,
 			    const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
-    void process_ip4(const struct timeval *ts,const u_char *data, u_int32_t caplen,int32_t vlan);
-    void process_ip6(const struct timeval *ts,const u_char *data, const u_int32_t caplen, const int32_t vlan);
-    void process_ip(const struct timeval *ts,const u_char *data, u_int32_t caplen,int32_t vlan);
+    void process_ip4(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan);
+    void process_ip6(const struct timeval *ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
+    void process_ip(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan);
     void flow_map_clear();		// clears out the map
     void process_infile(const std::string &expression,const char *device,const std::string &infile,bool start);
 };

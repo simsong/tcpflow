@@ -38,18 +38,18 @@
 #define __TCPFLOW_H__
 
 #include "config.h"
-#include "sysdep.h"
-#include "xml.h"
 
-#ifndef __SYSDEP_H__
-#error something is messed up
-#endif
-
+/* If we are running on Windows, including the Windows-specific
+   include files first.
+*/
 #ifdef WIN32
 #  include <winsock2.h>
 #  include <windows.h>
 #  include <windowsx.h>
 #endif
+
+#include "sysdep.h"
+#include "xml.h"
 
 /* required per C++ standard */
 #ifndef __STDC_FORMAT_MACROS

@@ -175,8 +175,12 @@ public:
     void xmlout( const std::string &tag,const std::string &value){ xmlout(tag,value,"",true); }
     void xmlout( const std::string &tag,const int value){ xmlprintf(tag,"","%d",value); }
     void xmloutl(const std::string &tag,const long value){ xmlprintf(tag,"","%ld",value); }
+#ifdef WIN32
+#error - need to implement this
+#else
     void xmlout( const std::string &tag,const int64_t value){ xmlprintf(tag,"","%"PRId64,value); }
     void xmlout( const std::string &tag,const uint64_t value){ xmlprintf(tag,"","%"PRIu64,value); }
+#endif
     void xmlout( const std::string &tag,const double value){ xmlprintf(tag,"","%f",value); }
     void xmlout( const std::string &tag,const struct timeval &ts) {
 	xmlprintf(tag,"","%d.%06d",(int)ts.tv_sec, (int)ts.tv_usec);
@@ -184,8 +188,12 @@ public:
     static std::string to8601(const struct timeval &ts) {
 	struct tm tm;
 	char buf[64];
+#ifdef HAVE_LOCALTIME_R
 	localtime_r(&ts.tv_sec,&tm);
-	strftime(buf,sizeof(buf),"%FT%T",&tm);
+#else
+	tm = *localtime(&ts.tv_sec);
+#endif
+	strftime(buf,sizeof(buf),"%Y-%m-%dT%H:%M:%S",&tm);
 	if(ts.tv_usec>0){
 	    int len = strlen(buf);
 	    snprintf(buf+len,sizeof(buf)-len,".%06d",(int)ts.tv_usec);

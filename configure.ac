@@ -209,7 +209,6 @@ AC_TRY_COMPILE([#pragma GCC diagnostic ignored "-Wredundant-decls"],
 	       AC_DEFINE([GNUC_HAS_DIAGNOSTIC_PRAGMA],[1],[GCC supports #pragma GCC diagnostic]),
 	       )
 
-
 ################################################################
 # PTHREAD support
 # With special nods to compiling under mingw
@@ -234,9 +233,6 @@ fi
 
 AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_LIB([pthreadGC2],[pthread_create])
-
-################################################################
-## specific code goes here.
 
 ################################################################
 # Specify our other headers
@@ -266,7 +262,7 @@ AC_CHECK_HEADERS([net/if_var.h net/if.h], [], [],
 ]])
  
 AC_CHECK_FUNCS([sigaction sigset strnstr])
-
+AC_CHECK_TYPES([sa_family_t])
 
 ############## drop optimization flags if requested ################
 AC_ARG_WITH(noopt, AC_HELP_STRING([--with-noopt], [Drop -O C flags]))

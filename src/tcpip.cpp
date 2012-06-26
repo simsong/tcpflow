@@ -366,7 +366,7 @@ void tcpip::close_file()
 
 /* convert all non-printable characters to '.' (period).  
  */
-static u_char *do_strip_nonprint(const u_char *data, u_char *buf,u_int32_t length)
+static u_char *do_strip_nonprint(const u_char *data, u_char *buf,uint32_t length)
 {
     u_char *write_ptr = buf;
     while (length) {
@@ -384,7 +384,7 @@ static u_char *do_strip_nonprint(const u_char *data, u_char *buf,u_int32_t lengt
 
 
 /* print the contents of this packet to the console */
-void tcpip::print_packet(const u_char *data, u_int32_t length)
+void tcpip::print_packet(const u_char *data, uint32_t length)
 {
     /* green, blue, read */
     const char *color[3] = { "\033[0;32m", "\033[0;34m", "\033[0;31m" };
@@ -436,7 +436,7 @@ void tcpip::print_packet(const u_char *data, u_int32_t length)
 
 
 /* store the contents of this packet to its place in its file */
-void tcpip::store_packet(const u_char *data, u_int32_t length, u_int32_t seq, int syn_set)
+void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq, int syn_set)
 {
     /* If we got a SYN reset the sequence number */
     if (syn_set) {
@@ -668,7 +668,7 @@ FILE *tcpdemux::retrying_fopen(const char *filename,const char *mode)
  * Called to processes a tcp packet
  */
 
-void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, u_int32_t length,
+void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, uint32_t length,
 			const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family)
 {
     struct tcphdr *tcp_header = (struct tcphdr *) data;
@@ -791,7 +791,7 @@ void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, u_int32_
  * process_tcp() for further processing.
  *
  * Note: we currently don't know how to handle IP fragments. */
-void tcpdemux::process_ip4(const struct timeval *ts,const u_char *data, u_int32_t caplen,int32_t vlan)
+void tcpdemux::process_ip4(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan)
 {
     const struct ip *ip_header = (struct ip *) data;
     u_int ip_header_len;
@@ -850,7 +850,7 @@ void tcpdemux::process_ip4(const struct timeval *ts,const u_char *data, u_int32_
  */
 
 
-void tcpdemux::process_ip6(const struct timeval *ts,const u_char *data, const u_int32_t caplen, const int32_t vlan)
+void tcpdemux::process_ip6(const struct timeval *ts,const u_char *data, const uint32_t caplen, const int32_t vlan)
 {
     const struct ip6_hdr *ip_header = (struct ip6_hdr *) data;
     u_int16_t ip_payload_len;
@@ -892,7 +892,7 @@ void tcpdemux::process_ip6(const struct timeval *ts,const u_char *data, const u_
  * This function calls process_ip4 or process_ip6
  */
 
-void tcpdemux::process_ip(const struct timeval *ts,const u_char *data, u_int32_t caplen,int32_t vlan)
+void tcpdemux::process_ip(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan)
 {
     const struct ip *ip_header = (struct ip *) data;
     if (caplen < sizeof(struct ip)) {
