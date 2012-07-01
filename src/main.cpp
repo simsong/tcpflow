@@ -27,7 +27,7 @@ const char *progname = 0;
 
 
 #ifdef HAVE_PTHREAD
-sem_t *semlock = 0;
+sem_t semlock = 0;
 #endif
 
 #include <string>
@@ -262,11 +262,16 @@ int main(int argc, char *argv[])
 
     struct stat sbuf;
     if(lockname){
+#ifdef WIN32
+#error "No semaphore support for Windows yet"
+#else
+
 #if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD)
 	semlock = sem_open(lockname,O_CREAT,0777,1); // get the semaphore
 #else
 	fprintf(stderr,"%s: attempt to create lock pthreads not present\n",argv[0]);
 	exit(1);
+#endif
 #endif	
     }
 
@@ -281,7 +286,7 @@ int main(int argc, char *argv[])
 	    exit(1);
 	}
     } else {
-	if(mkdir(demux.outdir.c_str(),0777)){
+	if(MKDIR(demux.outdir.c_str(),0777)){
 	    std::cerr << "cannot create " << demux.outdir << ": " << strerror(errno) << "\n";
 	    exit(1);
 	}
@@ -300,7 +305,9 @@ int main(int argc, char *argv[])
 
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
+#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
 	setuid(getuid());	/* Since we don't need network access, drop root privileges */
+#endif
     }
 
     for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){

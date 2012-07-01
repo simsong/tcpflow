@@ -176,7 +176,8 @@ public:
     void xmlout( const std::string &tag,const int value){ xmlprintf(tag,"","%d",value); }
     void xmloutl(const std::string &tag,const long value){ xmlprintf(tag,"","%ld",value); }
 #ifdef WIN32
-    //#error - need to implement this
+    void xmlout( const std::string &tag,const int64_t value){ xmlprintf(tag,"","%I64d",value); }
+    void xmlout( const std::string &tag,const uint64_t value){ xmlprintf(tag,"","%I64u",value); }
 #else
     void xmlout( const std::string &tag,const int64_t value){ xmlprintf(tag,"","%"PRId64,value); }
     void xmlout( const std::string &tag,const uint64_t value){ xmlprintf(tag,"","%"PRIu64,value); }

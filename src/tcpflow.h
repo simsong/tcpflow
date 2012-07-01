@@ -46,6 +46,12 @@
 #  include <winsock2.h>
 #  include <windows.h>
 #  include <windowsx.h>
+
+// Deal with assorted WIN32 brokenness
+#undef HAVE_SEM_OPEN
+#  define MKDIR(a,b) mkdir(a)
+#else
+#  define MKDIR(a,b) mkdir(a,b)
 #endif
 
 #include "sysdep.h"
@@ -102,7 +108,7 @@ extern bool opt_no_purge;
 
 #ifdef HAVE_PTHREAD
 #include <semaphore.h>
-extern sem_t *semlock;
+extern sem_t semlock;
 #endif
 
 /* util.c - utility functions */

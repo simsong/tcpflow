@@ -51,7 +51,9 @@
  */
 
 #include "tcpflow.h"
+#ifdef HAVE_NETINET_IP6_H
 #include <netinet/ip6.h>		/*  SLG */
+#endif
 #include <iostream>
 #include <sstream>
 
@@ -169,7 +171,10 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+
+#ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
+#endif
 
 /* This could be much more efficient */
 const char *find_crlfcrlf(const char *base,size_t len)
@@ -184,6 +189,26 @@ const char *find_crlfcrlf(const char *base,size_t len)
     return 0;
 }
 
+
+/* short implementation of mmap and munmap if we don't have them */
+#if !defined(HAVE_MMAP)
+#define PROT_READ 0
+#define MAP_FILE 0
+#define MAP_SHARED 0
+void *mmap(int ignore1,size_t size,int ignore2,int fd,int ignore3) 
+{
+    void *buf = (void *)malloc(size);
+    if(!buf) return 0;
+    read(fd,buf,size);			// should explore return code
+    return buf;
+}
+
+void munmap(void *buf,size_t size)
+{
+    free(buf);
+}
+
+#endif
 
 /**
  * Destructor is called when flow is closed.
@@ -352,9 +377,11 @@ void tcpip::close_file()
 	DEBUG(5) ("%s: closing file", flow_pathname.c_str());
 	/* close the file and remember that it's closed */
 	fflush(fp);		/* flush the file */
+#if !defined(futimes)
 	if(futimes(fileno(fp),times)){
 	    perror("futimes");
 	}
+#endif
 	fclose(fp);
 	fp = NULL;
 	pos = 0;

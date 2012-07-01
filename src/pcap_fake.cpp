@@ -2,6 +2,10 @@
 
 #ifndef HAVE_LIBPCAP
 
+#ifdef WIN32
+#define SET_BINMODE(f) _setmode(_fileno(f), _O_BINARY)
+#endif
+
 /* pcap_fake's struct pcap just keeps track of the file that was opened and
  * whether or not it was byteswapped.
  */
@@ -68,7 +72,7 @@ inline uint32_t swap2(uint16_t x)
 
 pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
 {
-#if defined(WIN32) || defined (MSDOS)
+#ifdef WIN32
     SET_BINMODE(fp);
 #endif
     bool swapped = false;
@@ -103,7 +107,7 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
     pcap_t *ret = (pcap_t *)calloc(1,sizeof(pcap_t));
     if(ret==0){
 	snprintf(errbuf,
-		 PCAP_ERRBUF_SIZE,"Cannot calloc %lu bytes",sizeof(pcap_t));
+		 PCAP_ERRBUF_SIZE,"Cannot calloc %u bytes",sizeof(pcap_t));
 	return 0;
     }
     ret->pktbuf  = (uint8_t *)malloc(header.snaplen);
