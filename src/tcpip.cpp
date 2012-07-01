@@ -977,9 +977,10 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
 	    die("%s", error);
 	}
-
+#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
 	/* drop root privileges - we don't need them any more */
 	setuid(getuid());
+#endif
 
 	/* get the handler for this kind of packets */
 	dlt = pcap_datalink(pd);
