@@ -57,7 +57,7 @@ void print_usage()
     std::cerr << "        -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
     std::cerr << "        -s: strip non-printable characters (change to '.')\n";
     std::cerr << "        -v: verbose operation equivalent to -d 10\n";
-    std::cerr << "        -V  print version number and exit\n";
+    std::cerr << "        -V: print version number and exit\n";
     std::cerr << "        -o outdir   : specify output directory (default '.')\n";
     std::cerr << "        -X filename : DFXML output to filename\n";
     std::cerr << "        -m bytes    : specifies the minimum number of bytes that a stream may\n";
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if(opt_all){
+    if( (opt_all) && (xmlout.size()==0) ){
 	xmlout = demux.outdir + "/report.xml";
     }
 
