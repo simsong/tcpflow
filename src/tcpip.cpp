@@ -876,14 +876,44 @@ void tcpdemux::process_ip4(const struct timeval *ts,const u_char *data, uint32_t
  * Note: we don't support IPv6 extended headers
  */
 
+struct private_ip6_hdr {
+	union {
+		struct ip6_hdrctl {
+			u_int32_t ip6_un1_flow;	/* 20 bits of flow-ID */
+			u_int16_t ip6_un1_plen;	/* payload length */
+			u_int8_t  ip6_un1_nxt;	/* next header */
+			u_int8_t  ip6_un1_hlim;	/* hop limit */
+		} ip6_un1;
+		u_int8_t ip6_un2_vfc;	/* 4 bits version, top 4 bits class */
+	} ip6_ctlun;
+	struct in6_addr ip6_src;	/* source address */
+	struct in6_addr ip6_dst;	/* destination address */
+} __attribute__((__packed__));
+
+/* These might be defined from an include file, so undef them to be sure */
+#undef ip6_vfc
+#undef ip6_flow
+#undef ip6_plen	
+#undef ip6_nxt	
+#undef ip6_hlim	
+#undef ip6_hops	
+
+#define ip6_vfc		ip6_ctlun.ip6_un2_vfc
+#define ip6_flow	ip6_ctlun.ip6_un1.ip6_un1_flow
+#define ip6_plen	ip6_ctlun.ip6_un1.ip6_un1_plen
+#define ip6_nxt		ip6_ctlun.ip6_un1.ip6_un1_nxt
+#define ip6_hlim	ip6_ctlun.ip6_un1.ip6_un1_hlim
+#define ip6_hops	ip6_ctlun.ip6_un1.ip6_un1_hlim
+
+
 
 void tcpdemux::process_ip6(const struct timeval *ts,const u_char *data, const uint32_t caplen, const int32_t vlan)
 {
-    const struct ip6_hdr *ip_header = (struct ip6_hdr *) data;
+    const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) data;
     u_int16_t ip_payload_len;
 
     /* make sure that the packet is at least as long as the IPv6 header */
-    if (caplen < sizeof(struct ip6_hdr)) {
+    if (caplen < sizeof(struct private_ip6_hdr)) {
 	DEBUG(6) ("received truncated IPv6 datagram!");
 	return;
     }
@@ -906,7 +936,7 @@ void tcpdemux::process_ip6(const struct timeval *ts,const u_char *data, const ui
     /* do TCP processing */
 
     process_tcp(ts,
-		data + sizeof(struct ip6_hdr),
+		data + sizeof(struct private_ip6_hdr),
 		ip_payload_len,
 		ipaddr(ip_header->ip6_src.s6_addr),
 		ipaddr(ip_header->ip6_dst.s6_addr),

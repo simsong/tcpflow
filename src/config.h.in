@@ -9,8 +9,17 @@
 /* define to 1 if __asm__ CPUID is available */
 #undef HAVE_ASM_CPUID
 
+/* Define to 1 if you have the `bcopy' function. */
+#undef HAVE_BCOPY
+
+/* Define to 1 if you have the `bzero' function. */
+#undef HAVE_BZERO
+
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
+
+/* Define to 1 if you have the `futimes' function. */
+#undef HAVE_FUTIMES
 
 /* Define to 1 if you have the `gethostname' function. */
 #undef HAVE_GETHOSTNAME
@@ -53,6 +62,9 @@
 
 /* Define to 1 if you have the `mkstemp' function. */
 #undef HAVE_MKSTEMP
+
+/* Define to 1 if you have the `mmap' function. */
+#undef HAVE_MMAP
 
 /* Define to 1 if you have the <netinet/if_ether.h> header file. */
 #undef HAVE_NETINET_IF_ETHER_H
@@ -99,6 +111,12 @@
 /* Define to 1 if you have the <semaphore.h> header file. */
 #undef HAVE_SEMAPHORE_H
 
+/* Define to 1 if you have the `setgid' function. */
+#undef HAVE_SETGID
+
+/* Define to 1 if you have the `setuid' function. */
+#undef HAVE_SETUID
+
 /* Define to 1 if you have the `sigaction' function. */
 #undef HAVE_SIGACTION
 
@@ -107,6 +125,9 @@
 
 /* Define to 1 if you have the `sigset' function. */
 #undef HAVE_SIGSET
+
+/* Define to 1 if the system has the type `socklen_t'. */
+#undef HAVE_SOCKLEN_T
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -126,8 +147,14 @@
 /* Required for mingw */
 #undef HAVE_STRUCT_TIMESPEC
 
+/* Define to 1 if you have the <sys/bitypes.h> header file. */
+#undef HAVE_SYS_BITYPES_H
+
 /* Define to 1 if you have the <sys/cdefs.h> header file. */
 #undef HAVE_SYS_CDEFS_H
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#undef HAVE_SYS_MMAN_H
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #undef HAVE_SYS_RESOURCE_H
@@ -149,9 +176,6 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* Define to 1 if you have the <unistd.hsys/bitypes.h> header file. */
-#undef HAVE_UNISTD_HSYS_BITYPES_H
 
 /* Define to 1 if you have the `vasprintf' function. */
 #undef HAVE_VASPRINTF

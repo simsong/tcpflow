@@ -239,21 +239,29 @@ AC_CHECK_LIB([pthreadGC2],[pthread_create])
 
 AC_HEADER_STDC
 AC_CHECK_HEADERS([\
-	string.h \
-	strings.h sys/cdefs.h sys/resource.h sys/types.h \
-	sys/socket.h \
-	unistd.hsys/bitypes.h \
 	arpa/inet.h \
 	fcntl.h \
-	semaphore.h \
 	inttypes.h \
-	netinet/in.h netinet/tcp.h netinet/in_systm.h netinet/ip.h
-	netinet/ip6.h \
+	linux/if_ether.h \
 	netinet/if_ether.h \
+	netinet/in.h \
+	netinet/in_systm.h \
+	netinet/ip.h \
+	netinet/tcp.h \
 	pcap.h \
 	pcap/pcap.h \
-	sys/mman.h
-	linux/if_ether.h signal.h])
+	semaphore.h \
+	signal.h \
+	string.h \
+	strings.h \
+	sys/cdefs.h \
+	sys/mman.h \
+	sys/resource.h \
+	sys/socket.h \
+	sys/types.h \
+	sys/bitypes.h \
+	unistd.h \
+	])
 
 # This is to get net/if.h to compile
 AC_CHECK_HEADERS([net/if_var.h net/if.h], [], [],
@@ -263,7 +271,23 @@ AC_CHECK_HEADERS([net/if_var.h net/if.h], [], [],
 #endif
 ]])
  
-AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap funtimes])
+AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap futimes bcopy bzero])
+AC_CHECK_TYPES([socklen_t], [], [], 
+[[
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+]]
+)
+
 AC_CHECK_TYPES([sa_family_t], [], [], 
 [[
 #ifdef HAVE_ARPA_INET_H

@@ -27,7 +27,7 @@ const char *progname = 0;
 
 
 #ifdef HAVE_PTHREAD
-sem_t semlock = 0;
+sem_t *semlock = 0;
 #endif
 
 #include <string>

@@ -86,7 +86,7 @@ inet_ntop4(const struct in_addr *addr, char *buf, socklen_t len)
 }
 
 static const char *
-inet_ntop6(const struct in6_addr *addr, char *dst, socklen_t size)
+inet_ntop6(const struct private_in6_addr *addr, char *dst, socklen_t size)
 {
 	char hexa[8][5], tmp[MAX_IPv6_STR_LEN];
 	int zr[8];
@@ -207,7 +207,7 @@ const char *
 inet_ntop(int af, const void *addr, char *buf, socklen_t len)
 {
 	if(af==AF_INET6)
-	    return inet_ntop6((const struct in6_addr *)addr, buf, len);
+	    return inet_ntop6((const struct private_in6_addr *)addr, buf, len);
 	if(af==AF_INET)
 	    return inet_ntop4((const struct in_addr *)addr, buf, len);
 	return NULL;
