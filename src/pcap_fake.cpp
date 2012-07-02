@@ -107,7 +107,7 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
     pcap_t *ret = (pcap_t *)calloc(1,sizeof(pcap_t));
     if(ret==0){
 	snprintf(errbuf,
-		 PCAP_ERRBUF_SIZE,"Cannot calloc %u bytes",sizeof(pcap_t));
+		 PCAP_ERRBUF_SIZE,"Cannot calloc %u bytes",(unsigned int)sizeof(pcap_t));
 	return 0;
     }
     ret->pktbuf  = (uint8_t *)malloc(header.snaplen);

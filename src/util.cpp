@@ -84,7 +84,6 @@ void debug_real(const char *fmt, ...)
   
 
 /* Print a debugging or informatioal message, then exit  */
-void die(const char *fmt, ...) __attribute__ ((__noreturn__));
 void die(const char *fmt, ...) 
 {
     va_list ap;

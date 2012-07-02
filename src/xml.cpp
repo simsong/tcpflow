@@ -20,8 +20,11 @@
 #include "config.h"
 #include "xml.h"
 #include <errno.h>
-#include <regex.h>
 #include <unistd.h>
+
+#ifdef HAVE_REGEX_H
+#include <regex.h>
+#endif
 
 
 #ifdef HAVE_PTHREAD
@@ -83,11 +86,12 @@ int mkstemp(char *tmpl)
 #define _O_SHORT_LIVED 0
 #endif
 
+
+
+#ifdef HAVE_REGEX_H
 static const char *cstr(const string &str){
     return str.c_str();
 }
-
-
 /** A local class for regex matching with a single pattern */
 class Regex {
 public:
@@ -113,9 +117,7 @@ public:
 	}
     }
 };
-
-
-
+#endif
 
 static string xml_lt("&lt;");
 static string xml_gt("&gt;");
@@ -198,6 +200,7 @@ xml::xml(const std::string &outfilename_,bool makeDTD):
     *out << xml_header;
 }
 
+#ifdef HAVE_REGEX_H
 /**
  * opening an existing DFXML file...
  * Scan through and see if we can process.
@@ -267,6 +270,7 @@ xml::xml(const std::string &outfilename_,class existing &e):
 	}
     }
 }
+#endif
 
 
 

@@ -20,29 +20,6 @@ AC_PROG_CXX
 AC_PROG_INSTALL
 
 
-################################################################
-# pcap support. A bit more involved than normal due to the error message
-#
-AC_CHECK_LIB(pcap, pcap_lookupdev, , [
-	AC_MSG_WARN([
-Can't find the pcap library (libpcap.a). 
-tcpflow will not live capture or compile rules without pcap!
-
-If you need rules or live capture, you must install the pcap and/or
-pcap-dev library.  Please execute this command:
-
-  UBUNTU: sudo apt-get install libpcap-dev
-  DEBIAN: sudo apt-get install libpcap-dev
-  FEDORA: sudo yum install libpcap-devel
-  MINGW:  Sorry!  libpcap is not currently 
-          available when cross-compiling.
-
-If your libpcap is installed in a non-standard location, you will need
-to use the --with-pcap=directory to specify where your pcap is
-located.
-  ])])
-
-
 
 ################################################################
 ## See if we are running on mingw
@@ -235,6 +212,29 @@ AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_LIB([pthreadGC2],[pthread_create])
 
 ################################################################
+# pcap support. A bit more involved than normal due to the error message
+#
+AC_CHECK_LIB(pcap, pcap_lookupdev, , [
+	AC_MSG_WARN([
+Can't find the pcap library (libpcap.a). 
+tcpflow will not live capture or compile rules without pcap!
+
+If you need rules or live capture, you must install the pcap and/or
+pcap-dev library.  Please execute this command:
+
+  UBUNTU: sudo apt-get install libpcap-dev
+  DEBIAN: sudo apt-get install libpcap-dev
+  FEDORA: sudo yum install libpcap-devel
+  MINGW:  Sorry!  libpcap is not currently 
+          available when cross-compiling.
+
+If your libpcap is installed in a non-standard location, you will need
+to use the --with-pcap=directory to specify where your pcap is
+located.
+  ])])
+
+
+################################################################
 # Specify our other headers
 
 AC_HEADER_STDC
@@ -250,6 +250,7 @@ AC_CHECK_HEADERS([\
 	netinet/tcp.h \
 	pcap.h \
 	pcap/pcap.h \
+	regex.h \
 	semaphore.h \
 	signal.h \
 	string.h \

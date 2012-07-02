@@ -192,7 +192,8 @@ public:
 #ifdef HAVE_LOCALTIME_R
 	localtime_r(&ts.tv_sec,&tm);
 #else
-	tm = *localtime(&ts.tv_sec);
+	time_t t = ts.tv_sec;
+	tm = *localtime(&t);
 #endif
 	strftime(buf,sizeof(buf),"%Y-%m-%dT%H:%M:%S",&tm);
 	if(ts.tv_usec>0){

@@ -262,16 +262,11 @@ int main(int argc, char *argv[])
 
     struct stat sbuf;
     if(lockname){
-#ifdef WIN32
-#error "No semaphore support for Windows yet"
-#else
-
 #if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD)
 	semlock = sem_open(lockname,O_CREAT,0777,1); // get the semaphore
 #else
 	fprintf(stderr,"%s: attempt to create lock pthreads not present\n",argv[0]);
 	exit(1);
-#endif
 #endif	
     }
 

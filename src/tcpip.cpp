@@ -195,11 +195,11 @@ const char *find_crlfcrlf(const char *base,size_t len)
 #define PROT_READ 0
 #define MAP_FILE 0
 #define MAP_SHARED 0
-void *mmap(int ignore1,size_t size,int ignore2,int fd,int ignore3) 
+void *mmap(void *addr,size_t length,int prot, int flags, int fd, off_t offset)
 {
-    void *buf = (void *)malloc(size);
+    void *buf = (void *)malloc(length);
     if(!buf) return 0;
-    read(fd,buf,size);			// should explore return code
+    read(fd,buf,length);			// should explore return code
     return buf;
 }
 
@@ -377,7 +377,7 @@ void tcpip::close_file()
 	DEBUG(5) ("%s: closing file", flow_pathname.c_str());
 	/* close the file and remember that it's closed */
 	fflush(fp);		/* flush the file */
-#if !defined(futimes)
+#if defined(HAVE_FUTIMES)
 	if(futimes(fileno(fp),times)){
 	    perror("futimes");
 	}
@@ -811,8 +811,6 @@ void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, uint32_t
 
 
 
-
-
 /* This is called when we receive an IPv4 datagram.  We make sure that
  * it's valid and contains a TCP segment; if so, we pass it to
  * process_tcp() for further processing.
@@ -879,15 +877,15 @@ void tcpdemux::process_ip4(const struct timeval *ts,const u_char *data, uint32_t
 struct private_ip6_hdr {
 	union {
 		struct ip6_hdrctl {
-			u_int32_t ip6_un1_flow;	/* 20 bits of flow-ID */
-			u_int16_t ip6_un1_plen;	/* payload length */
-			u_int8_t  ip6_un1_nxt;	/* next header */
-			u_int8_t  ip6_un1_hlim;	/* hop limit */
+			uint32_t ip6_un1_flow;	/* 20 bits of flow-ID */
+			uint16_t ip6_un1_plen;	/* payload length */
+			uint8_t  ip6_un1_nxt;	/* next header */
+			uint8_t  ip6_un1_hlim;	/* hop limit */
 		} ip6_un1;
-		u_int8_t ip6_un2_vfc;	/* 4 bits version, top 4 bits class */
+		uint8_t ip6_un2_vfc;	/* 4 bits version, top 4 bits class */
 	} ip6_ctlun;
-	struct in6_addr ip6_src;	/* source address */
-	struct in6_addr ip6_dst;	/* destination address */
+	struct private_in6_addr ip6_src;	/* source address */
+	struct private_in6_addr ip6_dst;	/* destination address */
 } __attribute__((__packed__));
 
 /* These might be defined from an include file, so undef them to be sure */
@@ -1048,7 +1046,9 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
      */
     portable_signal(SIGTERM, terminate);
     portable_signal(SIGINT, terminate);
+#ifdef SIGHUP
     portable_signal(SIGHUP, terminate);
+#endif
 
     /* start listening! */
     if (infile == "") DEBUG(1) ("listening on %s", device);

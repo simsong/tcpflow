@@ -97,8 +97,11 @@ std::string flow::filename()
 		snprintf(buf,sizeof(buf),"%05d",dport);
 		break;
 	    case 'T': // Timestamp in ISO8601 format
-		strftime(buf,sizeof(buf),"%FT%TZ",gmtime(&tstart.tv_sec));
+	      {
+		time_t t = tstart.tv_sec;
+		strftime(buf,sizeof(buf),"%FT%TZ",gmtime(&t));
 		break;
+	      }
 	    case 't': // Unix time_t
 		ss << tstart.tv_sec;
 		break;

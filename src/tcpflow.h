@@ -40,12 +40,16 @@
 #include "config.h"
 
 /* If we are running on Windows, including the Windows-specific
- * include files first.
+ * include files first and disable pthread support.
  */
 #ifdef WIN32
 #  include <winsock2.h>
 #  include <windows.h>
 #  include <windowsx.h>
+#undef HAVE_PTHREAD_H
+#undef HAVE_SEMAPHORE_H
+#undef HAVE_PTHREAD
+#undef HAVE_INET_NTOP		/* it's not there. Really. */
 
 
 #  define MKDIR(a,b) mkdir(a)  // MKDIR only takes 1 argument on windows
@@ -258,7 +262,14 @@ struct private_in6_addr {		// our own private ipv6 definition
 	uint32_t  __u6_addr32[4];
     } __u6_addr;                    /* 128-bit IP6 address */
 };
+#undef s6_addr
+#define s6_addr			__u6_addr.__u6_addr8
 
+#undef s6_addr16
+#define s6_addr16		__u6_addr.__u6_addr16
+
+#undef s6_addr32
+#define s6_addr32		__u6_addr.__u6_addr32
 
 
 #ifdef _WIN32
@@ -313,15 +324,8 @@ extern sem_t *semlock;
 /* util.c - utility functions */
 void init_debug(char *argv[]);
 void (*portable_signal(int signo, void (*func)(int)))(int);
-void debug_real(const char *fmt, ...)
-#ifdef __GNUC__
-                __attribute__ ((format (printf, 1, 2)))
-#endif
-;
-void die(const char *fmt, ...)
-#ifdef __GNUC__
-                __attribute__ ((format (printf, 1, 2)))
-#endif
-;
+void debug_real(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((format (printf, 1, 2)));
+
 
 #endif /* __TCPFLOW_H__ */
