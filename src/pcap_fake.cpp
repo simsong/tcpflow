@@ -111,6 +111,12 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
 	return 0;
     }
     ret->pktbuf  = (uint8_t *)malloc(header.snaplen);
+    if(ret->pktbuf==0) { // did we get the snaplen?
+	std::cerr << "Couldn't get header snaplen";
+	return 0;
+    }
+
+    std::cout << "pcap_fake.cpp Debug: ret->pktbuf: " << header.snaplen << "\n";
     ret->fp      = fp;
     ret->swapped = swapped;
     ret->linktype = header.linktype;
