@@ -162,7 +162,8 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: invalid value '%s' used with -b ignored", optarg);
 		demux.max_bytes_per_flow = 0;
 	    } else {
-		DEBUG(10) ("capturing max of %"PRIu64" bytes per flow", demux.max_bytes_per_flow);
+	        std::cout << "capturing max of " << demux.max_bytes_per_flow << " bytes per flow.\n";
+		//DEBUG(10) ("capturing max of %"PRIu64" bytes per flow", demux.max_bytes_per_flow);
 	    }
 	    break;
 	case 'B':
@@ -314,13 +315,19 @@ int main(int argc, char *argv[])
 
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */
 
+
     DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.openflows.size());
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
 
     demux.close_all();
-
-    DEBUG(2)("Total flows processed: %"PRId64,demux.flow_counter);
-    DEBUG(2)("Total packets processed: %"PRId64,demux.packet_time);
+    
+    /*
+     * Use C++ to describe these
+     */
+    //DEBUG(2)("Total flows processed: %"PRId64,demux.flow_counter);
+    //DEBUG(2)("Total packets processed: %"PRId64,demux.packet_time);
+    std::cout << "Total flows processed: " << demux.flow_counter << "\n";
+    std::cout << "Total packets processed: " << demux.packet_time << "\n";
 
     if(xreport){
 	demux.flow_map_clear();	// empty the map to capture the state
