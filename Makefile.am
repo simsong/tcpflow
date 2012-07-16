@@ -43,21 +43,8 @@ release:
 	make distcheck
 	make the_release
 
-check_release_version:
-	@echo Checking version on server for $(VERSION_FN)
-	@echo
-	echo
-	/bin/rm -f $(VERSION_FN)
-	wget -q http://$(RELEASE_HOST)/downloads/$(VERSION_FN)
-	@echo Version `cat $(VERSION_FN)` is on the server.
-	@sh -c "if [ `cat $(VERSION_FN)` = $(RELEASEFN) ]; then echo ; echo ; echo $(RELEASE_VER) is already on the server; exit 1; fi"
-	/bin/rm -f $(VERSION_FN)
-
-the_release: 
+the_release: $(RELEASEFN)
 	gpg --detach-sign $(RELEASEFN)
-	scp $(RELEASEFN){,.sig} $(RELEASE_SSH)
-	ssh $(RELEASE_HOST) 'cd $(RELEASE_LOC);/bin/rm $(PACKAGE).tar.gz;ln -s $(RELEASEFN) $(PACKAGEFN)'
-	ssh $(RELEASE_HOST) 'echo $(RELEASEFN) > $(RELEASE_PATH)'
 	@echo Release $(RELEASE_VER) uploaded to server
 
 

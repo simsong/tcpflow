@@ -1,4 +1,4 @@
-Version 1.2.6 May 24 2012 (GIT)
+Version 1.2.7 May 24 2012 (GIT)
 
 I am pleased to announce the release of tcpflow version 1.2.7
 
@@ -21,7 +21,19 @@ relating to the processing of the -r and the new -R options.
                   with the -w or -C options.
 
 
+Verison 1.2.7 can be downloaded from github:
 
+  $ git clone git://github.com/simsong/tcpflow.git
+  $ cd tcpflow
+  $ sh bootstrap.sh
+  $ ./configure
+  $ make
+
+or from:
+
+  $ https://github.com/downloads/simsong/tcpflow/tcpflow-1.2.7.tar.gz
+
+================================================================
 
 Version 1.2 March 15 2012 (SVN )
 

@@ -214,7 +214,14 @@ AC_CHECK_LIB([pthreadGC2],[pthread_create])
 ################################################################
 # pcap support. A bit more involved than normal due to the error message
 #
-AC_CHECK_LIB(pcap, pcap_lookupdev, , [
+pcap=test
+AC_ARG_ENABLE([pcap],[  --enable-pcap=false to disable libpcap even if present])
+  if test "${enableval}" = false ; then
+    pcap=false
+  fi
+
+if test $pcap = test ; then
+  AC_CHECK_LIB(pcap, pcap_lookupdev, , [
 	AC_MSG_WARN([
 Can't find the pcap library (libpcap.a). 
 tcpflow will not live capture or compile rules without pcap!
@@ -232,6 +239,7 @@ If your libpcap is installed in a non-standard location, you will need
 to use the --with-pcap=directory to specify where your pcap is
 located.
   ])])
+fi
 
 
 ################################################################

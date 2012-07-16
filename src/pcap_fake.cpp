@@ -159,7 +159,7 @@ int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
 	 */
 	if(fread(&tv_sec,sizeof(uint32_t),1,p->fp)!=1) break;
 	if(fread(&tv_usec,sizeof(uint32_t),1,p->fp)!=1) break;
-	hdr.ts.tv_sec = tv_sec;
+	hdr.ts.tv_sec  = tv_sec;
 	hdr.ts.tv_usec = tv_usec;
 
 	if(fread(&hdr.caplen,sizeof(uint32_t),1,p->fp)!=1) break;
@@ -175,6 +175,9 @@ int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
 
 	/* Read the packet */
 	if(fread(p->pktbuf,hdr.caplen,1,p->fp)!=1) break; // no more to read
+
+	DEBUG(100) ("pcap_fake: read tv_sec=%d.%06d  caplen=%d  len=%d",
+		    (int)hdr.ts.tv_sec,(int)hdr.ts.tv_usec,hdr.caplen,hdr.len);
 
 	/* Process the packet */
 	(*callback)(user,&hdr,p->pktbuf);
