@@ -87,8 +87,8 @@ int mkstemp(char *tmpl)
 #endif
 
 
-std::string xml::xml_PRId64(PRId64);	// gets around compiler bug
-std::string xml::xml_PRIu64(PRIu64);	// gets around compiler bug
+std::string xml::xml_PRId64("%"PRId64);	// gets around compiler bug
+std::string xml::xml_PRIu64("%"PRIu64);	// gets around compiler bug
 
 #ifdef HAVE_REGEX_H
 static const char *cstr(const string &str){
