@@ -38,16 +38,15 @@ typedef unsigned short int sa_family_t;
  * Bring it in (from /usr/include/netinet/ip.h (Fedora 17 Linux)
  * Structure of an ip header, naked of options
  */
-struct iphdr
-  {
+struct iphdr {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     unsigned int ihl:4;
     unsigned int version:4;
 #elif __BYTE_ORDER == __BIG_ENDIAN
     unsigned int version:4;
     unsigned int ihl:4;
-      //#else
-      //# error	"Please fix <bits/endian.h>"
+#else
+#error	__BYTE_ORDER not properly set; check <bits/endian.h>
 #endif
     uint8_t tos;
     uint16_t tot_len;
@@ -59,7 +58,7 @@ struct iphdr
     uint32_t saddr;
     uint32_t daddr;
     /*The options start here. */
-  };
+};
 
 
 /* If we don't have tcp_seq, we probably don't have struct tcphdr.
@@ -68,8 +67,7 @@ struct iphdr
 /*
  * Structure of an internet header, naked of options.
  */
-struct ip
-  {
+struct ip {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     unsigned int ip_hl:4;		/* header length */
     unsigned int ip_v:4;		/* version */
@@ -90,15 +88,14 @@ struct ip
     u_int8_t ip_p;			/* protocol */
     u_short ip_sum;			/* checksum */
     struct in_addr ip_src, ip_dst;	/* source and dest address */
-  };
+};
 
 typedef	uint32_t tcp_seq;
 /*
  * TCP header.
  * Per RFC 793, September, 1981.
  */
-struct tcphdr
-  {
+struct tcphdr {
     uint16_t th_sport;		/* source port */
     uint16_t th_dport;		/* destination port */
     tcp_seq th_seq;		/* sequence number */
