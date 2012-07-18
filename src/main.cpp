@@ -25,6 +25,9 @@ bool opt_no_purge = false;
 
 const char *progname = 0;
 
+extern std::string xml_PRId64;
+extern std::string xml_PRIu64;
+
 
 #ifdef HAVE_PTHREAD
 sem_t *semlock = 0;
@@ -162,8 +165,9 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: invalid value '%s' used with -b ignored", optarg);
 		demux.max_bytes_per_flow = 0;
 	    } else {
-	        std::cout << "capturing max of " << demux.max_bytes_per_flow << " bytes per flow.\n";
-		//DEBUG(10) ("capturing max of %"PRIu64" bytes per flow", demux.max_bytes_per_flow);
+		if(debug_level > 1) {
+		    std::cout << "capturing max of " << demux.max_bytes_per_flow << " bytes per flow." << std::endl;
+		}
 	    }
 	    break;
 	case 'B':
@@ -324,11 +328,15 @@ int main(int argc, char *argv[])
     /*
      * Use C++ to describe these
      */
+    
     //DEBUG(2)("Total flows processed: %"PRId64,demux.flow_counter);
     //DEBUG(2)("Total packets processed: %"PRId64,demux.packet_time);
-    std::cout << "Total flows processed: " << demux.flow_counter << "\n";
-    std::cout << "Total packets processed: " << demux.packet_time << "\n";
-
+    if(debug_level > 1) {
+	std::cout << "pcap_fake.cpp DEBUG: Total flows processed = " << demux.flow_counter << std::endl;
+    }
+    if(debug_level > 1) {
+	std::cout << "pcap_fake.cpp DEBUG: Total packets processed = " << demux.packet_time << std::endl;
+    }
     if(xreport){
 	demux.flow_map_clear();	// empty the map to capture the state
 	xreport->add_rusage();

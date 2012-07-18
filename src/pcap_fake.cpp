@@ -90,6 +90,7 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
 	header.snaplen       = swap4(header.snaplen);
 	header.linktype      = swap4(header.linktype);
 	swapped = true;
+
     }
     if(header.magic != 0xa1b2c3d4){
 	snprintf(errbuf,
@@ -115,8 +116,14 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
 	std::cerr << "Couldn't get header snaplen";
 	return 0;
     }
-
-    std::cout << "pcap_fake.cpp Debug: ret->pktbuf: " << header.snaplen << "\n";
+    DEBUG(100) ("pcap_fake.cpp DEBUG: header.magic = %x", header.magic);
+    DEBUG(100) ("pcap_fake.cpp DEBUG: header.version_major = %d", header.version_major);
+    DEBUG(100) ("pcap_fake.cpp DEBUG: header.version_minor = %d", header.version_minor);
+    DEBUG(100) ("pcap_fake.cpp DEBUG: header.thiszone = %d", header.thiszone);
+    DEBUG(100) ("pcap_fake.cpp DEBUG: header.sigfigs = %d", header.sigfigs);
+    DEBUG(100) ("pcap_fake.cpp DEBUG: header.snaplen = %d", header.snaplen);
+    DEBUG(100) ("pcap_fake.cpp DEBUG: header.linktype = %d",header.linktype);
+    //    DEBUG(100) ("pcap_fake.cpp DEBUG: ret->pktbuf = %s". ret->pktbuf);
     ret->fp      = fp;
     ret->swapped = swapped;
     ret->linktype = header.linktype;
@@ -161,7 +168,7 @@ int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
 	if(fread(&tv_usec,sizeof(uint32_t),1,p->fp)!=1) break;
 	hdr.ts.tv_sec  = tv_sec;
 	hdr.ts.tv_usec = tv_usec;
-
+	
 	if(fread(&hdr.caplen,sizeof(uint32_t),1,p->fp)!=1) break;
 	if(fread(&hdr.len,sizeof(uint32_t),1,p->fp)!=1) break;
 
@@ -176,11 +183,13 @@ int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
 	/* Read the packet */
 	if(fread(p->pktbuf,hdr.caplen,1,p->fp)!=1) break; // no more to read
 
-	DEBUG(100) ("pcap_fake: read tv_sec=%d.%06d  caplen=%d  len=%d",
+	DEBUG(100) ("pcap_fake: read tv_sec.tv_usec=%d.%06d  caplen=%d  len=%d",
 		    (int)hdr.ts.tv_sec,(int)hdr.ts.tv_usec,hdr.caplen,hdr.len);
 
 	/* Process the packet */
 	(*callback)(user,&hdr,p->pktbuf);
+
+
 
 	/* And loop */
 	if(cnt>0) cnt--;		// decrease the packet count
