@@ -46,11 +46,13 @@ pcap_t *pcap_open_offline(const char *fname, char *errbuf)
 
 char	*pcap_lookupdev(char *)	// not implemented
 {
+    fprintf(stderr,"pcap_fake.cpp:pcap_lookupdev: tcpflow was compiled without LIBPCAP. Will not live capture.\n");
     return 0;
 }
 
 pcap_t	*pcap_open_live(const char *, int, int, int, char *)
 {
+    fprintf(stderr,"pcap_fake.cpp:pcap_open_live: tcpflow was compiled without LIBPCAP. Will not live capture.\n");
     return 0;
 }
 
