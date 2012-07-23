@@ -120,10 +120,18 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    /* At this point we can only handle IP datagrams, nothing else */
-    if (ntohs(*ether_type) == ETHERTYPE_IP || ntohs(*ether_type)==ETHERTYPE_IPV6) {
+    /* switch on ether type */
+    switch (ntohs(*ether_type)){
+    case ETHERTYPE_IP:
+    case ETHERTYPE_IPV6:
 	demux.process_ip(&h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
 	return;
+    case ETHERTYPE_ARP:
+    case ETHERTYPE_LOOPBACK:
+    case ETHERTYPE_REVARP:
+	return;
+    default:
+	break;
     }
 
     /* Unknown Ethernet Frame Type */

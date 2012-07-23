@@ -1009,7 +1009,6 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	/* drop root privileges - we don't need them any more */
 	setuid(getuid());
 #endif
-
 	/* get the handler for this kind of packets */
 	dlt = pcap_datalink(pd);
 	handler = find_handler(dlt, device);
