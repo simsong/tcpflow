@@ -308,7 +308,11 @@ int main(int argc, char *argv[])
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
 	setuid(getuid());	/* Since we don't need network access, drop root privileges */
 #endif
+<<<<<<< Updated upstream
         demux.process_infile(expression,device,"",true);
+=======
+	demux.process_infile(expression,device,"",true);
+>>>>>>> Stashed changes
     }
 
     for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
