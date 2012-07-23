@@ -308,6 +308,7 @@ int main(int argc, char *argv[])
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
 	setuid(getuid());	/* Since we don't need network access, drop root privileges */
 #endif
+        demux.process_infile(expression,device,"",true);
     }
 
     for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
@@ -326,17 +327,14 @@ int main(int argc, char *argv[])
     demux.close_all();
     
     /*
-     * Use C++ to describe these
+     * Note: funny formats below are a result of mingw problems with PRId64.
      */
+    const std::string total_flow_processed("Total flows processed: %"PRId64);
+    const std::string total_packets_processed("Total packets processed: %"PRId64);
     
-    //DEBUG(2)("Total flows processed: %"PRId64,demux.flow_counter);
-    //DEBUG(2)("Total packets processed: %"PRId64,demux.packet_time);
-    if(debug_level > 1) {
-	std::cout << "pcap_fake.cpp DEBUG: Total flows processed = " << demux.flow_counter << std::endl;
-    }
-    if(debug_level > 1) {
-	std::cout << "pcap_fake.cpp DEBUG: Total packets processed = " << demux.packet_time << std::endl;
-    }
+    DEBUG(2)(total_flow_processed.c_str(),demux.flow_counter);
+    DEBUG(2)(total_packets_processed.c_str(),demux.packet_time);
+
     if(xreport){
 	demux.flow_map_clear();	// empty the map to capture the state
 	xreport->add_rusage();
