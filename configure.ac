@@ -280,7 +280,7 @@ AC_CHECK_HEADERS([net/if_var.h net/if.h], [], [],
 #endif
 ]])
  
-AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap futimes bcopy bzero])
+AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap futimes futimens bcopy bzero])
 AC_CHECK_TYPES([socklen_t], [], [], 
 [[
 #ifdef HAVE_ARPA_INET_H

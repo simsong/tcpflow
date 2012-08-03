@@ -57,6 +57,10 @@
 #include <iostream>
 #include <sstream>
 
+#include <time.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+
 #define ZLIB_CONST
 #ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
 #  pragma GCC diagnostic ignored "-Wundef"
@@ -377,9 +381,19 @@ void tcpip::close_file()
 	DEBUG(5) ("%s: closing file", flow_pathname.c_str());
 	/* close the file and remember that it's closed */
 	fflush(fp);		/* flush the file */
-#if defined(HAVE_FUTIMES)
+#if defined(HAVE_FUTIMES) 
 	if(futimes(fileno(fp),times)){
 	    perror("futimes");
+	}
+#endif
+#if defined(HAVE_FUTIMENS) && !defined(HAVE_FUTIMES) 
+	struct timespec tstimes[2];
+	for(int i=0;i<2;i++){
+	    tstimes[i].tv_sec = times[i].tv_sec;
+	    tstimes[i].tv_nsec = times[i].tv_usec * 1000;
+	}
+	if(futimens(fileno(fp),tstimes)){
+	    perror("futimens");
 	}
 #endif
 	fclose(fp);

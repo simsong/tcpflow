@@ -1,3 +1,7 @@
+2012-08-03  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/tcpip.cpp (tcpip::close_file): added support for FUTIMENS, but I don't yet have a system on which to test it. Hope that it's good.
+
 2012-07-02  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* src/sysdep.h: removed; put code in tcpflow.h for simplicity
