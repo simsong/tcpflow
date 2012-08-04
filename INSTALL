@@ -24,14 +24,18 @@ platforms, please let me know (jelson@circlemud.org).
 Installing tcpflow
 ==================
 
-tcpflow requires the pcap library from LBL; first, download it from
-ftp://ftp.ee.lbl.gov/libpcap.tar.Z and install it using
+tcpflow requires the pcap-dev library be installed if you wish to
+perform live capture or evaluate packet rules. You can usually install
+it with one of the following:
 
-   ./configure
-   make
-   make install
-   make install-incl
-   make install-man
+  UBUNTU: sudo apt-get install libpcap-dev
+  DEBIAN: sudo apt-get install libpcap-dev
+  FEDORA: sudo yum install libpcap-devel
+  MINGW:  Sorry!  libpcap is not currently available when cross-compiling.
+
+If you don't have pcap-dev, tcpflow will use a pcap reader that can
+read pcap files but cannot evaluate rules or perform live capture.
+
 
 Next, you can compile and install tcpflow like this:
 
