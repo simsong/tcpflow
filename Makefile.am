@@ -25,8 +25,8 @@ grenew:
 #
 
 RELEASE_USER = simsong@
-RELEASE_HOST = www.afflib.org
-RELEASE_DIR  = afflib.org/
+RELEASE_HOST = www.digitalcorpora.org
+RELEASE_DIR  = digitalcorpora.org/
 
 RELEASE_LOC  = $(RELEASE_DIR)/downloads/
 VERSION_FN   = $(PACKAGE)_version.txt
