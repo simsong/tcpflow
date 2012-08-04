@@ -2,6 +2,13 @@
 
 	* src/tcpip.cpp (tcpip::close_file): added support for FUTIMENS, but I don't yet have a system on which to test it. Hope that it's good.
 
+ 2012-07-23  Simson Garfinkel  <simsong@Mucha.local>
+	 
+	* src/main.cpp (main): added calling process_infile(expression,device,"",true) when no files are provided to fix bug of no live capture.
+	 
+	* configure.ac: version 1.2.8
+	
+	
 2012-07-02  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* src/sysdep.h: removed; put code in tcpflow.h for simplicity
