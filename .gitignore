@@ -82,3 +82,7 @@ doc/tcpflow.1
 report.xml
 src/config.h
 tcpflow.spec
+out
+src/a.out
+tests/out
+tests/packet1.pcap

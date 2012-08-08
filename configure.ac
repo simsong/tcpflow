@@ -4,7 +4,7 @@
 # See http://autotoolset.sourceforge.net/tutorial.html 
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
-AC_INIT(TCPFLOW, 1.2.8, bugs@afflib.org)
+AC_INIT(TCPFLOW, 1.3.0, bugs@afflib.org)
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
 AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
@@ -165,8 +165,8 @@ AC_CHECK_HEADERS([zlib.h])
 
 ################################################################
 # DFXML support
-AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h])
-AC_CHECK_FUNCS([localtime_r getuid gethostname getwpuid getrusage mkstemp vasprintf])
+AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h regex.h])
+AC_CHECK_FUNCS([localtime_r getuid gethostname getwpuid getrusage mkstemp vasprintf regcomp])
 
 # Determine UTC date offset
 CPPFLAGS="$CPPFLAGS -DUTC_OFFSET=`date +%z`"
@@ -348,10 +348,12 @@ AC_CHECK_TYPES([tcp_seq], [], [],
 ############## drop optimization flags if requested ################
 AC_ARG_WITH(noopt, AC_HELP_STRING([--with-noopt], [Drop -O C flags]))
 if test x"${AFF_NOOPT}" != "x" ; then
+  AC_MSG_NOTICE([Dropping optimization flags because AFF_NOOPT is set.])
    with_noopt="yes";
 fi
 
 if test "${with_noopt}" = "yes" ; then
+  AC_MSG_NOTICE([Dropping optimization flags])
   CFLAGS=`echo "$CFLAGS" | sed s/-O[[0-9]]//`             # note the double quoting! 
   CXXFLAGS=`echo "$CXXFLAGS" | sed s/-O[[0-9]]//`
 fi

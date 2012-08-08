@@ -22,7 +22,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-#ifdef HAVE_REGEX_H
+#if defined(HAVE_REGEX_H) && defined(HAVE_REGCOMP)
 #include <regex.h>
 #endif
 
@@ -90,10 +90,11 @@ int mkstemp(char *tmpl)
 std::string xml::xml_PRId64("%"PRId64);	// gets around compiler bug
 std::string xml::xml_PRIu64("%"PRIu64);	// gets around compiler bug
 
-#ifdef HAVE_REGEX_H
 static const char *cstr(const string &str){
     return str.c_str();
 }
+
+#if defined(HAVE_REGCOMP)
 /** A local class for regex matching with a single pattern */
 class Regex {
 public:
@@ -202,7 +203,7 @@ xml::xml(const std::string &outfilename_,bool makeDTD):
     *out << xml_header;
 }
 
-#ifdef HAVE_REGEX_H
+#if defined(HAVE_REGCOMP)
 /**
  * opening an existing DFXML file...
  * Scan through and see if we can process.
@@ -288,23 +289,11 @@ void xml::close()
 {
     MUTEX_LOCK(&M);
     outf.close();
-#if 0
     if(make_dtd){
 	/* If we are making the DTD, then we should close the file,
 	 * scan the output file for the tags, write to a temp file, and then
 	 * close the temp file and have it overwrite the outfile.
 	 */
-
-    if(make_dtd){
-	char tfn[1024];
-	memset(tfn,0,sizeof(tfn));
-	strcpy(tfn,tempfile_template.c_str());
-	int fd = mkstemp(tfn);
-	tempfilename = tfn;  
-	outf.open(tfn,ios_base::out);
-	::close(fd);
-    }
-
 
 	std::ifstream in(cstr(tempfilename));
 	if(!in.is_open()){
@@ -331,7 +320,6 @@ void xml::close()
 	unlink(cstr(tempfilename));
 	outf.close();
     }
-#endif
     MUTEX_UNLOCK(&M);
 }
 

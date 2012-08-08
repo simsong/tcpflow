@@ -18,6 +18,9 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define to 1 if you have the `futimens' function. */
+#undef HAVE_FUTIMENS
+
 /* Define to 1 if you have the `futimes' function. */
 #undef HAVE_FUTIMES
 
@@ -104,6 +107,9 @@
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
+
+/* Define to 1 if you have the `regcomp' function. */
+#undef HAVE_REGCOMP
 
 /* Define to 1 if you have the <regex.h> header file. */
 #undef HAVE_REGEX_H

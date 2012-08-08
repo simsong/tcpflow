@@ -34,61 +34,31 @@ typedef unsigned short int sa_family_t;
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-/* We need struct iphdr
- * Bring it in (from /usr/include/netinet/ip.h (Fedora 17 Linux)
- * Structure of an ip header, naked of options
- */
-struct iphdr {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-    unsigned int ihl:4;
-    unsigned int version:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-    unsigned int version:4;
-    unsigned int ihl:4;
-#else
-#error	__BYTE_ORDER not properly set; check <bits/endian.h>
-#endif
-    uint8_t tos;
-    uint16_t tot_len;
-    uint16_t id;
-    uint16_t frag_off;
-    uint8_t ttl;
-    uint8_t protocol;
-    uint16_t check;
-    uint32_t saddr;
-    uint32_t daddr;
-    /*The options start here. */
-};
-
-
-/* If we don't have tcp_seq, we probably don't have struct tcphdr.
- * Bring it all in... (from /usr/include/netinet/tcp.h)
- */
 /*
  * Structure of an internet header, naked of options.
  */
 struct ip {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    unsigned int ip_hl:4;		/* header length */
-    unsigned int ip_v:4;		/* version */
+    uint8_t ip_hl:4;		/* header length */
+    uint8_t ip_v:4;		/* version */
 #endif
 #if __BYTE_ORDER == __BIG_ENDIAN
-    unsigned int ip_v:4;		/* version */
-    unsigned int ip_hl:4;		/* header length */
+    uint8_t ip_v:4;		/* version */
+    uint8_t ip_hl:4;		/* header length */
 #endif
-    u_int8_t ip_tos;			/* type of service */
-    u_short ip_len;			/* total length */
-    u_short ip_id;			/* identification */
-    u_short ip_off;			/* fragment offset field */
+    uint8_t ip_tos;			/* type of service */
+    uint16_t ip_len;			/* total length */
+    uint16_t ip_id;			/* identification */
+    uint16_t ip_off;			/* fragment offset field */
 #define	IP_RF 0x8000			/* reserved fragment flag */
 #define	IP_DF 0x4000			/* dont fragment flag */
 #define	IP_MF 0x2000			/* more fragments flag */
 #define	IP_OFFMASK 0x1fff		/* mask for fragmenting bits */
-    u_int8_t ip_ttl;			/* time to live */
-    u_int8_t ip_p;			/* protocol */
-    u_short ip_sum;			/* checksum */
+    uint8_t ip_ttl;			/* time to live */
+    uint8_t ip_p;			/* protocol */
+    uint16_t ip_sum;			/* checksum */
     struct in_addr ip_src, ip_dst;	/* source and dest address */
-};
+} __attribute__ ((__packed__));
 
 typedef	uint32_t tcp_seq;
 /*

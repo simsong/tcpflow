@@ -5,33 +5,6 @@
  * This source code is under the GNU Public License (GPL).  See
  * LICENSE for details.
  *
- * $Log: tcpflow.h,v $
- * Revision 1.10  2001/08/08 19:39:40  jelson
- * ARGH!  These are changes that made up tcpflow 0.20, which for some reason I
- * did not check into the repository until now.  (Which of couse means
- * I never tagged v0.20.... argh.)
- *
- * Changes include:
- *
- *   -- portable signal handlers now used to do proper termination
- *
- *   -- patch to allow tcpflow to read from tcpdump stored captures
- *
- * Revision 1.9  2000/12/08 07:32:39  jelson
- * Took out the (broken) support for fgetpos/fsetpos.  Now we always simply
- * use fseek and ftell.
- *
- * Revision 1.8  1999/04/21 01:40:16  jelson
- * DLT_NULL fixes, u_char fixes, additions to configure.in, man page update
- *
- * Revision 1.7  1999/04/13 01:38:14  jelson
- * Added portability features with 'automake' and 'autoconf'.  Added AUTHORS,
- * NEWS, README, etc files (currently empty) to conform to GNU standards.
- *
- * Various portability fixes, including the FGETPOS/FSETPOS macros; detection
- * of header files using autoconf; restructuring of debugging code to not
- * need vsnprintf.
- *
  */
 
 #ifndef __TCPFLOW_H__
@@ -65,6 +38,10 @@
 
 #include <fcntl.h>
 #include <assert.h>
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 /* If we are including inttypes.h, mmake sure __STDC_FORMAT_MACROS is defined */
 #ifndef __STDC_FORMAT_MACROS
@@ -145,6 +122,10 @@
 
 #ifdef HAVE_NETINET_IP_H
 # include <netinet/ip.h>
+#endif
+
+#ifdef HAVE_NETINET_IP6_H
+#include <netinet/ip6.h>		/*  SLG */
 #endif
 
 #ifdef HAVE_NETINET_IF_ETHER_H

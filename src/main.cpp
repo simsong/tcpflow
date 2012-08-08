@@ -122,26 +122,40 @@ void replace(std::string &str,const std::string &from,const std::string &to)
     }
 }
 
-
 int main(int argc, char *argv[])
 {
-    tcpdemux demux;			// the demux object we will be using.
-    int arg;
-    int need_usage = 0;
-
-    const char *lockname = 0;
+    bool force_binary_output = false;
+    bool opt_all = true;
     char *device = NULL;
-    std::vector<std::string> rfiles;	// files to read
+    const char *lockname = 0;
+    int need_usage = 0;
+    std::string xmlout;
     std::vector<std::string> Rfiles;	// files for finishing
+    std::vector<std::string> rfiles;	// files to read
+    tcpdemux demux;			// the demux object we will be using.
+
+    /* Make sure that the system was compiled properly */
+    bool error = false;
+    if(sizeof(struct ip)!=20){
+	fprintf(stderr,"COMPILE ERROR. sizeof(struct ip)=%d; should be 20.\n",
+		(int)sizeof(struct ip));
+	error = true;
+    }
+    if(sizeof(struct tcphdr)!=20){
+	fprintf(stderr,"COMPILE ERROR. sizeof(struct tcphdr)=%d; should be 20.\n",
+		(int)sizeof(struct tcphdr));
+	error = true;
+    }
+    if(error){
+	fprintf(stderr,"CANNOT CONTINUE\n");
+	exit(1);
+    }
 
     progname = argv[0];
     
     init_debug(argv);
-    opterr = 0;
-    bool force_binary_output = false;
-    std::string xmlout;
-    bool opt_all = true;
 
+    int arg;
     while ((arg = getopt(argc, argv, "aA:Bb:cCd:eF:f:hi:L:m:o:PpR:r:sT:VvX:Z")) != EOF) {
 	switch (arg) {
 	case 'a':

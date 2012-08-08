@@ -1,14 +1,23 @@
+2012-08-08  Simson Garfinkel  <simsong@FC17>
+
+	* src/tcpdemux.h: removed struct ip as it was redundent to struct iphdr
+
+	* configure.ac: Increased version number to 1.3.0
+
+	* configure.ac: tcpflow now compiles under mingw for Windows
+
+	* src/tcpdemux.cpp: moved tcpdemux class methods into this new file.
+
 2012-08-03  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* src/tcpip.cpp (tcpip::close_file): added support for FUTIMENS, but I don't yet have a system on which to test it. Hope that it's good.
 
  2012-07-23  Simson Garfinkel  <simsong@Mucha.local>
-	 
+
 	* src/main.cpp (main): added calling process_infile(expression,device,"",true) when no files are provided to fix bug of no live capture.
-	 
+
 	* configure.ac: version 1.2.8
-	
-	
+
 2012-07-02  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* src/sysdep.h: removed; put code in tcpflow.h for simplicity
