@@ -155,10 +155,13 @@ public:
     void add_cpuid();
 #endif
     void add_DFXML_execution_environment(const std::string &command_line);
-    void add_DFXML_creator(const std::string &program,const std::string &version,const std::string &command_line){
+    void add_DFXML_creator(const std::string &program,const std::string &version,
+			   const std::string &svn_r,
+			   const std::string &command_line){
 	push("creator","version='1.0'");
 	xmlout("program",program);
 	xmlout("version",version);
+	if(svn_r.size()>0) xmlout("svn_version",svn_r);
 	add_DFXML_build_environment();
 	add_DFXML_execution_environment(command_line);
 	pop();			// creator

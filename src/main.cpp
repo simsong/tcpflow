@@ -86,21 +86,18 @@ void print_usage()
  * Create the dfxml output
  */
 
-static xml *dfxml_create(int argc,char **argv,std::string filename)
+static void dfxml_create(xml &xreport,const string &command_line)
 {
-    xml *xreport = new xml(filename,false);
-
-    xreport->push("dfxml","xmloutputversion='1.0'");
-    xreport->push("metadata",
+    xreport.push("dfxml","xmloutputversion='1.0'");
+    xreport.push("metadata",
 		 "\n  xmlns='http://afflib.org/tcpflow/' "
 		 "\n  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
 		 "\n  xmlns:dc='http://purl.org/dc/elements/1.1/'" );
-    xreport->xmlout("dc:type","Feature Extraction","",false);
-    xreport->pop();
-    xreport->add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,xml::make_command_line(argc,argv));
-
-    xreport->push("configuration");
-    xreport->pop();			// configuration
+    xreport.xmlout("dc:type","Feature Extraction","",false);
+    xreport.pop();
+    xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"",command_line);
+    xreport.push("configuration");
+    xreport.pop();			// configuration
     return xreport;
 }
 
@@ -129,10 +126,11 @@ int main(int argc, char *argv[])
     char *device = NULL;
     const char *lockname = 0;
     int need_usage = 0;
-    std::string xmlout;
+    std::string xmlfilename;
     std::vector<std::string> Rfiles;	// files for finishing
     std::vector<std::string> rfiles;	// files to read
     tcpdemux demux;			// the demux object we will be using.
+    std::string command_line = xml::make_command_line(argc,argv);
 
     /* Make sure that the system was compiled properly */
     bool error = false;
@@ -252,7 +250,7 @@ int main(int argc, char *argv[])
 	    use_color  = 1;
 	    DEBUG(10) ("using colors");
 	    break;
-	case 'X': xmlout = optarg;break;
+	case 'X': xmlfilename = optarg;break;
 	default:
 	    DEBUG(1) ("error: unrecognized switch '%c'", optopt);
 	    need_usage = 1;
@@ -262,8 +260,8 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if( (opt_all) && (xmlout.size()==0) ){
-	xmlout = demux.outdir + "/report.xml";
+    if( (opt_all) && (xmlfilename.size()==0) ){
+	xmlfilename = demux.outdir + "/report.xml";
     }
 
     /* print help and exit if there was an error in the arguments */
@@ -307,8 +305,9 @@ int main(int argc, char *argv[])
     }
 
     xml *xreport = 0;
-    if(xmlout.size()>0){
-	xreport = dfxml_create(argc,argv,xmlout);
+    if(xmlfilename.size()>0){
+	xreport = new xml(reportfilename,false);
+	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
     }
 
@@ -351,9 +350,9 @@ int main(int argc, char *argv[])
 
     if(xreport){
 	demux.flow_map_clear();	// empty the map to capture the state
-	xreport->add_rusage();
-	xreport->pop();			// bulk_extractor
-	xreport->close();
+	xreport.add_rusage();
+	xreport.pop();			// bulk_extractor
+	xreport.close();
 	delete xreport;		  // not strictly needed, but why not?
     }
     
