@@ -1,3 +1,7 @@
+2012-08-16  Simson Garfinkel  <simsong@mucha.lan>
+
+	* src/tcpdemux.cpp (tcpdemux::process_tcp): fixed bug in which myflow.tlast wasn't being set.
+
 2012-08-16  Simson Garfinkel  <simsong@Mucha.local>
 
 	* configure.ac: Increased version number to 1.2.9
