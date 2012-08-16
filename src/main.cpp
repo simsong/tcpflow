@@ -86,7 +86,7 @@ void print_usage()
  * Create the dfxml output
  */
 
-static void dfxml_create(xml &xreport,const string &command_line)
+static void dfxml_create(xml &xreport,const std::string &command_line)
 {
     xreport.push("dfxml","xmloutputversion='1.0'");
     xreport.push("metadata",
@@ -98,7 +98,6 @@ static void dfxml_create(xml &xreport,const string &command_line)
     xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"",command_line);
     xreport.push("configuration");
     xreport.pop();			// configuration
-    return xreport;
 }
 
 
@@ -126,7 +125,7 @@ int main(int argc, char *argv[])
     char *device = NULL;
     const char *lockname = 0;
     int need_usage = 0;
-    std::string xmlfilename;
+    std::string reportfilename;
     std::vector<std::string> Rfiles;	// files for finishing
     std::vector<std::string> rfiles;	// files to read
     tcpdemux demux;			// the demux object we will be using.
@@ -250,7 +249,7 @@ int main(int argc, char *argv[])
 	    use_color  = 1;
 	    DEBUG(10) ("using colors");
 	    break;
-	case 'X': xmlfilename = optarg;break;
+	case 'X': reportfilename = optarg;break;
 	default:
 	    DEBUG(1) ("error: unrecognized switch '%c'", optopt);
 	    need_usage = 1;
@@ -260,8 +259,8 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if( (opt_all) && (xmlfilename.size()==0) ){
-	xmlfilename = demux.outdir + "/report.xml";
+    if( (opt_all) && (reportfilename.size()==0) ){
+	reportfilename = demux.outdir + "/report.xml";
     }
 
     /* print help and exit if there was an error in the arguments */
@@ -305,7 +304,7 @@ int main(int argc, char *argv[])
     }
 
     xml *xreport = 0;
-    if(xmlfilename.size()>0){
+    if(reportfilename.size()>0){
 	xreport = new xml(reportfilename,false);
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
@@ -350,9 +349,9 @@ int main(int argc, char *argv[])
 
     if(xreport){
 	demux.flow_map_clear();	// empty the map to capture the state
-	xreport.add_rusage();
-	xreport.pop();			// bulk_extractor
-	xreport.close();
+	xreport->add_rusage();
+	xreport->pop();			// bulk_extractor
+	xreport->close();
 	delete xreport;		  // not strictly needed, but why not?
     }
     
