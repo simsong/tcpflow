@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
 	xreport->add_rusage();
 	xreport->pop();			// bulk_extractor
 	xreport->close();
-	delete xreport;		  // not strictly needed, but why not?
+	//delete xreport;		  // not strictly needed, but why not?
     }
     
     return 0;

@@ -199,7 +199,7 @@ if test  x"$mingw" = x"yes";  then
 else
   m4_include([m4/ax_pthread.m4])
   AX_PTHREAD([
-    echo Using settings from AX_PTHREAD 
+    echo Using settings from [AX_PTHREAD]
     LIBS="$PTHREAD_LIBS $LIBS"
     CFLAGS="  $PTHREAD_CFLAGS $CFLAGS"
     CXXFLAGS="$PTHREAD_CFLAGS $CXXFLAGS "

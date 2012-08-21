@@ -527,9 +527,15 @@ void xml::add_DFXML_execution_environment(const std::string &command_line)
 #endif
 #endif
     
+#ifdef _MSC_VER
+#define TM_FORMAT "%Y-%m-%dT%H:%M:%SZ"
+#else
+#define TM_FORMAT "%FT%TZ"
+#endif
+
     char buf[256];
     time_t t = time(0);
-    strftime(buf,sizeof(buf),"%FT%TZ",gmtime(&t));
+    strftime(buf,sizeof(buf),TM_FORMAT,gmtime(&t));
     xmlout("start_time",buf);
     pop();			// <execution_environment>
 }
