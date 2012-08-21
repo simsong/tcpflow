@@ -381,4 +381,3 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq, int 
 	close_file();
     }
 }
-

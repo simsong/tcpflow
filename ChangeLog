@@ -1,12 +1,21 @@
+2012-08-16  Simson Garfinkel  <simsong@mucha.lan>
+
+	* src/tcpdemux.cpp (tcpdemux::process_tcp): fixed bug in which myflow.tlast wasn't being set.
+
+2012-08-16  Simson Garfinkel  <simsong@Mucha.local>
+
+	* configure.ac: Increased version number to 1.2.9
+
+
+	* src/main.cpp (main): fixed compile bugs that resulted from adoption of standard DFXML header.
+
 2012-08-10  Simson Garfinkel  <simsong@imac3.local>
 
 	* configure.ac (HAVE_PTHREAD): fixed typo in configure.ac
-
+	
 2012-08-08  Simson Garfinkel  <simsong@FC17>
 
 	* src/tcpdemux.h: removed struct ip as it was redundent to struct iphdr
-
-	* configure.ac: Increased version number to 1.3.0
 
 	* configure.ac: tcpflow now compiles under mingw for Windows
 

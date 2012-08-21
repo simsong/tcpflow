@@ -353,6 +353,8 @@ void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, uint32_t
     }
     if (tcp==NULL){
 	tcp = create_tcpip(this_flow, vlan, seq, *ts,connection_count);
+    } else {
+	tcp->myflow.tlast = *ts;		// most recently seen packet
     }
 
     tcp->myflow.packet_count++;
