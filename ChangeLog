@@ -1,3 +1,7 @@
+2012-08-10  Simson Garfinkel  <simsong@imac3.local>
+
+	* configure.ac (HAVE_PTHREAD): fixed typo in configure.ac
+
 2012-08-08  Simson Garfinkel  <simsong@FC17>
 
 	* src/tcpdemux.h: removed struct ip as it was redundent to struct iphdr
