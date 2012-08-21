@@ -191,11 +191,12 @@ AC_TRY_COMPILE([#pragma GCC diagnostic ignored "-Wredundant-decls"],
 # With special nods to compiling under mingw
 
 if test  x"$mingw" = x"yes";  then
-  AC_DEFINE([HAVE_STRUCT_TIMESPEC],1,[Required for mingw])
-  CFLAGS="$CFLAGS -mthreads "
-  CPPFLAGS="-DPTW32_STATIC_LIB $CPPFLAGS"
-  CXXFLAGS="$CXXFLAGS -mthreads "
-  AC_DEFINE(HAVE_PTHREAD,1,[Defined to POSIX threads for mingw])
+  #AC_DEFINE([HAVE_STRUCT_TIMESPEC],1,[Required for mingw])
+  #CFLAGS="$CFLAGS -mthreads "
+  #CPPFLAGS="-DPTW32_STATIC_LIB $CPPFLAGS"
+  #CXXFLAGS="$CXXFLAGS -mthreads "
+  #AC_DEFINE(HAVE_PTHREAD,1,[Defined to POSIX threads for mingw])
+  AC_MSG_NOTICE([pthreads now disabled under mingw])
 else
   m4_include([m4/ax_pthread.m4])
   AX_PTHREAD([

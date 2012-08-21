@@ -47,18 +47,23 @@ the_release: $(RELEASEFN)
 	gpg --detach-sign $(RELEASEFN)
 	@echo Release $(RELEASE_VER) uploaded to server
 
-winrelease:
-	/bin/rm -f tcpflow*.exe
-	make clean
-	make distclean
+tcpflow32.exe:
 	mingw32-configure
-	make
-	mv -f src/tcpflow.exe tcpflow32.exe
 	make clean
+	make 
+
+tcpflow64.exe:
 	mingw64-configure
-	make
+	make clean
+	make 
+
+winrelease:
+	/bin/rm -f tcpflow*.exe tcpflow-$(RELEASE_VER).zip
+	make tcpflow32.exe
+	mv -f src/tcpflow.exe tcpflow32.exe
+	make tcpflow64.exe
 	mv -f src/tcpflow.exe tcpflow64.exe
-	zip $(PACKAGE)-$(VERSION).zip tcpflow*.exe
+	zip tcpflow-$(RELEASE_VER).zip tcpflow*.exe
 
 
 #

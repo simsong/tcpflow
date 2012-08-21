@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
 	xreport->add_rusage();
 	xreport->pop();			// bulk_extractor
 	xreport->close();
-	//delete xreport;		// causes crash on windows
+	delete xreport;		// causes crash on windows with mingw32
     }
-    exit(0);				// return(0) causes crash on Windows
+    exit(0);			// return(0) causes crash on Windows
 }

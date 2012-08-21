@@ -153,9 +153,6 @@
 /* Define to 1 if you have the `strnstr' function. */
 #undef HAVE_STRNSTR
 
-/* Required for mingw */
-#undef HAVE_STRUCT_TIMESPEC
-
 /* Define to 1 if you have the <sys/bitypes.h> header file. */
 #undef HAVE_SYS_BITYPES_H
 

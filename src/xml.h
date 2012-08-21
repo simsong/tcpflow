@@ -71,10 +71,7 @@ private:
 	    return "copying feature_recorder objects is not implemented.";
 	}
     };
-    xml(const xml &fr):
-#ifdef HAVE_PTHREAD
-	M(),
-#endif
+    xml(const xml &fr):	M(),
 	outf(),out(),tags(),tag_stack(),tempfilename(),tempfile_template(),t0(),
 	make_dtd(),outfilename(){
 	throw new not_impl();
@@ -84,6 +81,8 @@ private:
 
 #ifdef HAVE_PTHREAD
     pthread_mutex_t M;				// mutext protecting out
+#else
+    int M;				// placeholder
 #endif
     std::fstream outf;
     std::ostream *out;				// where it is being written; defaulst to stdout

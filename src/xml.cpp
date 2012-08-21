@@ -18,9 +18,14 @@
 
 
 #include "config.h"
-#include "xml.h"
+#ifdef WIN32
+#include <winsock2.h>
+#endif
+
 #include <errno.h>
 #include <unistd.h>
+
+#include "xml.h"
 
 #if defined(HAVE_REGEX_H) && defined(HAVE_REGCOMP)
 #include <regex.h>
@@ -184,10 +189,7 @@ xml::xml():M(),outf(),out(&cout),tags(),tag_stack(),tempfilename(),tempfile_temp
 
 /* This should be rewritten so that the temp file is done on close, not on open */
 xml::xml(const std::string &outfilename_,bool makeDTD):
-#ifdef HAVE_PTHREAD
-    M(),
-#endif
-    outf(outfilename_.c_str(),ios_base::out),
+    M(),outf(outfilename_.c_str(),ios_base::out),
     out(),tags(),tag_stack(),tempfilename(),tempfile_template(outfilename_+"_tmp_XXXXXXXX"),
     t0(),make_dtd(false),outfilename(outfilename_)
 {
@@ -210,10 +212,7 @@ xml::xml(const std::string &outfilename_,bool makeDTD):
  * We can only process XML in which tags are on lines by themselves or else both open and close are on the same line.
  */
 xml::xml(const std::string &outfilename_,class existing &e):
-#ifdef HAVE_PTHREAD
-    M(),
-#endif
-    outf(), out(),tags(),tag_stack(),tempfilename(),tempfile_template(),
+    M(),outf(), out(),tags(),tag_stack(),tempfilename(),tempfile_template(),
     t0(),make_dtd(false),outfilename(outfilename_)
 {
 #ifdef HAVE_PTHREAD
@@ -356,7 +355,7 @@ void xml::puts(const string &v)
 
 void xml::spaces()
 {
-    for(u_int i=0;i<tag_stack.size();i++){
+    for(unsigned int i=0;i<tag_stack.size();i++){
 	*out << "  ";
     }
 }
