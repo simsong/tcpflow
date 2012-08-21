@@ -352,8 +352,7 @@ int main(int argc, char *argv[])
 	xreport->add_rusage();
 	xreport->pop();			// bulk_extractor
 	xreport->close();
-	//delete xreport;		  // not strictly needed, but why not?
+	//delete xreport;		// causes crash on windows
     }
-    
-    return 0;
+    exit(0);				// return(0) causes crash on Windows
 }
