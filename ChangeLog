@@ -1,3 +1,7 @@
+2012-09-11  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/datalink.cpp (dl_ethernet): now handles ETHERTYPE_LOOPBACK not defined.
+
 2012-08-20  Simson Garfinkel  <simsong@FC17>
 
 	* configure.ac: increased version number to 1.3.0

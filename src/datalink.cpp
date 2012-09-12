@@ -126,9 +126,15 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     case ETHERTYPE_IPV6:
 	demux.process_ip(&h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
 	return;
+#ifdef ETHERTYPE_ARP
     case ETHERTYPE_ARP:
+#endif
+#ifdef ETHERTYPE_LOOPBACK
     case ETHERTYPE_LOOPBACK:
+#endif
+#ifdef ETHERTYPE_REVARP
     case ETHERTYPE_REVARP:
+#endif
 	return;
     default:
 	break;
