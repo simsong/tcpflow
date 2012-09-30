@@ -64,3 +64,26 @@ Substitution options for command:
 %l - length of the flow (only useful for -Pe, of course)
 %f - filename of the flow 
 
+================================================================
+PDF generation for reporting. Options for generating PDF files include:
+Question discussed:
+  http://stackoverflow.com/questions/58730/open-source-pdf-library-for-c-c-application
+  http://stackoverflow.com/questions/177/how-do-i-programmatically-create-a-pdf-in-my-net-application
+JagPDF - http://www.jagpdf.org - current version 1.4.0 (7 October 2009)
+Haru Free PDF Library - http://sourceforge.net/projects/libharu/ - 2011-06-14
+muPdf - http://mupdf.com
+PoDoFo - http://podofo.sourceforge.net - 0.9.1 - April 26th, 2011
+   - requires cppunit (optional)
+     freetype2
+     fontconfig (Linux/Unix only)
+     libjpeg (optional)
+     libtiff (optional)
+     libpng (optional)
+     Lua 5.1 (optional, only for podofoimpose Lua imposition plans)
+     zlib
+
+Cairo - http://en.wikipedia.org/wiki/Cairo_(graphics) 
+  - Generates more than PDFs!
+  - Support for hardware acceleration
+  - http://cairographics.org
+
