@@ -37,6 +37,8 @@ Thumbs.db
 
 # Backup Files and autoconf nonsense 
 # http://stackoverflow.com/questions/3290908/which-files-generated-by-autotools-should-i-keep-in-git-repository
+# plus vim backups
+*.swp
 autom4te.cache
 *.aff
 *.obj

@@ -347,16 +347,27 @@ AC_CHECK_TYPES([tcp_seq], [], [],
 )
 
 ############## drop optimization flags if requested ################
-AC_ARG_WITH(noopt, AC_HELP_STRING([--with-noopt], [Drop -O C flags]))
+
+# Should we disable optimization?
+AC_ARG_WITH([opt], AC_HELP_STRING([--without-opt], [Drop all -O C flags]))
+# Or maybe just tone it down a bit?
+AC_ARG_WITH([o3], AC_HELP_STRING([--without-o3], [Do not force O3 optimization; use default level]))
+
 if test x"${AFF_NOOPT}" != "x" ; then
   AC_MSG_NOTICE([Dropping optimization flags because AFF_NOOPT is set.])
-   with_noopt="yes";
+   with_opt="no";
 fi
 
-if test "${with_noopt}" = "yes" ; then
+if test "${with_opt}" = "no" ; then
   AC_MSG_NOTICE([Dropping optimization flags])
   CFLAGS=`echo "$CFLAGS" | sed s/-O[[0-9]]//`             # note the double quoting! 
   CXXFLAGS=`echo "$CXXFLAGS" | sed s/-O[[0-9]]//`
+else
+  # and increase optimizer from -O2 to -O3 if not explicitly forbidden
+  if test "${with_o3}" != "no" ; then
+      CFLAGS=`echo   -g "$CFLAGS"   | sed s/-O2/-O3/`             # note the double quoting! 
+      CXXFLAGS=`echo -g "$CXXFLAGS" | sed s/-O2/-O3/`
+  fi
 fi
 
 AC_OUTPUT
