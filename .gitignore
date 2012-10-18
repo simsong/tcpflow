@@ -37,8 +37,6 @@ Thumbs.db
 
 # Backup Files and autoconf nonsense 
 # http://stackoverflow.com/questions/3290908/which-files-generated-by-autotools-should-i-keep-in-git-repository
-# plus vim backups
-*.swp
 autom4te.cache
 *.aff
 *.obj
@@ -72,12 +70,15 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 missing
 stamp-h*
+# plus vim backups
+*.swp
 
 depcomp
 
 # Executables
 .deps
 .libs
+tags
 TAGS
 src/tcpflow
 doc/tcpflow.1
