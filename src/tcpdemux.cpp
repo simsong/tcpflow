@@ -8,6 +8,7 @@
  */
 
 #include "tcpflow.h"
+#include "iface_pcb.h"
 
 #include <iostream>
 #include <sstream>
@@ -613,6 +614,10 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	dlt = pcap_datalink(pd);
 	handler = find_handler(dlt, device);
     }
+
+    // wrap the handler so that plugins through the PCB interface will be called
+    pcb::init(handler, true);
+    handler = &pcb::handle;
 
     /* If DLT_NULL is "broken", giving *any* expression to the pcap
      * library when we are using a device of type DLT_NULL causes no
