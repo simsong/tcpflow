@@ -108,16 +108,16 @@
 # include <net/if.h>
 #endif
 
-#ifdef HAVE_NETINET_TCP_H
-# include <netinet/tcp.h>
-#endif
-
-#ifdef HAVE_NETINET_IN_SYSTM_H
-# include <netinet/in_systm.h>
+#ifdef HAVE_NET_ETHERNET_H
+# include <net/ethernet.h>		// for freebsd
 #endif
 
 #ifdef HAVE_NETINET_IN_H
 # include <netinet/in.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_SYSTM_H
+# include <netinet/in_systm.h>
 #endif
 
 #ifdef HAVE_NETINET_IP_H
@@ -125,11 +125,23 @@
 #endif
 
 #ifdef HAVE_NETINET_IP6_H
-#include <netinet/ip6.h>		/*  SLG */
+#include <netinet/ip6.h>		
+#endif
+
+#ifdef HAVE_NETINET_IP_VAR_H
+# include <netinet/ip_var.h>		// FREEBSD
 #endif
 
 #ifdef HAVE_NETINET_IF_ETHER_H
 # include <netinet/if_ether.h>
+#endif
+
+#ifdef HAVE_NETINET_TCP_H
+# include <netinet/tcp.h>
+#endif
+
+#ifdef HAVE_NETINET_TCPIP_H
+# include <netinet/tcpip.h>		// FREEBSD
 #endif
 
 #ifdef HAVE_ARPA_INET_H

@@ -249,14 +249,18 @@ fi
 AC_HEADER_STDC
 AC_CHECK_HEADERS([\
 	arpa/inet.h \
+	ctype.h \
 	fcntl.h \
 	inttypes.h \
 	linux/if_ether.h \
+	net/ethernet.h \
 	netinet/if_ether.h \
 	netinet/in.h \
 	netinet/in_systm.h \
 	netinet/ip.h \
+	netinet/ip_var.h \
 	netinet/tcp.h \
+	netinet/tcpip.h \
 	pcap.h \
 	pcap/pcap.h \
 	regex.h \
@@ -264,6 +268,10 @@ AC_CHECK_HEADERS([\
 	signal.h \
 	string.h \
 	strings.h \
+	stdio.h \
+	stdlib.h \
+	string.h \
+	syslog.h \ 
 	sys/cdefs.h \
 	sys/mman.h \
 	sys/resource.h \
