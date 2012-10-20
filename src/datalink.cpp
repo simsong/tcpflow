@@ -82,7 +82,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 #endif
 
-    demux.process_ip(&h->ts,p + NULL_HDRLEN, caplen - NULL_HDRLEN,flow::NO_VLAN);
+    demux.process_ip(h->ts,p + NULL_HDRLEN, caplen - NULL_HDRLEN,flow::NO_VLAN);
 }
 
 
@@ -124,7 +124,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
-	demux.process_ip(&h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
+	demux.process_ip(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
 	return;
 #ifdef ETHERTYPE_ARP
     case ETHERTYPE_ARP:
@@ -179,7 +179,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    demux.process_ip(&h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,flow::NO_VLAN);
+    demux.process_ip(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,flow::NO_VLAN);
 }
 
 
@@ -197,7 +197,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		  caplen, length);
     }
 
-    demux.process_ip(&h->ts,p, caplen,flow::NO_VLAN);
+    demux.process_ip(h->ts,p, caplen,flow::NO_VLAN);
 }
 
 #define SLL_HDR_LEN       16
@@ -217,7 +217,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
 	return;
     }
   
-    demux.process_ip(&h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
+    demux.process_ip(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
 }
 
 

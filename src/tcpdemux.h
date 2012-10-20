@@ -394,11 +394,11 @@ public:
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn,
 			       const timeval &ts,uint64_t connection_count);
     tcpip *find_tcpip(const flow_addr &flow);
-    void process_tcp(const struct timeval *ts,const u_char *data, uint32_t length,
+    void process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
 			    const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
-    void process_ip4(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan);
-    void process_ip6(const struct timeval *ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
-    void process_ip(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan);
+    void process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
+    void process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
+    void process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
     void flow_map_clear();		// clears out the map
     void process_infile(const std::string &expression,const char *device,const std::string &infile,bool start);
 };

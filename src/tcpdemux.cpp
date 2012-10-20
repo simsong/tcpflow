@@ -292,7 +292,7 @@ static u_char *do_strip_nonprint(const u_char *data, u_char *buf,uint32_t length
  * Called to processes a tcp packet
  */
 
-void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, uint32_t length,
+void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
 			const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family)
 {
     struct tcphdr *tcp_header = (struct tcphdr *) data;
@@ -353,9 +353,9 @@ void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, uint32_t
 	}
     }
     if (tcp==NULL){
-	tcp = create_tcpip(this_flow, vlan, seq, *ts,connection_count);
+	tcp = create_tcpip(this_flow, vlan, seq, ts,connection_count);
     } else {
-	tcp->myflow.tlast = *ts;		// most recently seen packet
+	tcp->myflow.tlast = ts;		// most recently seen packet
     }
 
     tcp->myflow.packet_count++;
@@ -415,7 +415,7 @@ void tcpdemux::process_tcp(const struct timeval *ts,const u_char *data, uint32_t
  * process_tcp() for further processing.
  *
  * Note: we currently don't know how to handle IP fragments. */
-void tcpdemux::process_ip4(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan)
+void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
 {
     const struct ip *ip_header = (struct ip *) data;
     u_int ip_header_len;
@@ -506,7 +506,7 @@ struct private_ip6_hdr {
 
 
 
-void tcpdemux::process_ip6(const struct timeval *ts,const u_char *data, const uint32_t caplen, const int32_t vlan)
+void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan)
 {
     const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) data;
     u_int16_t ip_payload_len;
@@ -548,7 +548,7 @@ void tcpdemux::process_ip6(const struct timeval *ts,const u_char *data, const ui
  * This function calls process_ip4 or process_ip6
  */
 
-void tcpdemux::process_ip(const struct timeval *ts,const u_char *data, uint32_t caplen,int32_t vlan)
+void tcpdemux::process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
 {
     const struct ip *ip_header = (struct ip *) data;
     if (caplen < sizeof(struct ip)) {
