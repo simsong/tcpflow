@@ -12,22 +12,26 @@
 #include "iface_pcb.h"
 #include "tcpflow.h"
 
+// skip having a header for each in-tree plugin
+pcb::callback_t timehistogram;
+
 using std::vector;
 
 namespace pcb
 {
-    pcb_t *default_plugins[] = {
+    pcb::callback_t *default_plugins[] = {
+        timehistogram,
         0
     };
 
     pcap_handler wrapped;
-    vector<pcb_t *> plugins;
+    vector<pcb::callback_t *> plugins;
     bool passthrough;
 
     void init(pcap_handler const wrapped_, const bool passthrough_)
     {
         wrapped = wrapped_;
-        plugins = vector<pcb_t *>();
+        plugins = vector<pcb::callback_t *>();
         passthrough = passthrough_;
 
         // load default plugins from array literal
@@ -36,22 +40,42 @@ namespace pcb
             load_plugin(default_plugins[ii]);
         }
     }
-    void load_plugin(const pcb_t *new_plugin)
+
+    void load_plugin(const pcb::callback_t *new_plugin)
     {
         plugins.push_back(new_plugin);
     }
+
+    void do_startup()
+    {
+        for(vector<pcb::callback_t *>::iterator plugin = plugins.begin();
+                plugin != plugins.end(); plugin++)
+        {
+            (*plugin)(startup, NULL, NULL);
+        }
+    }
+
     void handle(u_char *user_args, const struct pcap_pkthdr *h,
             const u_char *p)
     {
-        for(vector<pcb_t *>::iterator plugin = plugins.begin();
+        for(vector<pcb::callback_t *>::iterator plugin = plugins.begin();
                 plugin != plugins.end(); plugin++)
         {
-            (*plugin)(h, p);
+            (*plugin)(scan, h, p);
         }
 
         if(passthrough)
         {
             (wrapped)(user_args, h, p);
+        }
+    }
+
+    void do_shutdown()
+    {
+        for(vector<pcb::callback_t *>::iterator plugin = plugins.begin();
+                plugin != plugins.end(); plugin++)
+        {
+            (*plugin)(shutdown, NULL, NULL);
         }
     }
 };

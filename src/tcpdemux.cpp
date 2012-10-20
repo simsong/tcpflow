@@ -617,6 +617,8 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 
     // wrap the handler so that plugins through the PCB interface will be called
     pcb::init(handler, true);
+    // currently no non-default plugins are loaded, so do startup right away
+    pcb::do_startup();
     handler = &pcb::handle;
 
     /* If DLT_NULL is "broken", giving *any* expression to the pcap
@@ -659,5 +661,8 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
     if (pcap_loop(pd, -1, handler, (u_char *)this) < 0){
 	die("%s", pcap_geterr(pd));
     }
+
+    // shut down PCB plugins
+    pcb::do_shutdown();
 }
 
