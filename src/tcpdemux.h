@@ -297,7 +297,7 @@ private:
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
-    tcpip(const tcpip &t):demux(t.demux),myflow(),isn(),flow_pathname(),fp(),pos(),pos_min(),pos_max(),last_packet_time(),
+    tcpip(const tcpip &t):demux(t.demux),myflow(),isn(),seen_syn(),flow_pathname(),fp(),pos(),pos_min(),pos_max(),last_packet_time(),
 			  bytes_processed(),finished(),file_created(),dir(),out_of_order_count(),md5(){
 	throw new not_impl();
     }
@@ -310,6 +310,7 @@ public:;
     class tcpdemux &demux;		// our demultiplexer
     flow	myflow;			/* Description of this flow */
     tcp_seq	isn;			// Flow's initial sequence number
+    bool	seen_syn;		// has a SYN been seen?
     std::string flow_pathname;		// path where flow is stored
     FILE	*fp;			// Pointer to file storing this flow's data 
     uint64_t	pos;			// Current write position in fp 
@@ -328,7 +329,7 @@ public:;
 		      const std::string &fname,const unsigned char *base,size_t len);
     void close_file();				// close fp
     void print_packet(const u_char *data, uint32_t length);
-    void store_packet(const u_char *data, uint32_t length, uint32_t seq, int syn_set);
+    void store_packet(const u_char *data, uint32_t length, uint32_t seq);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {

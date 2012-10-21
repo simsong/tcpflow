@@ -22,7 +22,7 @@
 #endif
 
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
-    demux(demux_),myflow(flow_),isn(isn_),flow_pathname(),fp(0),pos(0),pos_min(0),pos_max(0),
+    demux(demux_),myflow(flow_),isn(isn_),seen_syn(false),flow_pathname(),fp(0),pos(0),pos_min(0),pos_max(0),
     last_packet_time(0),bytes_processed(0),finished(0),file_created(false),dir(unknown),
     out_of_order_count(0),md5(0)
 {
@@ -298,14 +298,9 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 
 
 /* store the contents of this packet to its place in its file */
-void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq, int syn_set)
+void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
 {
     /* If we got a SYN reset the sequence number */
-    if (syn_set) {
-	DEBUG(50) ("resetting isn due to extra SYN");
-	isn = seq - pos +1;
-    }
-
     /* if we're done collecting for this flow, return now */
     if (finished){
 	DEBUG(2) ("packet received after flow finished on %s", flow_pathname.c_str());
@@ -316,12 +311,23 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq, int 
      * wrapping correctly because tcp_seq is the right size */
     tcp_seq offset = seq - isn;
 
-    /* I want to guard against receiving a packet with a sequence number
-     * slightly less than what we consider the ISN to be; the max
-     * (though admittedly non-scaled) window of 64K should be enough */
+    /* Are we receiving a packet with a sequence number
+     * slightly less than what we consider the ISN to be?
+     * The max (though admittedly non-scaled) window of 64K should be enough.
+     */
     if (offset >= 0xffff0000) {
-	DEBUG(2) ("dropped packet with seq < isn on %s", flow_pathname.c_str());
-	return;
+	if(bytes_processed==0 && pos==0){
+	    /* No bytes were processed; perhaps we never saw a SYN.
+	     * TODO: Have a flag that notes if a SYN was seen on this connection.
+	     * Set the isn as if this is a seq.
+	     */
+	    isn = seq;
+	    offset = seq - isn;
+	    DEBUG(2) ("set isn to %d having seen packet with seq (%d) on %s", isn,seq,flow_pathname.c_str());
+	} else {
+	    DEBUG(2) ("dropped packet with seq (%d) < isn (%d) (pos=%d delta=%d seen_syn=%d) on %s", seq,isn,(int)pos,offset,seen_syn,flow_pathname.c_str());
+	    return;
+	}
     }
 
     /* reject this packet if it falls entirely outside of the range of

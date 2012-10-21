@@ -295,23 +295,22 @@ static u_char *do_strip_nonprint(const u_char *data, u_char *buf,uint32_t length
 void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
 			const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family)
 {
-    struct tcphdr *tcp_header = (struct tcphdr *) data;
-    u_int tcp_header_len;
-    tcp_seq seq;
-
     if (length < sizeof(struct tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment!");
 	return;
     }
 
+    struct tcphdr *tcp_header = (struct tcphdr *) data;
+
     /* calculate the total length of the TCP header including options */
-    tcp_header_len = tcp_header->th_off * 4;
+    u_int tcp_header_len = tcp_header->th_off * 4;
 
     /* fill in the flow_addr structure with info that identifies this flow */
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),ntohs(tcp_header->th_dport),family);
 
-    seq = ntohl(tcp_header->th_seq);
+    tcp_seq seq = ntohl(tcp_header->th_seq);
     int syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
+
     /* recalculate the beginning of data and its length, moving past the
      * TCP header
      */
@@ -319,16 +318,22 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     length -= tcp_header_len;
 
     /* see if we have state about this flow; if not, create it */
+    uint64_t connection_count = 0;
     tcpip *tcp = find_tcpip(this_flow);
     
-    if(tcp==0 && start_new_connections==false) return; // don't start new ones
+    /* If this_flow is not in the database and the start_new_connections flag is false, just return */
+    if(tcp==0 && start_new_connections==false) return; 
 
-    uint64_t connection_count = 0;
+    /* flow is in the database */
     if(tcp){
 	/* If offset will be too much, throw away this_flow and create a new one */
 	tcp_seq isn2 = tcp->isn;		// local copy
 	if(syn_set){
 	    isn2 = seq - tcp->pos + 1;
+	    if(tcp->seen_syn){
+		DEBUG(1)("Multiple SYNs seen on a single connection?");
+	    }
+	    tcp->seen_syn = true;
 	}
 	tcp_seq offset  = seq - isn2;	// offset from the last seen packet to beginning of current
 	tcp_seq roffset = isn2 - seq;
@@ -352,12 +357,17 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	    }
 	}
     }
+    /* At this point, tcp may be NULL because:
+     * case 1 - a connection wasn't found or because
+     * case 2 - a new connections should be started (jump is too much)
+     */
+
     if (tcp==NULL){
-	tcp = create_tcpip(this_flow, vlan, seq, ts,connection_count);
-    } else {
-	tcp->myflow.tlast = ts;		// most recently seen packet
+	/* Create a new connection with the sequence number as the initial sequence number */
+	tcp = create_tcpip(this_flow, vlan, /* isn= */ seq, ts,connection_count);
     }
 
+    tcp->myflow.tlast = ts;		// most recently seen packet
     tcp->myflow.packet_count++;
 
     /* Handle empty packets (from Debian patch 10) */
@@ -384,6 +394,10 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	DEBUG(50) ("got TCP segment with no data");
     }
 
+    /* process any data.
+     * Notice that this typically won't be called for the SYN or SYN/ACK,
+     * since they both have no data by definition.
+     */
     if (length>0){
 	/* strip nonprintable characters if necessary */
 	u_char newbuf[SNAPLEN];
@@ -395,7 +409,12 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	if (console_only) {
 	    tcp->print_packet(data, length);
 	} else {
-	    tcp->store_packet(data, length, seq, syn_set);
+
+	    if (syn_set) {
+		DEBUG(50) ("resetting isn due to extra SYN");
+		tcp->isn = seq - tcp->pos + 1;
+	    }
+	    tcp->store_packet(data, length, seq);
 	}
     }
 

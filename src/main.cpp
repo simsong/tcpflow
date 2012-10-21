@@ -323,6 +323,7 @@ int main(int argc, char *argv[])
         demux.process_infile(expression,device,"",true);
     }
 
+    /* Process rfiles before Rfiles */
     for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
 	demux.process_infile(expression,device,*it,true);
     }
