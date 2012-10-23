@@ -634,11 +634,14 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	handler = find_handler(dlt, device);
     }
 
-    // wrap the handler so that plugins through the PCB interface will be called
-    pcb::init(handler, true);
-    // currently no non-default plugins are loaded, so do startup right away
-    pcb::do_startup();
-    handler = &pcb::handle;
+    if(getenv("TCPFLOW_MFS"))
+    {
+        // wrap the handler so that plugins through the PCB interface will be called
+        pcb::init(handler, true);
+        // currently no non-default plugins are loaded, so do startup right away
+        pcb::do_startup();
+        handler = &pcb::handle;
+    }
 
     /* If DLT_NULL is "broken", giving *any* expression to the pcap
      * library when we are using a device of type DLT_NULL causes no
@@ -681,7 +684,10 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	die("%s", pcap_geterr(pd));
     }
 
-    // shut down PCB plugins
-    pcb::do_shutdown();
+    if(getenv("TCPFLOW_MFS"))
+    {
+        // shut down PCB plugins
+        pcb::do_shutdown();
+    }
 }
 
