@@ -38,7 +38,7 @@ void tcpdemux::close_oldest()
 {
     tcpip *oldest_tcp=0;
     for(tcpset::iterator it = openflows.begin();it!=openflows.end();it++){
-	if(oldest_tcp==0 || (*it)->last_packet_time < oldest_tcp->last_packet_time){
+	if(oldest_tcp==0 || (*it)->last_packet_number < oldest_tcp->last_packet_number){
 	    oldest_tcp = (*it);
 	}
     }
@@ -70,7 +70,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
     flow flow(flowa,vlan,ts,ts,flow_counter++,connection_count);
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
-    new_tcpip->last_packet_time = packet_time++;
+    new_tcpip->last_packet_number = packet_counter++;
     DEBUG(5) ("%s: new flow", new_tcpip->flow_pathname.c_str());
     flow_map[flow] = new_tcpip;
     return new_tcpip;
@@ -198,7 +198,7 @@ unsigned int tcpdemux::get_max_fds(void)
 }
 
 
-tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_time(0),
+tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
 		     xreport(0),max_fds(10),flow_map(),
 		     start_new_connections(false),
 		     openflows(),

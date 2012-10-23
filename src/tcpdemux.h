@@ -297,8 +297,10 @@ private:
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
-    tcpip(const tcpip &t):demux(t.demux),myflow(),isn(),seen_syn(),flow_pathname(),fp(),pos(),pos_min(),pos_max(),last_packet_time(),
-			  bytes_processed(),finished(),file_created(),dir(),out_of_order_count(),md5(){
+    tcpip(const tcpip &t):demux(t.demux),myflow(),dir(),isn(),seen_syn(),pos(),pos_min(),pos_max(),
+			  flow_pathname(),fp(),file_created(),bytes_processed(),last_packet_number(),
+			  out_of_order_count(),
+			  md5(){
 	throw new not_impl();
     }
     tcpip &operator=(const tcpip &that) { throw new not_impl(); }
@@ -308,19 +310,24 @@ public:;
     tcpip(class tcpdemux &demux_,const flow &flow_,tcp_seq isn_);    /* constructor in tcpip.cpp */
     virtual ~tcpip();			// destructor
     class tcpdemux &demux;		// our demultiplexer
+    /* Flow state information */
     flow	myflow;			/* Description of this flow */
+    dir_t	dir;			// direction of flow
     tcp_seq	isn;			// Flow's initial sequence number
     bool	seen_syn;		// has a SYN been seen?
+
+    uint64_t	pos;			// Current write position in fp 
+    uint64_t    pos_min;		// first byte written; default -1 means nothing written yet
+    uint64_t	pos_max;		// highest pos has gotten
+
+    /* Archiving information */
     std::string flow_pathname;		// path where flow is stored
     FILE	*fp;			// Pointer to file storing this flow's data 
-    uint64_t	pos;			// Current write position in fp 
-    uint64_t    pos_min;		// first byte written; default -1 means no 
-    uint64_t	pos_max;		// highest pos has gotten
-    int		last_packet_time;	// packet_timegtre of last access; used to sort the open flows to figure out which to close 
-    uint64_t	bytes_processed;	// number of bytes processed by demultiplxier
-    bool	finished;
     bool	file_created;		// true if file was created
-    dir_t	dir;			// direction of flow
+
+    /* States */
+    uint64_t	bytes_processed;	// number of bytes processed by demultiplxier
+    uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
     context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
 
@@ -350,7 +357,7 @@ private:
 	    return "copying tcpdemux objects is not implemented.";
 	}
     };
-    tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_time(),xreport(),
+    tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_counter(),xreport(),
 				max_fds(),flow_map(),start_new_connections(),openflows(),opt_output_enabled(),
 				opt_md5(),opt_after_header(),opt_gzip_decompress(),
 				opt_no_promisc(),
@@ -365,7 +372,7 @@ public:
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // should be unordered_map
     std::string outdir;		/* output directory */
     uint64_t	flow_counter;	// how many flows have we seen?
-    uint64_t	packet_time;	// monotomically increasing time
+    uint64_t	packet_counter;	// monotomically increasing 
     xml		*xreport;		// DFXML output file
     unsigned int max_fds;		// maximum number of file descriptors for this tcpdemux
 

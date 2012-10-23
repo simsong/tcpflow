@@ -1,3 +1,11 @@
+2012-10-23  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/tcpdemux.cpp (tcpdemux::tcpdemux): packet_time renamed packet_counter
+
+	* src/tcpdemux.h (class tcpip): renamed last_packet_time to be last_packet_number as it was not being used
+
+	* src/tcpip.cpp (tcpip::store_packet): removed the 'finished' flag from the tcpip:: class. It was being set when the flow went over demux.max_bytes_per_flow. However, if a packet was then received which was less than max_bytes_per_flow the bytes would not be recorded, because the max had already been passed.
+
 2012-10-21  Simson Garfinkel  <simsong@air2.local>
 
 	* src/tcpip.cpp (tcpip::store_packet): removed syn_set parameter and put in tcpdemux::process_tcp
