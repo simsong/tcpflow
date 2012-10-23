@@ -22,9 +22,10 @@
 #endif
 
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
-    demux(demux_),myflow(flow_),isn(isn_),seen_syn(false),flow_pathname(),fp(0),pos(0),pos_min(0),pos_max(0),
-    last_packet_time(0),bytes_processed(0),finished(0),file_created(false),dir(unknown),
-    out_of_order_count(0),md5(0)
+    demux(demux_),myflow(flow_),dir(unknown),isn(isn_),seen_syn(false),
+    pos(0),pos_min(0),pos_max(0),
+    flow_pathname(),fp(0),file_created(false),
+    bytes_processed(0),last_packet_number(),out_of_order_count(0),md5(0)
 {
     /* If we are outputting the transcripts, compute the filename */
     static const std::string slash("/");
@@ -245,7 +246,10 @@ void tcpip::close_file()
 
 /*************************************************************************/
 
-/* print the contents of this packet to the console */
+/* print the contents of this packet to the console.
+ * This is nice for immediate satisfaction, but it can't handle
+ * out of order packets, etc.
+ */
 void tcpip::print_packet(const u_char *data, uint32_t length)
 {
     /* green, blue, read */
@@ -268,17 +272,10 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     }
 #endif
 
-    if (use_color) {
-	fputs(dir==dir_cs ? color[1] : color[2], stdout);
-    }
+    if (use_color) fputs(dir==dir_cs ? color[1] : color[2], stdout);
+    if (suppress_header == 0) printf("%s: ", flow_pathname.c_str());
+    if (length != fwrite(data, 1, length, stdout)) std::cerr << "\nwrite error to fwrite?\n";
 
-    if (suppress_header == 0) {
-	printf("%s: ", flow_pathname.c_str());
-    }
-
-    if(length != fwrite(data, 1, length, stdout)){
-	std::cerr << "\nwrite error to fwrite?\n";
-    }
     bytes_processed += length;
 
     if (use_color) printf("\033[0m");
@@ -296,23 +293,20 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 #endif
 }
 
-
-/* store the contents of this packet to its place in its file */
+/* store the contents of this packet to its place in its file
+ * This has to handle out-of-order packets as well as writes
+ * past the 4GiB boundary.
+ */
 void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
 {
-    /* If we got a SYN reset the sequence number */
     /* if we're done collecting for this flow, return now */
-    if (finished){
-	DEBUG(2) ("packet received after flow finished on %s", flow_pathname.c_str());
-	return;
-    }
 
     /* calculate the offset into this flow.
      * This handles handle seq num* wrapping correctly
      * because tcp_seq is the right size, but it probably does not
      * handle flows larger than 4GiB.
      */
-    tcp_seq offset = seq - isn;
+    uint32_t offset = seq - isn;
 
     /* Are we receiving a packet with a sequence number
      * slightly less than what we consider the ISN to be?
@@ -345,9 +339,12 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
 	return;
 
     /* reduce length if it goes beyond the number of bytes per flow */
-    if (demux.max_bytes_per_flow && (offset + length > demux.max_bytes_per_flow)) {
-	finished = true;
-	length = demux.max_bytes_per_flow - offset;
+    if (demux.max_bytes_per_flow){
+	if(offset > demux.max_bytes_per_flow) return; // don't record beyond
+	if(offset+length > demux.max_bytes_per_flow){
+	    DEBUG(2) ("packet truncated by max_bytes_per_flow on %s", flow_pathname.c_str());
+	    length = demux.max_bytes_per_flow - offset;
+	}
     }
 
     if (demux.opt_output_enabled){
@@ -390,9 +387,4 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
     bytes_processed += length;		// more bytes have been processed
     pos = offset + length;		// new pos
     if (pos>pos_max) pos_max = pos;	// new max
-
-    if (finished) {
-	DEBUG(5) ("%s: stopping capture", flow_pathname.c_str());
-	close_file();
-    }
 }
