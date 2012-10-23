@@ -303,7 +303,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
 
     /* calculate the offset into this flow -- should handle seq num
      * wrapping correctly because tcp_seq is the right size */
-    tcp_seq offset = seq - isn;
+    uint32_t offset = seq - isn;
 
     /* Are we receiving a packet with a sequence number
      * slightly less than what we consider the ISN to be?
