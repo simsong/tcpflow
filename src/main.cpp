@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
     const std::string total_packets_processed("Total packets processed: %"PRId64);
     
     DEBUG(2)(total_flow_processed.c_str(),demux.flow_counter);
-    DEBUG(2)(total_packets_processed.c_str(),demux.packet_time);
+    DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
     if(xreport){
 	demux.flow_map_clear();	// empty the map to capture the state
