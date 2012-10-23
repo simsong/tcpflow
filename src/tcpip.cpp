@@ -307,8 +307,11 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
 	return;
     }
 
-    /* calculate the offset into this flow -- should handle seq num
-     * wrapping correctly because tcp_seq is the right size */
+    /* calculate the offset into this flow.
+     * This handles handle seq num* wrapping correctly
+     * because tcp_seq is the right size, but it probably does not
+     * handle flows larger than 4GiB.
+     */
     tcp_seq offset = seq - isn;
 
     /* Are we receiving a packet with a sequence number
@@ -316,16 +319,22 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
      * The max (though admittedly non-scaled) window of 64K should be enough.
      */
     if (offset >= 0xffff0000) {
-	if(bytes_processed==0 && pos==0){
-	    /* No bytes were processed; perhaps we never saw a SYN.
-	     * TODO: Have a flag that notes if a SYN was seen on this connection.
-	     * Set the isn as if this is a seq.
-	     */
-	    isn = seq;
-	    offset = seq - isn;
-	    DEBUG(2) ("set isn to %d having seen packet with seq (%d) on %s", isn,seq,flow_pathname.c_str());
+	if(syn_seen==false){
+	    if(bytes_processed==0 && pos==0){
+		/* No bytes were processed; perhaps we never saw a SYN.
+		 * Set the isn as if this is a seq.
+		 */
+		isn = seq;
+		offset = seq - isn;
+		DEBUG(2) ("set isn to %d having seen packet with seq (%d) on %s", isn,seq,flow_pathname.c_str());
+	    } else {
+		isn = seq;
+		offset = seq - isn;
+		DEBUG(2) ("inserted data into file");
+	    }
 	} else {
-	    DEBUG(2) ("dropped packet with seq (%d) < isn (%d) (pos=%d delta=%d seen_syn=%d) on %s", seq,isn,(int)pos,offset,seen_syn,flow_pathname.c_str());
+	    DEBUG(1) ("dropped packet with seq (%d) < isn (%d) (pos=%d delta=%d seen_syn=%d) on %s",
+		      seq,isn,(int)pos,offset,seen_syn,flow_pathname.c_str());
 	    return;
 	}
     }
