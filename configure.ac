@@ -261,13 +261,12 @@ AC_CHECK_HEADERS([\
 	inttypes.h \
 	linux/if_ether.h \
 	net/ethernet.h \
+	net/if_var.h \
 	netinet/if_ether.h \
 	netinet/in.h \
 	netinet/in_systm.h \
 	netinet/ip.h \
-	netinet/ip_var.h \
 	netinet/tcp.h \
-	netinet/tcpip.h \
 	pcap.h \
 	pcap/pcap.h \
 	regex.h \
@@ -288,11 +287,38 @@ AC_CHECK_HEADERS([\
 	unistd.h \
 	])
 
-# This is to get net/if.h to compile
-AC_CHECK_HEADERS([net/if_var.h net/if.h], [], [],
+#
+# These all require additional headers. See:
+# http://www.gnu.org/software/autoconf/manual/autoconf-2.67/html_node/Present-But-Cannot-Be-Compiled.html
+#
+AC_CHECK_HEADERS([net/if.h], [], [],
 [[
 #if HAVE_NET_IF_VAR_H
 #include <net/if_var.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+]])
+ 
+AC_CHECK_HEADERS([netinet/ip_var.h], [], [],
+[[
+#if HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+]])
+ 
+AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
+[[
+#if HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#if HAVE_NETINET_IP_VAR_H
+#include <netinet/ip_var.h>
+#endif
+#if HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
 #endif
 ]])
  
