@@ -18,7 +18,13 @@ using std::vector;
 
 const int NUM_HISTOGRAMS = 6;
 const int NUM_BUCKETS = 3000;
-const int SVG_HEIGHT = 100.0;
+// SVG units are in pt
+// The size of the SVG ends up being (bar_width + bar_space) * bar_count
+// by height.  So really, these values serve to describe the aspect ratio
+const double SVG_HEIGHT = 40.0;
+const double SVG_BAR_WIDTH = 1.0;
+const double SVG_BAR_SPACE = 0.2;
+const double SVG_TITLE_FACTOR = 0.0455;
 // to account for packets timestamped before the first we receive, start a
 // little ways into the buckets
 const int FIRST_BUCKET = NUM_BUCKETS / 10;
@@ -120,7 +126,6 @@ vector<histogram> histograms;
 
 void render(const histogram selected_histogram)
 {
-    std::cout << "begin render!" << std::endl;
     vector<bucket> buckets = selected_histogram.buckets;
     // initial stat sweep:
     //   - how many significant buckets are there
@@ -148,7 +153,7 @@ void render(const histogram selected_histogram)
         // look for tallest bucket (most packets)
         if(bucket_sum > greatest_bucket_sum)
         {
-            bucket_sum = greatest_bucket_sum;
+            greatest_bucket_sum = bucket_sum;
         }
 
         index++;
@@ -163,14 +168,29 @@ void render(const histogram selected_histogram)
 
     cairo_t *cr;
     cairo_surface_t *surface;
+    cairo_text_extents_t title_extents;
+    double offset_unit = SVG_BAR_WIDTH + SVG_BAR_SPACE;
+
+    const char *title = "Packets Received (One Minute)";
  
     surface = (cairo_surface_t *) cairo_svg_surface_create("time_histogram.svg",
-            num_sig_buckets, SVG_HEIGHT);
+            num_sig_buckets * (offset_unit), SVG_HEIGHT);
     cr = cairo_create(surface);
 
+    cairo_select_font_face (cr, "Monospace",
+        CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_set_font_size (cr, num_sig_buckets * SVG_TITLE_FACTOR);
 
-    std::cout << "rendering from " << first_index << " to " << last_index << std::endl;
+    cairo_text_extents(cr, title, &title_extents);
+
+    // destroy and rebuild surface with padding for text
+    //cairo_destroy (cr);
+    //cairo_surface_destroy(surface);
+    //surface = (cairo_surface_t *) cairo_svg_surface_create("time_histogram.svg",
+            //num_sig_buckets * (offset_unit), SVG_HEIGHT + title_extents.height);
+    //cr = cairo_create(surface);
+
     // render pass
     index = 0;
     for(vector<bucket>::iterator bucket = buckets.begin() + first_index;
@@ -182,10 +202,12 @@ void render(const histogram selected_histogram)
         double bar_height = (((double) bucket_sum)
                 / ((double) greatest_bucket_sum)) * SVG_HEIGHT;
 
-        bar_height = (double) bucket_sum;
-
-        std::cout << "bar at " << index << "," << bar_height << std::endl;
-        cairo_rectangle(cr, index, bar_height, 1.0, bar_height);
+        if(bar_height > 0)
+        {
+            cairo_rectangle(cr, index * offset_unit, SVG_HEIGHT - bar_height,
+                    SVG_BAR_WIDTH, bar_height);
+            cairo_fill(cr);
+        }
 
         index++;
     }
