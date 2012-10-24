@@ -588,6 +588,13 @@ static void terminate(int sig) __attribute__ ((__noreturn__));
 static void terminate(int sig)
 {
     DEBUG(1) ("terminating");
+
+    if(getenv("TCPFLOW_MFS"))
+    {
+        // shut down PCB plugins
+        pcb::do_shutdown();
+    }
+
     exit(0); /* libpcap uses onexit to clean up */
 }
 
@@ -682,12 +689,6 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
     if (infile == "") DEBUG(1) ("listening on %s", device);
     if (pcap_loop(pd, -1, handler, (u_char *)this) < 0){
 	die("%s", pcap_geterr(pd));
-    }
-
-    if(getenv("TCPFLOW_MFS"))
-    {
-        // shut down PCB plugins
-        pcb::do_shutdown();
     }
 }
 

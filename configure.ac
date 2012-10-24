@@ -216,6 +216,13 @@ AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_LIB([pthreadGC2],[pthread_create])
 
 ################################################################
+# drawing support via cairo
+#
+
+AC_CHECK_HEADERS([cairo.h], , AC_MSG_WARN(["No cairo headers found"]))
+AC_CHECK_LIB([cairo],[cairo_create])
+
+################################################################
 # pcap support. A bit more involved than normal due to the error message
 #
 pcap=test
