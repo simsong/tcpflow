@@ -214,7 +214,9 @@ void tcpip::process_gzip(std::stringstream &ss,
 #endif
 
 
-/* Closes the file belonging to a flow, but don't take it out of the map.
+/* Closes the file belonging to a flow.
+ * Don't take it out of the map --- we're still thinking about it.
+ * Don't reset pos; we will keep track of where we are, even if the file is not open
  */
 void tcpip::close_file()
 {
@@ -245,7 +247,6 @@ void tcpip::close_file()
 #endif
 	close(fd);
 	fd = -1;
-	pos = 0;
     }
 }
 
@@ -317,6 +318,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     uint64_t offset = pos+delta;	// where the data will go in absolute byte positions (first byte is pos=0)
     std::cerr << "store_packet: delta=" << delta << " pos=" << pos << " offset=" << offset << "\n";
 
+    assert((int64_t) offset >=0);
+
     /* reduce length to write if it goes beyond the number of bytes per flow,
      * but remember to seek out to the actual position after the truncated write...
      */
@@ -344,7 +347,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	}
     }
     
-    std::cerr << "offset=" << offset << " pos=" << pos << " offset-pos=" << offset-pos << " delta=" << delta << " wlength=" << wlength << "\n";
+    std::cerr << "offset=" << offset << " pos=" << pos << " delta=" << delta << " wlength=" << wlength << "\n";
     
     /* if we're not at the correct point in the file, seek there */
     if (offset != pos) {
@@ -353,6 +356,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) out_of_order_count=%"PRId64,flow_pathname.c_str(),fd,(int)delta,out_of_order_count);
 	pos += delta;			// where we are now
 	nsn += delta;			// what we expect the nsn to be now
+	std::cerr << "pos += " << delta << " = "  << pos << "\n";
+	std::cerr << "nsn += " << delta << " = "  << nsn << "\n";
     }
     
     /* write the data into the file */
@@ -374,6 +379,10 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     if (out_of_order_count==0 && omitted_bytes==0 && md5){
 	MD5Update(md5,data,length);
     }
+
+    /* For debugging, force this connection closed */
+    demux.close_tcpip(this);			// 
+
     //fflush(fp);
 }
 

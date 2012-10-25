@@ -103,12 +103,6 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
 {
     /* This shouldn't be called if the file is already open */
     assert(tcp->fd < 0);
-#if 0
-    if (tcp->fd >=0 ) {
-	DEBUG(20) ("huh -- trying to open already open file!");
-	return 0;
-    }
-#endif
 
     /* Now try and open the file */
     if(tcp->file_created) {
@@ -132,7 +126,7 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
     openflows.insert(tcp);
     tcp->pos = lseek(tcp->fd,(off_t)0,SEEK_END);	// seek to end
     tcp->nsn = tcp->isn + 1 + tcp->pos;			// byte 0 is seq=isn+1; note this will handle files > 4GiB
-    std::cerr << "tcp->nsn set to " << tcp->isn << " + " << tcp->pos << " = " << tcp->nsn << "\n";
+    std::cerr << "tcp->nsn set to " << tcp->isn << " + 1 + " << tcp->pos << " = " << tcp->nsn << "\n";
     return 0;
 }
 
