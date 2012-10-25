@@ -3,6 +3,22 @@
 	* src/tcpdemux.cpp (tcpdemux::open_tcpfile): now asserts that file is not open
 	(tcpdemux::open_tcpfile): retrying_fopen changed to retrying_open
 	(tcpdemux::process_tcp): completely rewrote the TCP implementation
+	(tcpdemux::process_ip4): 
+
+	The old state machine kept tract of each flow's initial sequence
+	number (ISN) and computed the absolute 32-bit position within the
+	TCP flow for each TCP segment. The problem with this approach is
+	that it would not handle segments larger than 4GiB. The new state
+	machine computes what it expects the Next Sequence Number (NSN) to
+	be based on the previously processed segment in the flow. If there
+	is a difference between the actual NSN and the predicted NSN then
+	there is a relative seek done in the file.  If I file needs to be
+	closed (due to file handle exhaustion) and re-opened (because a
+	segment on the flow shows up), the file pointer is put at the end
+	of the file and the NSN is predicted from the ISN (which was
+	cached). This will allow closing and re-opening flows bigger than
+	4GiB because the bits over 32 bit will be ignored in the NSN
+	calculation.
 
 	* src/tcpdemux.h (class tcpip): store_packet modified to take a delta rather than a sequence number
 	(class tcpip): changed from FILE* to fd for all i/o

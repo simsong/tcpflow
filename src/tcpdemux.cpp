@@ -393,36 +393,12 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	    DEBUG(50) ("packet is handshake SYN/ACK"); /* second packet of three-way handshake  */
 	    tcp->dir = tcpip::dir_sc;	// server->client
 	}
-	if(length>0) DEBUG(1) ("TCP PROTOCOL VIOLATION: SYN with data! (length=%d)",length);
+	if(length>0){
+	    tcp->violations++;
+	    DEBUG(1) ("TCP PROTOCOL VIOLATION: SYN with data! (length=%d)",length);
+	}
     }
     if(length==0) DEBUG(50) ("got TCP segment with no data"); // seems pointless to notify
-
-#if OLD_STATE_MACHINE
-    /* Handle empty packets (from Debian patch 10) */
-    if (length == 0) {
-	/* examine TCP flags for initial TCP handshake segments:
-	 * - SYN means that the flow is a client -> server flow
-	 * - SYN/ACK means that the flow is a server -> client flow.
-	 *
-	 */
-	if ((tcp->isn - seq) == 0) {
-	    if (IS_SET(tcp_header->th_flags, TH_SYN) && IS_SET(tcp_header->th_flags, TH_ACK)) {
-		tcp->dir = tcpip::dir_sc;
-		DEBUG(50) ("packet is handshake SYN/ACK");
-		/* If the SYN flag is set the first data byte is offset by one,
-		 * account for it (note: if we're here we have just created
-		 * tcp, so it's safe to change isn).
-		 */
-		tcp->isn++;
-	    } else if (IS_SET(tcp_header->th_flags, TH_SYN)) {
-		tcp->dir = tcpip::dir_cs;
-		DEBUG(50) ("packet is handshake SYN");
-		tcp->isn++;
-	    }
-	}
-	DEBUG(50) ("got TCP segment with no data");
-    }
-#endif
 
     /* process any data.
      * Notice that this typically won't be called for the SYN or SYN/ACK,
@@ -438,12 +414,6 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	    }
 	    tcp->print_packet(data, length);
 	} else {
-#ifdef BAD_CODE
-	    if (syn_set) {
-		DEBUG(50) ("resetting isn due to extra SYN");
-		tcp->isn = seq - tcp->pos + 1;
-	    }
-#endif
 	    if (opt_output_enabled){
 		tcp->store_packet(data, length, delta);
 	    }
@@ -458,7 +428,6 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	}
     }
 }
-
 
 
 /* This is called when we receive an IPv4 datagram.  We make sure that

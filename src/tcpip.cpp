@@ -318,7 +318,13 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     uint64_t offset = pos+delta;	// where the data will go in absolute byte positions (first byte is pos=0)
     std::cerr << "store_packet: delta=" << delta << " pos=" << pos << " offset=" << offset << "\n";
 
-    assert((int64_t) offset >=0);
+    if((int64_t)offset < 0){
+	/* We got bytes before the beginning of the TCP connection.
+	 * Either this is a protocol violation, or else we never saw a SYN and we got the ISN wrong.
+	 */
+	assert(0);
+    }
+
 
     /* reduce length to write if it goes beyond the number of bytes per flow,
      * but remember to seek out to the actual position after the truncated write...
@@ -380,9 +386,9 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	MD5Update(md5,data,length);
     }
 
+#ifdef DEBUG_REOPEN_LOGIC
     /* For debugging, force this connection closed */
-    demux.close_tcpip(this);			// 
-
-    //fflush(fp);
+    demux.close_tcpip(this);			
+#endif
 }
 
