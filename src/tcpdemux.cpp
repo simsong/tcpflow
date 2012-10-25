@@ -691,5 +691,11 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
     if (pcap_loop(pd, -1, handler, (u_char *)this) < 0){
 	die("%s", pcap_geterr(pd));
     }
+
+    if(getenv("TCPFLOW_MFS"))
+    {
+        // shut down PCB plugins
+        pcb::do_shutdown();
+    }
 }
 
