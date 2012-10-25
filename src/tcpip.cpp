@@ -21,11 +21,14 @@
 #include <zlib.h>
 #endif
 
+/* Create a new tcp object.
+ * Notice that nsn is not set because the file isn't open...
+ */
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
-    demux(demux_),myflow(flow_),dir(unknown),isn(isn_),seen_syn(false),
-    pos(0),pos_min(0),pos_max(0),
-    flow_pathname(),fp(0),file_created(false),
-    bytes_processed(0),last_packet_number(),out_of_order_count(0),md5(0)
+    demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),seen_syn(false),
+    pos(0),
+    flow_pathname(),fd(-1),file_created(false),
+    bytes_processed(0),omitted_bytes(),last_packet_number(),out_of_order_count(0),md5(0)
 {
     /* If we are outputting the transcripts, compute the filename */
     static const std::string slash("/");
@@ -97,20 +100,20 @@ tcpip::~tcpip()
     static const std::string filename_str("filename");
     static const std::string tcpflow_str("tcpflow");
 
-    if(fp) close_file();		// close the file if it is open for some reason
+    if(fd>=0) close_file();		// close the file if it is open for some reason
 
     std::stringstream byte_runs;
 
     if(demux.opt_after_header && file_created){
 	/* open the file and see if it is a HTTP header */
-	int fd = demux.retrying_open(flow_pathname.c_str(),O_RDONLY|O_BINARY,0);
-	if(fd<0){
+	int fd2 = demux.retrying_open(flow_pathname.c_str(),O_RDONLY|O_BINARY,0);
+	if(fd2<0){
 	    perror("open");
 	}
 	else {
 	    char buf[4096];
 	    ssize_t len;
-	    len = read(fd,buf,sizeof(buf)-1);
+	    len = read(fd2,buf,sizeof(buf)-1);
 	    if(len>0){
 		buf[len] = 0;		// be sure it is null terminated
 		if(strncmp(buf,"HTTP/1.1 ",9)==0){
@@ -118,8 +121,8 @@ tcpip::~tcpip()
 		     * We do this with memmap  because, quite frankly, it's easier.
 		     */
 		    struct stat st;
-		    if(fstat(fd,&st)==0){
-			void *base = mmap(0,st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fd,0);
+		    if(fstat(fd2,&st)==0){
+			void *base = mmap(0,st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fd2,0);
 			const char *crlf = find_crlfcrlf((const char *)base,st.st_size);
 			if(crlf){
 			    ssize_t head_size = crlf - (char *)base + 2;
@@ -143,14 +146,14 @@ tcpip::~tcpip()
 		    }
 		}
 	    }
-	    close(fd);
+	    close(fd2);
 	}
     }
 
     if(demux.xreport){
 	demux.xreport->push(fileobject_str);
 	if(flow_pathname.size()) demux.xreport->xmlout(filename_str,flow_pathname);
-	demux.xreport->xmlout(filesize_str,pos_max);
+	demux.xreport->xmlout(filesize_str,bytes_processed);
 	
 	std::stringstream attrs;
 	attrs << "startime='" << xml::to8601(myflow.tstart) << "' ";
@@ -214,16 +217,18 @@ void tcpip::process_gzip(std::stringstream &ss,
  */
 void tcpip::close_file()
 {
-    if (fp){
+    if (fd>=0){
 	struct timeval times[2];
 	times[0] = myflow.tstart;
 	times[1] = myflow.tstart;
 
 	DEBUG(5) ("%s: closing file", flow_pathname.c_str());
 	/* close the file and remember that it's closed */
+#ifdef OLD_CODE
 	fflush(fp);		/* flush the file */
+#endif
 #if defined(HAVE_FUTIMES)
-	if(futimes(fileno(fp),times)){
+	if(futimes(fd,times)){
 	    perror("futimes");
 	}
 #endif
@@ -237,8 +242,8 @@ void tcpip::close_file()
 	    perror("futimens");
 	}
 #endif
-	fclose(fp);
-	fp = NULL;
+	close(fd);
+	fd = -1;
 	pos = 0;
     }
 }
@@ -295,15 +300,30 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 
 /* store the contents of this packet to its place in its file
  * This has to handle out-of-order packets as well as writes
- * past the 4GiB boundary.
+ * past the 4GiB boundary. 
+ *
+ * 2012-10-24 Originally this code simply computed the 32-bit offset
+ * from the beginning of the file using the isn. The new version tracks
+ * nsn (the expected next sequence number for the open file).
+ *
+ * A relative seek before the beginning of the file means that we need
+ * to insert.  A relative seek more than max_seek means that we have a
+ * different flow that needs to be separately handled.
+ *
  */
-void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
+void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 {
-    /* if we're done collecting for this flow, return now */
-
+#ifdef OLD_CODE
     /* calculate the offset into this flow -- should handle seq num
      * wrapping correctly because tcp_seq is the right size */
-    uint32_t offset = seq - isn;
+    uint32_t offset = seq - isn;	// old code
+
+    /*
+     * Calculate absolute position in the file that we are writing.
+     * If we are asking to write before the beginning of the file,
+     * it's either a PROTOCOL VIOLATION (if we saw a SYN) or we missed the SYN
+     * and we need to shift the file...
+     */
 
     /* Are we receiving a packet with a sequence number
      * slightly less than what we consider the ISN to be?
@@ -323,54 +343,76 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
 	    return;
 	}
     }
-
     /* reject this packet if it falls entirely outside of the range of
      * bytes we want to receive for the flow */
-    if (demux.max_bytes_per_flow && (offset > demux.max_bytes_per_flow))
-	return;
+    if (demux.max_bytes_per_flow){ && (offset > demux.max_bytes_per_flow)) return;
+#endif
+	
+    uint64_t offset = pos+delta;	// where the data will go in absolute byte positions (first byte is pos=0)
+    std::cerr << "store_packet: delta=" << delta << " pos=" << pos << " offset=" << offset << "\n";
 
-    /* reduce length if it goes beyond the number of bytes per flow */
+    /* reduce length to write if it goes beyond the number of bytes per flow,
+     * but remember to seek out to the actual position after the truncated write...
+     */
+    ssize_t wlength = length;		// length to write
     if (demux.max_bytes_per_flow){
-	if(offset > demux.max_bytes_per_flow) return; // don't record beyond
+	if(offset > demux.max_bytes_per_flow){
+	    omitted_bytes += length;	// didn't write these bytes
+	    if(fd>=0) lseek(fd,length,SEEK_CUR); // fd is open, so seek out further
+	    return; 
+	}
 	if(offset+length > demux.max_bytes_per_flow){
 	    DEBUG(2) ("packet truncated by max_bytes_per_flow on %s", flow_pathname.c_str());
-	    length = demux.max_bytes_per_flow - offset;
+	    wlength = demux.max_bytes_per_flow - offset;
+	    omitted_bytes += length-wlength;
 	}
     }
 
-    if (demux.opt_output_enabled){
-	/* if we don't have a file open for this flow, try to open it.
-	 * return if the open fails.  Note that we don't have to explicitly
-	 * save the return value because open_tcpfile() puts the file pointer
-	 * into the structure for us. */
-	if (fp == NULL) {
-	    if (demux.open_tcpfile(this)) {
-		DEBUG(1)("unable to open TCP file %s",flow_pathname.c_str());
-		return;
-	    }
+    /* if we don't have a file open for this flow, try to open it.
+     * return if the open fails.  Note that we don't have to explicitly
+     * save the return value because open_tcpfile() puts the file pointer
+     * into the structure for us. */
+    if (fd < 0) {
+	if (demux.open_tcpfile(this)) {
+	    DEBUG(1)("unable to open TCP file %s",flow_pathname.c_str());
+	    return;
 	}
-	
-	/* if we're not at the correct point in the file, seek there */
-	if (offset != pos) {
-	    fseek(fp, offset, SEEK_SET);
-	    out_of_order_count++;
-	}
-	
-	/* write the data into the file */
-	DEBUG(25) ("%s: writing %ld bytes @%ld", flow_pathname.c_str(),
-		   (long) length, (long) offset);
-	
-	if (fwrite(data, length, 1, fp) != 1) {
-	    if (debug_level >= 1) {
-		DEBUG(1) ("write to %s failed: ", flow_pathname.c_str());
-		perror("");
-	    }
-	}
-	if (out_of_order_count==0 && md5){
-	    MD5Update(md5,data,length);
-	}
-	fflush(fp);
     }
+    
+    std::cerr << "offset=" << offset << " pos=" << pos << " offset-pos=" << offset-pos << " delta=" << delta << " wlength=" << wlength << "\n";
+    
+    /* if we're not at the correct point in the file, seek there */
+    if (offset != pos) {
+	lseek(fd,(off_t)delta,SEEK_CUR);
+	if(delta<0) out_of_order_count++; // only increment for backwards seeks
+	nsn += delta;			  // we are now expecting a different next sequence number
+	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) out_of_order_count=%"PRId64,flow_pathname.c_str(),fd,(int)delta,out_of_order_count);
+    }
+    
+    /* write the data into the file */
+    DEBUG(25) ("%s: writing %ld bytes @%"PRId64, flow_pathname.c_str(), (long) wlength, offset);
+    
+    if (write(fd,data, wlength) != wlength) {
+	DEBUG(1) ("write to %s failed: ", flow_pathname.c_str());
+	if (debug_level >= 1) perror("");
+    }
+    if(wlength != length){
+	lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
+    }
+    nsn += length;			// expected next sequence number
+
+    if (out_of_order_count==0 && omitted_bytes==0 && md5){
+	MD5Update(md5,data,length);
+    }
+    //fflush(fp);
+}
+
+#if 0
+
+uint64_t offset = pos+delta;	// where the data will go
+std::cerr << "store_packet: delta=" << delta << " pos=" << pos << " delta=" << delta << "offset=" << offset<<  "\n";
+
+
 
     /* update instance variables */
     if(bytes_processed==0 || pos<pos_min) pos_min = pos;
@@ -379,3 +421,4 @@ void tcpip::store_packet(const u_char *data, uint32_t length, uint32_t seq)
     pos = offset + length;		// new pos
     if (pos>pos_max) pos_max = pos;	// new max
 }
+#endif

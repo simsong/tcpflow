@@ -59,8 +59,12 @@ tcpip *tcpdemux::find_tcpip(const flow_addr &flow)
 /* Create a new flow state structure for a given flow.
  * Puts the flow in the map.
  * Returns a pointer to the new state.
- * Do we really want to keep pointers to tcp structures in the map, rather than
- * the structures themselves?
+ *
+ * This is called by process_tcp
+ *
+ * NOTE: We keep pointers to tcp structures in the map, rather than
+ * the structures themselves. This makes the map slightly more efficient,
+ * since it doesn't need to shuffle entire structures.
  */
 
 tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
@@ -71,6 +75,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->last_packet_number = packet_counter++;
+    new_tcpip->nsn   = isn+1;		// expected
     DEBUG(5) ("%s: new flow", new_tcpip->flow_pathname.c_str());
     flow_map[flow] = new_tcpip;
     return new_tcpip;
@@ -97,22 +102,26 @@ void tcpdemux::flow_map_clear()
 int tcpdemux::open_tcpfile(tcpip *tcp)
 {
     /* This shouldn't be called if the file is already open */
-    if (tcp->fp) {
+    assert(tcp->fd < 0);
+#if 0
+    if (tcp->fd >=0 ) {
 	DEBUG(20) ("huh -- trying to open already open file!");
 	return 0;
     }
+#endif
 
     /* Now try and open the file */
     if(tcp->file_created) {
 	DEBUG(5) ("%s: re-opening output file", tcp->flow_pathname.c_str());
-	tcp->fp = retrying_fopen(tcp->flow_pathname.c_str(),"r+b");
+	tcp->fd = retrying_open(tcp->flow_pathname.c_str(),O_RDWR | O_BINARY | O_CREAT,0666);
     } else {
 	DEBUG(5) ("%s: opening new output file", tcp->flow_pathname.c_str());
-	tcp->fp = retrying_fopen(tcp->flow_pathname.c_str(),"wb");
+	tcp->fd = retrying_open(tcp->flow_pathname.c_str(),O_RDWR | O_BINARY | O_CREAT,0666);
+	tcp->file_created = true;		// remember we made it
     }
 
     /* If the file isn't open at this point, there's a problem */
-    if (tcp->fp == NULL) {
+    if (tcp->fd < 0 ) {
 	/* we had some problem opening the file -- set FINISHED so we
 	 * don't keep trying over and over again to reopen it
 	 */
@@ -121,8 +130,9 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
     }
 
     openflows.insert(tcp);
-    tcp->file_created = true;		// remember we made it
-    tcp->pos = ftell(tcp->fp);		// remember where it is
+    tcp->pos = lseek(tcp->fd,(off_t)0,SEEK_END);	// seek to end
+    tcp->nsn = tcp->isn + 1 + tcp->pos;			// byte 0 is seq=isn+1
+    std::cerr << "tcp->nsn set to " << tcp->nsn << "\n";
     return 0;
 }
 
@@ -205,7 +215,8 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
 		     opt_output_enabled(true),opt_md5(false),
 		     opt_after_header(false),opt_gzip_decompress(true),
 		     opt_no_promisc(false),
-		     max_bytes_per_flow(),max_desired_fds()
+		     max_bytes_per_flow(),
+		     max_desired_fds()
 {
     /* Find out how many files we can have open safely...subtract 4 for
      * stdin, stdout, stderr, and the packet filter; one for breathing
@@ -253,15 +264,16 @@ int tcpdemux::retrying_open(const char *filename,int oflag,int mask)
     }
 }
 
-FILE *tcpdemux::retrying_fopen(const char *filename,const char *mode)
+#ifdef NO_LONGER
+int tcpdemux::retrying_open(const char *filename)
 {
     while(true){
 	if(openflows.size() >= max_fds) close_oldest();
-	FILE *f = fopen(filename,mode);
-	if(f) return f;
+	int fd = open(filename,O_RDWR | O_CREAT);
+	if(fd>=0) return fd;
 	
 	if (errno != ENFILE && errno != EMFILE) {
-	    return 0;
+	    return -1;			// this is bad
 	}
 	/* open failed because too many files are open... close one
 	 * and try again
@@ -270,6 +282,7 @@ FILE *tcpdemux::retrying_fopen(const char *filename,const char *mode)
 	DEBUG(5) ("too many open files -- contracting FD ring to %d", max_fds);
     };
 }
+#endif
 
 /* convert all non-printable characters to '.' (period).  
  */
@@ -309,7 +322,8 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),ntohs(tcp_header->th_dport),family);
 
     tcp_seq seq = ntohl(tcp_header->th_seq);
-    int syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
+    bool syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
+    bool ack_set = IS_SET(tcp_header->th_flags, TH_ACK);
 
     /* recalculate the beginning of data and its length, moving past the
      * TCP header
@@ -319,14 +333,28 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 
     /* see if we have state about this flow; if not, create it */
     uint64_t connection_count = 0;
+    int32_t delta = 0;			// from current position in tcp connection
     tcpip *tcp = find_tcpip(this_flow);
     
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
     if(tcp==0 && start_new_connections==false) return; 
 
-    /* flow is in the database */
+    /* flow is in the database; find it */
     if(tcp){
-	/* If offset will be too much, throw away this_flow and create a new one */
+	/* Compute delta based on next expected sequence number.
+	 * If delta will be too much, start a new flow.
+	 */
+	delta = seq - tcp->nsn;
+	std::cerr << "*** tcp in db SEQ=" << seq << " tcp->nsn=" << tcp->nsn << " delta=" << delta << "\n";
+
+	if(abs(delta) > max_seek){
+	    connection_count = tcp->myflow.connection_count+1;
+	    remove_flow(this_flow);
+	    tcp = 0;
+	}
+    }
+
+#ifdef OLD_CODE
 	tcp_seq isn2 = tcp->isn;		// local copy
 	if(syn_set){
 	    isn2 = seq - tcp->pos + 1;
@@ -356,25 +384,64 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 		tcp = 0;
 	    }
 	}
-    }
+	// }
+#endif
+
     /* At this point, tcp may be NULL because:
      * case 1 - a connection wasn't found or because
      * case 2 - a new connections should be started (jump is too much)
+     *
+     * THIS IS THE ONLY PLACE THAT create_tcpip() is called.
      */
 
     if (tcp==NULL){
-	/* Create a new connection with the sequence number as the initial sequence number */
-	tcp = create_tcpip(this_flow, vlan, /* isn= */ seq, ts,connection_count);
+	/* Create a new connection.
+	 * delta will be 0, because it's a new connection!
+	 */
+	tcp_seq isn = seq;
+	if(!syn_set) isn--;		// we missed the SYN, so guess
+	tcp = create_tcpip(this_flow, vlan, isn, ts,connection_count);
+	std::cerr << "NEW TCP: seq=" << seq << " tcp->isn=" << tcp->isn << " tcp->nsn=" << tcp->nsn << "\n";
     }
 
+    /* Now tcp is valid */
     tcp->myflow.tlast = ts;		// most recently seen packet
     tcp->myflow.packet_count++;
 
+    /*
+     * 2012-10-24 slg - the first byte is sent at SEQ==ISN+1.
+     * The first byte in POSIX files have an LSEEK of 0.
+     * The original code overcame this issue by introducing an intentional off-by-one
+     * error with the statement tcp->isn++.
+     * 
+     * With the new TCP state-machine we simply follow the spec.
+     *
+     * The new state machine works by examining the SYN and ACK packets
+     * in accordance with the TCP spec.
+     */
+    if(syn_set){
+	if(tcp->seen_syn){
+	    DEBUG(1)("Multiple SYNs seen on a single connection?");
+	}
+	tcp->seen_syn = true;
+	if( ack_set ){
+	    DEBUG(50) ("packet is handshake SYN"); /* First packet of three-way handshake */
+	    tcp->dir = tcpip::dir_cs;	// client->server
+	} else {
+	    DEBUG(50) ("packet is handshake SYN/ACK"); /* second packet of three-way handshake  */
+	    tcp->dir = tcpip::dir_sc;	// server->client
+	}
+	if(length>0) DEBUG(1) ("TCP PROTOCOL VIOLATION: SYN with data! (length=%d)",length);
+    }
+    if(length==0) DEBUG(50) ("got TCP segment with no data"); // seems pointless to notify
+
+#if OLD_STATE_MACHINE
     /* Handle empty packets (from Debian patch 10) */
     if (length == 0) {
 	/* examine TCP flags for initial TCP handshake segments:
 	 * - SYN means that the flow is a client -> server flow
 	 * - SYN/ACK means that the flow is a server -> client flow.
+	 *
 	 */
 	if ((tcp->isn - seq) == 0) {
 	    if (IS_SET(tcp_header->th_flags, TH_SYN) && IS_SET(tcp_header->th_flags, TH_ACK)) {
@@ -393,28 +460,31 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	}
 	DEBUG(50) ("got TCP segment with no data");
     }
+#endif
 
     /* process any data.
      * Notice that this typically won't be called for the SYN or SYN/ACK,
      * since they both have no data by definition.
      */
     if (length>0){
-	/* strip nonprintable characters if necessary */
-	u_char newbuf[SNAPLEN];
-	if (strip_nonprint){
-	    data = do_strip_nonprint(data, newbuf,length);
-	}
-	
-	/* store or print the output */
-	if (console_only) {
+	if (console_output) {
+	    /* console output just get printed in wire order. That's easy! */
+	    u_char newbuf[SNAPLEN];		// holds stripped data
+	    /* strip nonprintable characters if necessary */
+	    if (strip_nonprint){
+		data = do_strip_nonprint(data, newbuf,length);
+	    }
 	    tcp->print_packet(data, length);
 	} else {
-
+#ifdef BAD_CODE
 	    if (syn_set) {
 		DEBUG(50) ("resetting isn due to extra SYN");
 		tcp->isn = seq - tcp->pos + 1;
 	    }
-	    tcp->store_packet(data, length, seq);
+#endif
+	    if (opt_output_enabled){
+		tcp->store_packet(data, length, delta);
+	    }
 	}
     }
 

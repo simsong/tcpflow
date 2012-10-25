@@ -1,3 +1,16 @@
+2012-10-24  Simson Garfinkel  <simsong@npsair.local>
+
+	* src/tcpdemux.cpp (tcpdemux::open_tcpfile): now asserts that file is not open
+	(tcpdemux::open_tcpfile): retrying_fopen changed to retrying_open
+	(tcpdemux::process_tcp): completely rewrote the TCP implementation
+
+	* src/tcpdemux.h (class tcpip): store_packet modified to take a delta rather than a sequence number
+	(class tcpip): changed from FILE* to fd for all i/o
+
+	* src/tcpdemux.cpp (tcpdemux::process_tcp): renamed console_only
+	to console_output; modified order of stripping and console_output
+	checking to check first for console output before checking to see if data should be stripped
+
 2012-10-23  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* src/tcpdemux.cpp (tcpdemux::tcpdemux): packet_time renamed packet_counter

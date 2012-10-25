@@ -234,7 +234,7 @@ public:;
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
     uint64_t packet_count;			// packet count
-    uint64_t connection_count;	// how many times have we seen a flow with the same addr?
+    uint64_t connection_count;		// how many times have we seen a flow with the same quad?
     std::string filename();		// returns filename for a flow based on the temlate
 };
 
@@ -297,8 +297,11 @@ private:
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
-    tcpip(const tcpip &t):demux(t.demux),myflow(),dir(),isn(),seen_syn(),pos(),pos_min(),pos_max(),
-			  flow_pathname(),fp(),file_created(),bytes_processed(),last_packet_number(),
+    tcpip(const tcpip &t):demux(t.demux),myflow(),dir(),isn(),nsn(),
+			  seen_syn(),pos(),
+			  flow_pathname(),fd(),file_created(),
+			  bytes_processed(),omitted_bytes(),
+			  last_packet_number(),
 			  out_of_order_count(),
 			  md5(){
 	throw new not_impl();
@@ -314,19 +317,21 @@ public:;
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
     tcp_seq	isn;			// Flow's initial sequence number
+    tcp_seq	nsn;			// expected next sequence number for current fd file position
     bool	seen_syn;		// has a SYN been seen?
 
-    uint64_t	pos;			// Current write position in fp 
-    uint64_t    pos_min;		// first byte written; default -1 means nothing written yet
-    uint64_t	pos_max;		// highest pos has gotten
+    uint64_t	pos;			// current position+1 (next byte in stream to be written)
+    //uint64_t    pos_min;		// first byte written; default -1 means nothing written yet
+    //uint64_t	pos_max;		// highest pos has gotten
 
     /* Archiving information */
     std::string flow_pathname;		// path where flow is stored
-    FILE	*fp;			// Pointer to file storing this flow's data 
+    int		fd;			// file descriptor for file storing this flow's data 
     bool	file_created;		// true if file was created
 
-    /* States */
+    /* Stats */
     uint64_t	bytes_processed;	// number of bytes processed by demultiplxier
+    uint64_t    omitted_bytes;		// number of bytes not written to this file
     uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
     context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
@@ -336,7 +341,7 @@ public:;
 		      const std::string &fname,const unsigned char *base,size_t len);
     void close_file();				// close fp
     void print_packet(const u_char *data, uint32_t length);
-    void store_packet(const u_char *data, uint32_t length, uint32_t seq);
+    void store_packet(const u_char *data, uint32_t length, int32_t delta);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
@@ -396,7 +401,6 @@ public:
     void	close_oldest();
     void	remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
     int		retrying_open(const char *filename,int oflag,int mask);
-    FILE	*retrying_fopen(const char *filename,const char *mode);
 
     /* the flow database */
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn,

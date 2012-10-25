@@ -16,11 +16,11 @@
 
 int debug_level = DEFAULT_DEBUG_LEVEL;
 int max_flows = 0;
-int console_only = 0;
+bool console_output = false;
 int suppress_header = 0;
 int strip_nonprint = 0;
 int use_color = 0;
-u_int min_skip  = 1000000;
+int max_seek  = 1024*1024*16;
 bool opt_no_purge = false;
 
 const char *progname = 0;
@@ -64,7 +64,7 @@ void print_usage()
     std::cerr << "        -o outdir   : specify output directory (default '.')\n";
     std::cerr << "        -X filename : DFXML output to filename\n";
     std::cerr << "        -m bytes    : specifies the minimum number of bytes that a stream may\n";
-    std::cerr << "                      skip before starting a new stream (default " << min_skip << ").\n";
+    std::cerr << "                      skip before starting a new stream (default " << max_seek << ").\n";
     std::cerr << "        -AH : extract HTTP objects and unzip GZIP-compressed HTTP messages\n";
     std::cerr << "        -Fc : append the connection counter to ALL filenames\n";
     std::cerr << "        -Ft : prepend the time_t timestamp to ALL filenames\n";
@@ -185,12 +185,12 @@ int main(int argc, char *argv[])
 	    force_binary_output = true; DEBUG(10) ("force binary output");
 	    break;
 	case 'C':
-	    console_only = 1;		DEBUG(10) ("printing packets to console only");
+	    console_output = true;	DEBUG(10) ("printing packets to console only");
 	    suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
 	    strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'c':
-	    console_only = 1;		DEBUG(10) ("printing packets to console only");
+	    console_output = true;	DEBUG(10) ("printing packets to console only");
 	    strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'd':
@@ -227,7 +227,8 @@ int main(int argc, char *argv[])
 	case 'i': device = optarg; break;
 	case 'L': lockname = optarg; break;
 	case 'm':
-	    min_skip = atoi(optarg);    DEBUG(10) ("min_skip set to %d",min_skip); break;
+	    max_seek = atoi(optarg);
+	    DEBUG(10) ("max_seek set to %d",max_seek); break;
 	case 'o': demux.outdir = optarg; break;
 	case 'P': opt_no_purge = true; break;
 	case 'p': demux.opt_no_promisc = true;
