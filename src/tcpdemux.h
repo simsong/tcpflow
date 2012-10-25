@@ -303,6 +303,7 @@ private:
 			  bytes_processed(),omitted_bytes(),
 			  last_packet_number(),
 			  out_of_order_count(),
+			  violations(),
 			  md5(){
 	throw new not_impl();
     }
@@ -334,6 +335,7 @@ public:;
     uint64_t    omitted_bytes;		// number of bytes not written to this file
     uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
+    uint64_t    violations;		// protocol violation count
     context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
 
     /* Methods */

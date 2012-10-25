@@ -76,7 +76,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->last_packet_number = packet_counter++;
     new_tcpip->nsn   = isn+1;		// expected
-    DEBUG(5) ("%s: new flow", new_tcpip->flow_pathname.c_str());
+    DEBUG(5) ("%s: new flow. nsn:%d", new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
     flow_map[flow] = new_tcpip;
     return new_tcpip;
 }
@@ -131,8 +131,8 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
 
     openflows.insert(tcp);
     tcp->pos = lseek(tcp->fd,(off_t)0,SEEK_END);	// seek to end
-    tcp->nsn = tcp->isn + 1 + tcp->pos;			// byte 0 is seq=isn+1
-    std::cerr << "tcp->nsn set to " << tcp->nsn << "\n";
+    tcp->nsn = tcp->isn + 1 + tcp->pos;			// byte 0 is seq=isn+1; note this will handle files > 4GiB
+    std::cerr << "tcp->nsn set to " << tcp->isn << " + " << tcp->pos << " = " << tcp->nsn << "\n";
     return 0;
 }
 
@@ -321,9 +321,11 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     /* fill in the flow_addr structure with info that identifies this flow */
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),ntohs(tcp_header->th_dport),family);
 
-    tcp_seq seq = ntohl(tcp_header->th_seq);
+    tcp_seq seq  = ntohl(tcp_header->th_seq);
     bool syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
     bool ack_set = IS_SET(tcp_header->th_flags, TH_ACK);
+
+    std::cerr << "\n*** process_tcp seq=" << seq << " \n";
 
     /* recalculate the beginning of data and its length, moving past the
      * TCP header
@@ -333,8 +335,8 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 
     /* see if we have state about this flow; if not, create it */
     uint64_t connection_count = 0;
-    int32_t delta = 0;			// from current position in tcp connection
-    tcpip *tcp = find_tcpip(this_flow);
+    int32_t  delta = 0;			// from current position in tcp connection
+    tcpip   *tcp = find_tcpip(this_flow);
     
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
     if(tcp==0 && start_new_connections==false) return; 
@@ -345,7 +347,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	 * If delta will be too much, start a new flow.
 	 */
 	delta = seq - tcp->nsn;
-	std::cerr << "*** tcp in db SEQ=" << seq << " tcp->nsn=" << tcp->nsn << " delta=" << delta << "\n";
+	std::cerr << "*** tcp in db tcp->nsn=" << tcp->nsn << " delta=" << delta << "\n";
 
 	if(abs(delta) > max_seek){
 	    connection_count = tcp->myflow.connection_count+1;
@@ -353,39 +355,6 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	    tcp = 0;
 	}
     }
-
-#ifdef OLD_CODE
-	tcp_seq isn2 = tcp->isn;		// local copy
-	if(syn_set){
-	    isn2 = seq - tcp->pos + 1;
-	    if(tcp->seen_syn){
-		DEBUG(1)("Multiple SYNs seen on a single connection?");
-	    }
-	    tcp->seen_syn = true;
-	}
-	tcp_seq offset  = seq - isn2;	// offset from the last seen packet to beginning of current
-	tcp_seq roffset = isn2 - seq;
-	if(offset != tcp->pos) {
-            /** We need to seek if offset doesn't match current position.
-	     * If the seek is too much, start a new connection.
-	     * roffset handles reverse seek, which happens with out-of-order packet delivery.
-	     */
-	    if((offset > tcp->pos)
-	       && (offset > tcp->pos_max)
-	       && (length > 0)
-	       && (max_bytes_per_flow==0) 
-	       && ((uint64_t)offset > (uint64_t)tcp->pos +  min_skip)
-	       && (roffset > min_skip)){
-		//std::cerr << "tcp->pos=" << tcp->pos << " tcp->pos_max="
-		//<< tcp->pos_max << " offset=" << offset << " min_skip="
-		//<< min_skip << "  this_flow=" << this_flow << "\n";
-		connection_count = tcp->myflow.connection_count+1;
-		remove_flow(this_flow);
-		tcp = 0;
-	    }
-	}
-	// }
-#endif
 
     /* At this point, tcp may be NULL because:
      * case 1 - a connection wasn't found or because
@@ -398,8 +367,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	/* Create a new connection.
 	 * delta will be 0, because it's a new connection!
 	 */
-	tcp_seq isn = seq;
-	if(!syn_set) isn--;		// we missed the SYN, so guess
+	tcp_seq isn = syn_set ? seq : seq-1;
 	tcp = create_tcpip(this_flow, vlan, isn, ts,connection_count);
 	std::cerr << "NEW TCP: seq=" << seq << " tcp->isn=" << tcp->isn << " tcp->nsn=" << tcp->nsn << "\n";
     }
