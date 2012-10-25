@@ -316,7 +316,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 {
     uint64_t offset = pos+delta;	// where the data will go in absolute byte positions (first byte is pos=0)
-    std::cerr << "store_packet: delta=" << delta << " pos=" << pos << " offset=" << offset << "\n";
+    //std::cerr << "store_packet: delta=" << delta << " pos=" << pos << " offset=" << offset << "\n";
 
     if((int64_t)offset < 0){
 	/* We got bytes before the beginning of the TCP connection.
@@ -353,7 +353,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	}
     }
     
-    std::cerr << "offset=" << offset << " pos=" << pos << " delta=" << delta << " wlength=" << wlength << "\n";
+    //std::cerr << "offset=" << offset << " pos=" << pos << " delta=" << delta << " wlength=" << wlength << "\n";
     
     /* if we're not at the correct point in the file, seek there */
     if (offset != pos) {
@@ -362,8 +362,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) out_of_order_count=%"PRId64,flow_pathname.c_str(),fd,(int)delta,out_of_order_count);
 	pos += delta;			// where we are now
 	nsn += delta;			// what we expect the nsn to be now
-	std::cerr << "pos += " << delta << " = "  << pos << "\n";
-	std::cerr << "nsn += " << delta << " = "  << nsn << "\n";
+	//std::cerr << "pos += " << delta << " = "  << pos << "\n";
+	//std::cerr << "nsn += " << delta << " = "  << nsn << "\n";
     }
     
     /* write the data into the file */
@@ -380,7 +380,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     }
     pos += length;
     nsn += length;			// expected next sequence number
-    std::cerr << "nsn += " << length << "=" << nsn << "\n";
+    //std::cerr << "nsn += " << length << "=" << nsn << "\n";
 
     if (out_of_order_count==0 && omitted_bytes==0 && md5){
 	MD5Update(md5,data,length);

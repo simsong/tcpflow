@@ -126,7 +126,7 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
     openflows.insert(tcp);
     tcp->pos = lseek(tcp->fd,(off_t)0,SEEK_END);	// seek to end
     tcp->nsn = tcp->isn + 1 + tcp->pos;			// byte 0 is seq=isn+1; note this will handle files > 4GiB
-    std::cerr << "tcp->nsn set to " << tcp->isn << " + 1 + " << tcp->pos << " = " << tcp->nsn << "\n";
+    //std::cerr << "tcp->nsn set to " << tcp->isn << " + 1 + " << tcp->pos << " = " << tcp->nsn << "\n";
     return 0;
 }
 
@@ -229,7 +229,7 @@ void tcpdemux::write_to_file(std::stringstream &ss,
     if(fd>=0){
 	size_t count = write(fd,buf,buflen);
 	if(close(fd)!=0 || count!=buflen){
-	    std::cerr << "cannot write " << fname << ": " << strerror(errno) << "\n";
+	    //std::cerr << "cannot write " << fname << ": " << strerror(errno) << "\n";
 	    ss << "<write_error errno='" << errno << "' buflen='" << buflen << "' count='" << count << "'>";
 	} else {
 	    ss << "<byte_run file_offset='" << buf-base << "' len='" << buflen << "'>";
@@ -319,7 +319,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     bool syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
     bool ack_set = IS_SET(tcp_header->th_flags, TH_ACK);
 
-    std::cerr << "\n*** process_tcp seq=" << seq << " \n";
+    //std::cerr << "\n*** process_tcp seq=" << seq << " \n";
 
     /* recalculate the beginning of data and its length, moving past the
      * TCP header
@@ -341,7 +341,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	 * If delta will be too much, start a new flow.
 	 */
 	delta = seq - tcp->nsn;
-	std::cerr << "*** tcp in db tcp->nsn=" << tcp->nsn << " delta=" << delta << "\n";
+	//std::cerr << "*** tcp in db tcp->nsn=" << tcp->nsn << " delta=" << delta << "\n";
 
 	if(abs(delta) > max_seek){
 	    connection_count = tcp->myflow.connection_count+1;
@@ -363,7 +363,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	 */
 	tcp_seq isn = syn_set ? seq : seq-1;
 	tcp = create_tcpip(this_flow, vlan, isn, ts,connection_count);
-	std::cerr << "NEW TCP: seq=" << seq << " tcp->isn=" << tcp->isn << " tcp->nsn=" << tcp->nsn << "\n";
+	//std::cerr << "NEW TCP: seq=" << seq << " tcp->isn=" << tcp->isn << " tcp->nsn=" << tcp->nsn << "\n";
     }
 
     /* Now tcp is valid */
