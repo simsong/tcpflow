@@ -1,8 +1,13 @@
-* discover and create MIME objects.
-* Run a subprocess when each file is opened or closed.
-* Regression testing by randomizing packet order and making sure that the results are the same.
-* update tcpip structure to indicate if a SYN was seen; If packets arrive before the beginning of the connection and a SYN was not seen, insert in the beginning of the file.
-* remove syn_set from store_packet. Make sure that it's called when we know the packet offset.
+Accomplished for 1.4:
+
++ update tcpip structure to indicate if a SYN was seen; If packets arrive before the beginning of the connection and a SYN was not seen, insert in the beginning of the file.
++ remove syn_set from store_packet. Make sure that it's called when we know the packet offset.
+ 
+================================================================
+
+- discover and create MIME objects.
+- Run a subprocess when each file is opened or closed.
+- Regression testing by randomizing packet order and making sure that the results are the same.
 ================
 Here is my currently plan for the plugin approach:
 

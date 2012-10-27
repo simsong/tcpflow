@@ -302,12 +302,6 @@ void flow_close_all();
 
 /* main.cpp - CLI */
 extern const char *progname;
-extern bool console_output;
-extern int suppress_header;
-extern int strip_nonprint;
-extern int use_color;
-extern int max_seek;			// int and not u_int because abs() returns an int
-extern bool opt_no_purge;
 
 #ifdef HAVE_PTHREAD
 #include <semaphore.h>

@@ -34,7 +34,7 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
 {
     /* If we are outputting the transcripts, compute the filename */
     static const std::string slash("/");
-    if(demux.opt_output_enabled){
+    if(demux.opt.opt_output_enabled){
 	if(demux.outdir=="."){
 	    flow_pathname = myflow.filename();
 	} else {
@@ -42,7 +42,7 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
 	}
     }
     
-    if(demux.opt_md5){			// allocate a context
+    if(demux.opt.opt_md5){			// allocate a context
 	md5 = (context_md5_t *)malloc(sizeof(context_md5_t));
 	if(md5){			// if we had memory, init it
 	    MD5Init(md5);
@@ -106,7 +106,7 @@ tcpip::~tcpip()
 
     std::stringstream byte_runs;
 
-    if(demux.opt_after_header && file_created){
+    if(demux.opt.opt_after_header && file_created){
 	/* open the file and see if it is a HTTP header */
 	int fd2 = demux.retrying_open(flow_pathname.c_str(),O_RDONLY|O_BINARY,0);
 	if(fd2<0){
@@ -137,7 +137,7 @@ tcpip::~tcpip()
 					      flow_pathname+"-HTTPBODY",
 					      (const uint8_t  *)base,(const uint8_t  *)crlf+4,body_size);
 #ifdef HAVE_LIBZ
-				if(demux.opt_gzip_decompress){
+				if(demux.opt.opt_gzip_decompress){
 				    process_gzip(byte_runs,
 						 flow_pathname+"-HTTPBODY-GZIP",(unsigned char *)crlf+4,body_size);
 				}
@@ -264,10 +264,10 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     /* green, blue, read */
     const char *color[3] = { "\033[0;32m", "\033[0;34m", "\033[0;31m" };
 
-    if(demux.max_bytes_per_flow>0){
-	if(bytes_processed > demux.max_bytes_per_flow) return; /* too much has been printed */
-	if(length > demux.max_bytes_per_flow - bytes_processed){
-	    length = demux.max_bytes_per_flow - bytes_processed; /* can only output this much */
+    if(demux.opt.max_bytes_per_flow>0){
+	if(bytes_processed > demux.opt.max_bytes_per_flow) return; /* too much has been printed */
+	if(length > demux.opt.max_bytes_per_flow - bytes_processed){
+	    length = demux.opt.max_bytes_per_flow - bytes_processed; /* can only output this much */
 	    if(length==0) return;
 	}
     }
@@ -281,11 +281,11 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     }
 #endif
 
-    if (use_color) fputs(dir==dir_cs ? color[1] : color[2], stdout);
-    if (suppress_header == 0) printf("%s: ", flow_pathname.c_str());
+    if (demux.opt.use_color) fputs(dir==dir_cs ? color[1] : color[2], stdout);
+    if (demux.opt.suppress_header == 0) printf("%s: ", flow_pathname.c_str());
 
     size_t written = 0;
-    if(strip_nonprint){
+    if(demux.opt.strip_nonprint){
 	for(const u_char *cc = data;cc<data+length;cc++){
 	    if(isprint(*cc) || (*cc=='\n') || (*cc=='\r')){
 		written += fputc(*cc,stdout);
@@ -299,7 +299,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 
     bytes_processed += length;
 
-    if (use_color) printf("\033[0m");
+    if (demux.opt.use_color) printf("\033[0m");
 
     putchar('\n');
     fflush(stdout);
@@ -391,13 +391,13 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
      * but remember to seek out to the actual position after the truncated write...
      */
     ssize_t wlength = length;		// length to write
-    if (demux.max_bytes_per_flow){
-	if(offset >= demux.max_bytes_per_flow){
+    if (demux.opt.max_bytes_per_flow){
+	if(offset >= demux.opt.max_bytes_per_flow){
 	    wlength = 0;
 	} 
-	if(offset < demux.max_bytes_per_flow &&  offset+length > demux.max_bytes_per_flow){
+	if(offset < demux.opt.max_bytes_per_flow &&  offset+length > demux.opt.max_bytes_per_flow){
 	    DEBUG(2) ("packet truncated by max_bytes_per_flow on %s", flow_pathname.c_str());
-	    wlength = demux.max_bytes_per_flow - offset;
+	    wlength = demux.opt.max_bytes_per_flow - offset;
 	}
 	omitted_bytes += length-wlength;
     }

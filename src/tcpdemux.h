@@ -34,6 +34,8 @@ typedef unsigned short int sa_family_t;
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
+extern int	debug_level;
+
 /*
  * Structure of an internet header, naked of options.
  */
@@ -365,16 +367,41 @@ private:
 	}
     };
     tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_counter(),xreport(),
-				max_fds(),flow_map(),start_new_connections(),openflows(),opt_output_enabled(),
-				opt_md5(),opt_after_header(),opt_gzip_decompress(),
-				opt_no_promisc(),
-				max_bytes_per_flow(),max_desired_fds(){
+				max_fds(),flow_map(),start_new_connections(),openflows(),opt(){
 	throw new not_impl();
     }
     tcpdemux &operator=(const tcpdemux &that){
 	throw new not_impl();
     }
 public:
+    /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
+
+    class options {
+    public:;
+	enum { MAX_SEEK=1024*1024*16 };
+	options():console_output(false),opt_output_enabled(true),opt_md5(false),
+		  opt_after_header(false),opt_gzip_decompress(true),
+		  opt_no_promisc(false),max_bytes_per_flow(),
+		  max_desired_fds(),max_flows(0),suppress_header(0),
+		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK),
+		  opt_no_purge(false) {
+	}
+	bool	console_output;
+	bool	opt_output_enabled;	// do we output?
+	bool	opt_md5;		// do we calculate MD5 on DFXML output?
+	bool	opt_after_header;	// decode headers after tcp connection closes
+	bool	opt_gzip_decompress;
+	bool	opt_no_promisc;		// do not be promiscious
+	uint64_t max_bytes_per_flow;
+	int	max_desired_fds;
+	int	max_flows;
+	int	suppress_header;
+	int	strip_nonprint;
+	int	use_color;
+	uint32_t max_seek;
+	bool	opt_no_purge;
+    };
+
     typedef std::tr1::unordered_set<class tcpip *> tcpset;
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // should be unordered_map
     std::string outdir;		/* output directory */
@@ -386,13 +413,7 @@ public:
     flow_map_t	flow_map;		// the database
     bool	start_new_connections;	// true if we should start new connections
     tcpset	openflows;		// the tcpip flows with open FPs 
-    bool	opt_output_enabled;	// do we output?
-    bool	opt_md5;		// do we calculate MD5 on DFXML output?
-    bool	opt_after_header;	// decode headers after tcp connection closes
-    bool	opt_gzip_decompress;
-    bool	opt_no_promisc;		// do not be promiscious
-    uint64_t	max_bytes_per_flow;
-    int		max_desired_fds;
+    options	opt;
     
     tcpdemux();
     void write_to_file(std::stringstream &ss,

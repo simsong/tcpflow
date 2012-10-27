@@ -2,8 +2,8 @@
  * This file is part of tcpflow by Simson Garfinkel <simsong@acm.org>.
  * Originally by Jeremy Elson <jelson@circlemud.org>.
  *
- * This source code is under the GNU Public License (GPL).  See
- * LICENSE for details.
+ * This source code is under the GNU Public License (GPL) version 3.
+ * See COPYING for details.
  *
  */
 
@@ -12,19 +12,14 @@
 #include "tcpflow.h"
 #include <vector>
 
-#define ENABLE_GZIP 0
-
-int debug_level = DEFAULT_DEBUG_LEVEL;
-int max_flows = 0;
-bool console_output = false;
-int suppress_header = 0;
-int strip_nonprint = 0;
-int use_color = 0;
-int max_seek  = 1024*1024*16;
-bool opt_no_purge = false;
-
+/* System-wide options.
+ * Note that most options are now in the individual demux object
+ * This allows a demux to be a class in another program.
+ */
+   
 const char *progname = 0;
 
+int debug_level = DEFAULT_DEBUG_LEVEL;
 extern std::string xml_PRId64;
 extern std::string xml_PRIu64;
 
@@ -63,7 +58,7 @@ void print_usage()
     std::cerr << "        -o outdir   : specify output directory (default '.')\n";
     std::cerr << "        -X filename : DFXML output to filename\n";
     std::cerr << "        -m bytes    : specifies the minimum number of bytes that a stream may\n";
-    std::cerr << "                      skip before starting a new stream (default " << max_seek << ").\n";
+    std::cerr << "                      skip before starting a new stream (default " << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
     std::cerr << "        -AH : extract HTTP objects and unzip GZIP-compressed HTTP messages\n";
     std::cerr << "        -Fc : append the connection counter to ALL filenames\n";
     std::cerr << "        -Ft : prepend the time_t timestamp to ALL filenames\n";
@@ -71,9 +66,7 @@ void print_usage()
     std::cerr << "        -FX : Do not output any files (other than report files)\n";
     std::cerr << "        -FM : Calculate the MD5 for every flow\n";
     std::cerr << "        -T<template> : specify an arbitrary filename template (default " << flow::filename_template << ")\n";
-#if ENABLE_GZIP
     std::cerr << "        -Z: do not decompress gzip-compressed HTTP transactions\n";
-#endif
     std::cerr << "Depricated: (don't use)\n";
     std::cerr << "        -P: don't purge tcp connections on FIN (could result in lost data)\n";
     std::cerr << "expression: tcpdump-like filtering expression\n";
@@ -157,15 +150,15 @@ int main(int argc, char *argv[])
     while ((arg = getopt(argc, argv, "aA:Bb:cCd:eF:f:hi:L:m:o:PpR:r:sT:VvX:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
-	    demux.opt_after_header = true;
-	    demux.opt_md5 = true;
+	    demux.opt.opt_after_header = true;
+	    demux.opt.opt_md5 = true;
 	    opt_all = true;
 	    continue;
 	    
 	case 'A': 
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){
-		case 'H': demux.opt_after_header = true;break;
+		case 'H': demux.opt.opt_after_header = true;break;
 		default:
 		    fprintf(stderr,"-A invalid after processing '%c'\n",*cc);
 		    need_usage=true;
@@ -173,12 +166,12 @@ int main(int argc, char *argv[])
 	    }
 	    break;
 	case 'b':
-	    if ((demux.max_bytes_per_flow = atoi(optarg)) < 0) {
+	    if ((demux.opt.max_bytes_per_flow = atoi(optarg)) < 0) {
 		DEBUG(1) ("warning: invalid value '%s' used with -b ignored", optarg);
-		demux.max_bytes_per_flow = 0;
+		demux.opt.max_bytes_per_flow = 0;
 	    } else {
 		if(debug_level > 1) {
-		    std::cout << "capturing max of " << demux.max_bytes_per_flow << " bytes per flow." << std::endl;
+		    std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
 		}
 	    }
 	    break;
@@ -186,13 +179,13 @@ int main(int argc, char *argv[])
 	    force_binary_output = true; DEBUG(10) ("force binary output");
 	    break;
 	case 'C':
-	    console_output = true;	DEBUG(10) ("printing packets to console only");
-	    suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
-	    strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
+	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
+	    demux.opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
+	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'c':
-	    console_output = true;	DEBUG(10) ("printing packets to console only");
-	    strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
+	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
+	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'd':
 	    if ((debug_level = atoi(optarg)) < 0) {
@@ -206,8 +199,8 @@ int main(int argc, char *argv[])
 		case 'c': replace(flow::filename_template,"%c","%C"); break;
 		case 't': flow::filename_template = "%tT" + flow::filename_template; break;
 		case 'T': flow::filename_template = "%T"  + flow::filename_template; break;
-		case 'X': demux.opt_output_enabled = false;break;
-		case 'M': demux.opt_md5 = true;break;
+		case 'X': demux.opt.opt_output_enabled = false;break;
+		case 'M': demux.opt.opt_md5 = true;break;
 		default:
 		    fprintf(stderr,"-F invalid format specification '%c'\n",*cc);
 		    need_usage = true;
@@ -215,10 +208,10 @@ int main(int argc, char *argv[])
 	    }
 	    break;
 	case 'f':
-	    if ((demux.max_desired_fds = atoi(optarg)) < (NUM_RESERVED_FDS + 2)) {
+	    if ((demux.opt.max_desired_fds = atoi(optarg)) < (NUM_RESERVED_FDS + 2)) {
 		DEBUG(1) ("warning: -f flag must be used with argument >= %d",
 			  NUM_RESERVED_FDS + 2);
-		demux.max_desired_fds = 0;
+		demux.opt.max_desired_fds = 0;
 	    }
 	    break;
 	case 'h':
@@ -228,13 +221,13 @@ int main(int argc, char *argv[])
 	case 'i': device = optarg; break;
 	case 'L': lockname = optarg; break;
 	case 'm':
-	    max_seek = atoi(optarg);
-	    DEBUG(10) ("max_seek set to %d",max_seek); break;
+	    demux.opt.max_seek = atoi(optarg);
+	    DEBUG(10) ("max_seek set to %d",demux.opt.max_seek); break;
 	case 'o': demux.outdir = optarg; break;
 	case 'P': 
-	    opt_no_purge = true;
+	    demux.opt.opt_no_purge = true;
 	    break;
-	case 'p': demux.opt_no_promisc = true;
+	case 'p': demux.opt.opt_no_promisc = true;
 	    DEBUG(10) ("NOT turning on promiscuous mode");
 	    break;
 	case 'R':
@@ -244,13 +237,13 @@ int main(int argc, char *argv[])
 	    rfiles.push_back(optarg);
 	    break;
 	case 's':
-	    strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'"); break;
+	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'"); break;
 	case 'T': flow::filename_template = optarg;break;
 	case 'V': std::cout << PACKAGE << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug_level = 10; break;
-	case 'Z': demux.opt_gzip_decompress = 0; break;
+	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
 	case 'e':
-	    use_color  = 1;
+	    demux.opt.use_color  = 1;
 	    DEBUG(10) ("using colors");
 	    break;
 	case 'X': reportfilename = optarg;break;
@@ -291,7 +284,7 @@ int main(int argc, char *argv[])
     }
 
     if(force_binary_output){
-	strip_nonprint = false;
+	demux.opt.strip_nonprint = false;
     }
 
     /* make sure outdir is a directory. If it isn't, try to make it.*/

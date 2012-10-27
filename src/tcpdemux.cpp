@@ -191,9 +191,9 @@ unsigned int tcpdemux::get_max_fds(void)
 #endif
 
     /* this must go here, after rlimit code */
-    if (max_desired_fds) {
-	DEBUG(10) ("using only %d FDs", max_desired_fds);
-	return max_desired_fds;
+    if (opt.max_desired_fds) {
+	DEBUG(10) ("using only %d FDs", opt.max_desired_fds);
+	return opt.max_desired_fds;
     }
 
     DEBUG(10) ("found max FDs to be %d using %s", max_descs, method);
@@ -205,11 +205,8 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
 		     xreport(0),max_fds(10),flow_map(),
 		     start_new_connections(false),
 		     openflows(),
-		     opt_output_enabled(true),opt_md5(false),
-		     opt_after_header(false),opt_gzip_decompress(true),
-		     opt_no_promisc(false),
-		     max_bytes_per_flow(),
-		     max_desired_fds()
+		     opt()
+		     
 {
     /* Find out how many files we can have open safely...subtract 4 for
      * stdin, stdout, stderr, and the packet filter; one for breathing
@@ -324,7 +321,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	 */
 	delta = seq - tcp->nsn;		// notice that signed offset is calculated
 
-	if(abs(delta) > max_seek){
+	if(abs(delta) > opt.max_seek){
 	    connection_count = tcp->myflow.connection_count+1;
 	    remove_flow(this_flow);
 	    tcp = 0;
@@ -385,10 +382,10 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
      * since they both have no data by definition.
      */
     if (length>0){
-	if (console_output) {
+	if (opt.console_output) {
 	    tcp->print_packet(data, length);
 	} else {
-	    if (opt_output_enabled){
+	    if (opt.opt_output_enabled){
 		tcp->store_packet(data, length, delta);
 	    }
 	}
@@ -396,7 +393,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 
     /* Finally, if there is a FIN, then kill this TCP connection*/
     if (IS_SET(tcp_header->th_flags, TH_FIN)){
-	if(opt_no_purge==false){
+	if(opt.opt_no_purge==false){
 	    DEBUG(50)("packet is FIN; closing connection");
 	    remove_flow(this_flow);	// take it out of the map
 	}
@@ -604,7 +601,7 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	}
 
 	/* make sure we can open the device */
-	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
+	if ((pd = pcap_open_live(device, SNAPLEN, !opt.opt_no_promisc, 1000, error)) == NULL){
 	    die("%s", error);
 	}
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
