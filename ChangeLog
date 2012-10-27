@@ -1,3 +1,13 @@
+2012-10-26  Simson Garfinkel  <simsong@npsair.local>
+
+	* src/tcpip.cpp (insert): added this function to insert a space at the beginning of a file. Now tcpflow can handle a flow with missing SYNs and out-of-order packets.
+
+2012-10-25  Simson Garfinkel  <simsong@npsair.local>
+
+	* src/tcpip.cpp (tcpip::print_packet): implemented strip-on-fputc
+
+	* src/tcpdemux.cpp (do_strip_nonprint): removed this function, as it could be replaced with strip-on-fputc
+
 2012-10-24  Simson Garfinkel  <simsong@npsair.local>
 
 	* src/tcpdemux.cpp (tcpdemux::open_tcpfile): now asserts that file is not open

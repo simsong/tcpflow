@@ -126,7 +126,6 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
     openflows.insert(tcp);
     tcp->pos = lseek(tcp->fd,(off_t)0,SEEK_END);	// seek to end
     tcp->nsn = tcp->isn + 1 + tcp->pos;			// byte 0 is seq=isn+1; note this will handle files > 4GiB
-    //std::cerr << "tcp->nsn set to " << tcp->isn << " + 1 + " << tcp->pos << " = " << tcp->nsn << "\n";
     return 0;
 }
 
@@ -278,23 +277,6 @@ int tcpdemux::retrying_open(const char *filename)
 }
 #endif
 
-/* convert all non-printable characters to '.' (period).  
- */
-static u_char *do_strip_nonprint(const u_char *data, u_char *buf,uint32_t length)
-{
-    u_char *write_ptr = buf;
-    while (length) {
-	if (isprint(*data) || (*data == '\n') || (*data == '\r'))
-	    *write_ptr = *data;
-	else
-	    *write_ptr = '.';
-	write_ptr++;
-	data++;
-	length--;
-    }
-    return buf;
-}
-
 /*
  * Called to processes a tcp packet
  */
@@ -329,7 +311,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 
     /* see if we have state about this flow; if not, create it */
     uint64_t connection_count = 0;
-    int32_t  delta = 0;			// from current position in tcp connection
+    int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
     tcpip   *tcp = find_tcpip(this_flow);
     
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
@@ -340,8 +322,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	/* Compute delta based on next expected sequence number.
 	 * If delta will be too much, start a new flow.
 	 */
-	delta = seq - tcp->nsn;
-	//std::cerr << "*** tcp in db tcp->nsn=" << tcp->nsn << " delta=" << delta << "\n";
+	delta = seq - tcp->nsn;		// notice that signed offset is calculated
 
 	if(abs(delta) > max_seek){
 	    connection_count = tcp->myflow.connection_count+1;
@@ -363,7 +344,6 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	 */
 	tcp_seq isn = syn_set ? seq : seq-1;
 	tcp = create_tcpip(this_flow, vlan, isn, ts,connection_count);
-	//std::cerr << "NEW TCP: seq=" << seq << " tcp->isn=" << tcp->isn << " tcp->nsn=" << tcp->nsn << "\n";
     }
 
     /* Now tcp is valid */
@@ -406,12 +386,6 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
      */
     if (length>0){
 	if (console_output) {
-	    /* console output just get printed in wire order. That's easy! */
-	    u_char newbuf[SNAPLEN];		// holds stripped data
-	    /* strip nonprintable characters if necessary */
-	    if (strip_nonprint){
-		data = do_strip_nonprint(data, newbuf,length);
-	    }
 	    tcp->print_packet(data, length);
 	} else {
 	    if (opt_output_enabled){

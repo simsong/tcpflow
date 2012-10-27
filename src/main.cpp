@@ -55,7 +55,6 @@ void print_usage()
     std::cerr << "            (type \"ifconfig -a\" for a list of interfaces)\n";
     std::cerr << "        -L semlock - specifies that writes are locked using a named semaphore\n";
     std::cerr << "        -p: don't use promiscuous mode\n";
-    std::cerr << "        -P: don't purge tcp connections on FIN\n";
     std::cerr << "        -r: read packets from tcpdump pcap file (may be repeated)\n";
     std::cerr << "        -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
     std::cerr << "        -s: strip non-printable characters (change to '.')\n";
@@ -75,6 +74,8 @@ void print_usage()
 #if ENABLE_GZIP
     std::cerr << "        -Z: do not decompress gzip-compressed HTTP transactions\n";
 #endif
+    std::cerr << "Depricated: (don't use)\n";
+    std::cerr << "        -P: don't purge tcp connections on FIN (could result in lost data)\n";
     std::cerr << "expression: tcpdump-like filtering expression\n";
     flow::print_usage();
     std::cerr << "\nSee the man page for additional information.\n\n";
@@ -230,7 +231,9 @@ int main(int argc, char *argv[])
 	    max_seek = atoi(optarg);
 	    DEBUG(10) ("max_seek set to %d",max_seek); break;
 	case 'o': demux.outdir = optarg; break;
-	case 'P': opt_no_purge = true; break;
+	case 'P': 
+	    opt_no_purge = true;
+	    break;
 	case 'p': demux.opt_no_promisc = true;
 	    DEBUG(10) ("NOT turning on promiscuous mode");
 	    break;

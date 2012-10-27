@@ -21,6 +21,8 @@
 #include <zlib.h>
 #endif
 
+
+
 /* Create a new tcp object.
  * Notice that nsn is not set because the file isn't open...
  */
@@ -281,7 +283,19 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 
     if (use_color) fputs(dir==dir_cs ? color[1] : color[2], stdout);
     if (suppress_header == 0) printf("%s: ", flow_pathname.c_str());
-    if (length != fwrite(data, 1, length, stdout)) std::cerr << "\nwrite error to fwrite?\n";
+
+    size_t written = 0;
+    if(strip_nonprint){
+	for(const u_char *cc = data;cc<data+length;cc++){
+	    if(isprint(*cc) || (*cc=='\n') || (*cc=='\r')){
+		written += fputc(*cc,stdout);
+	    }
+	}
+    }
+    else {
+	written = fwrite(data,1,length,stdout);
+    }
+    if(length != written) std::cerr << "\nwrite error to stdout\n";
 
     bytes_processed += length;
 
@@ -300,6 +314,46 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 #endif
 }
 
+/*
+ * extend_file_and_insert():
+ * A handy function for inserting in the middle or beginning of a file.
+ *
+ * Based on:
+ * http://stackoverflow.com/questions/10467711/c-write-in-the-middle-of-a-binary-file-without-overwriting-any-existing-content
+ */
+
+
+#ifndef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
+
+static int insert(int fd, size_t inslen)
+{
+    enum { BUFFERSIZE = 64 * 1024 };
+    char buffer[BUFFERSIZE];
+    struct stat sb;
+
+    if (fstat(fd, &sb) != 0) return -1;
+
+    /* Move data after offset up by inslen bytes */
+    size_t bytes_to_move = sb.st_size;
+    off_t read_end_offset = sb.st_size; 
+    while (bytes_to_move != 0) {
+	ssize_t bytes_this_time = MIN(BUFFERSIZE, bytes_to_move);
+	ssize_t rd_off = read_end_offset - bytes_this_time;
+	ssize_t wr_off = rd_off + inslen;
+	lseek(fd, rd_off, SEEK_SET);
+	if (read(fd, buffer, bytes_this_time) != bytes_this_time)
+	    return -1;
+	lseek(fd, wr_off, SEEK_SET);
+	if (write(fd, buffer, bytes_this_time) != bytes_this_time)
+	    return -1;
+	bytes_to_move -= bytes_this_time;
+    }   
+    return 0;
+}
+
+
 /* store the contents of this packet to its place in its file
  * This has to handle out-of-order packets as well as writes
  * past the 4GiB boundary. 
@@ -315,14 +369,21 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
  */
 void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 {
+    uint32_t insert_bytes=0;
     uint64_t offset = pos+delta;	// where the data will go in absolute byte positions (first byte is pos=0)
-    //std::cerr << "store_packet: delta=" << delta << " pos=" << pos << " offset=" << offset << "\n";
 
     if((int64_t)offset < 0){
 	/* We got bytes before the beginning of the TCP connection.
-	 * Either this is a protocol violation, or else we never saw a SYN and we got the ISN wrong.
+	 * Either this is a protocol violation,
+	 * or else we never saw a SYN and we got the ISN wrong.
 	 */
-	assert(0);
+	if(seen_syn){
+	    DEBUG(2)("packet received with offset %"PRId64"; ignoring",offset);
+	    violations++;
+	    return;
+	}
+	insert_bytes = -offset;		// open up this much space
+	offset = 0;			// and write the data here
     }
 
 
@@ -353,17 +414,27 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	}
     }
     
-    //std::cerr << "offset=" << offset << " pos=" << pos << " delta=" << delta << " wlength=" << wlength << "\n";
-    
+    if(insert_bytes>0){
+	if(fd>=0) insert(fd,insert_bytes);
+	isn -= insert_bytes;		// it's really earlier
+	lseek(fd,(off_t)0,SEEK_SET);	// put at the beginning
+	pos = 0;
+	nsn = isn+1;
+	out_of_order_count++;
+	DEBUG(25)("%s: insert(0,%d); lseek(%d,0,SEEK_SET) out_of_order_count=%"PRId64,
+		  flow_pathname.c_str(), insert_bytes,
+		  fd,out_of_order_count);
+    }
+	
+
     /* if we're not at the correct point in the file, seek there */
     if (offset != pos) {
 	if(fd>=0) lseek(fd,(off_t)delta,SEEK_CUR);
 	if(delta<0) out_of_order_count++; // only increment for backwards seeks
-	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) out_of_order_count=%"PRId64,flow_pathname.c_str(),fd,(int)delta,out_of_order_count);
+	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) out_of_order_count=%"PRId64,
+		  flow_pathname.c_str(), fd,(int)delta,out_of_order_count);
 	pos += delta;			// where we are now
 	nsn += delta;			// what we expect the nsn to be now
-	//std::cerr << "pos += " << delta << " = "  << pos << "\n";
-	//std::cerr << "nsn += " << delta << " = "  << nsn << "\n";
     }
     
     /* write the data into the file */
@@ -380,7 +451,6 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     }
     pos += length;
     nsn += length;			// expected next sequence number
-    //std::cerr << "nsn += " << length << "=" << nsn << "\n";
 
     if (out_of_order_count==0 && omitted_bytes==0 && md5){
 	MD5Update(md5,data,length);
