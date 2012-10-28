@@ -248,7 +248,7 @@ class histogram
 
 // this vector must hold histograms in order from greatest time resolution to
 // least
-vector<histogram> histograms;
+static vector<histogram> histograms;
 
 void time_format(struct tm *time, char *buf, int buflen)
 {

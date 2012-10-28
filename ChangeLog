@@ -1,3 +1,9 @@
+2012-10-28  Simson Garfinkel  <simsong@npsair.local>
+
+	* src/pcb_timehistogram.cpp: made histograms static
+
+	* src/tcpip.cpp (tcpip::store_packet): debug_level changed to debug in all files.
+
 2012-10-26  Simson Garfinkel  <simsong@npsair.local>
 
 	* src/flow.cpp (flow::print_usage): shortened filename template usage.

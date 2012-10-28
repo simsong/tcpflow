@@ -10,26 +10,16 @@
 #define __MAIN_C__
 
 #include "tcpflow.h"
-#include <vector>
+#include <string>
 
-/* System-wide options.
- * Note that most options are now in the individual demux object
- * This allows a demux to be a class in another program.
- */
-   
-const char *progname = 0;
+const char *progname = 0;		// name of the program
+int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
 
-int debug_level = DEFAULT_DEBUG_LEVEL;
-extern std::string xml_PRId64;
-extern std::string xml_PRIu64;
-
-
+/* semaphore prevents multiple copies from outputing on top of each other */
 #ifdef HAVE_PTHREAD
+#include <semaphore.h>
 sem_t *semlock = 0;
 #endif
-
-#include <string>
-#include <semaphore.h>
 
 void print_usage()
 {
@@ -74,8 +64,6 @@ void print_usage()
     std::cerr << "\nSee the man page for additional information.\n\n";
 }
 
-
-
 /**
  * Create the dfxml output
  */
@@ -112,6 +100,7 @@ void replace(std::string &str,const std::string &from,const std::string &to)
     }
 }
 
+#include <vector>
 int main(int argc, char *argv[])
 {
     bool force_binary_output = false;
@@ -124,6 +113,10 @@ int main(int argc, char *argv[])
     std::vector<std::string> rfiles;	// files to read
     tcpdemux demux;			// the demux object we will be using.
     std::string command_line = xml::make_command_line(argc,argv);
+
+    /* Set up debug system */
+    progname = argv[0];
+    init_debug(argv);
 
     /* Make sure that the system was compiled properly */
     bool error = false;
@@ -141,10 +134,6 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"CANNOT CONTINUE\n");
 	exit(1);
     }
-
-    progname = argv[0];
-    
-    init_debug(argv);
 
     int arg;
     while ((arg = getopt(argc, argv, "aA:Bb:cCd:eF:f:hi:L:m:o:PpR:r:sT:VvX:Z")) != EOF) {
@@ -170,7 +159,7 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: invalid value '%s' used with -b ignored", optarg);
 		demux.opt.max_bytes_per_flow = 0;
 	    } else {
-		if(debug_level > 1) {
+		if(debug > 1) {
 		    std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
 		}
 	    }
@@ -188,8 +177,8 @@ int main(int argc, char *argv[])
 	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'd':
-	    if ((debug_level = atoi(optarg)) < 0) {
-		debug_level = DEFAULT_DEBUG_LEVEL;
+	    if ((debug = atoi(optarg)) < 0) {
+		debug = DEFAULT_DEBUG_LEVEL;
 		DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
 	    }
 	    break;
@@ -240,7 +229,7 @@ int main(int argc, char *argv[])
 	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'"); break;
 	case 'T': flow::filename_template = optarg;break;
 	case 'V': std::cout << PACKAGE << " " << PACKAGE_VERSION << "\n"; exit (1);
-	case 'v': debug_level = 10; break;
+	case 'v': debug = 10; break;
 	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
 	case 'e':
 	    demux.opt.use_color  = 1;

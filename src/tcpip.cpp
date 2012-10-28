@@ -27,7 +27,7 @@
  * Notice that nsn is not set because the file isn't open...
  */
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
-    demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),seen_syn(false),
+    demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),syn_count(0),
     pos(0),
     flow_pathname(),fd(-1),file_created(false),
     bytes_processed(0),omitted_bytes(),last_packet_number(),out_of_order_count(0),violations(0),md5(0)
@@ -377,7 +377,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	 * Either this is a protocol violation,
 	 * or else we never saw a SYN and we got the ISN wrong.
 	 */
-	if(seen_syn){
+	if(syn_count>0){
 	    DEBUG(2)("packet received with offset %"PRId64"; ignoring",offset);
 	    violations++;
 	    return;
@@ -443,7 +443,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     if(fd>=0){
 	if (write(fd,data, wlength) != wlength) {
 	    DEBUG(1) ("write to %s failed: ", flow_pathname.c_str());
-	    if (debug_level >= 1) perror("");
+	    if (debug >= 1) perror("");
 	}
 	if(wlength != length){
 	    lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write

@@ -34,7 +34,8 @@ typedef unsigned short int sa_family_t;
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-extern int	debug_level;
+extern int	debug;
+#define DEBUG_PEDANTIC    0x0001// check values more rigorously
 
 /*
  * Structure of an internet header, naked of options.
@@ -300,7 +301,7 @@ private:
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
     tcpip(const tcpip &t):demux(t.demux),myflow(),dir(),isn(),nsn(),
-			  seen_syn(),pos(),
+			  syn_count(),pos(),
 			  flow_pathname(),fd(),file_created(),
 			  bytes_processed(),omitted_bytes(),
 			  last_packet_number(),
@@ -321,11 +322,9 @@ public:;
     dir_t	dir;			// direction of flow
     tcp_seq	isn;			// Flow's initial sequence number
     tcp_seq	nsn;			// expected next sequence number for current fd file position
-    bool	seen_syn;		// has a SYN been seen?
+    uint32_t	syn_count;		// has a SYN been seen?
 
     uint64_t	pos;			// current position+1 (next byte in stream to be written)
-    //uint64_t    pos_min;		// first byte written; default -1 means nothing written yet
-    //uint64_t	pos_max;		// highest pos has gotten
 
     /* Archiving information */
     std::string flow_pathname;		// path where flow is stored
@@ -393,12 +392,12 @@ public:
 	bool	opt_gzip_decompress;
 	bool	opt_no_promisc;		// do not be promiscious
 	uint64_t max_bytes_per_flow;
-	int	max_desired_fds;
-	int	max_flows;
-	int	suppress_header;
-	int	strip_nonprint;
-	int	use_color;
-	uint32_t max_seek;
+	uint32_t max_desired_fds;
+	uint32_t max_flows;
+	bool	suppress_header;
+	bool	strip_nonprint;
+	bool	use_color;
+	int32_t max_seek;		// signed becuase we compare with abs()
 	bool	opt_no_purge;
     };
 

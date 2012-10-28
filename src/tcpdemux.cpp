@@ -359,10 +359,10 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
      * in accordance with the TCP spec.
      */
     if(syn_set){
-	if(tcp->seen_syn){
+	if(tcp->syn_count>0){
 	    DEBUG(1)("Multiple SYNs seen on a single connection?");
 	}
-	tcp->seen_syn = true;
+	tcp->syn_count++;
 	if( ack_set ){
 	    DEBUG(50) ("packet is handshake SYN"); /* First packet of three-way handshake */
 	    tcp->dir = tcpip::dir_cs;	// client->server

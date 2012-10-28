@@ -164,6 +164,11 @@ AC_CHECK_LIB([z],[uncompress],, AC_MSG_WARN([zlib libraries not installed; try i
 AC_CHECK_HEADERS([zlib.h])
 
 ################################################################
+# Bulk_extractor plugin support
+AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h tsk3/libtsk3.h unistd.h sys/stat.h])
+AC_CHECK_FUNCS([isxdigit])
+
+################################################################
 # DFXML support
 AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h regex.h])
 AC_CHECK_FUNCS([localtime_r getuid gethostname getwpuid getrusage mkstemp vasprintf regcomp])
