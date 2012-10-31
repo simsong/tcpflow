@@ -36,12 +36,14 @@ using std::vector;
 #define GRAPH_TICK_LENGTH 2.0
 #define GRAPH_TICK_WIDTH 0.2
 #define GRAPH_NUM_TICKS 5
-#define GRAPH_TICK_DUMMY "000"
+#define GRAPH_TICK_DUMMY "000.00"
 #define GRAPH_TICK_Y_PAD_FACTOR 1.5
-#define GRAPH_TICK_Y_FONT_BASE_SIZE 4.0
+#define GRAPH_TICK_Y_FONT_BASE_SIZE 3.0
 #define GRAPH_BOTTOM_PAD 8.0
 #define GRAPH_RIGHT_PAD 24.0
 #define GRAPH_TICK_X_FONT_BASE_SIZE 4.0
+#define GRAPH_LEGEND_CHIP_SIDE 4.0
+#define GRAPH_LEGEND_FONT_BASE_SIZE 2.5
 // to account for packets timestamped before the first we receive, start a
 // little ways into the buckets
 const int FIRST_BUCKET = NUM_BUCKETS / 10;
@@ -380,7 +382,7 @@ void render(const histogram *selected_histogram)
     double y_scale_range = greatest_bucket_sum;
     if(unit_index > 0)
     {
-        y_scale_range /= unit_index;
+        y_scale_range /= (unit_index * 1000);
     }
 
     cairo_text_extents_t max_tick_extents;
@@ -394,15 +396,15 @@ void render(const histogram *selected_histogram)
     cairo_translate(cr, 0, titles_padded_height);
     cairo_scale(cr, 1.0, 1.0 - (GRAPH_BOTTOM_PAD / GRAPH_HEIGHT));
 
-    double y_scale_interval = y_scale_range / GRAPH_NUM_TICKS;
+    double y_scale_interval = y_scale_range / (GRAPH_NUM_TICKS - 1);
     double y_tick_spacing = GRAPH_HEIGHT / GRAPH_NUM_TICKS;
     for(int ii = 0; ii < GRAPH_NUM_TICKS; ii++)
     {
         double yy = (ii * y_tick_spacing) - (GRAPH_TICK_WIDTH / 2);
 
         char tick_label[255];
-        snprintf(tick_label, 255, "%d",
-                (int) ((GRAPH_NUM_TICKS - (ii + 1)) * y_scale_interval));
+        snprintf(tick_label, 255, "%.02f",
+                ((GRAPH_NUM_TICKS - (ii + 1)) * y_scale_interval));
         cairo_text_extents_t extents;
         cairo_text_extents(cr, tick_label, &extents);
         cairo_move_to(cr, (y_label_allotment - extents.width) / 2,
@@ -421,15 +423,15 @@ void render(const histogram *selected_histogram)
 
     // x ticks (time)
 
-    time_t start_unix = selected_histogram->base_time /
-        (1000 * 1000);
-    time_t stop_unix = (selected_histogram->base_time +
-            selected_histogram->length) / (1000 * 1000);
-    struct tm *start_time = localtime(&start_unix);
-    struct tm *stop_time = localtime(&stop_unix);
+    const time_t start_unix = (selected_histogram->base_time +
+            (selected_histogram->bucket_width * first_index)) / (1000 * 1000);
+    const time_t stop_unix = (selected_histogram->base_time +
+            (selected_histogram->bucket_width * last_index)) / (1000 * 1000);
+    struct tm start_time = *localtime(&start_unix);
+    struct tm stop_time = *localtime(&stop_unix);
     char start_str[255], stop_str[255];
-    time_format(start_time, start_str, 255);
-    time_format(stop_time, stop_str, 255);
+    time_format(&start_time, start_str, 255);
+    time_format(&stop_time, stop_str, 255);
     cairo_text_extents_t start_extents, stop_extents;
 
     cairo_set_font_size(cr, GRAPH_TICK_X_FONT_BASE_SIZE);
@@ -441,6 +443,7 @@ void render(const histogram *selected_histogram)
     cairo_scale(cr, 1.0 - ((left_padding + GRAPH_RIGHT_PAD) /
                 GRAPH_WIDTH), 1.0);
 
+    // draw labels
     cairo_move_to(cr, 0, GRAPH_HEIGHT -
             (GRAPH_BOTTOM_PAD - start_extents.height) / 2);
     cairo_show_text(cr, start_str);
@@ -448,6 +451,58 @@ void render(const histogram *selected_histogram)
             (GRAPH_BOTTOM_PAD - stop_extents.height) / 2);
     cairo_show_text(cr, stop_str);
 
+    cairo_identity_matrix(cr);
+
+    // render legend
+
+    cairo_translate(cr, GRAPH_WIDTH - GRAPH_RIGHT_PAD, titles_padded_height);
+
+    cairo_text_extents_t legend_label_extents;
+
+    cairo_set_font_size(cr, GRAPH_LEGEND_FONT_BASE_SIZE);
+
+    // http
+    // chip
+    cairo_set_source_rgb(cr, color_http.r, color_http.g, color_http.b);
+    cairo_rectangle(cr, 0, 0, GRAPH_LEGEND_CHIP_SIDE, GRAPH_LEGEND_CHIP_SIDE);
+    cairo_fill(cr);
+    // label
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_text_extents(cr, "HTTP", &legend_label_extents);
+    cairo_move_to(cr, GRAPH_LEGEND_CHIP_SIDE * 1.5,
+            (GRAPH_LEGEND_CHIP_SIDE / 2.0) +
+            (legend_label_extents.height / 2.0));
+    cairo_show_text(cr, "HTTP");
+
+    // https
+    cairo_translate(cr, 0, GRAPH_LEGEND_CHIP_SIDE);
+    // chip
+    cairo_set_source_rgb(cr, color_https.r, color_https.g, color_https.b);
+    cairo_rectangle(cr, 0, 0, GRAPH_LEGEND_CHIP_SIDE, GRAPH_LEGEND_CHIP_SIDE);
+    cairo_fill(cr);
+    // label
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_text_extents(cr, "HTTPS", &legend_label_extents);
+    cairo_move_to(cr, GRAPH_LEGEND_CHIP_SIDE * 1.5,
+            (GRAPH_LEGEND_CHIP_SIDE / 2.0) +
+            (legend_label_extents.height / 2.0));
+    cairo_show_text(cr, "HTTPS");
+
+    // https
+    cairo_translate(cr, 0, GRAPH_LEGEND_CHIP_SIDE);
+    // chip
+    cairo_set_source_rgb(cr, color_other.r, color_other.g, color_other.b);
+    cairo_rectangle(cr, 0, 0, GRAPH_LEGEND_CHIP_SIDE, GRAPH_LEGEND_CHIP_SIDE);
+    cairo_fill(cr);
+    // label
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_text_extents(cr, "Other", &legend_label_extents);
+    cairo_move_to(cr, GRAPH_LEGEND_CHIP_SIDE * 1.5,
+            (GRAPH_LEGEND_CHIP_SIDE / 2.0) +
+            (legend_label_extents.height / 2.0));
+    cairo_show_text(cr, "Other");
+
+    cairo_set_source_rgb(cr, 0, 0, 0);
     cairo_identity_matrix(cr);
 
     // render bars
@@ -482,14 +537,14 @@ void render(const histogram *selected_histogram)
 
             double current_height = GRAPH_HEIGHT - bar_height;
 
-            // other (yellow)
-            cairo_set_source_rgb(cr, color_other.r, color_other.g,
-                    color_other.b);
+            // HTTP (blue)
+            cairo_set_source_rgb(cr, color_http.r, color_http.g,
+                    color_http.b);
             cairo_rectangle(cr, index * offset_unit, current_height,
-                    bar_width, other_height);
+                    bar_width, http_height);
             cairo_fill(cr);
 
-            current_height += other_height;
+            current_height += http_height;
 
             // HTTPS (green)
             cairo_set_source_rgb(cr, color_https.r, color_https.g,
@@ -500,11 +555,11 @@ void render(const histogram *selected_histogram)
 
             current_height += https_height;
 
-            // HTTP (blue)
-            cairo_set_source_rgb(cr, color_http.r, color_http.g,
-                    color_http.b);
+            // other (yellow)
+            cairo_set_source_rgb(cr, color_other.r, color_other.g,
+                    color_other.b);
             cairo_rectangle(cr, index * offset_unit, current_height,
-                    bar_width, http_height);
+                    bar_width, other_height);
             cairo_fill(cr);
 
             // reset to black
