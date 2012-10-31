@@ -353,6 +353,36 @@ static int insert(int fd, size_t inslen)
     return 0;
 }
 
+<<<<<<< HEAD
+    /* calculate the offset into this flow.
+     * This handles handle seq num* wrapping correctly
+     * because tcp_seq is the right size, but it probably does not
+     * handle flows larger than 4GiB.
+     */
+    uint32_t offset = seq - isn;
+
+    /* Are we receiving a packet with a sequence number
+     * slightly less than what we consider the ISN to be?
+     * The max (though admittedly non-scaled) window of 64K should be enough.
+     */
+    if (offset >= 0xffff0000) {
+	if(syn_seen==false){
+	    if(bytes_processed==0 && pos==0){
+		/* No bytes were processed; perhaps we never saw a SYN.
+		 * Set the isn as if this is a seq.
+		 */
+		isn = seq;
+		offset = seq - isn;
+		DEBUG(2) ("set isn to %d having seen packet with seq (%d) on %s", isn,seq,flow_pathname.c_str());
+	    } else {
+		isn = seq;
+		offset = seq - isn;
+		DEBUG(2) ("inserted data into file");
+	    }
+	} else {
+	    DEBUG(1) ("dropped packet with seq (%d) < isn (%d) (pos=%d delta=%d seen_syn=%d) on %s",
+		      seq,isn,(int)pos,offset,seen_syn,flow_pathname.c_str());
+=======
 
 /* store the contents of this packet to its place in its file
  * This has to handle out-of-order packets as well as writes
@@ -380,6 +410,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	if(syn_count>0){
 	    DEBUG(2)("packet received with offset %"PRId64"; ignoring",offset);
 	    violations++;
+>>>>>>> 8728fa27beaf9a5dc2039a6b54079e997039c0cb
 	    return;
 	}
 	insert_bytes = -offset;		// open up this much space

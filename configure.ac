@@ -12,6 +12,9 @@ AC_CONFIG_HEADER([src/config.h])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
+# Endian check is required for MD5 implementation
+AC_C_BIGENDIAN
+
 AC_CONFIG_MACRO_DIR([m4])
 
 # Programs we will be using
