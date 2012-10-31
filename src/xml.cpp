@@ -178,7 +178,7 @@ string xml::xmlstrip(const string &xml)
 
 /* This goes to stdout */
 xml::xml():M(),outf(),out(&cout),tags(),tag_stack(),tempfilename(),tempfile_template("/tmp/xml_XXXXXXXX"),
-	   t0(),make_dtd(false),outfilename()
+	   t0(),make_dtd(false),outfilename(),oneline()
 {
 #ifdef HAVE_PTHREAD
     pthread_mutex_init(&M,NULL);
@@ -191,7 +191,7 @@ xml::xml():M(),outf(),out(&cout),tags(),tag_stack(),tempfilename(),tempfile_temp
 xml::xml(const std::string &outfilename_,bool makeDTD):
     M(),outf(outfilename_.c_str(),ios_base::out),
     out(),tags(),tag_stack(),tempfilename(),tempfile_template(outfilename_+"_tmp_XXXXXXXX"),
-    t0(),make_dtd(false),outfilename(outfilename_)
+    t0(),make_dtd(false),outfilename(outfilename_),oneline()
 {
 #ifdef HAVE_PTHREAD
     pthread_mutex_init(&M,NULL);
@@ -213,7 +213,7 @@ xml::xml(const std::string &outfilename_,bool makeDTD):
  */
 xml::xml(const std::string &outfilename_,class existing &e):
     M(),outf(), out(),tags(),tag_stack(),tempfilename(),tempfile_template(),
-    t0(),make_dtd(false),outfilename(outfilename_)
+    t0(),make_dtd(false),outfilename(outfilename_),oneline()
 {
 #ifdef HAVE_PTHREAD
     pthread_mutex_init(&M,NULL);
@@ -355,7 +355,7 @@ void xml::puts(const string &v)
 
 void xml::spaces()
 {
-    for(unsigned int i=0;i<tag_stack.size();i++){
+    for(unsigned int i=0;i<tag_stack.size() && !oneline;i++){
 	*out << "  ";
     }
 }
@@ -419,7 +419,7 @@ void xml::push(const string &tag,const string &attribute)
     spaces();
     tag_stack.push(tag);
     tagout(tag,attribute);
-    *out << '\n';
+    if(!oneline) *out << '\n';
 }
 
 void xml::pop()
@@ -432,11 +432,17 @@ void xml::pop()
     *out << '\n';
 }
 
+void xml::set_oneline(bool v)
+{
+    if(v==true) spaces();
+    if(v==false) *out << "\n";
+    oneline = v;
+}
 
-#if defined(HAVE_ASM_CPUID) && defined(__i386__)
+
 void xml::cpuid(uint32_t op, unsigned long *eax, unsigned long *ebx,
                 unsigned long *ecx, unsigned long *edx) {
-#if defined(__PIC__)
+#if defined(__i386__) && defined(__PIC__)
     __asm__ __volatile__("pushl %%ebx      \n\t" /* save %ebx */
                          "cpuid            \n\t"
                          "movl %%ebx, %1   \n\t" /* save what cpuid just put in %ebx */
@@ -457,14 +463,15 @@ void xml::cpuid(uint32_t op, unsigned long *eax, unsigned long *ebx,
 
 void xml::add_cpuid()
 {
+#ifdef HAVE_ASM_CPUID
 #ifndef __WORDSIZE
 #define __WORDSIZE 32
 #endif
 #define b(val, base, end) ((val << (__WORDSIZE-end-1)) >> (__WORDSIZE-end+base-1))
+    char buf[256];
     unsigned long eax, ebx, ecx, edx;
     cpuid(0, &eax, &ebx, &ecx, &edx);
     
-    char buf[256];
     snprintf(buf,sizeof(buf),"%.4s%.4s%.4s", (char *)&ebx, (char *)&edx, (char *)&ecx);
     push("cpuid");
     xmlout("identification",buf);
@@ -483,8 +490,8 @@ void xml::add_cpuid()
     cpuid(0x80000006, &eax, &ebx, &ecx, &edx);
     xmlout("L1_cache_size", (int64_t) b(ecx, 16, 31) * 1024);
     pop();
-}
 #endif
+}
 
 void xml::add_DFXML_execution_environment(const std::string &command_line)
 {
@@ -534,9 +541,30 @@ void xml::add_DFXML_execution_environment(const std::string &command_line)
     pop();			// <execution_environment>
 }
 
+#ifdef WIN32
+#include "psapi.h"
+#endif
+
 
 void xml::add_rusage()
 {
+#ifdef WIN32
+    /* Note: must link -lpsapi for this */
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    memset(&pmc,0,sizeof(pmc));
+    GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS *)&pmc, sizeof(pmc));
+    push("PROCESS_MEMORY_COUNTERS");
+    xmlout("cb",(int64_t)pmc.cb);
+    xmlout("PageFaultCount",(int64_t)pmc.PageFaultCount);
+    xmlout("WorkingSetSize",(int64_t)pmc.WorkingSetSize);
+    xmlout("QuotaPeakPagedPoolUsage",(int64_t)pmc.QuotaPeakPagedPoolUsage);
+    xmlout("QuotaPagedPoolUsage",(int64_t)pmc.QuotaPagedPoolUsage);
+    xmlout("QuotaPeakNonPagedPoolUsage",(int64_t)pmc.QuotaPeakNonPagedPoolUsage);
+    xmlout("PagefileUsage",(int64_t)pmc.PagefileUsage);
+    xmlout("PeakPagefileUsage",(int64_t)pmc.PeakPagefileUsage);
+    xmlout("PrivateUsage",(int64_t)pmc.PrivateUsage);
+    pop();
+#endif    
 #ifdef HAVE_GETRUSAGE
     struct rusage ru;
     memset(&ru,0,sizeof(ru));
@@ -572,7 +600,7 @@ void xml::add_rusage()
 /****************************************************************
  *** THESE ARE THE ONLY THREADSAFE ROUTINES
  ****************************************************************/
-void xml::xmlcomment(const string &comment_)
+void xml::comment(const string &comment_)
 {
     MUTEX_LOCK(&M);
     *out << "<!-- " << comment_ << " -->\n";

@@ -284,10 +284,10 @@ struct private_in6_addr {		// our own private ipv6 definition
 /***************************** Macros *************************************/
 
 #ifndef __MAIN_C__
-extern int debug_level;
+extern int debug;
 #endif
 
-#define DEBUG(message_level) if (debug_level >= message_level) debug_real
+#define DEBUG(message_level) if (debug >= message_level) debug_real
 #define IS_SET(vector, flag) ((vector) & (flag))
 #define SET_BIT(vector, flag) ((vector) |= (flag))
 
@@ -302,12 +302,6 @@ void flow_close_all();
 
 /* main.cpp - CLI */
 extern const char *progname;
-extern int console_only;
-extern int suppress_header;
-extern int strip_nonprint;
-extern int use_color;
-extern u_int min_skip;
-extern bool opt_no_purge;
 
 #ifdef HAVE_PTHREAD
 #include <semaphore.h>

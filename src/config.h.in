@@ -48,6 +48,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `isxdigit' function. */
+#undef HAVE_ISXDIGIT
+
 /* Define to 1 if you have the `cairo' library (-lcairo). */
 #undef HAVE_LIBCAIRO
 
@@ -203,6 +206,9 @@
 
 /* Define to 1 if the system has the type `tcp_seq'. */
 #undef HAVE_TCP_SEQ
+
+/* Define to 1 if you have the <tsk3/libtsk3.h> header file. */
+#undef HAVE_TSK3_LIBTSK3_H
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H

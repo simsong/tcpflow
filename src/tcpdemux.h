@@ -34,6 +34,9 @@ typedef unsigned short int sa_family_t;
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
+extern int	debug;
+#define DEBUG_PEDANTIC    0x0001// check values more rigorously
+
 /*
  * Structure of an internet header, naked of options.
  */
@@ -234,7 +237,7 @@ public:;
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
     uint64_t packet_count;			// packet count
-    uint64_t connection_count;	// how many times have we seen a flow with the same addr?
+    uint64_t connection_count;		// how many times have we seen a flow with the same quad?
     std::string filename();		// returns filename for a flow based on the temlate
 };
 
@@ -297,9 +300,13 @@ private:
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
-    tcpip(const tcpip &t):demux(t.demux),myflow(),dir(),isn(),seen_syn(),pos(),pos_min(),pos_max(),
-			  flow_pathname(),fp(),file_created(),bytes_processed(),last_packet_number(),
+    tcpip(const tcpip &t):demux(t.demux),myflow(),dir(),isn(),nsn(),
+			  syn_count(),pos(),
+			  flow_pathname(),fd(),file_created(),
+			  bytes_processed(),omitted_bytes(),
+			  last_packet_number(),
 			  out_of_order_count(),
+			  violations(),
 			  md5(){
 	throw new not_impl();
     }
@@ -314,21 +321,22 @@ public:;
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
     tcp_seq	isn;			// Flow's initial sequence number
-    bool	seen_syn;		// has a SYN been seen?
+    tcp_seq	nsn;			// expected next sequence number for current fd file position
+    uint32_t	syn_count;		// has a SYN been seen?
 
-    uint64_t	pos;			// Current write position in fp 
-    uint64_t    pos_min;		// first byte written; default -1 means nothing written yet
-    uint64_t	pos_max;		// highest pos has gotten
+    uint64_t	pos;			// current position+1 (next byte in stream to be written)
 
     /* Archiving information */
     std::string flow_pathname;		// path where flow is stored
-    FILE	*fp;			// Pointer to file storing this flow's data 
+    int		fd;			// file descriptor for file storing this flow's data 
     bool	file_created;		// true if file was created
 
-    /* States */
+    /* Stats */
     uint64_t	bytes_processed;	// number of bytes processed by demultiplxier
+    uint64_t    omitted_bytes;		// number of bytes not written to this file
     uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
+    uint64_t    violations;		// protocol violation count
     context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
 
     /* Methods */
@@ -336,7 +344,7 @@ public:;
 		      const std::string &fname,const unsigned char *base,size_t len);
     void close_file();				// close fp
     void print_packet(const u_char *data, uint32_t length);
-    void store_packet(const u_char *data, uint32_t length, uint32_t seq);
+    void store_packet(const u_char *data, uint32_t length, int32_t delta);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
@@ -358,16 +366,41 @@ private:
 	}
     };
     tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_counter(),xreport(),
-				max_fds(),flow_map(),start_new_connections(),openflows(),opt_output_enabled(),
-				opt_md5(),opt_after_header(),opt_gzip_decompress(),
-				opt_no_promisc(),
-				max_bytes_per_flow(),max_desired_fds(){
+				max_fds(),flow_map(),start_new_connections(),openflows(),opt(){
 	throw new not_impl();
     }
     tcpdemux &operator=(const tcpdemux &that){
 	throw new not_impl();
     }
 public:
+    /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
+
+    class options {
+    public:;
+	enum { MAX_SEEK=1024*1024*16 };
+	options():console_output(false),opt_output_enabled(true),opt_md5(false),
+		  opt_after_header(false),opt_gzip_decompress(true),
+		  opt_no_promisc(false),max_bytes_per_flow(),
+		  max_desired_fds(),max_flows(0),suppress_header(0),
+		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK),
+		  opt_no_purge(false) {
+	}
+	bool	console_output;
+	bool	opt_output_enabled;	// do we output?
+	bool	opt_md5;		// do we calculate MD5 on DFXML output?
+	bool	opt_after_header;	// decode headers after tcp connection closes
+	bool	opt_gzip_decompress;
+	bool	opt_no_promisc;		// do not be promiscious
+	uint64_t max_bytes_per_flow;
+	uint32_t max_desired_fds;
+	uint32_t max_flows;
+	bool	suppress_header;
+	bool	strip_nonprint;
+	bool	use_color;
+	int32_t max_seek;		// signed becuase we compare with abs()
+	bool	opt_no_purge;
+    };
+
     typedef std::tr1::unordered_set<class tcpip *> tcpset;
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // should be unordered_map
     std::string outdir;		/* output directory */
@@ -379,13 +412,7 @@ public:
     flow_map_t	flow_map;		// the database
     bool	start_new_connections;	// true if we should start new connections
     tcpset	openflows;		// the tcpip flows with open FPs 
-    bool	opt_output_enabled;	// do we output?
-    bool	opt_md5;		// do we calculate MD5 on DFXML output?
-    bool	opt_after_header;	// decode headers after tcp connection closes
-    bool	opt_gzip_decompress;
-    bool	opt_no_promisc;		// do not be promiscious
-    uint64_t	max_bytes_per_flow;
-    int		max_desired_fds;
+    options	opt;
     
     tcpdemux();
     void write_to_file(std::stringstream &ss,
@@ -396,7 +423,6 @@ public:
     void	close_oldest();
     void	remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
     int		retrying_open(const char *filename,int oflag,int mask);
-    FILE	*retrying_fopen(const char *filename,const char *mode);
 
     /* the flow database */
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn,

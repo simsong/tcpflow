@@ -31,17 +31,12 @@ std::string flow::filename_template("%A.%a-%B.%b%V%v%C%c");
 void flow::print_usage()
 {
     std::cerr << "Filename template format:\n";
-    std::cerr << "  %A - source IP address\n";
-    std::cerr << "  %a - source IP port\n";
-    std::cerr << "  %B - dest IP address\n";
-    std::cerr << "  %b - dest IP port\n";
-    std::cerr << "  %T - Timestamp in ISO8601 format\n";
-    std::cerr << "  %t - Unix time_t\n";
-    std::cerr << "  %V - '--' if VLAN is present\n";
-    std::cerr << "  %v - VLAN number if VLAN is present\n";
+    std::cerr << "  %A/%a - source IP address/port\n";
+    std::cerr << "  %B/%b - dest IP address/port\n";
+    std::cerr << "  %T/%t - Timestamp in ISO8601 format/unix time_t\n";
+    std::cerr << "  %V/%v - VLAN number, '--' if no vlan/'' if no vlan\n";
+    std::cerr << "  %c/%# - connection_count; if >0/always \n";
     std::cerr << "  %C - 'c' if connection_count >0\n";
-    std::cerr << "  %c - connection_count if connection_count >0 \n";
-    std::cerr << "  %# - always output connection count\n";
     std::cerr << "  %% - Output a '%'\n";
     std::cerr << "\n";
     std::cerr << "Default filename template is " << filename_template << "\n";
