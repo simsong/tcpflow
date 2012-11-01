@@ -70,6 +70,24 @@ struct private_ip6_hdr {
 	struct private_in6_addr ip6_dst;	/* destination address */
 } __attribute__((__packed__));
 
+/* ***
+ * SLG: The following should be done as a structure that defines each graph and
+ * then an array of pre-initialized structures. That makes it easier to add new graphs,
+ * or add new properties to an existing graph.
+ * Something like this:
+ * note - structure and class define braaces start on the same line; 
+        - function defines start on the next line
+ */
+
+struct scan_preference_t {		// MFS - 
+    uint64_t span_length_ms;		// span length in microseconds
+    const char *yaxis_legend;		// "packets"
+    const char *xaxis_legend;		// "seconds"
+};
+
+/** END SLG */
+
+
 // Unit in libpcap is microsecond, so shall it be here
 const uint64_t span_lengths[] = {
     /* minute */ 60L * 1000L * 1000L,
@@ -85,7 +103,7 @@ const char * units_strings[] = {
     "kilopackets vs time",
     "megapackets vs time",
     "gigapackets vs time",
-    "terapackets vs time",
+±    "terapackets vs time",
     "petapackets vs time",
     "exapackets vs time",
 };
