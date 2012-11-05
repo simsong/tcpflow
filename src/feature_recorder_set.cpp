@@ -3,15 +3,8 @@
 #include "beregex.h"
 #include "xml.h"
 
-
-/* global alert_list and stop_list
- * These should probably become static class variables
- */
-#ifdef USE_ALERT_LIST
-word_and_context_list alert_list;		/* shold be flagged */
-#endif
-#ifdef USE_STOP_LIST
-word_and_context_list stop_list;		/* should be ignored */
+#ifdef USE_HISTOGRAMS
+#include "histogram.h"
 #endif
 
 /****************************************************************
@@ -22,19 +15,21 @@ word_and_context_list stop_list;		/* should be ignored */
 
 
 
-const string feature_recorder_set::ALERT_RECORDER = "alerts";
-feature_recorder  *feature_recorder_set::alert_recorder = 0;
+const string feature_recorder_set::ALERT_RECORDER_NAME = "alerts";
+feature_recorder  *feature_recorder_set::alert_recorder = 0; // no alert recorder to start
 
 /**
  * Create a properly functioning feature recorder set.
  */
 feature_recorder_set::feature_recorder_set(const feature_file_names_t &feature_files,
-					   const std::string &outdir_):
-    flags(0),outdir(outdir_),frm(),Mstats(),scanner_stats()
+					   const std::string &input_fname_,
+					   const std::string &outdir_,
+					   bool create_stop_files):
+    flags(0),input_fname(input_fname_),outdir(outdir_),frm(),Mstats(),scanner_stats()
 {
     /* Create the requested feature files */
     for(set<string>::const_iterator it=feature_files.begin();it!=feature_files.end();it++){
-	create_name(*it);
+	create_name(*it,create_stop_files);
     }
 }
 
@@ -64,7 +59,7 @@ bool feature_recorder_set::has_name(string name) const
 feature_recorder *feature_recorder_set::get_name(string name) const
 {
     if(flags & ONLY_ALERT){		// always return the alert recorder
-	name = feature_recorder_set::ALERT_RECORDER;
+	name = feature_recorder_set::ALERT_RECORDER_NAME;
     }
 
     feature_recorder_map::const_iterator it = frm.find(name);
@@ -77,7 +72,7 @@ feature_recorder *feature_recorder_set::get_name(string name) const
 
 feature_recorder *feature_recorder_set::get_alert_recorder()  const
 {
-    return get_name(feature_recorder_set::ALERT_RECORDER);
+    return get_name(feature_recorder_set::ALERT_RECORDER_NAME);
 }
 
 void feature_recorder_set::add_stats(string bucket,double seconds)
@@ -103,18 +98,17 @@ void feature_recorder_set::dump_stats(struct xml &x)
     x.pop();
 }
 
-void feature_recorder_set::create_name(string name) 
+void feature_recorder_set::create_name(string name,bool create_stop_file) 
 {
     feature_recorder *fr = new feature_recorder(outdir,name);
     frm[name] = fr;
-#ifdef USE_STOP_LIST
-    if(stop_list.size()>0){
+    if(create_stop_file){
 	string name_stopped = name+"_stopped";
 	
 	fr->stop_list_recorder = new feature_recorder(outdir,name_stopped);
 	frm[name_stopped] = fr->stop_list_recorder;
     }
-#endif
+    
     if(flags & DISABLED) return;	// don't open if we are disabled
     
     /* Open the output!*/

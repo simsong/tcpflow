@@ -267,3 +267,6 @@
 
 /* Linux operating system functions */
 #undef __LINUX__
+
+/* We are compiling tcpflow */
+#undef tcpflow

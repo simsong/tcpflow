@@ -1,7 +1,17 @@
 #include "config.h"
+
+#ifdef BULK_EXTRACTOR
+#include "bulk_extractor.h"
+#else
 #include "bulk_extractor_i.h"
+#endif
+
 #include "unicode_escape.h"
 #include "beregex.h"
+
+#ifdef USE_HISTOGRAMS
+#include "histogram.h"
+#endif
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -27,9 +37,8 @@ extern int debug;
 size_t  feature_recorder::context_window=16;			/* number of bytes of context */
 int64_t feature_recorder::offset_add   = 0;
 std::string  feature_recorder::banner_file;
-std::string  feature_recorder::input_fname;
-uint32_t feature_recorder::opt_max_context_size=8;
-uint32_t feature_recorder::opt_max_feature_size=8;
+uint32_t feature_recorder::opt_max_context_size=1024*1024;
+uint32_t feature_recorder::opt_max_feature_size=1024*1024;
 
 /** 
  * 1. Put the UTF-8 BOM in the file.
@@ -51,8 +60,10 @@ void feature_recorder::banner_stamp(std::ostream &os,const std::string &header)
 	i.close();
     }
     os << bulk_extractor_version_header;
-    os << "# Filename: " << input_fname << "\n";
     os << "# Feature-Recorder: " << name << "\n";
+#ifdef BULK_EXTRACTOR
+    os << "# Filename: " << image_fname << "\n";
+#endif
     if(debug!=0){
 	os << "# DEBUG: " << debug << " (";
 	if(debug & DEBUG_PEDANTIC) os << " DEBUG_PEDANTIC ";
@@ -156,7 +167,7 @@ static inline bool isodigit(char c)
 /* statics */
 const std::string feature_recorder::feature_file_header("# Feature-File-Version: 1.1\n");
 const std::string feature_recorder::histogram_file_header("# Histogram-File-Version: 1.1\n");
-const std::string feature_recorder::bulk_extractor_version_header("# bulk_extractor-Version: " PACKAGE_VERSION " ($Rev: 10578 $)\n");
+const std::string feature_recorder::bulk_extractor_version_header("# "PACKAGE_NAME "-Version: " PACKAGE_VERSION " ($Rev: 10790 $)\n");
 
 static inline int hexval(char ch)
 {

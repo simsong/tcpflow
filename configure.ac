@@ -16,6 +16,7 @@ AM_MAINTAINER_MODE
 AC_C_BIGENDIAN
 
 AC_CONFIG_MACRO_DIR([m4])
+AC_DEFINE([tcpflow],1,[We are compiling tcpflow])
 
 # Programs we will be using
 AC_PROG_CC

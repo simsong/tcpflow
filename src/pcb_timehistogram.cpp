@@ -103,7 +103,7 @@ const char * units_strings[] = {
     "kilopackets vs time",
     "megapackets vs time",
     "gigapackets vs time",
-±    "terapackets vs time",
+    "terapackets vs time",
     "petapackets vs time",
     "exapackets vs time",
 };

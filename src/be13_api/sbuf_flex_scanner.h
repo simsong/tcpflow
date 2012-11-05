@@ -12,6 +12,7 @@
 class sbuf_scanner {
 public:
     explicit sbuf_scanner(const sbuf_t *sbuf_): sbuf(sbuf_),pos(0),point(0){}
+    virtual ~sbuf_scanner(){}
     const sbuf_t *sbuf;
     size_t pos;
     size_t point;

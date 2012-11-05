@@ -3,18 +3,16 @@
  * bulk_extractor backend stuff, used for both standalone executable and bulk_extractor.
  */
 
-//#include "bulk_extractor.h"
 #include "config.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#ifdef HAVE_ERR_H
+#include <err.h>
+#endif
 
 #include "bulk_extractor_i.h"
-//#include "aftimer.h"
-//#include "image_process.h"
-//#include "threadpool.h"
 #include "xml.h"
-
 
 uint32_t scanner_def::max_depth = 5;		// max recursion depth
 
@@ -36,6 +34,32 @@ void be_mkdir(string dir)
     }
 #endif
 }
+
+#ifndef HAVE_ERR
+#include <stdarg.h>
+static void err(int eval,const char *fmt,...)
+{
+  va_list ap;
+  va_start(ap,fmt);
+  vfprintf(stderr,fmt,ap);
+  va_end(ap);
+  fprintf(stderr,": %s\n",strerror(errno));
+  exit(eval);
+}
+#endif
+
+#ifndef HAVE_ERRX
+#include <stdarg.h>
+static void errx(int eval,const char *fmt,...)
+{
+  va_list ap;
+  va_start(ap,fmt);
+  vfprintf(stderr,fmt,ap);
+  fprintf(stderr,"%s\n",strerror(errno));
+  va_end(ap);
+  exit(eval);
+}
+#endif
 
 /****************************************************************
  *** SCANNER PLUG-IN SYSTEM
@@ -126,8 +150,7 @@ static void load_scanner_file(string fn,histograms_t &hg)
     /* Figure out the function name */
     size_t extloc = fn.rfind('.');
     if(extloc==string::npos){
-	fprintf(stderr,"Cannot find '.' in %s: %s",fn.c_str(),strerror(errno));
-	exit(1);
+	errx(1,"Cannot find '.' in %s",fn.c_str());
     }
     string func_name = fn.substr(0,extloc);
     size_t slashloc = func_name.rfind('/');
@@ -174,8 +197,7 @@ void load_scanner_directory(const string &dirname,histograms_t &hg)
 {
     DIR *dirp = opendir(dirname.c_str());
     if(dirp==0){
-	fprintf(stderr,"Cannot open directory %s: %s",dirname.c_str(),strerror(errno));
-	exit(1);
+	err(1,"Cannot open directory %s:",dirname.c_str());
     }
     struct dirent *dp;
     while ((dp = readdir(dirp)) != NULL){
@@ -197,7 +219,7 @@ void load_scanner_directory(const string &dirname,histograms_t &hg)
 
 /* Finish scanners */
 /****************************************************************
- *** PHASE SHUTDOWN(2): shut down the scanners
+ *** PHASE_SHUTDOWN (formerly phase 2): shut down the scanners
  ****************************************************************/
 
 void phase_shutdown(feature_recorder_set &fs, xml &xreport)
@@ -214,12 +236,11 @@ void phase_shutdown(feature_recorder_set &fs, xml &xreport)
     }
 }
 
-
 /****************************************************************
- *** PHASE 3: Create the histograms
+ *** PHASE HISTOGRAM (formerly phase 3): Create the histograms
  ****************************************************************/
 #ifdef USE_HISTOGRAMS
-void phase_histograms(feature_recorder_set &fs, xml &xreport)
+void phase_histogram(feature_recorder_set &fs, xml &xreport)
 {
     int ctr = 0;
     for(histograms_t::const_iterator it = histograms.begin();it!=histograms.end();it++){
@@ -247,7 +268,7 @@ void phase_histograms(feature_recorder_set &fs, xml &xreport)
 
 void enable_feature_recorders(feature_file_names_t &feature_file_names)
 {
-    feature_file_names.insert(feature_recorder_set::ALERT_RECORDER); // we always have alerts
+    feature_file_names.insert(feature_recorder_set::ALERT_RECORDER_NAME); // we always have alerts
     for(scanner_vector::const_iterator it=current_scanners.begin();it!=current_scanners.end();it++){
 	if((*it)->enabled){
 	    for(set<string>::const_iterator fi=(*it)->info.feature_names.begin();

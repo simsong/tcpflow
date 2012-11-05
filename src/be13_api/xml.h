@@ -1,6 +1,6 @@
 /*
  * Simson's XML output class.
- * Include this AFTER your config file with the HAVE statements.
+ * Ideally include this AFTER your config file with the HAVE statements.
  * Optimized for DFXML generation.
  */
 
@@ -19,12 +19,11 @@
 #include <inttypes.h>
 
 /* c++ */
-#include <fstream>
-#include <sstream>
 #include <string>
 #include <stack>
 #include <map>
 #include <set>
+#include <fstream>
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
@@ -92,6 +91,7 @@ private:
     void  verify_tag(std::string tag);
     void  spaces();			// print spaces corresponding to tag stack
     static std::string xml_PRId64;	// for compiler bug
+    static std::string xml_PRIu64;	// for compiler bug
     bool oneline;
 public:
     static std::string make_command_line(int argc,char * const *argv){
@@ -149,7 +149,7 @@ public:
 
     void add_DFXML_build_environment();
     static void cpuid(uint32_t op, unsigned long *eax, unsigned long *ebx,
-	       unsigned long *ecx, unsigned long *edx);
+		      unsigned long *ecx, unsigned long *edx);
     void add_cpuid();
     void add_DFXML_execution_environment(const std::string &command_line);
     void add_DFXML_creator(const std::string &program,const std::string &version,

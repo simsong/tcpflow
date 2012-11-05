@@ -12,11 +12,11 @@
  * This used to be done with a set, but now it's done with a map.
  * 
  */
-#include <tr1/unordered_map>
+#include <map>
+#include <set>
 
-//typedef tr1::unordered_map<string,class feature_recorder *> feature_recorder_map;
-typedef map<string,class feature_recorder *> feature_recorder_map;
-typedef set<string>feature_file_names_t;
+typedef std::map<string,class feature_recorder *> feature_recorder_map;
+typedef std::set<string>feature_file_names_t;
 class feature_recorder_set {
 private:
     /*** neither copying nor assignment is implemented ***
@@ -27,13 +27,14 @@ private:
 	}
     };
     feature_recorder_set(const feature_recorder_set &fs):
-	flags(0),outdir(),frm(),Mstats(),scanner_stats(){ throw new not_impl(); }
+	flags(0),input_fname(),outdir(),frm(),Mstats(),scanner_stats(){ throw new not_impl(); }
     const feature_recorder_set &operator=(const feature_recorder_set &fs){ throw new not_impl(); }
     uint32_t flags;
 public:
     // instance data //
     static feature_recorder *alert_recorder;
-    string outdir;			// where output goes
+    std::string input_fname;		// input file
+    std::string outdir;			// where output goes
     feature_recorder_map  frm;		// map of feature recorders
     cppmutex Mstats;
     class pstats {
@@ -44,21 +45,18 @@ public:
     typedef map<string,class pstats> scanner_stats_map;
     scanner_stats_map scanner_stats;
 
-    static const string   ALERT_RECORDER;	// the name of the alert recorder
+    static const string   ALERT_RECORDER_NAME;	// the name of the alert recorder
     static const uint32_t DISABLED=0x02;	// the set is effectively disabled
     static const uint32_t ONLY_ALERT=0x01;	// always return the alert recorder
 
     /** Create a properly functioning feature recorder set. */
-    feature_recorder_set(const feature_file_names_t &feature_files,const std::string &outdir);
+    feature_recorder_set(const feature_file_names_t &feature_files,
+			 const std::string &input_fname,
+			 const std::string &outdir,
+			 bool create_stop_files);
 
     /** create a dummy feature_recorder_set with no output directory */
-    feature_recorder_set(uint32_t flags_):flags(flags_),outdir(),frm(),Mstats(),scanner_stats(){
-	//if(flags & DISABLED){
-	//create_name(ALERT_RECORDER); // create a bogus alert recorder
-	//this->flags |=ONLY_ALERT;	// only return this one
-	//get_name(ALERT_RECORDER)->set_flag(feature_recorder::FLAG_DISABLED);
-	//}
-    }
+    feature_recorder_set(uint32_t flags_):flags(flags_),input_fname(),outdir(),frm(),Mstats(),scanner_stats(){ }
     virtual ~feature_recorder_set() {
 	for(feature_recorder_map::iterator i = frm.begin();i!=frm.end();i++){
 	    delete i->second;
@@ -69,7 +67,7 @@ public:
     void close_all();
     bool has_name(string name) const;	/* does the named feature exist? */
     void set_flag(uint32_t f){flags|=f;}
-    void create_name(string name);
+    void create_name(string name,bool create_stop_also);
     void clear_flag(uint32_t f){flags|=f;}
     void add_stats(string bucket,double seconds);
     void dump_stats(class xml &xml);

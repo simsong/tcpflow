@@ -115,7 +115,7 @@ class scanner_info {
     histograms_t histogram_defs;	// v1: histogram definition info
 };
 
-#include <tr1/unordered_map>
+#include <map>
 class scanner_params {
  public:
     /** Construct a scanner_params from a sbuf and other sensible defaults.
