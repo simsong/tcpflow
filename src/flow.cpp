@@ -28,7 +28,7 @@ int32_t flow::NO_VLAN = -1;
 
 std::string flow::filename_template("%A.%a-%B.%b%V%v%C%c");
 
-void flow::print_usage()
+void flow::usage()
 {
     std::cerr << "Filename template format:\n";
     std::cerr << "  %A/%a - source IP address/port\n";

@@ -215,9 +215,46 @@ void load_scanner_directory(const string &dirname,histograms_t &hg)
 	}
     }
 }
+/****************************************************************
+ *** Scanner Commands (which one is enabled or disabled)
+ ****************************************************************/
+class scanner_command {
+public:
+    enum command_t {DISABLE_ALL=0,ENABLE,DISABLE};
+    scanner_command(const scanner_command &sc):command(sc.command),name(sc.name){};
+    scanner_command(scanner_command::command_t c,const string &n):command(c),name(n){};
+    command_t command;
+    string name;
+};
+vector<scanner_command> scanner_commands;
+
+void scanners_disable_all()
+{
+    scanner_commands.push_back(scanner_command(scanner_command::DISABLE_ALL,string("")));
+}
+
+void scanners_enable(const std::string &name)
+{
+    scanner_commands.push_back(scanner_command(scanner_command::ENABLE,name));
+}
+
+void scanners_disable(const std::string &name)
+{
+    scanner_commands.push_back(scanner_command(scanner_command::DISABLE,name));
+}
+
+void scanners_process_commands()
+{
+    for(vector<scanner_command>::const_iterator it=scanner_commands.begin();it!=scanner_commands.end();it++){
+	switch((*it).command){
+	case scanner_command::DISABLE_ALL: disable_all_scanners(); break;
+	case scanner_command::ENABLE:  set_scanner_enabled((*it).name,1);break;
+	case scanner_command::DISABLE: set_scanner_enabled((*it).name,0);break;
+	}
+    }
+}
 
 
-/* Finish scanners */
 /****************************************************************
  *** PHASE_SHUTDOWN (formerly phase 2): shut down the scanners
  ****************************************************************/
@@ -279,3 +316,52 @@ void enable_feature_recorders(feature_file_names_t &feature_file_names)
 	}
     }
 }
+
+void info_scanners(bool detailed,const scanner_t *scanners_builtin[])
+{
+    /* Print a list of scanners */
+    load_scanners(scanners_builtin,histograms);
+    std::cout << "\n";
+    std::vector<std::string> enabled_wordlist;
+    std::vector<std::string> disabled_wordlist;
+    for(scanner_vector::const_iterator it = current_scanners.begin();it!=current_scanners.end();it++){
+	if(detailed){
+	    std::cout << "Scanner Name: " << (*it)->info.name << "\n";
+	    std::cout << "flags:  ";
+	    if((*it)->info.flags & scanner_info::SCANNER_DISABLED) std::cout << "SCANNER_DISABLED ";
+	    if((*it)->info.flags & scanner_info::SCANNER_NO_USAGE) std::cout << "SCANNER_NO_USAGE ";
+	    if((*it)->info.flags==0) std::cout << "NONE ";
+
+	    std::cout << "\n";
+	    std::cout << "Scanner Interface version: " << (*it)->info.si_version << "\n";
+	    std::cout << "Author: " << (*it)->info.author << "\n";
+	    std::cout << "Description: " << (*it)->info.description << "\n";
+	    std::cout << "URL: " << (*it)->info.url << "\n";
+	    std::cout << "Scanner Version: " << (*it)->info.scanner_version << "\n";
+	    std::cout << "Feature Names: ";
+	    for(set<string>::const_iterator i2 = (*it)->info.feature_names.begin();
+		i2 != (*it)->info.feature_names.end();
+		i2++){
+		std::cout << *i2 << " ";
+	    }
+	    std::cout << "\n\n";
+	}
+	if((*it)->info.flags & scanner_info::SCANNER_NO_USAGE) continue;
+	if((*it)->info.flags & scanner_info::SCANNER_DISABLED){
+	    disabled_wordlist.push_back((*it)->info.name);
+	} else {
+	    enabled_wordlist.push_back((*it)->info.name);
+	}
+    }
+    if(detailed) return;
+    sort(disabled_wordlist.begin(),disabled_wordlist.end());
+    sort(enabled_wordlist.begin(),enabled_wordlist.end());
+    for(std::vector<std::string>::const_iterator it = disabled_wordlist.begin();it!=disabled_wordlist.end();it++){
+	std::cout << "   -e " <<  *it << " - enable scanner " << *it << "\n";
+    }
+    std::cout << "\n";
+    for(std::vector<std::string>::const_iterator it = enabled_wordlist.begin();it!=enabled_wordlist.end();it++){
+	std::cout << "   -x " <<  *it << " - disable scanner " << *it << "\n";
+    }
+}
+

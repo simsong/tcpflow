@@ -223,7 +223,7 @@ inline std::ostream & operator <<(std::ostream &os,const flow_addr &f)  {
  */
 class flow : public flow_addr {
 public:;
-    static void print_usage();
+    static void usage();
     static std::string filename_template;	// 
     static int32_t NO_VLAN;			/* vlan flag for no vlan */
     flow():id(),vlan(),tstart(),tlast(),packet_count(),connection_count(){};

@@ -231,7 +231,12 @@ typedef vector<scanner_def *> scanner_vector;
 extern scanner_vector current_scanners;				// current scanners
 extern histograms_t histograms;
 void enable_feature_recorders(feature_file_names_t &feature_file_names);
-
+void info_scanners(bool detailed,const scanner_t *scanners_builtin[]);	// print info about the scanners
+void scanners_disable_all();
+void scanners_enable(const std::string &name);
+void scanners_disable(const std::string &name);
+void scanners_process_commands();
+    
 
 inline std::string itos(int i){ std::stringstream ss; ss << i;return ss.str();}
 inline std::string dtos(double d){ std::stringstream ss; ss << d;return ss.str();}

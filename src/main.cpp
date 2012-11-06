@@ -10,6 +10,7 @@
 #define __MAIN_C__
 
 #include "tcpflow.h"
+#include "bulk_extractor_i.h"
 #include <string>
 
 const char *progname = 0;		// name of the program
@@ -21,7 +22,15 @@ int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
 sem_t *semlock = 0;
 #endif
 
-void print_usage()
+/****************************************************************
+ *** SCANNER PLUG-IN SYSTEM 
+ ****************************************************************/
+
+scanner_t *scanners_builtin[] = {0};
+
+
+static void usage() __attribute__ ((__noreturn__));
+static void usage()
 {
     std::cerr << PACKAGE << " version " << VERSION << "\n\n";
     std::cerr << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
@@ -60,8 +69,9 @@ void print_usage()
     std::cerr << "Depricated: (don't use)\n";
     std::cerr << "        -P: don't purge tcp connections on FIN (could result in lost data)\n";
     std::cerr << "expression: tcpdump-like filtering expression\n";
-    flow::print_usage();
+    flow::usage();
     std::cerr << "\nSee the man page for additional information.\n\n";
+    exit(0);
 }
 
 /**
@@ -119,24 +129,16 @@ int main(int argc, char *argv[])
     init_debug(argv);
 
     /* Make sure that the system was compiled properly */
-    bool error = false;
-    if(sizeof(struct ip)!=20){
-	fprintf(stderr,"COMPILE ERROR. sizeof(struct ip)=%d; should be 20.\n",
-		(int)sizeof(struct ip));
-	error = true;
-    }
-    if(sizeof(struct tcphdr)!=20){
-	fprintf(stderr,"COMPILE ERROR. sizeof(struct tcphdr)=%d; should be 20.\n",
-		(int)sizeof(struct tcphdr));
-	error = true;
-    }
-    if(error){
+    if(sizeof(struct ip)!=20 || sizeof(struct tcphdr)!=20){
+	fprintf(stderr,"COMPILE ERROR.\n");
+	fprintf(stderr,"  sizeof(struct ip)=%d; should be 20.\n", (int)sizeof(struct ip));
+	fprintf(stderr,"  sizeof(struct tcphdr)=%d; should be 20.\n", (int)sizeof(struct tcphdr));
 	fprintf(stderr,"CANNOT CONTINUE\n");
 	exit(1);
     }
 
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eF:f:hi:L:m:o:PpR:r:sT:VvX:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:hi:L:m:o:PpR:r:sT:Vvx:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.opt_after_header = true;
@@ -182,6 +184,13 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
 	    }
 	    break;
+	case 'e':
+	    demux.opt.use_color  = 1;
+	    DEBUG(10) ("using colors");
+	    break;
+        case 'E':
+            scanners_enable(optarg);
+            break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){
@@ -203,39 +212,27 @@ int main(int argc, char *argv[])
 		demux.opt.max_desired_fds = 0;
 	    }
 	    break;
-	case 'h':
-	    print_usage();
-	    exit(0);
-	    break;
 	case 'i': device = optarg; break;
 	case 'L': lockname = optarg; break;
 	case 'm':
 	    demux.opt.max_seek = atoi(optarg);
 	    DEBUG(10) ("max_seek set to %d",demux.opt.max_seek); break;
 	case 'o': demux.outdir = optarg; break;
-	case 'P': 
-	    demux.opt.opt_no_purge = true;
-	    break;
+	case 'P': demux.opt.opt_no_purge = true; break;
 	case 'p': demux.opt.opt_no_promisc = true;
 	    DEBUG(10) ("NOT turning on promiscuous mode");
 	    break;
-	case 'R':
-	    Rfiles.push_back(optarg);
-	    break;
-	case 'r':
-	    rfiles.push_back(optarg);
-	    break;
-	case 's':
-	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'"); break;
+	case 'R': Rfiles.push_back(optarg); break;
+	case 'r': rfiles.push_back(optarg); break;
+	case 's': demux.opt.strip_nonprint = 1;
+	    DEBUG(10) ("converting non-printable characters to '.'"); break;
 	case 'T': flow::filename_template = optarg;break;
 	case 'V': std::cout << PACKAGE << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
-	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
-	case 'e':
-	    demux.opt.use_color  = 1;
-	    DEBUG(10) ("using colors");
-	    break;
 	case 'X': reportfilename = optarg;break;
+	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
+	case 'H': info_scanners(true,scanners_builtin); exit(0);
+	case 'h': case '?': usage(); break;
 	default:
 	    DEBUG(1) ("error: unrecognized switch '%c'", optopt);
 	    need_usage = 1;
@@ -245,13 +242,17 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+    /* Load all the scanners and enable the ones we care about */
+    load_scanners(scanners_builtin,histograms);
+    scanners_process_commands();
+
     if( (opt_all) && (reportfilename.size()==0) ){
 	reportfilename = demux.outdir + "/report.xml";
     }
 
     /* print help and exit if there was an error in the arguments */
     if (need_usage) {
-	print_usage();
+	usage();
 	exit(1);
     }
 
