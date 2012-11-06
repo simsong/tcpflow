@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <algorithm>
 #ifdef HAVE_ERR_H
 #include <err.h>
 #endif

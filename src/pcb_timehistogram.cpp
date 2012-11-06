@@ -9,8 +9,15 @@
  *
  */
 
+#include "config.h"
+
+#ifdef HAVE_CAIRO_CAIRO_H
 #include <cairo/cairo.h>
-#include <cairo/cairo-svg.h>
+#endif
+#ifdef HAVE_CAIRO_CAIRO_PDF_H
+#include <cairo/cairo-pdf.h>
+#endif
+#include <math.h>
 #include <iomanip>
 #include <vector>
 
@@ -19,7 +26,7 @@
 using std::vector;
 
 #define NUM_HISTOGRAMS 6
-#define NUM_BUCKETS 3000
+#define NUM_BUCKETS 600
 //#define NUM_BUCKETS 100
 // SVG units are in pt
 // The size of the SVG ends up being (bar_width + bar_space) * bar_count
@@ -279,6 +286,7 @@ void time_format(struct tm *time, char *buf, int buflen)
 
 void render(const histogram *selected_histogram)
 {
+#ifdef HAVE_CAIRO_CAIRO_H
     struct rgb color_http, color_https, color_other;
     color_http.r = 0.05;
     color_http.g = 0.33;
@@ -337,7 +345,7 @@ void render(const histogram *selected_histogram)
     cairo_t *cr;
     cairo_surface_t *surface;
 
-    surface = (cairo_surface_t *) cairo_svg_surface_create("time_histogram.svg",
+    surface = (cairo_surface_t *) cairo_pdf_surface_create("time_histogram.pdf",
             GRAPH_WIDTH, GRAPH_HEIGHT);
     cr = cairo_create(surface);
 
@@ -349,10 +357,10 @@ void render(const histogram *selected_histogram)
 
     // choose subtitle based on magnitude of units
     const char *subtitle = units_strings[0];
-    uint64_t unit_index = greatest_bucket_sum / 1000;
+    uint64_t unit_index = (uint64_t) (log(greatest_bucket_sum) / log(1000));
     if(unit_index < (sizeof(units_strings) / sizeof(char *)))
     {
-        subtitle = units_strings[greatest_bucket_sum / 1000];
+        subtitle = units_strings[unit_index];
     }
 
     cairo_select_font_face(cr, "Sans",
@@ -593,6 +601,7 @@ void render(const histogram *selected_histogram)
     //cairo_surface_finish(surface);
     cairo_destroy (cr);
     cairo_surface_destroy(surface);
+#endif
 }
 
 histogram *select_for_render()

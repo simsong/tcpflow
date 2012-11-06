@@ -6,6 +6,9 @@
 /* GCC supports #pragma GCC diagnostic */
 #undef GNUC_HAS_DIAGNOSTIC_PRAGMA
 
+/* Define to 1 if you have the <algorithm> header file. */
+#undef HAVE_ALGORITHM
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
@@ -18,8 +21,11 @@
 /* Define to 1 if you have the `bzero' function. */
 #undef HAVE_BZERO
 
-/* Define to 1 if you have the <cairo.h> header file. */
-#undef HAVE_CAIRO_H
+/* Define to 1 if you have the <cairo/cairo.h> header file. */
+#undef HAVE_CAIRO_CAIRO_H
+
+/* Define to 1 if you have the <cairo/cairo-pdf.h> header file. */
+#undef HAVE_CAIRO_CAIRO_PDF_H
 
 /* Define to 1 if you have the <ctype.h> header file. */
 #undef HAVE_CTYPE_H
