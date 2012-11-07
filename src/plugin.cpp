@@ -38,7 +38,9 @@ void be_mkdir(string dir)
 
 #ifndef HAVE_ERR
 #include <stdarg.h>
-static void err(int eval,const char *fmt,...) __attribute__ ((noreturn))
+// noreturn attribute to avoid warning with GCC on Linux
+static void err(int eval,const char *fmt,...) __attribute__ ((noreturn));
+static void err(int eval,const char *fmt,...)
 {
   va_list ap;
   va_start(ap,fmt);
@@ -51,7 +53,9 @@ static void err(int eval,const char *fmt,...) __attribute__ ((noreturn))
 
 #ifndef HAVE_ERRX
 #include <stdarg.h>
-static void errx(int eval,const char *fmt,...) __attribute__ ((noreturn))
+// noreturn attribute to avoid warning with GCC on Linux
+static void errx(int eval,const char *fmt,...) __attribute__ ((noreturn));
+static void errx(int eval,const char *fmt,...)
 {
   va_list ap;
   va_start(ap,fmt);
