@@ -561,8 +561,7 @@ static void terminate(int sig)
 {
     DEBUG(1) ("terminating");
 
-    if(getenv("TCPFLOW_MFS"))
-    {
+    if(getenv("TCPFLOW_MFS")) {
         // shut down PCB plugins
         pcb::do_shutdown();
     }
@@ -613,8 +612,7 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	handler = find_handler(dlt, device);
     }
 
-    if(getenv("TCPFLOW_MFS"))
-    {
+    if(getenv("TCPFLOW_MFS")) {
         // wrap the handler so that plugins through the PCB interface will be called
         pcb::init(handler, true);
         // currently no non-default plugins are loaded, so do startup right away
@@ -663,8 +661,7 @@ void tcpdemux::process_infile(const std::string &expression,const char *device,c
 	die("%s", pcap_geterr(pd));
     }
 
-    if(getenv("TCPFLOW_MFS"))
-    {
+    if(getenv("TCPFLOW_MFS")) {
         // shut down PCB plugins
         pcb::do_shutdown();
     }

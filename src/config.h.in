@@ -6,9 +6,6 @@
 /* GCC supports #pragma GCC diagnostic */
 #undef GNUC_HAS_DIAGNOSTIC_PRAGMA
 
-/* Define to 1 if you have the <algorithm> header file. */
-#undef HAVE_ALGORITHM
-
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
