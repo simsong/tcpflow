@@ -26,7 +26,9 @@ sem_t *semlock = 0;
  *** SCANNER PLUG-IN SYSTEM 
  ****************************************************************/
 
-scanner_t *scanners_builtin[] = {0};
+scanner_t *scanners_builtin[] = {
+    scan_md5,
+    0};
 
 static void usage() __attribute__ ((__noreturn__));
 static void usage()
@@ -139,7 +141,7 @@ int main(int argc, char *argv[])
     }
 
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:hi:L:m:o:PpR:r:sT:Vvx:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:PpR:r:sT:Vvx:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.opt_after_header = true;
@@ -244,7 +246,7 @@ int main(int argc, char *argv[])
     argv += optind;
 
     /* Load all the scanners and enable the ones we care about */
-    load_scanners(scanners_builtin,histograms);
+    load_scanners(scanners_builtin);
     scanners_process_commands();
 
     if( (opt_all) && (reportfilename.size()==0) ){

@@ -68,14 +68,19 @@ class md5_t{
 public:
     uint8_t digest[SIZE];
     /* python like interface for hexdigest */
-    const char *hexdigest(char *hexbuf,size_t bufsize) const {
+    static const char *makehex(char *hexbuf,size_t bufsize,const unsigned char *bin,size_t binsize){
 	const char *hexbuf_start = hexbuf;
-	for(unsigned int i=0;i<sizeof(digest) && bufsize>=3;i++){
-	    snprintf(hexbuf,bufsize,"%02x",digest[i]);
+	while(bufsize>=3 && binsize>0){
+	snprintf(hexbuf,bufsize,"%02x",*bin);
 	    hexbuf  += 2;
 	    bufsize -= 2;
+	    bin     += 1;
+	    binsize  -= 1;
 	}
 	return hexbuf_start;
+    }
+    const char *hexdigest(char *hexbuf,size_t bufsize) const {
+	return makehex(hexbuf,bufsize,digest,sizeof(digest));
     }
     std::string hexdigest() const {
 	std::string ret;

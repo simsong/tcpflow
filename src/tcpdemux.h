@@ -442,7 +442,7 @@ public:
     void  process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
     void  flow_map_clear();		// clears out the map
     void  process_infile(const std::string &expression,const char *device,const std::string &infile,bool start);
-    void  post_process_capture_file(std::stringstream &byte_runs,const std::string &flow_pathname);
+    void  post_process_capture_flow(std::stringstream &byte_runs,const std::string &flow_pathname);
 };
 
 inline std::ostream & operator << (std::ostream &os,const tcpdemux::flow_map_t &fm) {

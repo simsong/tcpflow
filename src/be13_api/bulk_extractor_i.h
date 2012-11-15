@@ -213,7 +213,7 @@ class recursion_control_block {
     bool returnAfterFound;	/* only run once */
 };
     
-/* plugin.cpp */
+/* plugin.cpp. This will become a class...  */
 class scanner_def {
 public:;
     static uint32_t max_depth;
@@ -223,20 +223,19 @@ public:;
     scanner_info info;
     string	pathPrefix;		/* path prefix for recursive scanners */
 };
-void load_scanner(const scanner_t &scanner,histograms_t &histograms);
-void load_scanners(const scanner_t *scanners[],histograms_t &histograms);		// load the scan_ plugins
-void load_scanner_directory(const string &dirname,histograms_t &histograms);		// load the scan_ plugins
-void disable_all_scanners();
+void load_scanner(const scanner_t &scanner);
+void load_scanners(const scanner_t *scanners[]);		// load the scan_ plugins
+void load_scanner_directory(const string &dirname);		// load the scan_ plugins
 typedef vector<scanner_def *> scanner_vector;
 extern scanner_vector current_scanners;				// current scanners
-extern histograms_t histograms;
 void enable_feature_recorders(feature_file_names_t &feature_file_names);
 void info_scanners(bool detailed,const scanner_t *scanners_builtin[]);	// print info about the scanners
-void scanners_disable_all();
-void scanners_enable(const std::string &name);
-void scanners_disable(const std::string &name);
-void scanners_process_commands();
-    
+void scanners_enable(const std::string &name); // saves a command to enable this scanner
+void scanners_enable_all();		       // enable all of them
+void scanners_disable(const std::string &name); // saves a command to disable this scanner
+void scanners_disable_all();			// saves a command to disable all
+void scanners_process_commands();		// process the saved commands
+
 /* plugin.cpp */
 void phase_shutdown(feature_recorder_set &fs, xml &xreport);
 void phase_histogram(feature_recorder_set &fs, xml &xreport);

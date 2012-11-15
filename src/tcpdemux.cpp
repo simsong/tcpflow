@@ -9,7 +9,6 @@
 
 #include "tcpflow.h"
 #include "iface_pcb.h"
-#include "be13_api/bulk_extractor_i.h"
 
 #include <iostream>
 #include <sstream>
@@ -655,7 +654,7 @@ static void process_gzip(class tcpdemux &demux,
 #endif
 
 
-void tcpdemux::post_process_capture_file(std::stringstream &byte_runs,
+void tcpdemux::post_process_capture_flow(std::stringstream &byte_runs,
 					 const std::string &flow_pathname)
 {
     int fd2 = retrying_open(flow_pathname.c_str(),O_RDONLY|O_BINARY,0);

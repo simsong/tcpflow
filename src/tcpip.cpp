@@ -61,7 +61,7 @@ tcpip::~tcpip()
 
     if(demux.opt.opt_after_header && file_created){
 	/* open the file and see if it is a HTTP header */
-	demux.post_process_capture_file(byte_runs,flow_pathname);
+	demux.post_process_capture_flow(byte_runs,flow_pathname);
     }
     if(demux.xreport){
 	demux.xreport->push(fileobject_str);

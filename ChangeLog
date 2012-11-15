@@ -1,5 +1,7 @@
 2012-11-14  Simson Garfinkel  <simsong@npsair.local>
 
+	* src/be13_api/bulk_extractor_i.h: renamed histograms to be feature_histograms
+
 	* src/plugin.cpp (process_sbuf): renamed process_extract to process_sbuf and put it here.
 
 	* src/main.cpp (main): renamed main.cpp to tcpflow.cpp

@@ -279,6 +279,7 @@ struct private_in6_addr {		// our own private ipv6 definition
 
 #include <iostream>
 
+#include "be13_api/bulk_extractor_i.h"
 #include "tcpdemux.h"
   
 /***************************** Macros *************************************/
@@ -314,5 +315,8 @@ void (*portable_signal(int signo, void (*func)(int)))(int);
 void debug_real(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((format (printf, 1, 2)));
 
+/* scanners */
+
+extern "C" scanner_t scan_md5;
 
 #endif /* __TCPFLOW_H__ */

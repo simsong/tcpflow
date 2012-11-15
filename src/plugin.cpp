@@ -114,7 +114,7 @@ histograms_t histograms;
 /**
  * plugin system phase 0: Load a scanner.
  */
-void load_scanner(const scanner_t &scanner,histograms_t &hg)
+void load_scanner(const scanner_t &scanner )
 {
     /* If scanner is already loaded, return */
     for(scanner_vector::const_iterator it = current_scanners.begin();it!=current_scanners.end();it++){
@@ -139,7 +139,7 @@ void load_scanner(const scanner_t &scanner,histograms_t &hg)
 
     for(histograms_t::const_iterator it = sd->info.histogram_defs.begin();
 	it != sd->info.histogram_defs.end(); it++){
-	hg.insert((*it));
+	histograms.insert((*it));
     }
     current_scanners.push_back(sd);
 }
@@ -150,7 +150,7 @@ void load_scanner(const scanner_t &scanner,histograms_t &hg)
 #include <dlfcn.h>
 #endif
 
-static void load_scanner_file(string fn,histograms_t &hg)
+static void load_scanner_file(string fn )
 {
     /* Figure out the function name */
     size_t extloc = fn.rfind('.');
@@ -187,18 +187,18 @@ static void load_scanner_file(string fn,histograms_t &hg)
     std::cout << "  ERROR: Support for loadable libraries not enabled\n";
     return;
 #endif
-    load_scanner(*scanner,hg);
+    load_scanner(*scanner/*,histograms*/);
 }
 
-void load_scanners(const scanner_t *scanners[],histograms_t &hg)
+void load_scanners(const scanner_t *scanners[])
 {
     for(int i=0;scanners[i];i++){
-	load_scanner(*scanners[i],hg);
+	load_scanner(*scanners[i]);
     }
 }
 
 
-void load_scanner_directory(const string &dirname,histograms_t &hg)
+void load_scanner_directory(const string &dirname )
 {
     DIR *dirp = opendir(dirname.c_str());
     if(dirp==0){
@@ -216,7 +216,7 @@ void load_scanner_directory(const string &dirname,histograms_t &hg)
 #else
 	    if(ext!="so") continue;	// not a shared library
 #endif
-	    load_scanner_file(dirname+"/"+fname,hg);
+	    load_scanner_file(dirname+"/"+fname );
 	}
     }
 }
@@ -332,7 +332,7 @@ void enable_feature_recorders(feature_file_names_t &feature_file_names)
 void info_scanners(bool detailed,const scanner_t *scanners_builtin[])
 {
     /* Print a list of scanners */
-    load_scanners(scanners_builtin,histograms);
+    load_scanners(scanners_builtin /* ,histograms */);
     std::cout << "\n";
     std::vector<std::string> enabled_wordlist;
     std::vector<std::string> disabled_wordlist;
