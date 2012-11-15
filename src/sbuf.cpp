@@ -19,7 +19,11 @@ sbuf_t *sbuf_t::map_file(const std::string &fname)
 {
     int fd = open(fname.c_str(),O_RDONLY,0);
     if(fd<0) return 0;		/* cannot open file */
+    return sbuf_t::map_file(fname,fd);
+}
 
+sbuf_t *sbuf_t::map_file(const std::string &fname,int fd)
+{
     struct stat st;
     if(fstat(fd,&st)){
 	close(fd);

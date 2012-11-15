@@ -9,6 +9,7 @@
 
 #include "tcpflow.h"
 #include "iface_pcb.h"
+#include "be13_api/bulk_extractor_i.h"
 
 #include <iostream>
 #include <sstream>
@@ -205,7 +206,7 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
 		     xreport(0),max_fds(10),flow_map(),
 		     start_new_connections(false),
 		     openflows(),
-		     opt()
+		     opt(),fs()
 		     
 {
     /* Find out how many files we can have open safely...subtract 4 for
@@ -495,8 +496,6 @@ struct private_ip6_hdr {
 #define ip6_hlim	ip6_ctlun.ip6_un1.ip6_un1_hlim
 #define ip6_hops	ip6_ctlun.ip6_un1.ip6_un1_hlim
 
-
-
 void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan)
 {
     const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) data;
@@ -568,6 +567,150 @@ static void terminate(int sig)
 
     exit(0); /* libpcap uses onexit to clean up */
 }
+
+
+/************
+ *** MMAP ***
+ ************/
+
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
+
+/**
+ * fake implementation of mmap and munmap if we don't have them
+ */
+#if !defined(HAVE_MMAP)
+#define PROT_READ 0
+#define MAP_FILE 0
+#define MAP_SHARED 0
+void *mmap(void *addr,size_t length,int prot, int flags, int fd, off_t offset)
+{
+    void *buf = (void *)malloc(length);
+    if(!buf) return 0;
+    read(fd,buf,length);			// should explore return code
+    return buf;
+}
+
+void munmap(void *buf,size_t size)
+{
+    free(buf);
+}
+
+#endif
+
+
+/* This could be much more efficient */
+const char *find_crlfcrlf(const char *base,size_t len)
+{
+    while(len>4){
+	if(base[0]=='\r' && base[1]=='\n' && base[2]=='\r' && base[3]=='\n'){
+	    return base;
+	}
+	len--;
+	base++;
+    }
+    return 0;
+}
+
+
+
+#ifdef HAVE_LIBZ
+#define ZLIB_CONST
+#ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
+#  pragma GCC diagnostic ignored "-Wundef"
+#  pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+#ifdef HAVE_ZLIB_H
+#include <zlib.h>
+#endif
+static void process_gzip(class tcpdemux &demux,
+			 std::stringstream &ss,
+			 const std::string &fname,const unsigned char *base,size_t len)
+{
+    if((len>4) && (base[0]==0x1f) && (base[1]==0x8b) && (base[2]==0x08) && (base[3]==0x00)){
+	size_t uncompr_size = len * 16;
+	unsigned char *decompress_buf = (unsigned char *)malloc(uncompr_size);
+	if(decompress_buf==0) return;	// too big?
+
+	z_stream zs;
+	memset(&zs,0,sizeof(zs));
+	zs.next_in = (Bytef *)base; // note that next_in should be typedef const but is not
+	zs.avail_in = len;
+	zs.next_out = decompress_buf;
+	zs.avail_out = uncompr_size;
+		
+	int r = inflateInit2(&zs,16+MAX_WBITS);
+	if(r==0){
+	    r = inflate(&zs,Z_SYNC_FLUSH);
+	    /* Ignore the error return; process data if we got anything */
+	    if(zs.total_out>0){
+		demux.write_to_file(ss,fname,decompress_buf,decompress_buf,zs.total_out);
+	    }
+	    inflateEnd(&zs);
+	}
+	free(decompress_buf);
+    }
+}
+#endif
+
+
+void tcpdemux::post_process_capture_file(std::stringstream &byte_runs,
+					 const std::string &flow_pathname)
+{
+    int fd2 = retrying_open(flow_pathname.c_str(),O_RDONLY|O_BINARY,0);
+    if(fd2<0){
+	perror("open");
+	return;
+    }
+
+    sbuf_t *sbuf = sbuf_t::map_file(flow_pathname,fd2);
+    if(!sbuf){
+	::close(fd2);
+	return;
+    }
+
+    process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs));
+
+    char buf[4096];
+    ssize_t len;
+    len = read(fd2,buf,sizeof(buf)-1);
+    if(len>0){
+	buf[len] = 0;		// be sure it is null terminated
+	if(strncmp(buf,"HTTP/1.1 ",9)==0){
+	    /* Looks like a HTTP response. Split it.
+	     * We do this with memmap  because, quite frankly, it's easier.
+	     */
+	    struct stat st;
+	    if(fstat(fd2,&st)==0){
+		void *base = mmap(0,st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fd2,0);
+		const char *crlf = find_crlfcrlf((const char *)base,st.st_size);
+		if(crlf){
+		    ssize_t head_size = crlf - (char *)base + 2;
+		    write_to_file(byte_runs,
+					flow_pathname+"-HTTP",
+					(const uint8_t *)base,(const uint8_t *)base,head_size);
+		    if(st.st_size > head_size+4){
+			size_t body_size = st.st_size - head_size - 4;
+			write_to_file(byte_runs,
+					    flow_pathname+"-HTTPBODY",
+					    (const uint8_t  *)base,(const uint8_t  *)crlf+4,body_size);
+#ifdef HAVE_LIBZ
+			if(opt.opt_gzip_decompress){
+			    process_gzip(*this,byte_runs,
+					 flow_pathname+"-HTTPBODY-GZIP",(unsigned char *)crlf+4,body_size);
+			}
+#endif
+		    }
+		}
+		munmap(base,st.st_size);
+	    }
+	}
+    }
+    close(fd2);
+}
+
+
 
 
 

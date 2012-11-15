@@ -376,6 +376,7 @@ public:
 
     /* Allocate a sbuf from a file mapped into memory */
     static sbuf_t *map_file(const std::string &fname); // map a file and return a sbuf if success, 0 if failure.
+    static sbuf_t *map_file(const std::string &fname,int fd); // map an open file and return a sbuf if success, 0 if failure.
 
     /* Properties */
     size_t size() const {return bufsize;} // return the number of bytes

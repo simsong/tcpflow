@@ -3,18 +3,26 @@
 
 /*
  * tcpdemux.h
- * defines the basic classes used by the tcpflow program.
+ * Defines the basic classes used by the tcpflow program. This includes:
+ * - IP, TCP and UDP structures
+ * - class ipaddr    - IP address (IPv4 and IPv6)
+ * - class flow_addr - The flow address (source addr & port; dest addr & port; family)
+ * - class flow      - All of the information for a flow that's being tracked
+ * - class tcp_header_t - convenience class for working with TCP headers
+ * - class tcpip     - A one-sided TCP implementation
+ * - class tcpdemux  - Processes individual packets, identifies flows,
+ *                     and creates tcpip objects as required
  */
-
 
 #include "md5.h"
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
 #ifdef WIN32
+/* Defines not present in Microsoft Windows stack */
 typedef uint8_t u_int8_t ;
 typedef uint16_t u_int16_t ;
-#define ETH_ALEN 6
+#define ETH_ALEN 6			// ethernet address len
 #include "net_ethernet.h"
 #endif
 
@@ -34,7 +42,8 @@ typedef unsigned short int sa_family_t;
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-extern int	debug;
+extern int debug;
+
 #define DEBUG_PEDANTIC    0x0001// check values more rigorously
 
 /*
@@ -340,8 +349,6 @@ public:;
     context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
 
     /* Methods */
-    void process_gzip(std::stringstream &ss,
-		      const std::string &fname,const unsigned char *base,size_t len);
     void close_file();				// close fp
     void print_packet(const u_char *data, uint32_t length);
     void store_packet(const u_char *data, uint32_t length, int32_t delta);
@@ -366,7 +373,7 @@ private:
 	}
     };
     tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_counter(),xreport(),
-				max_fds(),flow_map(),start_new_connections(),openflows(),opt(){
+				max_fds(),flow_map(),start_new_connections(),openflows(),opt(),fs(){
 	throw new not_impl();
     }
     tcpdemux &operator=(const tcpdemux &that){
@@ -374,7 +381,6 @@ private:
     }
 public:
     /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
-
     class options {
     public:;
 	enum { MAX_SEEK=1024*1024*16 };
@@ -413,28 +419,30 @@ public:
     bool	start_new_connections;	// true if we should start new connections
     tcpset	openflows;		// the tcpip flows with open FPs 
     options	opt;
+    class feature_recorder_set *fs;
     
     tcpdemux();
     void write_to_file(std::stringstream &ss,
 		       const std::string &fname,const uint8_t *base,const uint8_t *buf,size_t buflen);
-    void	close_all();
-    void	close_tcpip(tcpip *);
-    int		open_tcpfile(tcpip *);			// opens this file; return -1 if failure, 0 if success
-    void	close_oldest();
-    void	remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
-    int		retrying_open(const char *filename,int oflag,int mask);
+    void  close_all();
+    void  close_tcpip(tcpip *);
+    int   open_tcpfile(tcpip *);			// opens this file; return -1 if failure, 0 if success
+    void  close_oldest();
+    void  remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
+    int   retrying_open(const char *filename,int oflag,int mask);
 
     /* the flow database */
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn,
 			       const timeval &ts,uint64_t connection_count);
     tcpip *find_tcpip(const flow_addr &flow);
-    void process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
+    void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
 			    const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
-    void process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
-    void process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
-    void process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
-    void flow_map_clear();		// clears out the map
-    void process_infile(const std::string &expression,const char *device,const std::string &infile,bool start);
+    void  process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
+    void  process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
+    void  process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
+    void  flow_map_clear();		// clears out the map
+    void  process_infile(const std::string &expression,const char *device,const std::string &infile,bool start);
+    void  post_process_capture_file(std::stringstream &byte_runs,const std::string &flow_pathname);
 };
 
 inline std::ostream & operator << (std::ostream &os,const tcpdemux::flow_map_t &fm) {

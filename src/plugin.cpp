@@ -82,7 +82,7 @@ scanner_vector current_scanners;				// current scanners
  * 'all' is a special scanner that enables all scanners.
  */
 
-void set_scanner_enabled(const string name,bool enable)
+static void set_scanner_enabled(const string name,bool enable)
 {
     for(scanner_vector::iterator it = current_scanners.begin();it!=current_scanners.end();it++){
 	if(name=="all" && (((*it)->info.flags & scanner_info::SCANNER_NO_ALL)==0)){
@@ -98,10 +98,10 @@ void set_scanner_enabled(const string name,bool enable)
     exit(1);
 }
 
-void disable_all_scanners()
+static void set_scanner_enabled_all(bool enable)
 {
     for(scanner_vector::const_iterator it = current_scanners.begin();it!=current_scanners.end();it++){
-	(*it)->enabled = false;
+	(*it)->enabled = enable;
     }
 }
 
@@ -225,7 +225,7 @@ void load_scanner_directory(const string &dirname,histograms_t &hg)
  ****************************************************************/
 class scanner_command {
 public:
-    enum command_t {DISABLE_ALL=0,ENABLE,DISABLE};
+    enum command_t {DISABLE_ALL=0,ENABLE_ALL,DISABLE,ENABLE};
     scanner_command(const scanner_command &sc):command(sc.command),name(sc.name){};
     scanner_command(scanner_command::command_t c,const string &n):command(c),name(n){};
     command_t command;
@@ -234,6 +234,11 @@ public:
 vector<scanner_command> scanner_commands;
 
 void scanners_disable_all()
+{
+    scanner_commands.push_back(scanner_command(scanner_command::DISABLE_ALL,string("")));
+}
+
+void scanners_enable_all()
 {
     scanner_commands.push_back(scanner_command(scanner_command::DISABLE_ALL,string("")));
 }
@@ -250,11 +255,13 @@ void scanners_disable(const std::string &name)
 
 void scanners_process_commands()
 {
-    for(vector<scanner_command>::const_iterator it=scanner_commands.begin();it!=scanner_commands.end();it++){
+    for(vector<scanner_command>::const_iterator it=scanner_commands.begin();
+	it!=scanner_commands.end();it++){
 	switch((*it).command){
-	case scanner_command::DISABLE_ALL: disable_all_scanners(); break;
-	case scanner_command::ENABLE:  set_scanner_enabled((*it).name,1);break;
-	case scanner_command::DISABLE: set_scanner_enabled((*it).name,0);break;
+	case scanner_command::ENABLE_ALL:  set_scanner_enabled_all(true);break;
+	case scanner_command::DISABLE_ALL: set_scanner_enabled_all(false); break;
+	case scanner_command::ENABLE:	   set_scanner_enabled((*it).name,true);break;
+	case scanner_command::DISABLE:     set_scanner_enabled((*it).name,false);break;
 	}
     }
 }
@@ -369,4 +376,104 @@ void info_scanners(bool detailed,const scanner_t *scanners_builtin[])
 	std::cout << "   -x " <<  *it << " - disable scanner " << *it << "\n";
     }
 }
+
+/**
+ * upperstr - Turns an ASCII string into upper case (should be UTF-8)
+ */
+
+static std::string upperstr(const std::string &str)
+{
+    std::string ret;
+    for(std::string::const_iterator i=str.begin();i!=str.end();i++){
+	ret.push_back(toupper(*i));
+    }
+    return ret;
+}
+
+/** process_extract is the main workhorse. It is calls each scanner on each page. 
+ * @param sp    - the scanner params, including the sbuf to process 
+ * It is also the recursive entry point for sub-analysis.
+ */
+
+void process_sbuf(const class scanner_params &sp)
+{
+    const pos0_t &pos0 = sp.sbuf.pos0;
+    class feature_recorder_set &fs = sp.fs;
+
+#ifdef DEBUG_NO_SCANNERS_
+    if(debug & DEBUG_NO_SCANNERS) {
+	cerr << "DEBUG_NO_SCANNERS sbuf:" << sp.sbuf << "\n";
+	return;
+    }
+#endif
+#ifdef DEBUG_PRINT_STEPS
+    if(debug & DEBUG_PRINT_STEPS) {
+	cerr << "process_extract(" << pos0 << "," << sp.sbuf << ")\n";
+    }
+#endif
+#ifdef DEBUG_DUMP_DATA
+    if(debug & DEBUG_DUMP_DATA) {
+	sp.sbuf.hex_dump(cerr);
+    }
+#endif
+    if(sp.depth >= scanner_def::max_depth){
+	feature_recorder_set::alert_recorder->write(pos0,"process_extract: MAX DEPTH REACHED","");
+	return;
+    }
+
+    /****************************************************************
+     *** CALL EACH OF THE SCANNERS ON THE SBUF
+     ****************************************************************/
+
+    for(scanner_vector::iterator it = current_scanners.begin();it!=current_scanners.end();it++){
+	if((*it)->enabled==false) continue;
+	string name = (*it)->info.name;
+	
+	try {
+#ifdef DEBUG_PRINT_STEPS
+	    if(debug & DEBUG_PRINT_STEPS){
+		cerr << "calling scanner " << name << "...\n";
+	    }
+#endif
+		    
+	    /* Compute the effective path for stats */
+	    bool inname=false;
+	    string epath;
+	    for(string::const_iterator cc=sp.sbuf.pos0.path.begin();cc!=sp.sbuf.pos0.path.end();cc++){
+		if(isupper(*cc)) inname=true;
+		if(inname) epath.push_back(toupper(*cc));
+		if(*cc=='-') inname=false;
+	    }
+	    if(epath.size()>0) epath.push_back('-');
+	    for(string::const_iterator cc=name.begin();cc!=name.end();cc++){
+		epath.push_back(toupper(*cc));
+	    }
+
+	    /* Call the scanner.*/
+#ifdef HAVE_AFTIMER
+	    aftimer t;
+	    t.start();
+#endif
+	    recursion_control_block rcb(process_sbuf,upperstr(name),false);
+	    ((*it)->scanner)(sp,rcb);
+#ifdef HAVE_AFTIMER
+	    t.stop();
+	    sp.fs.add_stats(epath,t.elapsed_seconds());
+#endif
+		    
+#ifdef DEBUG_PRINT_STEPS
+	    if(debug & DEBUG_PRINT_STEPS){
+		cerr << "     ... scanner " << name << " returned\n";
+	    }
+#endif
+	}
+	catch ( exception &e ) {
+	    cerr << "Scanner  " << name
+		 << " Exception: " << e.what()
+		 << " processing " << sp.sbuf.pos0 << "\n";
+	}
+    }
+    fs.flush_all();
+}
+
 

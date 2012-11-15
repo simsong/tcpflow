@@ -237,6 +237,10 @@ void scanners_enable(const std::string &name);
 void scanners_disable(const std::string &name);
 void scanners_process_commands();
     
+/* plugin.cpp */
+void phase_shutdown(feature_recorder_set &fs, xml &xreport);
+void phase_histogram(feature_recorder_set &fs, xml &xreport);
+void process_sbuf(const class scanner_params &sp);				/* process for feature extraction */
 
 inline std::string itos(int i){ std::stringstream ss; ss << i;return ss.str();}
 inline std::string dtos(double d){ std::stringstream ss; ss << d;return ss.str();}

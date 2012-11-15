@@ -28,7 +28,6 @@ sem_t *semlock = 0;
 
 scanner_t *scanners_builtin[] = {0};
 
-
 static void usage() __attribute__ ((__noreturn__));
 static void usage()
 {
@@ -57,14 +56,16 @@ static void usage()
     std::cerr << "        -o outdir   : specify output directory (default '.')\n";
     std::cerr << "        -X filename : DFXML output to filename\n";
     std::cerr << "        -m bytes    : specifies the minimum number of bytes that a stream may\n";
-    std::cerr << "                      skip before starting a new stream (default " << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
+    std::cerr << "                      skip before starting a new stream (default "
+	      << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
     std::cerr << "        -AH : extract HTTP objects and unzip GZIP-compressed HTTP messages\n";
     std::cerr << "        -Fc : append the connection counter to ALL filenames\n";
     std::cerr << "        -Ft : prepend the time_t timestamp to ALL filenames\n";
     std::cerr << "        -FT : prepend the ISO8601 timestamp to ALL filenames\n";
     std::cerr << "        -FX : Do not output any files (other than report files)\n";
     std::cerr << "        -FM : Calculate the MD5 for every flow\n";
-    std::cerr << "        -T<template> : specify an arbitrary filename template (default " << flow::filename_template << ")\n";
+    std::cerr << "        -T<template> : specify an arbitrary filename template (default "
+	      << flow::filename_template << ")\n";
     std::cerr << "        -Z: do not decompress gzip-compressed HTTP transactions\n";
     std::cerr << "Depricated: (don't use)\n";
     std::cerr << "        -P: don't purge tcp connections on FIN (could result in lost data)\n";
@@ -172,11 +173,11 @@ int main(int argc, char *argv[])
 	case 'C':
 	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
 	    demux.opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
-	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
+	    demux.opt.strip_nonprint = 1;	DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'c':
 	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
-	    demux.opt.strip_nonprint = 1;		DEBUG(10) ("converting non-printable characters to '.'");
+	    demux.opt.strip_nonprint = 1;	DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'd':
 	    if ((debug = atoi(optarg)) < 0) {
@@ -302,6 +303,14 @@ int main(int argc, char *argv[])
 
     DEBUG(10) ("%s version %s ", PACKAGE, VERSION);
 
+    std::string image_fname;		// input filename?
+
+    feature_file_names_t feature_file_names;
+    enable_feature_recorders(feature_file_names);
+    feature_recorder_set fs(feature_file_names,image_fname,demux.outdir,false);
+
+    demux.fs = &fs;
+
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
@@ -320,11 +329,11 @@ int main(int argc, char *argv[])
 
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */
 
-
     DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.openflows.size());
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
 
     demux.close_all();
+    phase_shutdown(fs,*xreport);
     
     /*
      * Note: funny formats below are a result of mingw problems with PRId64.

@@ -22,7 +22,7 @@ BE13_API = be13_api/bulk_extractor_i.h
 
 tcpflow_SOURCES = datalink.cpp flow.cpp \
 	pcap_fake.h pcap_fake.cpp \
-	main.cpp \
+	tcpflow.cpp \
 	plugin.cpp\
 	sbuf.cpp\
 	feature_recorder.cpp feature_recorder_set.cpp \
