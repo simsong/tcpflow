@@ -315,8 +315,7 @@ private:
 			  bytes_processed(),omitted_bytes(),
 			  last_packet_number(),
 			  out_of_order_count(),
-			  violations(),
-			  md5(){
+			  violations(){
 	throw new not_impl();
     }
     tcpip &operator=(const tcpip &that) { throw new not_impl(); }
@@ -346,7 +345,7 @@ public:;
     uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
     uint64_t    violations;		// protocol violation count
-    context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
+    //context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
 
     /* Methods */
     void close_file();				// close fp
@@ -423,7 +422,7 @@ public:
     
     tcpdemux();
     void write_to_file(std::stringstream &ss,
-		       const std::string &fname,const uint8_t *base,const uint8_t *buf,size_t buflen);
+		       const std::string &fname,const sbuf_t &sbuf);
     void  close_all();
     void  close_tcpip(tcpip *);
     int   open_tcpfile(tcpip *);			// opens this file; return -1 if failure, 0 if success

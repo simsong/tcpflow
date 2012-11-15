@@ -217,21 +217,21 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
 }
 
 
-/* write a portion of memory to the disk. */
-void tcpdemux::write_to_file(std::stringstream &ss,
-			  const std::string &fname,const uint8_t *base,const uint8_t *buf,size_t buflen)
+/* write a portion of memory to the disk and a child fileobject. */
+void tcpdemux::write_to_file(std::stringstream &xmlattr,
+			     const std::string &fname,
+			     const sbuf_t &sbuf)
 {
     int fd = retrying_open(fname.c_str(),O_WRONLY|O_CREAT|O_BINARY|O_TRUNC,0644);
     if(fd>=0){
-	size_t count = write(fd,buf,buflen);
-	if(close(fd)!=0 || count!=buflen){
-	    //std::cerr << "cannot write " << fname << ": " << strerror(errno) << "\n";
-	    ss << "<write_error errno='" << errno << "' buflen='" << buflen << "' count='" << count << "'>";
+	size_t count = sbuf.write(fd,0,sbuf.size());
+	if(close(fd)!=0 || count!=sbuf.size()){
+	    xmlattr << "<write_error errno='" << errno << "' buflen='" << sbuf.size() << "' count='" << count << "'>";
 	} else {
-	    ss << "<byte_run file_offset='" << buf-base << "' len='" << buflen << "'>";
-	    ss << "<filename>" << fname << "</filename>";
-	    ss << "<hashdigest type='MD5'>" << md5_generator::hash_buf(buf,buflen).hexdigest() << "</hashdigest>";
-	    ss << "</byte_run>\n";
+	    xmlattr << "<byte_run file_offset='" << sbuf.pos0.offset << "' len='" << sbuf.size() << "'>"
+		    << "<filename>" << fname << "</filename>"
+		    << "<hashdigest type='MD5'>" << sbuf.md5().hexdigest() << "</hashdigest>"
+		    << "</byte_run>\n";
 	}
     }
 }
@@ -600,7 +600,7 @@ void munmap(void *buf,size_t size)
 
 
 /* This could be much more efficient */
-const char *find_crlfcrlf(const char *base,size_t len)
+const uint8_t *find_crlfcrlf(const uint8_t *base,size_t len)
 {
     while(len>4){
 	if(base[0]=='\r' && base[1]=='\n' && base[2]=='\r' && base[3]=='\n'){
@@ -644,7 +644,7 @@ static void process_gzip(class tcpdemux &demux,
 	    r = inflate(&zs,Z_SYNC_FLUSH);
 	    /* Ignore the error return; process data if we got anything */
 	    if(zs.total_out>0){
-		demux.write_to_file(ss,fname,decompress_buf,decompress_buf,zs.total_out);
+		demux.write_to_file(ss,fname,sbuf_t(pos0_t(),decompress_buf,zs.total_out,zs.total_out,false));
 	    }
 	    inflateEnd(&zs);
 	}
@@ -654,7 +654,7 @@ static void process_gzip(class tcpdemux &demux,
 #endif
 
 
-void tcpdemux::post_process_capture_flow(std::stringstream &byte_runs,
+void tcpdemux::post_process_capture_flow(std::stringstream &xmladd,
 					 const std::string &flow_pathname)
 {
     int fd2 = retrying_open(flow_pathname.c_str(),O_RDONLY|O_BINARY,0);
@@ -669,7 +669,7 @@ void tcpdemux::post_process_capture_flow(std::stringstream &byte_runs,
 	return;
     }
 
-    process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs));
+    process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs,&xmladd));
 
     char buf[4096];
     ssize_t len;
@@ -682,21 +682,21 @@ void tcpdemux::post_process_capture_flow(std::stringstream &byte_runs,
 	     */
 	    struct stat st;
 	    if(fstat(fd2,&st)==0){
-		void *base = mmap(0,st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fd2,0);
-		const char *crlf = find_crlfcrlf((const char *)base,st.st_size);
+		uint8_t *base = (uint8_t *)mmap(0,st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fd2,0);
+		const uint8_t *crlf = find_crlfcrlf(base,st.st_size);
 		if(crlf){
-		    ssize_t head_size = crlf - (char *)base + 2;
-		    write_to_file(byte_runs,
-					flow_pathname+"-HTTP",
-					(const uint8_t *)base,(const uint8_t *)base,head_size);
+		    ssize_t head_size = crlf - (const uint8_t *)base + 2;
+		    write_to_file(xmladd,
+				  flow_pathname+"-HTTP",
+				  sbuf_t(pos0_t(),base,head_size,head_size,false));
 		    if(st.st_size > head_size+4){
 			size_t body_size = st.st_size - head_size - 4;
-			write_to_file(byte_runs,
-					    flow_pathname+"-HTTPBODY",
-					    (const uint8_t  *)base,(const uint8_t  *)crlf+4,body_size);
+			write_to_file(xmladd,
+				      flow_pathname+"-HTTPBODY",
+				      sbuf_t(pos0_t()+head_size,crlf+4,body_size,body_size,false));
 #ifdef HAVE_LIBZ
 			if(opt.opt_gzip_decompress){
-			    process_gzip(*this,byte_runs,
+			    process_gzip(*this,xmladd,
 					 flow_pathname+"-HTTPBODY-GZIP",(unsigned char *)crlf+4,body_size);
 			}
 #endif

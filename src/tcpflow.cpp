@@ -246,6 +246,7 @@ int main(int argc, char *argv[])
     argv += optind;
 
     /* Load all the scanners and enable the ones we care about */
+    if(demux.opt.opt_md5) scanners_enable("md5");
     load_scanners(scanners_builtin);
     scanners_process_commands();
 
@@ -305,8 +306,8 @@ int main(int argc, char *argv[])
 
     DEBUG(10) ("%s version %s ", PACKAGE, VERSION);
 
-    std::string image_fname;		// input filename?
 
+    std::string image_fname;		// input filename?
     feature_file_names_t feature_file_names;
     enable_feature_recorders(feature_file_names);
     feature_recorder_set fs(feature_file_names,image_fname,demux.outdir,false);

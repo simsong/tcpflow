@@ -122,7 +122,7 @@ class scanner_params {
      *
      */
     enum print_mode_t {MODE_NONE=0,MODE_HEX,MODE_RAW,MODE_HTTP};
-    static const int CURRENT_SP_VERSION=2;
+    static const int CURRENT_SP_VERSION=3;
 
     //typedef tr1::unordered_map<string,string> PrintOptions;
     typedef std::map<string,string> PrintOptions;
@@ -158,14 +158,21 @@ class scanner_params {
 		   PrintOptions &print_options_):
 	sp_version(CURRENT_SP_VERSION),
 	phase(phase_),sbuf(sbuf_),fs(fs_),depth(0),
-	print_options(print_options_),info(0){
+	print_options(print_options_),info(0),sbufxml(0){
     }
 
     /* A scanner params with no print options*/
     scanner_params(phase_t phase_,const sbuf_t &sbuf_,class feature_recorder_set &fs_):
 	sp_version(CURRENT_SP_VERSION),
 	phase(phase_),sbuf(sbuf_),fs(fs_),depth(0),
-	print_options(no_options),info(0){
+	print_options(no_options),info(0),sbufxml(0){
+    }
+
+    /* A scanner params with no print options but xmlstream */
+    scanner_params(phase_t phase_,const sbuf_t &sbuf_,class feature_recorder_set &fs_,std::stringstream *xmladd):
+	sp_version(CURRENT_SP_VERSION),
+	phase(phase_),sbuf(sbuf_),fs(fs_),depth(0),
+	print_options(no_options),info(0),sbufxml(xmladd){
     }
 
     /** Construct a scanner_params for recursion from an existing sp and a new sbuf.
@@ -174,7 +181,7 @@ class scanner_params {
     scanner_params(const scanner_params &sp_existing,const sbuf_t &sbuf_new):
 	sp_version(CURRENT_SP_VERSION),phase(sp_existing.phase),
 	sbuf(sbuf_new),fs(sp_existing.fs),depth(sp_existing.depth+1),
-	print_options(sp_existing.print_options),info(0){
+	print_options(sp_existing.print_options),info(0),sbufxml(0){
 	assert(sp_existing.sp_version==CURRENT_SP_VERSION);
     };
 
@@ -188,9 +195,9 @@ class scanner_params {
     class feature_recorder_set &fs;	/* v1: where to put the results*/
     uint32_t   depth;			/* v1: how far down are we? */
 
-    /* These are for printing */
     PrintOptions  &print_options;	/* v1: how to print */
-    scanner_info  *info;		/* v1: get parameters on startup; info's are stored in a the scanner_def vector */
+    scanner_info  *info;		/* v2: get parameters on startup; info's are stored in a the scanner_def vector */
+    std::stringstream *sbufxml;		/* v3: tags added to the sbuf's XML stream */
 };
 
 
@@ -228,6 +235,7 @@ void load_scanners(const scanner_t *scanners[]);		// load the scan_ plugins
 void load_scanner_directory(const string &dirname);		// load the scan_ plugins
 typedef vector<scanner_def *> scanner_vector;
 extern scanner_vector current_scanners;				// current scanners
+void enable_alert_recorder(feature_file_names_t &feature_file_names);
 void enable_feature_recorders(feature_file_names_t &feature_file_names);
 void info_scanners(bool detailed,const scanner_t *scanners_builtin[]);	// print info about the scanners
 void scanners_enable(const std::string &name); // saves a command to enable this scanner

@@ -231,25 +231,30 @@ public:
     command_t command;
     string name;
 };
-vector<scanner_command> scanner_commands;
+static vector<scanner_command> scanner_commands;
+static bool commands_processed = false;
 
 void scanners_disable_all()
 {
+    assert(commands_processed==false);
     scanner_commands.push_back(scanner_command(scanner_command::DISABLE_ALL,string("")));
 }
 
 void scanners_enable_all()
 {
+    assert(commands_processed==false);
     scanner_commands.push_back(scanner_command(scanner_command::DISABLE_ALL,string("")));
 }
 
 void scanners_enable(const std::string &name)
 {
+    assert(commands_processed==false);
     scanner_commands.push_back(scanner_command(scanner_command::ENABLE,name));
 }
 
 void scanners_disable(const std::string &name)
 {
+    assert(commands_processed==false);
     scanner_commands.push_back(scanner_command(scanner_command::DISABLE,name));
 }
 
@@ -264,6 +269,7 @@ void scanners_process_commands()
 	case scanner_command::DISABLE:     set_scanner_enabled((*it).name,false);break;
 	}
     }
+    commands_processed=true;
 }
 
 
@@ -315,9 +321,14 @@ void phase_histogram(feature_recorder_set &fs, xml &xreport)
 }
 #endif
 
-void enable_feature_recorders(feature_file_names_t &feature_file_names)
+void enable_alert_recorder(feature_file_names_t &feature_file_names)
 {
     feature_file_names.insert(feature_recorder_set::ALERT_RECORDER_NAME); // we always have alerts
+}
+
+
+void enable_feature_recorders(feature_file_names_t &feature_file_names)
+{
     for(scanner_vector::const_iterator it=current_scanners.begin();it!=current_scanners.end();it++){
 	if((*it)->enabled){
 	    for(set<string>::const_iterator fi=(*it)->info.feature_names.begin();

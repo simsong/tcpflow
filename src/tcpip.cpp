@@ -23,7 +23,7 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
     demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),syn_count(0),
     pos(0),
     flow_pathname(),fd(-1),file_created(false),
-    bytes_processed(0),omitted_bytes(),last_packet_number(),out_of_order_count(0),violations(0),md5(0)
+    bytes_processed(0),omitted_bytes(),last_packet_number(),out_of_order_count(0),violations(0)
 {
     /* If we are outputting the transcripts, compute the filename */
     static const std::string slash("/");
@@ -32,13 +32,6 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
 	    flow_pathname = myflow.filename();
 	} else {
 	    flow_pathname = demux.outdir + slash + myflow.filename();
-	}
-    }
-    
-    if(demux.opt.opt_md5){			// allocate a context
-	md5 = (context_md5_t *)malloc(sizeof(context_md5_t));
-	if(md5){			// if we had memory, init it
-	    MD5Init(md5);
 	}
     }
 }
@@ -57,11 +50,11 @@ tcpip::~tcpip()
 
     if(fd>=0) close_file();		// close the file if it is open for some reason
 
-    std::stringstream byte_runs;
+    std::stringstream xmladd;		// for this <fileobject>
 
     if(demux.opt.opt_after_header && file_created){
 	/* open the file and see if it is a HTTP header */
-	demux.post_process_capture_flow(byte_runs,flow_pathname);
+	demux.post_process_capture_flow(xmladd,flow_pathname);
     }
     if(demux.xreport){
 	demux.xreport->push(fileobject_str);
@@ -81,16 +74,7 @@ tcpip::~tcpip()
 	if(violations)         attrs << "violations='" << violations << "' ";
 	
 	demux.xreport->xmlout(tcpflow_str,"",attrs.str(),false);
-	if(out_of_order_count==0 && md5){
-	    unsigned char digest[16];
-	    char hexbuf[33];
-	    MD5Final(digest,md5);
-	    demux.xreport->xmlout("hashdigest",
-				  md5_t::makehex(hexbuf,sizeof(hexbuf),digest,sizeof(digest)),
-				  "type='MD5'",false);
-	    free(md5);
-	}
-	if(byte_runs.tellp()>0) demux.xreport->xmlout("",byte_runs.str(),"",false);
+	if(xmladd.tellp()>0) demux.xreport->xmlout("",xmladd.str(),"",false);
 	demux.xreport->pop();
     }
 }
@@ -333,9 +317,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     pos += length;
     nsn += length;			// expected next sequence number
 
-    if (out_of_order_count==0 && omitted_bytes==0 && md5){
-	MD5Update(md5,data,length);
-    }
+    if(pos>bytes_processed) bytes_processed = pos;
 
 #ifdef DEBUG_REOPEN_LOGIC
     /* For debugging, force this connection closed */
