@@ -285,436 +285,468 @@ int try_and_get_port(const struct pcap_pkthdr *h, const u_char *p)
 //
 
 class plotter {
-    public:
+public:
 #ifdef HAVE_CAIRO_CAIRO_H
-        static void render(cairo_t *cr, const ticks_t ticks, legend_t legend,
-                const graph_config_t conf)
-        {
-            // render title
+    static void render(cairo_t *cr, const ticks_t ticks, legend_t legend,
+            const graph_config_t conf)
+    {
+        // render title
 
-            cairo_text_extents_t title_extents;
-            cairo_text_extents_t subtitle_extents;
-            double font_size_title = conf.title_font_size;
+        cairo_text_extents_t title_extents;
+        cairo_text_extents_t subtitle_extents;
+        double font_size_title = conf.title_font_size;
 
-            cairo_select_font_face(cr, "Sans",
-                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_font_size(cr, font_size_title);
-            cairo_set_source_rgb(cr, 0, 0, 0);
+        cairo_select_font_face(cr, "Sans",
+            CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_set_font_size(cr, font_size_title);
+        cairo_set_source_rgb(cr, 0, 0, 0);
+        cairo_text_extents(cr, conf.title, &title_extents);
+        // Is the title too wide?
+        double title_max_width = conf.width *
+            conf.title_max_width_ratio;
+        if(title_extents.width > title_max_width) {
+            // scale the font size accordingly
+            font_size_title *= title_max_width / title_extents.width;
             cairo_text_extents(cr, conf.title, &title_extents);
-            // Is the title too wide?
-            double title_max_width = conf.width *
-                conf.title_max_width_ratio;
-            if(title_extents.width > title_max_width) {
-                // scale the font size accordingly
-                font_size_title *= title_max_width / title_extents.width;
-                cairo_text_extents(cr, conf.title, &title_extents);
+        }
+        // derive subtitle size and measure
+        double font_size_subtitle = font_size_title *
+            conf.subtitle_font_size_factor;
+        cairo_set_font_size(cr, font_size_subtitle);
+        cairo_text_extents(cr, conf.subtitle, &subtitle_extents);
+        double intertitle_padding = subtitle_extents.height *
+            conf.subtitle_y_pad_factor;
+        cairo_set_font_size(cr, font_size_title);
+        double title_padded_height = title_extents.height *
+            conf.title_y_pad_factor;
+        double titles_padded_height = title_padded_height +
+            intertitle_padding + subtitle_extents.height;
+        // render title text
+        cairo_move_to(cr, (conf.width - title_extents.width) / 2.0,
+                title_extents.height +
+                (title_padded_height - title_extents.height) / 2);
+        cairo_show_text(cr, conf.title);
+        // render subtitle text
+        cairo_set_font_size(cr, font_size_subtitle);
+        cairo_move_to(cr, (conf.width - subtitle_extents.width) / 2.0,
+                ((title_padded_height - title_extents.height) / 2) +
+                title_extents.height + intertitle_padding +
+                subtitle_extents.height);
+        cairo_show_text(cr, conf.subtitle);
+
+        // render ticks
+
+        // y ticks (packet counts)
+
+        // find longest label and pad for it
+        cairo_text_extents_t label_extents;
+        cairo_set_font_size(cr, conf.y_tick_font_size);
+        double max_label_width = 0.0;
+        for(size_t ii = 0; ii < ticks.y_labels.size(); ii++) {
+            cairo_text_extents(cr, ticks.y_labels.at(ii).c_str(),
+                    &label_extents);
+            if(label_extents.width > max_label_width) {
+                max_label_width = label_extents.width;
             }
-            // derive subtitle size and measure
-            double font_size_subtitle = font_size_title *
-                conf.subtitle_font_size_factor;
-            cairo_set_font_size(cr, font_size_subtitle);
-            cairo_text_extents(cr, conf.subtitle, &subtitle_extents);
-            double intertitle_padding = subtitle_extents.height *
-                conf.subtitle_y_pad_factor;
-            cairo_set_font_size(cr, font_size_title);
-            double title_padded_height = title_extents.height *
-                conf.title_y_pad_factor;
-            double titles_padded_height = title_padded_height +
-                intertitle_padding + subtitle_extents.height;
-            // render title text
-            cairo_move_to(cr, (conf.width - title_extents.width) / 2.0,
-                    title_extents.height +
-                    (title_padded_height - title_extents.height) / 2);
-            cairo_show_text(cr, conf.title);
-            // render subtitle text
-            cairo_set_font_size(cr, font_size_subtitle);
-            cairo_move_to(cr, (conf.width - subtitle_extents.width) / 2.0,
-                    ((title_padded_height - title_extents.height) / 2) +
-                    title_extents.height + intertitle_padding +
-                    subtitle_extents.height);
-            cairo_show_text(cr, conf.subtitle);
+        }
+        double y_label_allotment = max_label_width *
+            conf.y_tick_label_pad_factor;
+        double left_padding = y_label_allotment + conf.tick_length;
 
-            // render ticks
+        // translate down so the top of the window aligns with the top of
+        // the graph itself
+        cairo_translate(cr, 0, titles_padded_height);
 
-            // y ticks (packet counts)
+        double y_height = conf.height - conf.pad_bottom;
+        double y_tick_spacing = y_height / ticks.y_labels.size();
+        for(size_t ii = 0; ii < ticks.y_labels.size(); ii++) {
+            //double yy = (ii * y_tick_spacing) - (conf.tick_width / 2);
+            double yy = (ii * y_tick_spacing);
 
-            // find longest label and pad for it
-            cairo_text_extents_t label_extents;
-            cairo_set_font_size(cr, conf.y_tick_font_size);
-            double max_label_width = 0.0;
-            for(size_t ii = 0; ii < ticks.y_labels.size(); ii++) {
-                cairo_text_extents(cr, ticks.y_labels.at(ii).c_str(),
-                        &label_extents);
-                if(label_extents.width > max_label_width) {
-                    max_label_width = label_extents.width;
-                }
-            }
-            double y_label_allotment = max_label_width *
-                conf.y_tick_label_pad_factor;
-            double left_padding = y_label_allotment + conf.tick_length;
+            cairo_text_extents(cr, ticks.y_labels.at(ii).c_str(),
+                    &label_extents);
+            cairo_move_to(cr, (y_label_allotment - label_extents.width) / 2,
+                    yy + (label_extents.height / 2));
+            cairo_show_text(cr, ticks.y_labels.at(ii).c_str());
 
-            // translate down so the top of the window aligns with the top of
-            // the graph itself
-            cairo_translate(cr, 0, titles_padded_height);
-
-            double y_height = conf.height - conf.pad_bottom;
-            double y_tick_spacing = y_height / ticks.y_labels.size();
-            for(size_t ii = 0; ii < ticks.y_labels.size(); ii++) {
-                //double yy = (ii * y_tick_spacing) - (conf.tick_width / 2);
-                double yy = (ii * y_tick_spacing);
-
-                cairo_text_extents(cr, ticks.y_labels.at(ii).c_str(),
-                        &label_extents);
-                cairo_move_to(cr, (y_label_allotment - label_extents.width) / 2,
-                        yy + (label_extents.height / 2));
-                cairo_show_text(cr, ticks.y_labels.at(ii).c_str());
-
-                // tick mark (but not for 0)
-                if(ii < ticks.y_labels.size() - 1) {
-                    cairo_rectangle(cr, y_label_allotment,
-                            yy + (conf.tick_width / 2),
-                            conf.tick_length, conf.tick_width);
-                    cairo_fill(cr);
-                }
-            }
-            cairo_identity_matrix(cr);
-
-            // x ticks (time)
-            // TODO prevent overlap
-
-            cairo_set_font_size(cr, conf.x_tick_font_size);
-
-            cairo_translate(cr, left_padding, conf.height - conf.pad_bottom);
-
-            double x_width = conf.width - (conf.pad_right + left_padding);
-            double x_tick_spacing = x_width / (ticks.x_labels.size() - 1);
-
-            for(size_t ii = 0; ii < ticks.x_labels.size(); ii++) {
-                double xx = ii * x_tick_spacing;
-
-                const char *label = ticks.x_labels.at(ii).c_str();
-
-                cairo_text_extents(cr, label, &label_extents);
-                double pad = ((label_extents.height *
-                            conf.x_tick_label_pad_factor) -
-                        label_extents.height) / 2;
-
-                // prevent labels from running off the edge of the image
-                double label_x = xx - (label_extents.width / 2.0);
-                label_x = max(label_x, -left_padding);
-                label_x = min(conf.width - label_extents.width, label_x);
-
-                cairo_move_to(cr, label_x, label_extents.height + pad);
-                cairo_show_text(cr, label);
-            }
-
-            cairo_identity_matrix(cr);
-
-            // render legend
-
-            cairo_translate(cr, conf.width - (conf.pad_right * 0.9),
-                    titles_padded_height);
-
-            cairo_text_extents_t legend_label_extents;
-
-            cairo_set_font_size(cr, conf.legend_font_size);
-
-            for(size_t ii = 0; ii < legend.size(); ii++) {
-                legend_entry_t entry = legend.at(ii);
-
-                // chip
-                cairo_set_source_rgb(cr, entry.color.r, entry.color.g,
-                        entry.color.b);
-                cairo_rectangle(cr, 0, 0, conf.legend_chip_edge_length,
-                        conf.legend_chip_edge_length);
+            // tick mark (but not for 0)
+            if(ii < ticks.y_labels.size() - 1) {
+                cairo_rectangle(cr, y_label_allotment,
+                        yy + (conf.tick_width / 2),
+                        conf.tick_length, conf.tick_width);
                 cairo_fill(cr);
-
-                // label
-                cairo_set_source_rgb(cr, 0, 0, 0);
-                cairo_text_extents(cr, entry.label.c_str(),
-                        &legend_label_extents);
-                cairo_move_to(cr, conf.legend_chip_edge_length * 1.2,
-                        (conf.legend_chip_edge_length / 2.0) +
-                        (legend_label_extents.height / 2.0));
-                cairo_show_text(cr, entry.label.c_str());
-
-                // translate down for the next legend entry
-                cairo_translate(cr, 0, conf.legend_chip_edge_length);
             }
+        }
+        cairo_identity_matrix(cr);
 
+        // x ticks (time)
+        // TODO prevent overlap
+
+        cairo_set_font_size(cr, conf.x_tick_font_size);
+
+        cairo_translate(cr, left_padding, conf.height - conf.pad_bottom);
+
+        double x_width = conf.width - (conf.pad_right + left_padding);
+        double x_tick_spacing = x_width / (ticks.x_labels.size() - 1);
+
+        for(size_t ii = 0; ii < ticks.x_labels.size(); ii++) {
+            double xx = ii * x_tick_spacing;
+
+            const char *label = ticks.x_labels.at(ii).c_str();
+
+            cairo_text_extents(cr, label, &label_extents);
+            double pad = ((label_extents.height *
+                        conf.x_tick_label_pad_factor) -
+                    label_extents.height) / 2;
+
+            // prevent labels from running off the edge of the image
+            double label_x = xx - (label_extents.width / 2.0);
+            label_x = max(label_x, -left_padding);
+            label_x = min(conf.width - label_extents.width, label_x);
+
+            cairo_move_to(cr, label_x, label_extents.height + pad);
+            cairo_show_text(cr, label);
+        }
+
+        cairo_identity_matrix(cr);
+
+        // render legend
+
+        cairo_translate(cr, conf.width - (conf.pad_right * 0.9),
+                titles_padded_height);
+
+        cairo_text_extents_t legend_label_extents;
+
+        cairo_set_font_size(cr, conf.legend_font_size);
+
+        for(size_t ii = 0; ii < legend.size(); ii++) {
+            legend_entry_t entry = legend.at(ii);
+
+            // chip
+            cairo_set_source_rgb(cr, entry.color.r, entry.color.g,
+                    entry.color.b);
+            cairo_rectangle(cr, 0, 0, conf.legend_chip_edge_length,
+                    conf.legend_chip_edge_length);
+            cairo_fill(cr);
+
+            // label
             cairo_set_source_rgb(cr, 0, 0, 0);
-            cairo_identity_matrix(cr);
+            cairo_text_extents(cr, entry.label.c_str(),
+                    &legend_label_extents);
+            cairo_move_to(cr, conf.legend_chip_edge_length * 1.2,
+                    (conf.legend_chip_edge_length / 2.0) +
+                    (legend_label_extents.height / 2.0));
+            cairo_show_text(cr, entry.label.c_str());
 
-            // transform to render within the graph itself (inside title and
-            // labels)
-            cairo_translate(cr, left_padding,
-                    titles_padded_height);
-            cairo_scale(cr,
-                    1.0 - ((left_padding + conf.pad_right) / conf.width),
-                    1.0 -
-                    ((titles_padded_height + conf.pad_bottom) / conf.height));
+            // translate down for the next legend entry
+            cairo_translate(cr, 0, conf.legend_chip_edge_length);
         }
+
+        cairo_set_source_rgb(cr, 0, 0, 0);
+        cairo_identity_matrix(cr);
+
+        // transform to render within the graph itself (inside title and
+        // labels)
+        cairo_translate(cr, left_padding,
+                titles_padded_height);
+        cairo_scale(cr,
+                1.0 - ((left_padding + conf.pad_right) / conf.width),
+                1.0 -
+                ((titles_padded_height + conf.pad_bottom) / conf.height));
+    }
 #endif
-    private:
-        plotter()
-        {
-        }
+private:
+    plotter()
+    {
+    }
 };
 
 class time_histogram {
+public:
+    class bucket_t {
     public:
-        class bucket_t {
-            public:
-            uint64_t http;
-            uint64_t https;
-            uint64_t other;
-        };
+        uint64_t http;
+        uint64_t https;
+        uint64_t other;
+    };
 
-        time_histogram(const span_t span_, histogram_config_t conf_) :
-            span(span_), conf(conf_), length(span_lengths[span_]),
-            bucket_width(length / conf.bucket_count), underflow_count(0),
-            overflow_count(0), buckets(vector<bucket_t>(conf.bucket_count)),
-            base_time(0), received_data(false)
-        {
+    time_histogram(const span_t span_, histogram_config_t conf_) :
+        span(span_), conf(conf_), length(span_lengths[span_]),
+        bucket_width(length / conf.bucket_count), underflow_count(0),
+        overflow_count(0), buckets(vector<bucket_t>(conf.bucket_count)),
+        base_time(0), received_data(false),
+        color_http(0.05, 0.33, 0.65), color_https(0.00, 0.75, 0.20),
+        color_other(1.00, 0.77, 0.00)
+    {
+    }
+
+    // identifier for the timescale of the histogram
+    span_t span;
+    // render configuration
+    histogram_config_t conf;
+    // total number of microseconds this histogram covers
+    uint64_t length;
+    // number of microseconds each bucket represents
+    uint64_t bucket_width;
+    // number of packets that occurred before the span of this histogram
+    uint64_t underflow_count;
+    // number of packets that occurred after the span of this histogram
+    uint64_t overflow_count;
+    // packet counts
+    vector<bucket_t> buckets;
+    // the earliest time this histogram represents (unknown until first
+    // packet received)
+    uint64_t base_time;
+    // have we received that first packet? (beats having to examine buckets)
+    bool received_data;
+
+    rgb_t color_http;
+    rgb_t color_https;
+    rgb_t color_other;
+
+    void ingest_packet(const struct pcap_pkthdr *h, const u_char *p)
+    {
+        uint64_t time = extract_time(h);
+        // if we haven't received any data yet, we need to set the base time
+        if(!received_data) {
+            uint64_t first_bucket = (uint64_t) ((double) conf.bucket_count *
+                    conf.first_bucket_factor);
+            base_time = time - (bucket_width * first_bucket);
+            received_data = true;
         }
 
-        // identifier for the timescale of the histogram
-        span_t span;
-        // render configuration
-        histogram_config_t conf;
-        // total number of microseconds this histogram covers
-        uint64_t length;
-        // number of microseconds each bucket represents
-        uint64_t bucket_width;
-        // number of packets that occurred before the span of this histogram
-        uint64_t underflow_count;
-        // number of packets that occurred after the span of this histogram
-        uint64_t overflow_count;
-        // packet counts
-        vector<bucket_t> buckets;
-        // the earliest time this histogram represents (unknown until first
-        // packet received)
-        uint64_t base_time;
-        // have we received that first packet? (beats having to examine buckets)
-        bool received_data;
+        int target_index = (time - base_time) / bucket_width;
 
-
-        void ingest_packet(const struct pcap_pkthdr *h, const u_char *p)
-        {
-            uint64_t time = extract_time(h);
-            // if we haven't received any data yet, we need to set the base time
-            if(!received_data) {
-                uint64_t first_bucket = (uint64_t) ((double) conf.bucket_count *
-                        conf.first_bucket_factor);
-                base_time = time - (bucket_width * first_bucket);
-                received_data = true;
-            }
-
-            int target_index = (time - base_time) / bucket_width;
-
-            if(target_index < 0) {
-                underflow_count++;
-                return;
-            }
-            if(target_index >= conf.bucket_count) {
-                overflow_count++;
-                return;
-            }
-
-            bucket_t *target_bucket = &buckets.at(target_index);
-
-            switch(try_and_get_port(h, p)) {
-                case PORT_HTTP:
-                    target_bucket->http++;
-                    break;
-                case PORT_HTTPS:
-                    target_bucket->https++;
-                    break;
-                case -1:
-                    // try_and_get_port() returns -1 for any error, including if
-                    // there isn't a TCP segment in the packet
-                    break;
-                default:
-                    target_bucket->other++;
-            }
+        if(target_index < 0) {
+            underflow_count++;
+            return;
+        }
+        if(target_index >= conf.bucket_count) {
+            overflow_count++;
+            return;
         }
 
-        void render()
-        {
+        bucket_t *target_bucket = &buckets.at(target_index);
+
+        switch(try_and_get_port(h, p)) {
+            case PORT_HTTP:
+                target_bucket->http++;
+                break;
+            case PORT_HTTPS:
+                target_bucket->https++;
+                break;
+            case -1:
+                // try_and_get_port() returns -1 for any error, including if
+                // there isn't a TCP segment in the packet
+                break;
+            default:
+                target_bucket->other++;
+        }
+    }
+
+    class render_vars {
+    public:
+        int first_index;
+        int last_index;
+        uint64_t greatest_bucket_sum;
+        int num_sig_buckets;
+        uint64_t unit_log_1000;
+    };
+
+    void render()
+    {
+        render_vars vars;
+
+        render_prep(&vars);
+
+        // if there aren't any significant buckets, abort.
+        if(vars.num_sig_buckets < 1) {
+            return;
+        }
+
+        ticks_t ticks = build_tick_labels(&vars);
+        legend_t legend = build_legend(&vars);
+
+        //
+        // Start rendering
+        //
+
 #ifdef HAVE_CAIRO_CAIRO_H
-            // initial stat sweep:
-            //   - how many significant buckets are there
-            //     (between the first and last nonzero bucket)
-            //   - What is the tallest bucket?
-            int first_index = -1, last_index = -1, index = 0;
-            int num_sig_buckets = 0;
-            uint64_t greatest_bucket_sum = 0;
-            for(vector<bucket_t>::iterator bucket = buckets.begin();
-                    bucket != buckets.end(); bucket++) {
-                uint64_t bucket_sum = (*bucket).http + (*bucket).https
-                    + (*bucket).other;
+        cairo_t *cr;
+        cairo_surface_t *surface;
 
-                // look for first and last significant bucket
-                if(bucket_sum > 0) {
-                    last_index = index;
-                    if(first_index < 0) {
-                        first_index = index;
-                    }
-                }
+        surface = (cairo_surface_t *)
+            cairo_pdf_surface_create(conf.graph.filename, conf.graph.width,
+                    conf.graph.height);
+        cr = cairo_create(surface);
 
-                // look for tallest bucket (most packets)
-                if(bucket_sum > greatest_bucket_sum) {
-                    greatest_bucket_sum = bucket_sum;
-                }
+        // have the plotter class do labeling, axes, legend etc and scale
+        // our surface to fit within them
+        plotter::render(cr, ticks, legend, conf.graph);
 
-                index++;
-            }
-            // if there's no first significant index, then there aren't any
-            // nonzero buckets.  Abort.
-            if(first_index < 0) {
-                return;
-            }
-            num_sig_buckets = last_index - first_index;
+        render_bars(cr, &vars);
 
-            // choose subtitle based on magnitude of units
-            conf.graph.subtitle = units_strings[0];
-            uint64_t unit_index =
-                (uint64_t) (log(greatest_bucket_sum) / log(1000));
-            if(unit_index < (sizeof(units_strings) / sizeof(char *))) {
-                conf.graph.subtitle = units_strings[unit_index];
-            }
-
-            // build tick labels
-
-            ticks_t ticks;
-            stringstream formatted;
-
-            // y ticks (packet count)
-
-            // scale raw bucket totals
-
-            double y_scale_range = greatest_bucket_sum /
-                pow(1000.0, (double) unit_index);
-            double y_scale_interval = y_scale_range /
-                (conf.graph.y_tick_count - 1);
-
-            for(int ii = 0; ii < conf.graph.y_tick_count; ii++) {
-                formatted << setprecision(2) << fixed;
-                formatted << ((conf.graph.y_tick_count - (ii + 1)) *
-                        y_scale_interval);
-
-                ticks.y_labels.push_back(formatted.str());
-
-                formatted.str(string());
-            }
-
-            // x ticks (localtime)
-
-            const time_t start_unix = (base_time +
-                    (bucket_width * first_index)) / (1000 * 1000);
-            const time_t stop_unix = (base_time +
-                    (bucket_width * last_index)) / (1000 * 1000);
-            struct tm start_time = *localtime(&start_unix);
-            struct tm stop_time = *localtime(&stop_unix);
-            
-            ss_time_format(&start_time, &formatted);
-            ticks.x_labels.push_back(formatted.str());
-            formatted.str(string());
-            ss_time_format(&stop_time, &formatted);
-            ticks.x_labels.push_back(formatted.str());
-            formatted.str(string());
-
-            // build legend
-
-            const rgb_t color_http(0.05, 0.33, 0.65);
-            const rgb_t color_https(0.00, 0.75, 0.20);
-            const rgb_t color_other(1.00, 0.77, 0.00);
-
-            legend_t legend;
-
-            legend.push_back(legend_entry_t(color_http, "HTTP"));
-            legend.push_back(legend_entry_t(color_https, "HTTPS"));
-            legend.push_back(legend_entry_t(color_other, "Other"));
-
-            //
-            // Start rendering
-            //
-
-            cairo_t *cr;
-            cairo_surface_t *surface;
-
-            surface = (cairo_surface_t *)
-                cairo_pdf_surface_create(conf.graph.filename, conf.graph.width,
-                        conf.graph.height);
-            cr = cairo_create(surface);
-
-            // have the plotter class do labeling, axes, legend etc and scale
-            // our surface to fit within them
-            plotter::render(cr, ticks, legend, conf.graph);
-
-            // render bars
-
-            double offset_unit = conf.graph.width / num_sig_buckets;
-            double bar_width = offset_unit / conf.bar_space_factor;
-            index = 0;
-            for(vector<bucket_t>::iterator bucket =
-                    buckets.begin() + first_index;
-                    bucket != buckets.begin() + last_index; bucket++) {
-                uint64_t bucket_sum = (*bucket).http + (*bucket).https
-                    + (*bucket).other;
-                double bar_height = (((double) bucket_sum)
-                        / ((double) greatest_bucket_sum)) * conf.graph.height;
-
-                if(bar_height > 0) {
-                    double http_height = (((double) bucket->http) /
-                            ((double) bucket_sum)) * bar_height;
-                    double https_height = (((double) bucket->https) /
-                            ((double) bucket_sum)) * bar_height;
-                    double other_height = (((double) bucket->other) /
-                            ((double) bucket_sum)) * bar_height;
-
-                    double current_height = conf.graph.height - bar_height;
-
-                    // HTTP (blue)
-                    cairo_set_source_rgb(cr, color_http.r, color_http.g,
-                            color_http.b);
-                    cairo_rectangle(cr, index * offset_unit, current_height,
-                            bar_width, http_height);
-                    cairo_fill(cr);
-
-                    current_height += http_height;
-
-                    // HTTPS (green)
-                    cairo_set_source_rgb(cr, color_https.r, color_https.g,
-                            color_https.b);
-                    cairo_rectangle(cr, index * offset_unit, current_height,
-                            bar_width, https_height);
-                    cairo_fill(cr);
-
-                    current_height += https_height;
-
-                    // other (yellow)
-                    cairo_set_source_rgb(cr, color_other.r, color_other.g,
-                            color_other.b);
-                    cairo_rectangle(cr, index * offset_unit, current_height,
-                            bar_width, other_height);
-                    cairo_fill(cr);
-
-                    // reset to black
-                    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-                }
-
-                index++;
-            }
-            // reset translation
-            cairo_identity_matrix(cr);
-         
-            //cairo_surface_flush(surface);
-            //cairo_surface_finish(surface);
-            cairo_destroy (cr);
-            cairo_surface_destroy(surface);
+        // reset translation
+        cairo_identity_matrix(cr);
+     
+        cairo_destroy (cr);
+        cairo_surface_destroy(surface);
 #endif
+    }
+
+    void render_prep(render_vars *vars)
+    {
+        // initial stat sweep:
+        //   - how many significant buckets are there
+        //     (between the first and last nonzero bucket)
+        //   - What is the tallest bucket?
+        int index = 0;
+        vars->first_index = -1;
+        vars->last_index = -1;
+        vars->num_sig_buckets = 0;
+        vars->greatest_bucket_sum = 0;
+        for(vector<bucket_t>::iterator bucket = buckets.begin();
+                bucket != buckets.end(); bucket++) {
+            uint64_t bucket_sum = (*bucket).http + (*bucket).https
+                + (*bucket).other;
+
+            // look for first and last significant bucket
+            if(bucket_sum > 0) {
+                vars->last_index = index;
+                if(vars->first_index < 0) {
+                    vars->first_index = index;
+                }
+            }
+
+            // look for tallest bucket (most packets)
+            if(bucket_sum > vars->greatest_bucket_sum) {
+                vars->greatest_bucket_sum = bucket_sum;
+            }
+
+            index++;
         }
+        vars->num_sig_buckets = vars->last_index - vars->first_index;
+
+        // choose subtitle based on magnitude of units
+        conf.graph.subtitle = units_strings[0];
+        vars->unit_log_1000 =
+            (uint64_t) (log(vars->greatest_bucket_sum) / log(1000));
+        if(vars->unit_log_1000 < (sizeof(units_strings) / sizeof(char *))) {
+            conf.graph.subtitle = units_strings[vars->unit_log_1000];
+        }
+    }
+
+    ticks_t build_tick_labels(render_vars *vars)
+    {
+        ticks_t ticks;
+        stringstream formatted;
+
+        // y ticks (packet count)
+
+        // scale raw bucket totals
+
+        double y_scale_range = vars->greatest_bucket_sum /
+            pow(1000.0, (double) vars->unit_log_1000);
+        double y_scale_interval = y_scale_range /
+            (conf.graph.y_tick_count - 1);
+
+        for(int ii = 0; ii < conf.graph.y_tick_count; ii++) {
+            formatted << setprecision(2) << fixed;
+            formatted << ((conf.graph.y_tick_count - (ii + 1)) *
+                    y_scale_interval);
+
+            ticks.y_labels.push_back(formatted.str());
+
+            formatted.str(string());
+        }
+
+        // x ticks (localtime)
+
+        const time_t start_unix = (base_time +
+                (bucket_width * vars->first_index)) / (1000 * 1000);
+        const time_t stop_unix = (base_time +
+                (bucket_width * vars->last_index)) / (1000 * 1000);
+        struct tm start_time = *localtime(&start_unix);
+        struct tm stop_time = *localtime(&stop_unix);
+        
+        ss_time_format(&start_time, &formatted);
+        ticks.x_labels.push_back(formatted.str());
+        formatted.str(string());
+        ss_time_format(&stop_time, &formatted);
+        ticks.x_labels.push_back(formatted.str());
+        formatted.str(string());
+
+        return ticks;
+    }
+
+    legend_t build_legend(render_vars *vars)
+    {
+        legend_t legend;
+
+        legend.push_back(legend_entry_t(color_http, "HTTP"));
+        legend.push_back(legend_entry_t(color_https, "HTTPS"));
+        legend.push_back(legend_entry_t(color_other, "Other"));
+
+        return legend;
+    }
+
+#ifdef HAVE_CAIRO_CAIRO_H
+    void render_bars(cairo_t *cr, render_vars *vars)
+    {
+        double offset_unit = conf.graph.width / vars->num_sig_buckets;
+        double bar_width = offset_unit / conf.bar_space_factor;
+        int index = 0;
+        for(vector<bucket_t>::iterator bucket =
+                buckets.begin() + vars->first_index;
+                bucket != buckets.begin() + vars->last_index; bucket++) {
+            uint64_t bucket_sum = (*bucket).http + (*bucket).https
+                + (*bucket).other;
+            double bar_height = (((double) bucket_sum)
+                    / ((double) vars->greatest_bucket_sum)) * conf.graph.height;
+
+            if(bar_height > 0) {
+                double http_height = (((double) bucket->http) /
+                        ((double) bucket_sum)) * bar_height;
+                double https_height = (((double) bucket->https) /
+                        ((double) bucket_sum)) * bar_height;
+                double other_height = (((double) bucket->other) /
+                        ((double) bucket_sum)) * bar_height;
+
+                double current_height = conf.graph.height - bar_height;
+
+                // HTTP (blue)
+                cairo_set_source_rgb(cr, color_http.r, color_http.g,
+                        color_http.b);
+                cairo_rectangle(cr, index * offset_unit, current_height,
+                        bar_width, http_height);
+                cairo_fill(cr);
+
+                current_height += http_height;
+
+                // HTTPS (green)
+                cairo_set_source_rgb(cr, color_https.r, color_https.g,
+                        color_https.b);
+                cairo_rectangle(cr, index * offset_unit, current_height,
+                        bar_width, https_height);
+                cairo_fill(cr);
+
+                current_height += https_height;
+
+                // other (yellow)
+                cairo_set_source_rgb(cr, color_other.r, color_other.g,
+                        color_other.b);
+                cairo_rectangle(cr, index * offset_unit, current_height,
+                        bar_width, other_height);
+                cairo_fill(cr);
+
+                // reset to black
+                cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+            }
+
+            index++;
+        }
+    }
+#endif
 };
 
 //
