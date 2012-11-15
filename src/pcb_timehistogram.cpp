@@ -27,7 +27,6 @@
 
 using namespace std;
 
-#define NUM_HISTOGRAMS 6
 typedef enum {
     MINUTE = 0, HOUR, DAY, WEEK, MONTH, YEAR
 } span_t;
@@ -193,6 +192,10 @@ class legend_entry_t {
 
 typedef vector<legend_entry_t> legend_t;
 
+//
+// Helper functions
+//
+
 inline uint64_t extract_time(const struct pcap_pkthdr *h)
 {
     return (*h).ts.tv_usec + ((*h).ts.tv_sec * 1000000L);
@@ -276,6 +279,10 @@ int try_and_get_port(const struct pcap_pkthdr *h, const u_char *p)
 
     return ntohs(tcp_header->th_dport);
 }
+
+//
+// Rendering classes
+//
 
 class plotter {
     public:
@@ -710,56 +717,80 @@ class time_histogram {
         }
 };
 
-// this vector must hold histograms in order from greatest time resolution to
-// least
-static vector<time_histogram> histograms;
+//
+// Plugin namespaces
+//
 
-time_histogram *select_for_render()
-{
-    // assume the lowest resolution histogram is best
-    time_histogram *best = &histograms.back();
+namespace time_plugin {
+    const int num_histograms = 6;
 
-    // use the highest resolution histogram with no overflowed packets, or use
-    // the lowest resolution histogram if all have overflow, since it should
-    // almost certainly have the least since it's span is the largest
-    // Histograms must be in descending order of resolution
-    for(vector<time_histogram>::iterator candidate = histograms.begin();
-            candidate != histograms.end(); candidate++) {
-        uint64_t dropped = candidate->underflow_count +
-            candidate->overflow_count;
+    // this vector must hold histograms in order from greatest time resolution
+    // to least
+    vector<time_histogram> histograms;
 
-        if(dropped == 0) {
-            // this seems bad, but I don't think there's a better way.
-            best = &(*candidate);
-            break;
+    time_histogram *select_for_render()
+    {
+        // assume the lowest resolution histogram is best
+        time_histogram *best = &histograms.back();
+
+        // use the highest resolution histogram with no overflowed packets, or
+        // use the lowest resolution histogram if all have overflow, since it
+        // should almost certainly have the least since it's span is the largest
+        // Histograms must be in descending order of resolution
+        for(vector<time_histogram>::iterator candidate = histograms.begin();
+                candidate != histograms.end(); candidate++) {
+            uint64_t dropped = candidate->underflow_count +
+                candidate->overflow_count;
+
+            if(dropped == 0) {
+                // this seems bad, but I don't think there's a better way.
+                best = &(*candidate);
+                break;
+            }
+        }
+
+        return best;
+    }
+
+    void startup()
+    {
+        histogram_config_t config = default_histogram_config;
+        config.graph.title = "TCP Packets Received";
+        config.graph.filename = "time_histogram.pdf";
+
+        // create and insert histograms in descending time resolution order
+        for(int ii = 0; ii < num_histograms; ii++) {
+            histograms.push_back(time_histogram((span_t)ii, config));
         }
     }
 
-    return best;
+    void scan(const struct pcap_pkthdr *h, const u_char *p)
+    {
+        for(vector<time_histogram>::iterator histogram = histograms.begin();
+                histogram != histograms.end(); histogram++) {
+            (*histogram).ingest_packet(h, p);
+        }
+    }
+
+    void shutdown()
+    {
+        (*select_for_render()).render();
+    }
 }
 
 // The plugin callback itself
 void timehistogram(pcb::phase_t phase, const struct pcap_pkthdr *h,
         const u_char *p)
 {
-    histogram_config_t config = default_histogram_config;
-    config.graph.title = "TCP Packets Received";
-    config.graph.filename = "time_histogram.pdf";
     switch(phase) {
         case pcb::startup:
-            // create and insert histograms in descending time resolution order
-            for(int ii = 0; ii < NUM_HISTOGRAMS; ii++) {
-                histograms.push_back(time_histogram((span_t)ii, config));
-            }
+            time_plugin::startup();
             break;
         case pcb::scan:
-            for(vector<time_histogram>::iterator histogram = histograms.begin();
-                    histogram != histograms.end(); histogram++) {
-                (*histogram).ingest_packet(h, p);
-            }
+            time_plugin::scan(h, p);
             break;
         case pcb::shutdown:
-            (*select_for_render()).render();
+            time_plugin::shutdown();
             break;
         case pcb::none:
         default:
