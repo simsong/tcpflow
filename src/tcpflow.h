@@ -318,5 +318,6 @@ void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((f
 /* scanners */
 
 extern "C" scanner_t scan_md5;
+extern "C" scanner_t scan_http;
 
 #endif /* __TCPFLOW_H__ */

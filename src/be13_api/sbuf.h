@@ -375,8 +375,9 @@ public:
     }
 
     /* Allocate a sbuf from a file mapped into memory */
-    static sbuf_t *map_file(const std::string &fname); // map a file and return a sbuf if success, 0 if failure.
-    static sbuf_t *map_file(const std::string &fname,int fd); // map an open file and return a sbuf if success, 0 if failure.
+    static sbuf_t *map_file(const std::string &fname,const pos0_t &pos0); 
+    static sbuf_t *map_file(const std::string &fname,const pos0_t &pos0,int fd); 
+    static std::string U10001C;		// delimeter character in bulk_extractor
 
     /* Properties */
     size_t size() const {return bufsize;} // return the number of bytes

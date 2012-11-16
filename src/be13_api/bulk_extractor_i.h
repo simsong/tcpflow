@@ -98,7 +98,7 @@ class scanner_info {
     static const int SCANNER_DISABLED=0x01;		/* v1: enabled by default */
     static const int SCANNER_NO_USAGE=0x02;		/* v1: do not show scanner in usage */
     static const int SCANNER_NO_ALL  =0x04;		// v2: do not enable with -eALL
-    static const int CURRENT_SI_VERSION=1;
+    static const int CURRENT_SI_VERSION=2;
 
     scanner_info():si_version(CURRENT_SI_VERSION),
 		   name(),author(),description(),url(),scanner_version(),

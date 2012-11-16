@@ -1,3 +1,7 @@
+2012-11-15  Simson Garfinkel  <simsong@npsair.local>
+
+	* src/tcpdemux.h (class tcpdemux): retrying_open now takes a std:;string
+
 2012-11-14  Simson Garfinkel  <simsong@npsair.local>
 
 	* src/tcpip.cpp (tcpip::store_packet): added bytes_processed addition so that <fileobject> <filesize> is properly updated.

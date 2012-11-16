@@ -30,5 +30,6 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	unicode_escape.h unicode_escape.cpp \
 	md5.h md5.c iface_pcb.cpp iface_pcb.h pcb_timehistogram.cpp \
 	scan_md5.cpp \
+	scan_http.cpp \
 	$(BE13_API)
 

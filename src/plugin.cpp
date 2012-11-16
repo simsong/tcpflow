@@ -243,7 +243,7 @@ void scanners_disable_all()
 void scanners_enable_all()
 {
     assert(commands_processed==false);
-    scanner_commands.push_back(scanner_command(scanner_command::DISABLE_ALL,string("")));
+    scanner_commands.push_back(scanner_command(scanner_command::ENABLE_ALL,string("")));
 }
 
 void scanners_enable(const std::string &name)

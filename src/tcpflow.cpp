@@ -28,6 +28,7 @@ sem_t *semlock = 0;
 
 scanner_t *scanners_builtin[] = {
     scan_md5,
+    scan_http,
     0};
 
 static void usage() __attribute__ ((__noreturn__));
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
     std::string reportfilename;
     std::vector<std::string> Rfiles;	// files for finishing
     std::vector<std::string> rfiles;	// files to read
-    tcpdemux demux;			// the demux object we will be using.
+    tcpdemux &demux = *tcpdemux::getInstance();			// the demux object we will be using.
     std::string command_line = xml::make_command_line(argc,argv);
 
     /* Set up debug system */
@@ -146,6 +147,7 @@ int main(int argc, char *argv[])
 	case 'a':
 	    demux.opt.opt_after_header = true;
 	    demux.opt.opt_md5 = true;
+	    scanners_enable_all();
 	    opt_all = true;
 	    continue;
 	    

@@ -232,7 +232,7 @@ inline std::ostream & operator <<(std::ostream &os,const flow_addr &f)  {
  */
 class flow : public flow_addr {
 public:;
-    static void usage();
+    static void usage();			// print information on flow notation
     static std::string filename_template;	// 
     static int32_t NO_VLAN;			/* vlan flag for no vlan */
     flow():id(),vlan(),tstart(),tlast(),packet_count(),connection_count(){};
@@ -241,7 +241,7 @@ public:;
 	flow_addr(flow_addr_),id(id_),vlan(vlan_),tstart(t1),tlast(t2),
 	packet_count(0),connection_count(connection_count_){}
     virtual ~flow(){};
-    uint64_t id;			// flow_counter when this flow was created
+    uint64_t    id;			// flow_counter when this flow was created
     int32_t	vlan;			// vlan interface we observed; -1 means no vlan 
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
@@ -378,6 +378,9 @@ private:
     tcpdemux &operator=(const tcpdemux &that){
 	throw new not_impl();
     }
+    typedef std::tr1::unordered_set<class tcpip *> tcpset;
+    typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // should be unordered_map
+    tcpdemux();
 public:
     /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
     class options {
@@ -406,11 +409,9 @@ public:
 	bool	opt_no_purge;
     };
 
-    typedef std::tr1::unordered_set<class tcpip *> tcpset;
-    typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // should be unordered_map
-    std::string outdir;		/* output directory */
-    uint64_t	flow_counter;	// how many flows have we seen?
-    uint64_t	packet_counter;	// monotomically increasing 
+    std::string outdir;			/* output directory */
+    uint64_t	flow_counter;		// how many flows have we seen?
+    uint64_t	packet_counter;		// monotomically increasing 
     xml		*xreport;		// DFXML output file
     unsigned int max_fds;		// maximum number of file descriptors for this tcpdemux
 
@@ -420,7 +421,7 @@ public:
     options	opt;
     class feature_recorder_set *fs;
     
-    tcpdemux();
+    static tcpdemux *getInstance();
     void write_to_file(std::stringstream &ss,
 		       const std::string &fname,const sbuf_t &sbuf);
     void  close_all();
@@ -428,7 +429,7 @@ public:
     int   open_tcpfile(tcpip *);			// opens this file; return -1 if failure, 0 if success
     void  close_oldest();
     void  remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
-    int   retrying_open(const char *filename,int oflag,int mask);
+    int   retrying_open(const std::string &filename,int oflag,int mask);
 
     /* the flow database */
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn,
@@ -444,11 +445,13 @@ public:
     void  post_process_capture_flow(std::stringstream &byte_runs,const std::string &flow_pathname);
 };
 
+#if 0
 inline std::ostream & operator << (std::ostream &os,const tcpdemux::flow_map_t &fm) {
     for(tcpdemux::flow_map_t::const_iterator it=fm.begin();it!=fm.end();it++){
 	os << "first: " << it->first << " second: " << *it->second << "\n";
     }
     return os;
 };
+#endif
 
 #endif

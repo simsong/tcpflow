@@ -13,8 +13,34 @@
 #include <iostream>
 #include <sstream>
 
+tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
+		     xreport(0),max_fds(10),flow_map(),
+		     start_new_connections(false),
+		     openflows(),
+		     opt(),fs()
+		     
+{
+    /* Find out how many files we can have open safely...subtract 4 for
+     * stdin, stdout, stderr, and the packet filter; one for breathing
+     * room (we open new files before closing old ones), and one more to
+     * be safe.
+     */
+    max_fds = get_max_fds() - NUM_RESERVED_FDS;
+}
+
+tcpdemux *tcpdemux::getInstance()
+{
+    static tcpdemux * theInstance = 0;
+    if(theInstance==0) theInstance = new tcpdemux();
+    return theInstance;
+}
+
+
+
+
 /**
- * Close all of the flows in the fd_ring
+ * Implement a list of openflows, each with an associated file descriptor.
+ * When a new file needs to be opened, we can close a flow if necessary.
  */
 void tcpdemux::close_all()
 {
@@ -43,6 +69,25 @@ void tcpdemux::close_oldest()
 	}
     }
     if(oldest_tcp) close_tcpip(oldest_tcp);
+}
+
+/* Open a file, closing one of the existing flows f necessary.
+ */
+int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
+{
+    while(true){
+	if(openflows.size() >= max_fds) close_oldest();
+	int fd = ::open(filename.c_str(),oflag,mask);
+	DEBUG(2)("::open(%s,%d,%d)=%d",filename.c_str(),oflag,mask,fd);
+	if(fd>=0) return fd;
+	DEBUG(2)("retrying_open ::open failed with errno=%d",errno);
+	if (errno != ENFILE && errno != EMFILE){
+	    DEBUG(2)("retrying_open ::open failed with errno=%d (%s)",errno,strerror(errno));
+	    return -1;		// wonder what it was
+	}
+	DEBUG(5) ("too many open files -- contracting FD ring to %d", max_fds);
+	close_oldest();
+    }
 }
 
 /* Find previously a previously created flow state in the database.
@@ -107,10 +152,10 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
     /* Now try and open the file */
     if(tcp->file_created) {
 	DEBUG(5) ("%s: re-opening output file", tcp->flow_pathname.c_str());
-	tcp->fd = retrying_open(tcp->flow_pathname.c_str(),O_RDWR | O_BINARY | O_CREAT,0666);
+	tcp->fd = retrying_open(tcp->flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
     } else {
 	DEBUG(5) ("%s: opening new output file", tcp->flow_pathname.c_str());
-	tcp->fd = retrying_open(tcp->flow_pathname.c_str(),O_RDWR | O_BINARY | O_CREAT,0666);
+	tcp->fd = retrying_open(tcp->flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
 	tcp->file_created = true;		// remember we made it
     }
 
@@ -201,28 +246,12 @@ unsigned int tcpdemux::get_max_fds(void)
 }
 
 
-tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),max_fds(10),flow_map(),
-		     start_new_connections(false),
-		     openflows(),
-		     opt(),fs()
-		     
-{
-    /* Find out how many files we can have open safely...subtract 4 for
-     * stdin, stdout, stderr, and the packet filter; one for breathing
-     * room (we open new files before closing old ones), and one more to
-     * be safe.
-     */
-    max_fds = get_max_fds() - NUM_RESERVED_FDS;
-}
-
-
 /* write a portion of memory to the disk and a child fileobject. */
 void tcpdemux::write_to_file(std::stringstream &xmlattr,
 			     const std::string &fname,
 			     const sbuf_t &sbuf)
 {
-    int fd = retrying_open(fname.c_str(),O_WRONLY|O_CREAT|O_BINARY|O_TRUNC,0644);
+    int fd = retrying_open(fname,O_WRONLY|O_CREAT|O_BINARY|O_TRUNC,0644);
     if(fd>=0){
 	size_t count = sbuf.write(fd,0,sbuf.size());
 	if(close(fd)!=0 || count!=sbuf.size()){
@@ -235,44 +264,6 @@ void tcpdemux::write_to_file(std::stringstream &xmlattr,
 	}
     }
 }
-
-/* Open a file, shriking the ring if necessary */
-int tcpdemux::retrying_open(const char *filename,int oflag,int mask)
-{
-    while(true){
-	if(openflows.size() >= max_fds) close_oldest();
-	int fd = ::open(filename,oflag,mask);
-	DEBUG(2)("::open(%s,%d,%d)=%d",filename,oflag,mask,fd);
-	if(fd>=0) return fd;
-	DEBUG(2)("retrying_open ::open failed with errno=%d",errno);
-	if (errno != ENFILE && errno != EMFILE){
-	    DEBUG(2)("retrying_open ::open failed with errno=%d (%s)",errno,strerror(errno));
-	    return -1;		// wonder what it was
-	}
-	DEBUG(5) ("too many open files -- contracting FD ring to %d", max_fds);
-	close_oldest();
-    }
-}
-
-#ifdef NO_LONGER
-int tcpdemux::retrying_open(const char *filename)
-{
-    while(true){
-	if(openflows.size() >= max_fds) close_oldest();
-	int fd = open(filename,O_RDWR | O_CREAT);
-	if(fd>=0) return fd;
-	
-	if (errno != ENFILE && errno != EMFILE) {
-	    return -1;			// this is bad
-	}
-	/* open failed because too many files are open... close one
-	 * and try again
-	 */
-	close_oldest();
-	DEBUG(5) ("too many open files -- contracting FD ring to %d", max_fds);
-    };
-}
-#endif
 
 /*
  * Called to processes a tcp packet
@@ -599,6 +590,7 @@ void munmap(void *buf,size_t size)
 #endif
 
 
+#if 0
 /* This could be much more efficient */
 const uint8_t *find_crlfcrlf(const uint8_t *base,size_t len)
 {
@@ -652,61 +644,26 @@ static void process_gzip(class tcpdemux &demux,
     }
 }
 #endif
+#endif
 
-
+/** 
+ * After the flow is finished, put it in an SBUF and process it.
+ * if we are doing post-processing.
+ * This is called from tcpip::~tcpip() in tcpip.cpp.
+ */
 void tcpdemux::post_process_capture_flow(std::stringstream &xmladd,
 					 const std::string &flow_pathname)
 {
-    int fd2 = retrying_open(flow_pathname.c_str(),O_RDONLY|O_BINARY,0);
+    int fd2 = retrying_open(flow_pathname,O_RDONLY|O_BINARY,0);
     if(fd2<0){
 	perror("open");
 	return;
     }
-
-    sbuf_t *sbuf = sbuf_t::map_file(flow_pathname,fd2);
-    if(!sbuf){
-	::close(fd2);
-	return;
+    sbuf_t *sbuf = sbuf_t::map_file(flow_pathname,pos0_t(flow_pathname),fd2);
+    if(sbuf){
+	process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs,&xmladd));
     }
-
-    process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs,&xmladd));
-
-    char buf[4096];
-    ssize_t len;
-    len = read(fd2,buf,sizeof(buf)-1);
-    if(len>0){
-	buf[len] = 0;		// be sure it is null terminated
-	if(strncmp(buf,"HTTP/1.1 ",9)==0){
-	    /* Looks like a HTTP response. Split it.
-	     * We do this with memmap  because, quite frankly, it's easier.
-	     */
-	    struct stat st;
-	    if(fstat(fd2,&st)==0){
-		uint8_t *base = (uint8_t *)mmap(0,st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fd2,0);
-		const uint8_t *crlf = find_crlfcrlf(base,st.st_size);
-		if(crlf){
-		    ssize_t head_size = crlf - (const uint8_t *)base + 2;
-		    write_to_file(xmladd,
-				  flow_pathname+"-HTTP",
-				  sbuf_t(pos0_t(),base,head_size,head_size,false));
-		    if(st.st_size > head_size+4){
-			size_t body_size = st.st_size - head_size - 4;
-			write_to_file(xmladd,
-				      flow_pathname+"-HTTPBODY",
-				      sbuf_t(pos0_t()+head_size,crlf+4,body_size,body_size,false));
-#ifdef HAVE_LIBZ
-			if(opt.opt_gzip_decompress){
-			    process_gzip(*this,xmladd,
-					 flow_pathname+"-HTTPBODY-GZIP",(unsigned char *)crlf+4,body_size);
-			}
-#endif
-		    }
-		}
-		munmap(base,st.st_size);
-	    }
-	}
-    }
-    close(fd2);
+    ::close(fd2);
 }
 
 

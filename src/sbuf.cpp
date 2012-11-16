@@ -14,15 +14,15 @@ extern int debug;
 /**
  *  Map a file; falls back to read if mmap is not available
  */
-static std::string U10001C("\xf4\x80\x80\x9c");
-sbuf_t *sbuf_t::map_file(const std::string &fname)
+std::string sbuf_t::U10001C("\xf4\x80\x80\x9c");
+sbuf_t *sbuf_t::map_file(const std::string &fname,const pos0_t &pos0)
 {
     int fd = open(fname.c_str(),O_RDONLY,0);
     if(fd<0) return 0;		/* cannot open file */
-    return sbuf_t::map_file(fname,fd);
+    return sbuf_t::map_file(fname,pos0,fd);
 }
 
-sbuf_t *sbuf_t::map_file(const std::string &fname,int fd)
+sbuf_t *sbuf_t::map_file(const std::string &fname,const pos0_t &pos0,int fd)
 {
     struct stat st;
     if(fstat(fd,&st)){
@@ -50,7 +50,7 @@ sbuf_t *sbuf_t::map_file(const std::string &fname,int fd)
     bool should_unmap = false;
     bool should_close = false;
 #endif
-    sbuf_t *sbuf = new sbuf_t(fname + U10001C,// set the filename followed by U+10001C in UTF-8
+    sbuf_t *sbuf = new sbuf_t(pos0,// set the filename followed by U+10001C in UTF-8
 			      buf,
 			      st.st_size,
 			      st.st_size,
