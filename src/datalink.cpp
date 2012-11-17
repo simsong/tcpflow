@@ -52,7 +52,6 @@
 
 void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
     uint32_t family = *(uint32_t *)p;;
@@ -82,7 +81,9 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 #endif
 
-    demux.process_ip(h->ts,p + NULL_HDRLEN, caplen - NULL_HDRLEN,flow::NO_VLAN);
+    //process_packet(h->ts,p + NULL_HDRLEN, caplen - NULL_HDRLEN,flow::NO_VLAN);
+    packet_info pi(h->ts,p+NULL_HDRLEN,caplen - NULL_HDRLEN,flow::NO_VLAN);
+    process_packet_info(pi);
 }
 
 
@@ -92,7 +93,6 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  * make sure it's marked as being IP. */
 void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
     struct ether_header *eth_header = (struct ether_header *) p;
@@ -124,8 +124,12 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
-	demux.process_ip(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
+	//process_packet_info(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
+    {
+	packet_info pi(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
+	process_packet_info(pi);
 	return;
+    }
 #ifdef ETHERTYPE_ARP
     case ETHERTYPE_ARP:
 #endif
@@ -144,20 +148,6 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
 }
 
-#if 0
-u_int16_t ethtype = ntohs(eth_header->ether_type);
-if (ethtype != ETHERTYPE_IP && ethtype != ETHERTYPE_IPV6) {
-    DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x",
-	      ntohs(eth_header->ether_type));
-    return;
- }
-/* Handle basic Ethernet packets */
-if (ntohs(*ether_type) == ETHERTYPE_IP) {
- }
-#endif  
-
-
-
 /* The DLT_PPP packet header is 4 bytes long.  We just move past it
  * without parsing it.  It is used for PPP on some OSs (DLT_RAW is
  * used by others; see below) */
@@ -165,7 +155,6 @@ if (ntohs(*ether_type) == ETHERTYPE_IP) {
 
 void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -179,7 +168,9 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    demux.process_ip(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,flow::NO_VLAN);
+    //process_packet_info(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,flow::NO_VLAN);
+    packet_info pi(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,flow::NO_VLAN);
+    process_packet_info(pi);
 }
 
 
@@ -188,7 +179,6 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  * and IRIX. */
 void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -196,14 +186,14 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	DEBUG(6) ("warning: only captured %d bytes of %d byte raw frame",
 		  caplen, length);
     }
-
-    demux.process_ip(h->ts,p, caplen,flow::NO_VLAN);
+    //process_packet_info(h->ts,p, caplen,flow::NO_VLAN);
+    packet_info pi(h->ts,p, caplen,flow::NO_VLAN);
+    process_packet_info(pi);
 }
 
 #define SLL_HDR_LEN       16
 
 void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
-    tcpdemux &demux = *(tcpdemux *)user;
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -217,7 +207,9 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
 	return;
     }
   
-    demux.process_ip(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
+    //process_packet_info(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
+    packet_info pi(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
+    process_packet_info(pi);
 }
 
 
@@ -245,12 +237,11 @@ pcap_handler find_handler(int datalink_type, const char *device)
     DEBUG(3) ("looking for handler for datalink type %d for interface %s",
 	      datalink_type, device);
 
-    for (i = 0; handlers[i].handler != NULL; i++)
-	if (handlers[i].type == datalink_type)
-	    return handlers[i].handler;
+    for (i = 0; handlers[i].handler != NULL; i++){
+	if (handlers[i].type == datalink_type) return handlers[i].handler;
+    }
 
-    die("sorry - unknown datalink type %d on interface %s", datalink_type,
-	device);
+    die("sorry - unknown datalink type %d on interface %s", datalink_type, device);
     /* NOTREACHED */
     return NULL;
 }

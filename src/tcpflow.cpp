@@ -12,6 +12,7 @@
 #include "tcpflow.h"
 #include "bulk_extractor_i.h"
 #include <string>
+#include <vector>
 
 const char *progname = 0;		// name of the program
 int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
@@ -29,52 +30,62 @@ sem_t *semlock = 0;
 scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
+    scan_netviz,
+    scan_tcpdemux,
     0};
+
+bool opt_no_promisc = false;		// true if we should not use promiscious mode
+
+/****************************************************************
+ *** USAGE
+ ****************************************************************/
 
 static void usage() __attribute__ ((__noreturn__));
 static void usage()
 {
-    std::cerr << PACKAGE << " version " << VERSION << "\n\n";
-    std::cerr << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
-    std::cerr << "          [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
-    std::cerr << "          [-m min_bytes] [-F[ct]] [expression]\n\n";
-    std::cerr << "        -a: do ALL processing (http expansion, create report.xml, etc.)\n";
-    std::cerr << "        -b: max number of bytes per flow to save\n";
-    std::cerr << "        -B: force binary output to console, even with -c or -C\n";
-    std::cerr << "        -c: console print only (don't create files)\n";
-    std::cerr << "        -C: console print only, but without the display of source/dest header\n";
-    std::cerr << "        -d: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
-    std::cerr << "        -e: output each flow in alternating colors\n";
-    std::cerr << "        -f: maximum number of file descriptors to use\n";
-    std::cerr << "        -h: print this help message\n";
-    std::cerr << "        -i: network interface on which to listen\n";
-    std::cerr << "            (type \"ifconfig -a\" for a list of interfaces)\n";
-    std::cerr << "        -L semlock - specifies that writes are locked using a named semaphore\n";
-    std::cerr << "        -p: don't use promiscuous mode\n";
-    std::cerr << "        -r: read packets from tcpdump pcap file (may be repeated)\n";
-    std::cerr << "        -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
-    std::cerr << "        -s: strip non-printable characters (change to '.')\n";
-    std::cerr << "        -v: verbose operation equivalent to -d 10\n";
-    std::cerr << "        -V: print version number and exit\n";
-    std::cerr << "        -o outdir   : specify output directory (default '.')\n";
-    std::cerr << "        -X filename : DFXML output to filename\n";
-    std::cerr << "        -m bytes    : specifies the minimum number of bytes that a stream may\n";
-    std::cerr << "                      skip before starting a new stream (default "
+    std::cout << PACKAGE << " version " << VERSION << "\n\n";
+    std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
+    std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
+    std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
+    std::cout << "   -a: do ALL processing (http expansion, create report.xml, etc.)\n";
+    std::cout << "   -b: max number of bytes per flow to save\n";
+    std::cout << "   -B: force binary output to console, even with -c or -C\n";
+    std::cout << "   -c: console print only (don't create files)\n";
+    std::cout << "   -C: console print only, but without the display of source/dest header\n";
+    std::cout << "   -d: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
+    std::cout << "   -e: output each flow in alternating colors\n";
+    std::cout << "   -f: maximum number of file descriptors to use\n";
+    std::cout << "   -h: print this help message\n";
+    std::cout << "   -i: network interface on which to listen\n";
+    std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
+    std::cout << "   -p: don't use promiscuous mode\n";
+    std::cout << "   -r: read packets from tcpdump pcap file (may be repeated)\n";
+    std::cout << "   -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
+    std::cout << "   -s: strip non-printable characters (change to '.')\n";
+    std::cout << "   -v: verbose operation equivalent to -d 10\n";
+    std::cout << "   -V: print version number and exit\n";
+    std::cout << "   -o  outdir   : specify output directory (default '.')\n";
+    std::cout << "   -X  filename : DFXML output to filename\n";
+    std::cout << "   -m  bytes    : specifies the minimum number of bytes that a stream may\n";
+    std::cout << "  skip before starting a new stream (default "
 	      << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
-    std::cerr << "        -AH : extract HTTP objects and unzip GZIP-compressed HTTP messages\n";
-    std::cerr << "        -Fc : append the connection counter to ALL filenames\n";
-    std::cerr << "        -Ft : prepend the time_t timestamp to ALL filenames\n";
-    std::cerr << "        -FT : prepend the ISO8601 timestamp to ALL filenames\n";
-    std::cerr << "        -FX : Do not output any files (other than report files)\n";
-    std::cerr << "        -FM : Calculate the MD5 for every flow\n";
-    std::cerr << "        -T<template> : specify an arbitrary filename template (default "
-	      << flow::filename_template << ")\n";
-    std::cerr << "        -Z: do not decompress gzip-compressed HTTP transactions\n";
-    std::cerr << "Depricated: (don't use)\n";
-    std::cerr << "        -P: don't purge tcp connections on FIN (could result in lost data)\n";
-    std::cerr << "expression: tcpdump-like filtering expression\n";
+    std::cout << "   -AH : extract HTTP objects and unzip GZIP-compressed HTTP messages\n";
+    std::cout << "   -Fc : append the connection counter to ALL filenames\n";
+    std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
+    std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
+    std::cout << "   -FX : Do not output any files (other than report files)\n";
+    std::cout << "   -FM : Calculate the MD5 for every flow\n";
+    std::cout << "   -T<template> : specify an arbitrary filename template (default "
+	 << flow::filename_template << ")\n";
+    std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
+    info_scanners(false,scanners_builtin,'E','x');
+    std::cout << "\n";
+    std::cout << "Depricated: (don't use)\n";
+    std::cout << "   -P: don't purge tcp connections on FIN (could result in lost data)\n";
+    std::cout << "\n";
+    std::cout << "expression: tcpdump-like filtering expression\n";
     flow::usage();
-    std::cerr << "\nSee the man page for additional information.\n\n";
+    std::cout << "\nSee the man page for additional information.\n\n";
     exit(0);
 }
 
@@ -114,7 +125,112 @@ void replace(std::string &str,const std::string &from,const std::string &to)
     }
 }
 
-#include <vector>
+/* These must be global variables so they are available in the signal handler */
+feature_recorder_set *the_fs = 0;
+xml *xreport = 0;
+void terminate(int sig)
+{
+    DEBUG(1) ("terminating");
+
+    phase_shutdown(*the_fs,*xreport);	// give plugins a chance to do a clean shutdown
+    exit(0); /* libpcap uses onexit to clean up */
+}
+
+
+/*
+ * process an input file or device
+ * May be repeated.
+ * If start is false, do not initiate new connections
+ */
+static void process_infile(const std::string &expression,const char *device,const std::string &infile)
+{
+    char error[PCAP_ERRBUF_SIZE];
+    pcap_t *pd=0;
+    int dlt=0;
+    pcap_handler handler;
+
+    if (infile!=""){
+	if ((pd = pcap_open_offline(infile.c_str(), error)) == NULL){	/* open the capture file */
+	    die("%s", error);
+	}
+	dlt = pcap_datalink(pd);	/* get the handler for this kind of packets */
+	handler = find_handler(dlt, infile.c_str());
+    } else {
+	/* if the user didn't specify a device, try to find a reasonable one */
+	if (device == NULL){
+	    if ((device = pcap_lookupdev(error)) == NULL){
+		die("%s", error);
+	    }
+	}
+
+	/* make sure we can open the device */
+	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
+	    die("%s", error);
+	}
+#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
+	/* drop root privileges - we don't need them any more */
+	setuid(getuid());
+#endif
+	/* get the handler for this kind of packets */
+	dlt = pcap_datalink(pd);
+	handler = find_handler(dlt, device);
+    }
+
+#if 0
+    if(getenv("TCPFLOW_MFS")) {
+        // wrap the handler so that plugins through the PCB interface will be called
+        pcb::init(handler, true);
+        // currently no non-default plugins are loaded, so do startup right away
+        pcb::do_startup();
+        handler = &pcb::handle;
+    }
+#endif
+
+    /* If DLT_NULL is "broken", giving *any* expression to the pcap
+     * library when we are using a device of type DLT_NULL causes no
+     * packets to be delivered.  In this case, we use no expression, and
+     * print a warning message if there is a user-specified expression
+     */
+#ifdef DLT_NULL_BROKEN
+    if (dlt == DLT_NULL && expression != ""){
+	DEBUG(1)("warning: DLT_NULL (loopback device) is broken on your system;");
+	DEBUG(1)("         filtering does not work.  Recording *all* packets.");
+    }
+#endif /* DLT_NULL_BROKEN */
+
+    DEBUG(20) ("filter expression: '%s'",expression.c_str());
+
+    /* install the filter expression in libpcap */
+    struct bpf_program	fcode;
+    if (pcap_compile(pd, &fcode, expression.c_str(), 1, 0) < 0){
+	die("%s", pcap_geterr(pd));
+    }
+
+    if (pcap_setfilter(pd, &fcode) < 0){
+	die("%s", pcap_geterr(pd));
+    }
+
+    /* initialize our flow state structures */
+
+    /* set up signal handlers for graceful exit (pcap uses onexit to put
+     * interface back into non-promiscuous mode
+     */
+    portable_signal(SIGTERM, terminate);
+    portable_signal(SIGINT, terminate);
+#ifdef SIGHUP
+    portable_signal(SIGHUP, terminate);
+#endif
+
+    /* start listening or reading from the input file */
+    if (infile == "") DEBUG(1) ("listening on %s", device);
+    if (pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance()) < 0){
+	die("%s", pcap_geterr(pd));
+    }
+}
+
+
+
+
 int main(int argc, char *argv[])
 {
     bool force_binary_output = false;
@@ -193,9 +309,7 @@ int main(int argc, char *argv[])
 	    demux.opt.use_color  = 1;
 	    DEBUG(10) ("using colors");
 	    break;
-        case 'E':
-            scanners_enable(optarg);
-            break;
+        case 'E': scanners_enable(optarg); break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){
@@ -224,9 +338,7 @@ int main(int argc, char *argv[])
 	    DEBUG(10) ("max_seek set to %d",demux.opt.max_seek); break;
 	case 'o': demux.outdir = optarg; break;
 	case 'P': demux.opt.opt_no_purge = true; break;
-	case 'p': demux.opt.opt_no_promisc = true;
-	    DEBUG(10) ("NOT turning on promiscuous mode");
-	    break;
+	case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
 	case 'R': Rfiles.push_back(optarg); break;
 	case 'r': rfiles.push_back(optarg); break;
 	case 's': demux.opt.strip_nonprint = 1;
@@ -234,9 +346,10 @@ int main(int argc, char *argv[])
 	case 'T': flow::filename_template = optarg;break;
 	case 'V': std::cout << PACKAGE << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
+	case 'x': scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
 	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
-	case 'H': info_scanners(true,scanners_builtin); exit(0);
+	case 'H': info_scanners(true,scanners_builtin,'E','x'); exit(0);
 	case 'h': case '?': usage(); break;
 	default:
 	    DEBUG(1) ("error: unrecognized switch '%c'", optopt);
@@ -246,6 +359,8 @@ int main(int argc, char *argv[])
     }
     argc -= optind;
     argv += optind;
+
+    if(getenv("TCPFLOW_MFS")) scanners_enable("pcapviz");    /* Special code for Mike */
 
     /* Load all the scanners and enable the ones we care about */
     if(demux.opt.opt_md5) scanners_enable("md5");
@@ -296,7 +411,6 @@ int main(int argc, char *argv[])
 	}
     }
 
-    xml *xreport = 0;
     if(reportfilename.size()>0){
 	xreport = new xml(reportfilename,false);
 	dfxml_create(*xreport,command_line);
@@ -308,12 +422,11 @@ int main(int argc, char *argv[])
 
     DEBUG(10) ("%s version %s ", PACKAGE, VERSION);
 
-
     std::string image_fname;		// input filename?
     feature_file_names_t feature_file_names;
     enable_feature_recorders(feature_file_names);
     feature_recorder_set fs(feature_file_names,image_fname,demux.outdir,false);
-
+    the_fs   = &fs;
     demux.fs = &fs;
 
     if(rfiles.size()==0 && Rfiles.size()==0){
@@ -321,15 +434,19 @@ int main(int argc, char *argv[])
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
 	setuid(getuid());	/* Since we don't need network access, drop root privileges */
 #endif
-        demux.process_infile(expression,device,"",true);
+        process_infile(expression,device,"");
     }
-
-    /* Process rfiles before Rfiles */
-    for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
-	demux.process_infile(expression,device,*it,true);
-    }
-    for(std::vector<std::string>::const_iterator it=Rfiles.begin();it!=Rfiles.end();it++){
-	demux.process_infile(expression,device,*it,false);
+    else {
+	/* first pick up the new connections with -r */
+	demux.start_new_connections = true;
+	for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
+	    process_infile(expression,device,*it);
+	}
+	/* now pick up the outstanding connection with -R, but don't start new connections */
+	demux.start_new_connections = false;
+	for(std::vector<std::string>::const_iterator it=Rfiles.begin();it!=Rfiles.end();it++){
+	    process_infile(expression,device,*it);
+	}
     }
 
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */

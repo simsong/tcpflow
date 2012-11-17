@@ -171,30 +171,6 @@
 #endif
 
 
-/****************************************************************
- *** pcap.h --- If we don't have it, fake it. ---
- ***/
-#if defined(HAVE_LIBPCAP)
-
-/* pcap.h has redundant definitions */
-#  ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
-#    pragma GCC diagnostic ignored "-Wredundant-decls"
-#  endif
-
-#  ifdef HAVE_PCAP_PCAP_H
-#    include <pcap/pcap.h>
-#  else
-#    include <pcap.h>
-#  endif
-
-#  ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
-#    pragma GCC diagnostic warning "-Wredundant-decls"
-#  endif
-
-#else
-#  include "pcap_fake.h"
-#endif
-
 /****************** Ugly System Dependencies ******************************/
 
 /* We always want to refer to RLIMIT_NOFILE, even if what you actually
@@ -301,8 +277,9 @@ pcap_handler find_handler(int datalink_type, const char *device); // callback fo
 /* flow.cpp - handles the flow database */
 void flow_close_all();
 
-/* main.cpp - CLI */
+/* tcpflow.cpp - CLI */
 extern const char *progname;
+void terminate(int sig) __attribute__ ((__noreturn__));
 
 #ifdef HAVE_PTHREAD
 #include <semaphore.h>
@@ -310,6 +287,9 @@ extern sem_t *semlock;
 #endif
 
 /* util.c - utility functions */
+extern int debug;
+
+#define DEBUG_PEDANTIC    0x0001       // check values more rigorously
 void init_debug(char *argv[]);
 void (*portable_signal(int signo, void (*func)(int)))(int);
 void debug_real(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
@@ -319,5 +299,7 @@ void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((f
 
 extern "C" scanner_t scan_md5;
 extern "C" scanner_t scan_http;
+extern "C" scanner_t scan_tcpdemux;
+extern "C" scanner_t scan_netviz;
 
 #endif /* __TCPFLOW_H__ */

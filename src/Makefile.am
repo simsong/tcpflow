@@ -28,8 +28,11 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	feature_recorder.cpp feature_recorder_set.cpp \
 	tcpip.cpp tcpdemux.h tcpdemux.cpp tcpflow.h xml.h xml.cpp util.cpp \
 	unicode_escape.h unicode_escape.cpp \
-	md5.h md5.c iface_pcb.cpp iface_pcb.h pcb_timehistogram.cpp \
+	md5.h md5.c \
 	scan_md5.cpp \
 	scan_http.cpp \
+	scan_tcpdemux.cpp \
+	time_histogram.cpp time_histogram.h scan_netviz.cpp \
 	$(BE13_API)
+
 

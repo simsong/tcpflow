@@ -1,20 +1,15 @@
-/*
+/**
+ *
+ * flow.cpp:
+ *
+ * The flow class is used to track individual TCP/IP flows (2 per connection).
+ * The class implements the methods that turn a flow into a filename.
+ *
  * This file is part of tcpflow by Jeremy Elson <jelson@circlemud.org>
  * Initial Release: 7 April 1999.
  *
  * This source code is under the GNU Public License (GPL).  See
  * LICENSE for details.
- *
- * $Id: flow.c,v 1.6 1999/04/13 01:38:11 jelson Exp $
- *
- * $Log: flow.c,v $
- * Revision 1.6  1999/04/13 01:38:11  jelson
- * Added portability features with 'automake' and 'autoconf'.  Added AUTHORS,
- * NEWS, README, etc files (currently empty) to conform to GNU standards.
- *
- * Various portability fixes, including the FGETPOS/FSETPOS macros; detection
- * of header files using autoconf; restructuring of debugging code to not
- * need vsnprintf.
  *
  */
 
@@ -23,31 +18,23 @@
 #include <iostream>
 #include <sstream>
 
-
-int32_t flow::NO_VLAN = -1;
+#define ETH_ALEN 6
+#ifndef HAVE_INET_NTOP
+#include "inet_ntop.c"
+#endif
 
 std::string flow::filename_template("%A.%a-%B.%b%V%v%C%c");
 
 void flow::usage()
 {
-    std::cerr << "Filename template format:\n";
-    std::cerr << "  %A/%a - source IP address/port\n";
-    std::cerr << "  %B/%b - dest IP address/port\n";
-    std::cerr << "  %T/%t - Timestamp in ISO8601 format/unix time_t\n";
-    std::cerr << "  %V/%v - VLAN number, '--' if no vlan/'' if no vlan\n";
-    std::cerr << "  %c/%# - connection_count; if >0/always \n";
-    std::cerr << "  %C - 'c' if connection_count >0\n";
-    std::cerr << "  %% - Output a '%'\n";
-    std::cerr << "\n";
-    std::cerr << "Default filename template is " << filename_template << "\n";
+    std::cout << "Filename template format:\n";
+    std::cout << "  %A/%a - source IP address/port;          %B/%b - dest IP address/port\n";
+    std::cout << "  %c/%# - connection_count;                %C - 'c' if connection_count >0\n";
+    std::cout << "  %V/%v - VLAN number, '--' if no vlan/'' if no vlan\n";
+    std::cout << "  %T/%t - Timestamp in ISO8601 format/unix time_t\n";
+    std::cout << "  %% - Output a '%'\n";
+    std::cout << "\n";
 }
-
-#define ETH_ALEN 6
-
-#ifndef HAVE_INET_NTOP
-#include "inet_ntop.c"
-#endif
-
 
 std::string flow::filename()
 {

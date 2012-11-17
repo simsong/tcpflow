@@ -1,4 +1,8 @@
-/*
+/**
+ * 
+ * tcpdemux.cpp
+ * A tcpip demultiplier.
+ *
  * This file is part of tcpflow by Simson Garfinkel,
  * originally by Jeremy Elson <jelson@circlemud.org>
  *
@@ -12,10 +16,12 @@
 
 #include <iostream>
 #include <sstream>
+#include <vector>
+
+
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),max_fds(10),flow_map(),
-		     start_new_connections(false),
+		     xreport(0),max_fds(10),flow_map(),start_new_connections(false),
 		     openflows(),
 		     opt(),fs()
 		     
@@ -544,21 +550,6 @@ void tcpdemux::process_ip(const struct timeval &ts,const u_char *data, uint32_t 
 }
  
  
-/* This has to go somewhere; might as well be here */
-static void terminate(int sig) __attribute__ ((__noreturn__));
-static void terminate(int sig)
-{
-    DEBUG(1) ("terminating");
-
-    if(getenv("TCPFLOW_MFS")) {
-        // shut down PCB plugins
-        pcb::do_shutdown();
-    }
-
-    exit(0); /* libpcap uses onexit to clean up */
-}
-
-
 /************
  *** MMAP ***
  ************/
@@ -664,105 +655,5 @@ void tcpdemux::post_process_capture_flow(std::stringstream &xmladd,
 	process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs,&xmladd));
     }
     ::close(fd2);
-}
-
-
-
-
-
-/*
- * process an input file or device
- * May be repeated.
- * If start is false, do not initiate new connections
- */
-void tcpdemux::process_infile(const std::string &expression,const char *device,const std::string &infile,bool start)
-{
-    char error[PCAP_ERRBUF_SIZE];
-    pcap_t *pd=0;
-    int dlt=0;
-    pcap_handler handler;
-
-    start_new_connections = start;
-    if (infile!=""){
-	if ((pd = pcap_open_offline(infile.c_str(), error)) == NULL){	/* open the capture file */
-	    die("%s", error);
-	}
-
-	dlt = pcap_datalink(pd);	/* get the handler for this kind of packets */
-	handler = find_handler(dlt, infile.c_str());
-    } else {
-	/* if the user didn't specify a device, try to find a reasonable one */
-	if (device == NULL){
-	    if ((device = pcap_lookupdev(error)) == NULL){
-		die("%s", error);
-	    }
-	}
-
-	/* make sure we can open the device */
-	if ((pd = pcap_open_live(device, SNAPLEN, !opt.opt_no_promisc, 1000, error)) == NULL){
-	    die("%s", error);
-	}
-#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
-	/* drop root privileges - we don't need them any more */
-	setuid(getuid());
-#endif
-	/* get the handler for this kind of packets */
-	dlt = pcap_datalink(pd);
-	handler = find_handler(dlt, device);
-    }
-
-    if(getenv("TCPFLOW_MFS")) {
-        // wrap the handler so that plugins through the PCB interface will be called
-        pcb::init(handler, true);
-        // currently no non-default plugins are loaded, so do startup right away
-        pcb::do_startup();
-        handler = &pcb::handle;
-    }
-
-    /* If DLT_NULL is "broken", giving *any* expression to the pcap
-     * library when we are using a device of type DLT_NULL causes no
-     * packets to be delivered.  In this case, we use no expression, and
-     * print a warning message if there is a user-specified expression
-     */
-#ifdef DLT_NULL_BROKEN
-    if (dlt == DLT_NULL && expression != ""){
-	DEBUG(1)("warning: DLT_NULL (loopback device) is broken on your system;");
-	DEBUG(1)("         filtering does not work.  Recording *all* packets.");
-    }
-#endif /* DLT_NULL_BROKEN */
-
-    DEBUG(20) ("filter expression: '%s'",expression.c_str());
-
-    /* install the filter expression in libpcap */
-    struct bpf_program	fcode;
-    if (pcap_compile(pd, &fcode, expression.c_str(), 1, 0) < 0){
-	die("%s", pcap_geterr(pd));
-    }
-
-    if (pcap_setfilter(pd, &fcode) < 0){
-	die("%s", pcap_geterr(pd));
-    }
-
-    /* initialize our flow state structures */
-
-    /* set up signal handlers for graceful exit (pcap uses onexit to put
-     * interface back into non-promiscuous mode
-     */
-    portable_signal(SIGTERM, terminate);
-    portable_signal(SIGINT, terminate);
-#ifdef SIGHUP
-    portable_signal(SIGHUP, terminate);
-#endif
-
-    /* start listening! */
-    if (infile == "") DEBUG(1) ("listening on %s", device);
-    if (pcap_loop(pd, -1, handler, (u_char *)this) < 0){
-	die("%s", pcap_geterr(pd));
-    }
-
-    if(getenv("TCPFLOW_MFS")) {
-        // shut down PCB plugins
-        pcb::do_shutdown();
-    }
 }
 

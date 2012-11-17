@@ -1,8 +1,11 @@
 #ifndef FLOW_H
 #define FLOW_H
 
-/*
+/**
  * tcpdemux.h
+ *
+ * a tcpip demultiplier.
+ *
  * Defines the basic classes used by the tcpflow program. This includes:
  * - IP, TCP and UDP structures
  * - class ipaddr    - IP address (IPv4 and IPv6)
@@ -41,10 +44,6 @@ typedef unsigned short int sa_family_t;
 #define __BIG_ENDIAN 4321
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
-
-extern int debug;
-
-#define DEBUG_PEDANTIC    0x0001// check values more rigorously
 
 /*
  * Structure of an internet header, naked of options.
@@ -113,48 +112,38 @@ public:;
     ipaddr(){
 	memset(addr,0,sizeof(addr));
     }
-    ipaddr(const in_addr_t &a){
-	addr[0] = ((uint8_t *)&a)[0];
+    ipaddr(const in_addr_t &a){		// copy operator
+	addr[0] = ((uint8_t *)&a)[0];	// copy the bottom 4 octets and blank the top 12
 	addr[1] = ((uint8_t *)&a)[1];
 	addr[2] = ((uint8_t *)&a)[2];
 	addr[3] = ((uint8_t *)&a)[3];
 	memset(addr+4,0,12);
     }
-    ipaddr(const uint8_t a[16]){
+    ipaddr(const uint8_t a[16]){	// begin wiped
 	memcpy(addr,a,16);
     }
 
     uint8_t addr[16];			// holds v4 or v16
-    inline bool operator ==(const ipaddr &b) const{
-	return 	memcmp(this->addr,b.addr,sizeof(addr))==0;
-    };
-    inline bool operator <=(const ipaddr &b) const{
-	return 	memcmp(this->addr,b.addr,sizeof(addr))<=0;
-    };
-    inline bool operator >(const ipaddr &b) const{
-	return 	memcmp(this->addr,b.addr,sizeof(addr))>0;
-    };
-    inline bool operator >=(const ipaddr &b) const{
-	return 	memcmp(this->addr,b.addr,sizeof(addr))>=0;
-    };
-    inline bool operator <(const ipaddr &b) const {
-	return  memcmp(this->addr,b.addr,sizeof(this->addr))<0;
-    }
+    inline bool operator ==(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))==0; };
+    inline bool operator <=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))<=0; };
+    inline bool operator > (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>0; };
+    inline bool operator >=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>=0; };
+    inline bool operator < (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(this->addr))<0; }
     inline in_addr_t quad0() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[0]; }
     inline in_addr_t quad2() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[1]; }
     inline in_addr_t quad3() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[2]; }
     inline in_addr_t quad4() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[3]; }
-    inline bool isv4() const {
+    inline bool isv4() const {		// is this an IPv6 address?
 	uint32_t *i = (uint32_t *)((uint8_t *)&addr);
 	return i[1]==0 && i[2]==0 && i[3]==0;
     }
 };
 
 inline std::ostream & operator <<(std::ostream &os,const ipaddr &b)  {
-	os << (int)b.addr[0] <<"."<<(int)b.addr[1] << "."
-	   << (int)b.addr[2] << "." << (int)b.addr[3];
-	return os;
-    }
+    os << (int)b.addr[0] <<"."<<(int)b.addr[1] << "."
+       << (int)b.addr[2] << "." << (int)b.addr[3];
+    return os;
+}
 
 inline bool operator ==(const struct timeval &a,const struct timeval &b) {
     return a.tv_sec==b.tv_sec && a.tv_usec==b.tv_usec;
@@ -170,8 +159,7 @@ inline bool operator <(const struct timeval &a,const struct timeval &b) {
  */
 class flow_addr {
 public:
-    flow_addr():src(),dst(),sport(0),dport(0),family(0){
-    }
+    flow_addr():src(),dst(),sport(0),dport(0),family(0){ }
     flow_addr(ipaddr s,ipaddr d,uint16_t sp,uint16_t dp,sa_family_t f):
 	src(s),dst(d),sport(sp),dport(dp),family(f){
     }
@@ -234,15 +222,15 @@ class flow : public flow_addr {
 public:;
     static void usage();			// print information on flow notation
     static std::string filename_template;	// 
-    static int32_t NO_VLAN;			/* vlan flag for no vlan */
+    static const int32_t NO_VLAN=-1;			/* vlan flag for no vlan */
     flow():id(),vlan(),tstart(),tlast(),packet_count(),connection_count(){};
     flow(const flow_addr &flow_addr_,int32_t vlan_,const struct timeval &t1,
-	   const struct timeval &t2,uint64_t id_,uint64_t connection_count_):
+	 const struct timeval &t2,uint64_t id_,uint64_t connection_count_):
 	flow_addr(flow_addr_),id(id_),vlan(vlan_),tstart(t1),tlast(t2),
 	packet_count(0),connection_count(connection_count_){}
     virtual ~flow(){};
-    uint64_t    id;			// flow_counter when this flow was created
-    int32_t	vlan;			// vlan interface we observed; -1 means no vlan 
+    uint64_t  id;			// flow_counter when this flow was created
+    int32_t   vlan;			// vlan interface we observed; -1 means no vlan 
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
     uint64_t packet_count;			// packet count
@@ -276,16 +264,6 @@ public:
 };
 
 
-/* see http://mikecvet.wordpress.com/tag/hashing/ */
-typedef struct {
-    long operator() (const flow_addr &k) const {return k.hash(); }
-} flow_addr_hash;
-
-typedef struct {
-    bool operator() (const flow_addr &x, const flow_addr &y) const { return x==y;}
-} flow_addr_key_eq;
-
-
 /*
  * A tcpip is a flow that is being reconstructed.
  * It includes:
@@ -296,6 +274,7 @@ typedef struct {
 
 class tcpip {
 public:
+    /** track the direction of the flow; this is largely unused */
     typedef enum {
 	unknown=0,			// unknown direction
 	dir_sc,				// server-to-client
@@ -320,6 +299,7 @@ private:
     }
     tcpip &operator=(const tcpip &that) { throw new not_impl(); }
     /*** End Effective C++ error suppression */
+
 public:;
     /* instances - individual tcp/ip flows */
     tcpip(class tcpdemux &demux_,const flow &flow_,tcp_seq isn_);    /* constructor in tcpip.cpp */
@@ -345,7 +325,6 @@ public:;
     uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
     uint64_t    violations;		// protocol violation count
-    //context_md5_t *md5;			// md5 context if MD5 calculation in use, otherwise NULL
 
     /* Methods */
     void close_file();				// close fp
@@ -378,6 +357,16 @@ private:
     tcpdemux &operator=(const tcpdemux &that){
 	throw new not_impl();
     }
+
+    /* see http://mikecvet.wordpress.com/tag/hashing/ */
+    typedef struct {
+	long operator() (const flow_addr &k) const {return k.hash(); }
+    } flow_addr_hash;
+
+    typedef struct {
+	bool operator() (const flow_addr &x, const flow_addr &y) const { return x==y;}
+    } flow_addr_key_eq;
+
     typedef std::tr1::unordered_set<class tcpip *> tcpset;
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // should be unordered_map
     tcpdemux();
@@ -388,7 +377,7 @@ public:
 	enum { MAX_SEEK=1024*1024*16 };
 	options():console_output(false),opt_output_enabled(true),opt_md5(false),
 		  opt_after_header(false),opt_gzip_decompress(true),
-		  opt_no_promisc(false),max_bytes_per_flow(),
+		  max_bytes_per_flow(),
 		  max_desired_fds(),max_flows(0),suppress_header(0),
 		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK),
 		  opt_no_purge(false) {
@@ -398,7 +387,6 @@ public:
 	bool	opt_md5;		// do we calculate MD5 on DFXML output?
 	bool	opt_after_header;	// decode headers after tcp connection closes
 	bool	opt_gzip_decompress;
-	bool	opt_no_promisc;		// do not be promiscious
 	uint64_t max_bytes_per_flow;
 	uint32_t max_desired_fds;
 	uint32_t max_flows;
@@ -432,26 +420,25 @@ public:
     int   retrying_open(const std::string &filename,int oflag,int mask);
 
     /* the flow database */
-    tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn,
-			       const timeval &ts,uint64_t connection_count);
+    tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn, const timeval &ts,uint64_t connection_count);
     tcpip *find_tcpip(const flow_addr &flow);
+
+#if 0
+    struct packet_info_t {
+	const strcut timeval &ts;
+	const u_char *data;
+	uint32_t caplen;
+	int32_t vlan;
+	sa_family_t family;
+    };
+#endif
     void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
 			    const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
     void  process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
     void  process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
     void  process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
     void  flow_map_clear();		// clears out the map
-    void  process_infile(const std::string &expression,const char *device,const std::string &infile,bool start);
     void  post_process_capture_flow(std::stringstream &byte_runs,const std::string &flow_pathname);
 };
-
-#if 0
-inline std::ostream & operator << (std::ostream &os,const tcpdemux::flow_map_t &fm) {
-    for(tcpdemux::flow_map_t::const_iterator it=fm.begin();it!=fm.end();it++){
-	os << "first: " << it->first << " second: " << *it->second << "\n";
-    }
-    return os;
-};
-#endif
 
 #endif

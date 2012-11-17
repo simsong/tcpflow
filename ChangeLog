@@ -1,3 +1,7 @@
+2012-11-17  Simson Garfinkel  <simsong@npsair.local>
+
+	* src/tcpflow.cpp (usage): usage now goes to stdout and not stderr.
+
 2012-11-15  Simson Garfinkel  <simsong@npsair.local>
 
 	* src/tcpdemux.h (class tcpdemux): retrying_open now takes a std:;string

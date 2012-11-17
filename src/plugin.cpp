@@ -17,6 +17,7 @@
 
 uint32_t scanner_def::max_depth = 5;		// max recursion depth
 
+
 /****************************************************************
  *** misc support
  ****************************************************************/
@@ -72,6 +73,9 @@ static void errx(int eval,const char *fmt,...)
 
 scanner_params::PrintOptions scanner_params::no_options; 
 scanner_vector current_scanners;				// current scanners
+
+
+
 /**
  * return true a scanner is enabled
  */
@@ -111,8 +115,38 @@ static void set_scanner_enabled_all(bool enable)
 
 histograms_t histograms;
 
+/****************************************************************
+ *** Packet plugin support
+ ***/
+
+class packet_plugin_info {
+public:
+    packet_plugin_info(void *user_,packet_callback_t *callback_):user(user_),callback(callback_){};
+    void *user;
+    packet_callback_t *callback;
+};
+
+typedef vector<packet_plugin_info> packet_plugin_info_vector_t;
+packet_plugin_info_vector_t  packet_handlers;	// pcap callback handlers
+
+/**
+ * Process a pcap packet
+ */
+void process_packet_info(const packet_info &pi)
+{
+    for(packet_plugin_info_vector_t::iterator it = packet_handlers.begin(); it != packet_handlers.end(); it++){
+	(*(*it).callback)((*it).user,pi);
+    }
+}
+
+
+
 /**
  * plugin system phase 0: Load a scanner.
+ * As part of scanner loading, determine:
+ * - feature files that the scanner requires
+ * - Histograms that the scanner makes
+ * - pcap handlers that the scanner uses
  */
 void load_scanner(const scanner_t &scanner )
 {
@@ -124,15 +158,16 @@ void load_scanner(const scanner_t &scanner )
     pos0_t	pos0;
     sbuf_t	sbuf(pos0);
     feature_recorder_set fs(feature_recorder_set::DISABLED); // dummy
-    scanner_params sp(scanner_params::startup,sbuf,fs);	// 
-    
-    scanner_def *sd = new scanner_def(); // will keep
-    sd->scanner = scanner;
 
+    // Create an empty scanner param to get startup information
+    scanner_params sp(scanner_params::startup,sbuf,fs);	// 
+    scanner_def *sd = new scanner_def(); 
+    sd->scanner = scanner;
     sp.phase = scanner_params::startup;				// startup
     sp.info  = &sd->info;
 
-    recursion_control_block rcb(0,"",0); // empty rcb
+    // Make an empty recursion control block and get the scanner's startup 
+    recursion_control_block rcb(0,"",0); 
     (*scanner)(sp,rcb);			 // phase 0
     
     sd->enabled      = !(sd->info.flags & scanner_info::SCANNER_DISABLED);
@@ -142,13 +177,9 @@ void load_scanner(const scanner_t &scanner )
 	histograms.insert((*it));
     }
     current_scanners.push_back(sd);
+    if(sd->info.packet_cb) packet_handlers.push_back(packet_plugin_info(sd->info.packet_user,sd->info.packet_cb));
 }
 
-
-
-#ifdef HAVE_DLFCN_H
-#include <dlfcn.h>
-#endif
 
 static void load_scanner_file(string fn )
 {
@@ -340,7 +371,7 @@ void enable_feature_recorders(feature_file_names_t &feature_file_names)
     }
 }
 
-void info_scanners(bool detailed,const scanner_t *scanners_builtin[])
+void info_scanners(bool detailed,const scanner_t *scanners_builtin[],const char enable_opt,const char disable_opt)
 {
     /* Print a list of scanners */
     load_scanners(scanners_builtin /* ,histograms */);
@@ -380,11 +411,11 @@ void info_scanners(bool detailed,const scanner_t *scanners_builtin[])
     sort(disabled_wordlist.begin(),disabled_wordlist.end());
     sort(enabled_wordlist.begin(),enabled_wordlist.end());
     for(std::vector<std::string>::const_iterator it = disabled_wordlist.begin();it!=disabled_wordlist.end();it++){
-	std::cout << "   -e " <<  *it << " - enable scanner " << *it << "\n";
+	std::cout << "   -" << enable_opt << " " <<  *it << " - enable scanner " << *it << "\n";
     }
     std::cout << "\n";
     for(std::vector<std::string>::const_iterator it = enabled_wordlist.begin();it!=enabled_wordlist.end();it++){
-	std::cout << "   -x " <<  *it << " - disable scanner " << *it << "\n";
+	std::cout << "   -" << disable_opt << " " <<  *it << " - disable scanner " << *it << "\n";
     }
 }
 
@@ -486,5 +517,6 @@ void process_sbuf(const class scanner_params &sp)
     }
     fs.flush_all();
 }
+
 
 
