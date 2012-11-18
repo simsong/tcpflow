@@ -37,10 +37,10 @@ checkmd5()
   fi
 
   md5val=`openssl md5 $1 | awk '{print $2;}'`
-  if [ $2 != $md5val ];
+  if [ x$2 != x$md5val ];
   then 
      echo failure:         $1
-     echo expected md5:    $2 "(got $md5val)"
+     echo expected md5:    $2 "(got '$md5val')"
      echo expected length: $3
      ls -l $1
      exit 1
