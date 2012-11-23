@@ -122,6 +122,7 @@ void time_format(struct tm *time, char *buf, int buflen)
 // quickly try and get the port out of the packet.  It is assumed that the
 // packet is an IPv4 or 6 datagram in an ethernet frame.
 // any and all errors simply result in -1 being returned
+#pragma GCC diagnostic ignored "-Wcast-align"
 int get_tcp_port(const packet_info &pi)
 {
     // keep track of the length of the packet not yet examined
@@ -146,9 +147,7 @@ int get_tcp_port(const packet_info &pi)
     }
 #endif
     // only one of these is safe to use!
-#pragma GCC diagnostic ignored "-Wcast-align"
     const struct ip *ip_header = (struct ip *) pi.data;
-#pragma GCC diagnostic warning "-Wcast-align"
     const struct private_ip6_hdr *ip6_header = (struct private_ip6_hdr *) pi.data;
 
     u_char *ip_data=0;
@@ -178,12 +177,10 @@ int get_tcp_port(const packet_info &pi)
         return -1;
     }
 
-#pragma GCC diagnostic ignored "-Wcast-align"
     struct tcphdr *tcp_header = (struct tcphdr *) ip_data;
-#pragma GCC diagnostic warning "-Wcast-align"
-
     return ntohs(tcp_header->th_dport);
 }
+#pragma GCC diagnostic warning "-Wcast-align"
 
 //
 // Rendering classes

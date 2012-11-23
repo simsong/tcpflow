@@ -14,6 +14,10 @@
 #include <string>
 #include <vector>
 
+#ifdef HAVE_NETINET_IP_H
+#include <netinet/ip.h>
+#endif
+
 const char *progname = 0;		// name of the program
 int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
 

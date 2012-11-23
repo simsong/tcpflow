@@ -275,11 +275,8 @@ AC_CHECK_HEADERS([\
 	inttypes.h \
 	linux/if_ether.h \
 	net/ethernet.h \
-	net/if_var.h \
-	netinet/if_ether.h \
 	netinet/in.h \
 	netinet/in_systm.h \
-	netinet/ip.h \
 	netinet/tcp.h \
 	pcap.h \
 	pcap/pcap.h \
@@ -305,8 +302,21 @@ AC_CHECK_HEADERS([\
 # These all require additional headers. See:
 # http://www.gnu.org/software/autoconf/manual/autoconf-2.67/html_node/Present-But-Cannot-Be-Compiled.html
 #
+AC_CHECK_HEADERS([net/if_var.h], [], [],
+[[
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <net/if.h>
+]])
+
+
+
 AC_CHECK_HEADERS([net/if.h], [], [],
 [[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
 #if HAVE_NET_IF_VAR_H
 #include <net/if_var.h>
 #endif
@@ -318,13 +328,45 @@ AC_CHECK_HEADERS([net/if.h], [], [],
  
 AC_CHECK_HEADERS([netinet/ip_var.h], [], [],
 [[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 ]])
  
+AC_CHECK_HEADERS([netinet/ip.h], [], [],
+[[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#if HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+]])
+ 
+AC_CHECK_HEADERS([netinet/ip_ether.h], [], [],
+[[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#if HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+]])
+ 
+
+
 AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 [[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -339,6 +381,10 @@ AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap futimes futimens bcopy bzero])
 AC_CHECK_TYPES([socklen_t], [], [], 
 [[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
@@ -355,6 +401,10 @@ AC_CHECK_TYPES([socklen_t], [], [],
 
 AC_CHECK_TYPES([sa_family_t], [], [], 
 [[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
