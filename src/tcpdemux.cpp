@@ -12,7 +12,6 @@
  */
 
 #include "tcpflow.h"
-#include "iface_pcb.h"
 
 #include <iostream>
 #include <sstream>
@@ -283,7 +282,9 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	return;
     }
 
+#pragma GCC diagnostic ignored "-Wcast-align"
     struct tcphdr *tcp_header = (struct tcphdr *) data;
+#pragma GCC diagnostic warning "-Wcast-align"
 
     /* calculate the total length of the TCP header including options */
     u_int tcp_header_len = tcp_header->th_off * 4;
@@ -405,7 +406,9 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
  * Note: we currently don't know how to handle IP fragments. */
 void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
 {
+#pragma GCC diagnostic ignored "-Wcast-align"
     const struct ip *ip_header = (struct ip *) data;
+#pragma GCC diagnostic warning "-Wcast-align"
     u_int ip_header_len;
     u_int ip_total_len;
 
@@ -536,7 +539,9 @@ void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const ui
 
 void tcpdemux::process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
 {
+#pragma GCC diagnostic ignored "-Wcast-align"
     const struct ip *ip_header = (struct ip *) data;
+#pragma GCC diagnostic warning "-Wcast-align"
     if (caplen < sizeof(struct ip)) {
 	DEBUG(6) ("can't determine IP datagram version!");
 	return;

@@ -138,8 +138,13 @@ WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
     -Wshadow -Wwrite-strings -Wcast-align  \
     -Wredundant-decls -Wdisabled-optimization \
     -Wfloat-equal -Wmultichar -Wmissing-noreturn \
-    -Wstrict-null-sentinel -Woverloaded-virtual -Wsign-promo \
+    -Woverloaded-virtual -Wsign-promo \
     -funit-at-a-time"
+
+if test x$CXX != "xclang++" ; then
+  # -Wstrict-null-sentinel is not supported under clang
+  WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
+fi
 
 if test $mingw = "no" ; then
   # add the warnings we don't want to do on mingw

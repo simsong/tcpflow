@@ -54,7 +54,9 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
     u_int length = h->len;
+#pragma GCC diagnostic ignored "-Wcast-align"
     uint32_t family = *(uint32_t *)p;;
+#pragma GCC diagnostic warning "-Wcast-align"
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte null frame",
@@ -95,7 +97,9 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
     u_int length = h->len;
+#pragma GCC diagnostic ignored "-Wcast-align"
     struct ether_header *eth_header = (struct ether_header *) p;
+#pragma GCC diagnostic warning "-Wcast-align"
 
     /* Variables to support VLAN */
     int32_t vlan = flow::NO_VLAN;			       /* default is no vlan */
@@ -109,7 +113,9 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     /* Handle basic VLAN packets */
     if (ntohs(*ether_type) == ETHERTYPE_VLAN) {
+#pragma GCC diagnostic ignored "-Wcast-align"
 	vlan = ntohs(*(u_short *)(p+sizeof(struct ether_header)));
+#pragma GCC diagnostic warning "-Wcast-align"
 	ether_type += 2;			/* skip past VLAN header (note it skips by 2s) */
 	ether_data += 4;			/* skip past VLAN header */
 	caplen     -= 4;

@@ -129,6 +129,8 @@ public:;
     inline bool operator > (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>0; };
     inline bool operator >=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>=0; };
     inline bool operator < (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(this->addr))<0; }
+
+#pragma GCC diagnostic ignored "-Wcast-align"
     inline in_addr_t quad0() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[0]; }
     inline in_addr_t quad2() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[1]; }
     inline in_addr_t quad3() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[2]; }
@@ -137,6 +139,7 @@ public:;
 	uint32_t *i = (uint32_t *)((uint8_t *)&addr);
 	return i[1]==0 && i[2]==0 && i[3]==0;
     }
+#pragma GCC diagnostic warning "-Wcast-align"
 };
 
 inline std::ostream & operator <<(std::ostream &os,const ipaddr &b)  {
@@ -173,6 +176,7 @@ public:
     uint16_t    dport;		// Destination port number 
     sa_family_t family;		// AF_INET or AF_INET6 */
 
+#pragma GCC diagnostic ignored "-Wcast-align"
     uint64_t hash() const {
 	if(family==AF_INET){
 	    uint32_t *s =  (uint32_t *)src.addr; uint64_t S0 = s[0];
@@ -184,6 +188,7 @@ public:
 	    return (S0<<32 ^ D0) ^ (D0<<32 ^ S0) ^ (S8 ^ D8) ^ (sport<<16 | dport);
 	}
     }
+#pragma GCC diagnostic warning "-Wcast-align"
 
     inline bool operator ==(const flow_addr &b) const {
 	return this->src==b.src &&
@@ -243,8 +248,10 @@ public:;
  */
 class tcp_header_t {
 public:
+#pragma GCC diagnostic ignored "-Wcast-align"
     tcp_header_t(const u_char *data):
 	tcp_header((struct tcphdr *)data){};
+#pragma GCC diagnostic warning "-Wcast-align"
     tcp_header_t(const tcp_header_t &b):
 	tcp_header(b.tcp_header){}
     tcp_header_t &operator=(const tcp_header_t &that) {
@@ -288,7 +295,7 @@ private:
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
-    tcpip(const tcpip &t):demux(t.demux),myflow(),dir(),isn(),nsn(),
+    tcpip(const tcpip &t) __attribute__((__noreturn__)) : demux(t.demux),myflow(),dir(),isn(),nsn(),
 			  syn_count(),pos(),
 			  flow_pathname(),fd(),file_created(),
 			  bytes_processed(),omitted_bytes(),
@@ -350,7 +357,7 @@ private:
 	    return "copying tcpdemux objects is not implemented.";
 	}
     };
-    tcpdemux(const tcpdemux &t):outdir("."),flow_counter(),packet_counter(),xreport(),
+    tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),
 				max_fds(),flow_map(),start_new_connections(),openflows(),opt(),fs(){
 	throw new not_impl();
     }

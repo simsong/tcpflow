@@ -22,7 +22,7 @@ class cppmutex {
     };
 
     pthread_mutex_t M;
-    cppmutex(const cppmutex &c):M(){throw new not_impl();}
+    cppmutex(const cppmutex &c) __attribute__((__noreturn__)) :M(){throw new not_impl();}
     const cppmutex &operator=(const cppmutex &cp){ throw new not_impl();}
 public:
     cppmutex():M(){

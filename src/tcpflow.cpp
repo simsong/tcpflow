@@ -278,13 +278,9 @@ int main(int argc, char *argv[])
 	    }
 	    break;
 	case 'b':
-	    if ((demux.opt.max_bytes_per_flow = atoi(optarg)) < 0) {
-		DEBUG(1) ("warning: invalid value '%s' used with -b ignored", optarg);
-		demux.opt.max_bytes_per_flow = 0;
-	    } else {
-		if(debug > 1) {
-		    std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
-		}
+	    demux.opt.max_bytes_per_flow = atoi(optarg);
+	    if(debug > 1) {
+		std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
 	    }
 	    break;
 	case 'B':

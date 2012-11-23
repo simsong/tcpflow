@@ -49,8 +49,6 @@
 #define MUTEX_UNLOCK(M) {}
 #endif
 
-using namespace std;
-
 #include <iostream>
 #include <stdarg.h>
 #include <string.h>
@@ -68,6 +66,8 @@ using namespace std;
 #else
 # include <unistd.h>
 #endif
+
+using namespace std;
 
 #include "xml.h"
 

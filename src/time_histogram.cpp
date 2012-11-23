@@ -146,7 +146,9 @@ int get_tcp_port(const packet_info &pi)
     }
 #endif
     // only one of these is safe to use!
+#pragma GCC diagnostic ignored "-Wcast-align"
     const struct ip *ip_header = (struct ip *) pi.data;
+#pragma GCC diagnostic warning "-Wcast-align"
     const struct private_ip6_hdr *ip6_header = (struct private_ip6_hdr *) pi.data;
 
     u_char *ip_data=0;
@@ -176,7 +178,9 @@ int get_tcp_port(const packet_info &pi)
         return -1;
     }
 
+#pragma GCC diagnostic ignored "-Wcast-align"
     struct tcphdr *tcp_header = (struct tcphdr *) ip_data;
+#pragma GCC diagnostic warning "-Wcast-align"
 
     return ntohs(tcp_header->th_dport);
 }
