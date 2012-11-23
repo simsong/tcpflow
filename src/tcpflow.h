@@ -151,12 +151,12 @@
 /* Linux libc5 systems have different names for certain structures.
  * Patch sent by Johnny Tevessen <j.tevessen@gmx.net>
  */
-#if !defined(HAVE_NETINET_IF_ETHER_H) && defined(HAVE_LINUX_IF_ETHER_H)
-# include <linux/if_ether.h>
-# define ether_header ethhdr
-# define ether_type h_proto
-# define ETHERTYPE_IP ETH_P_IP
-#endif
+//#if !defined(HAVE_NETINET_IF_ETHER_H) && defined(HAVE_LINUX_IF_ETHER_H)
+//# include <linux/if_ether.h>
+//# define ether_header ethhdr
+//# define ether_type h_proto
+//# define ETHERTYPE_IP ETH_P_IP
+//#endif
 
 /*
  * Oracle Enterprise Linux is missing the definition for

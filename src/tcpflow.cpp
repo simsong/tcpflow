@@ -173,7 +173,9 @@ static void process_infile(const std::string &expression,const char *device,cons
 	}
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
 	/* drop root privileges - we don't need them any more */
-	setuid(getuid());
+	if(setuid(getuid())){
+	    perror("setuid");
+	}
 #endif
 	/* get the handler for this kind of packets */
 	dlt = pcap_datalink(pd);
@@ -432,7 +434,10 @@ int main(int argc, char *argv[])
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
-	setuid(getuid());	/* Since we don't need network access, drop root privileges */
+        /* Since we don't need network access, drop root privileges */
+	if(setuid(getuid())){
+	    perror("setuid");
+	}
 #endif
         process_infile(expression,device,"");
     }
