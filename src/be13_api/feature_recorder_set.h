@@ -26,7 +26,7 @@ private:
 	    return "copying feature_recorder objects is not implemented.";
 	}
     };
-    feature_recorder_set(const feature_recorder_set &fs):
+    feature_recorder_set(const feature_recorder_set &fs) __attribute__((__noreturn__)) :
 	flags(0),input_fname(),outdir(),frm(),Mstats(),scanner_stats(){ throw new not_impl(); }
     const feature_recorder_set &operator=(const feature_recorder_set &fs){ throw new not_impl(); }
     uint32_t flags;

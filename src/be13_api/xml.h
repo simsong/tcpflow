@@ -1,6 +1,6 @@
 /*
  * Simson's XML output class.
- * Ideally include this AFTER your config file with the HAVE statements.
+ * Include this AFTER your config file with the HAVE statements.
  * Optimized for DFXML generation.
  */
 
@@ -19,11 +19,16 @@
 #include <inttypes.h>
 
 /* c++ */
-#include <string>
-#include <stack>
+#include <fstream>
 #include <map>
 #include <set>
-#include <fstream>
+#include <sstream>
+#include <stack>
+#include <string>
+
+#ifdef HAVE_PTHREAD
+#include <pthread.h>
+#endif
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
@@ -56,7 +61,6 @@
 #endif
 
 #ifdef __cplusplus
-
 #include "cppmutex.h"
 class xml {
 private:
@@ -67,7 +71,7 @@ private:
 	    return "copying feature_recorder objects is not implemented.";
 	}
     };
-    xml(const xml &fr):
+    xml(const xml &fr) __attribute__((__noreturn__)):
 	M(),outf(),out(),tags(),tag_stack(),tempfilename(),tempfile_template(),t0(),
 	make_dtd(),outfilename(),oneline(){
 	throw new not_impl();
@@ -75,9 +79,18 @@ private:
     const xml &operator=(const xml &x){ throw new not_impl(); }
     /****************************************************************/
 
+public:
+    typedef std::map<std::string,std::string> strstrmap_t;
+    typedef std::map<std::string,std::string> tagmap_t;
     typedef std::set<std::string> stringset;
+    typedef std::set<std::string> tagid_set_t;
+private:
 
-    cppmutex  M;			// mutext protecting out
+#ifdef HAVE_PTHREAD
+    pthread_mutex_t M;			// mutext protecting out
+#else
+    int M;				// placeholder
+#endif
     std::fstream outf;
     std::ostream *out;			// where it is being written; defaulst to stdout
     stringset tags;			// XML tags
@@ -88,6 +101,7 @@ private:
     bool  make_dtd;
     std::string outfilename;
     void  write_doctype(std::fstream &out);
+    void  write_dtd();
     void  verify_tag(std::string tag);
     void  spaces();			// print spaces corresponding to tag stack
     static std::string xml_PRId64;	// for compiler bug
@@ -103,8 +117,6 @@ public:
 	return command_line;
     }
 
-    typedef std::map<std::string,std::string> tagmap_t;
-    typedef std::set<std::string> tagid_set_t;
 
     class existing {
     public:;
@@ -124,7 +136,6 @@ public:
     static std::string xmlstrip(const std::string &xml);
 
     /** xmlmap turns a map into an XML block */
-    typedef std::map<std::string,std::string> strstrmap_t;
     static std::string xmlmap(const strstrmap_t &m,const std::string &outer,const std::string &attrs);
 
     /**
@@ -148,8 +159,7 @@ public:
     void pop();	// close the tag
 
     void add_DFXML_build_environment();
-    static void cpuid(uint32_t op, unsigned long *eax, unsigned long *ebx,
-		      unsigned long *ecx, unsigned long *edx);
+    static void cpuid(uint32_t op, unsigned long *eax, unsigned long *ebx,unsigned long *ecx, unsigned long *edx);
     void add_cpuid();
     void add_DFXML_execution_environment(const std::string &command_line);
     void add_DFXML_creator(const std::string &program,const std::string &version,
@@ -166,25 +176,45 @@ public:
     void add_rusage();
     void set_oneline(bool v);
 
-    /******************************************
-     *** THESE ARE ALL THREADSAFE ROUTINES! ***
-     ******************************************/
+    /********************************
+     *** THESE ARE ALL THREADSAFE ***
+     ********************************/
     void comment(const std::string &comment);
     void xmlprintf(const std::string &tag,const std::string &attribute,const char *fmt,...) 
 	__attribute__((format(printf, 4, 5))); // "4" because this is "1";
-    void xmlout( const std::string &tag,const std::string &value, const std::string &attribute,
-		 const bool escape_value);
+    void xmlout( const std::string &tag,const std::string &value, const std::string &attribute, const bool escape_value);
 
     /* These all call xmlout or xmlprintf which already has locking, so these are all threadsafe! */
     void xmlout( const std::string &tag,const std::string &value){ xmlout(tag,value,"",true); }
     void xmlout( const std::string &tag,const int value){ xmlprintf(tag,"","%d",value); }
     void xmloutl(const std::string &tag,const long value){ xmlprintf(tag,"","%ld",value); }
+#ifdef WIN32
+    void xmlout( const std::string &tag,const int64_t value){ xmlprintf(tag,"","%I64d",value); }
+    void xmlout( const std::string &tag,const uint64_t value){ xmlprintf(tag,"","%I64u",value); }
+#else
     void xmlout( const std::string &tag,const int64_t value){ xmlprintf(tag,"",xml_PRId64.c_str(),value); }
+    void xmlout( const std::string &tag,const uint64_t value){ xmlprintf(tag,"",xml_PRIu64.c_str(),value); }
+#endif
     void xmlout( const std::string &tag,const double value){ xmlprintf(tag,"","%f",value); }
     void xmlout( const std::string &tag,const struct timeval &ts) {
+	xmlprintf(tag,"","%d.%06d",(int)ts.tv_sec, (int)ts.tv_usec);
+    }
+    static std::string to8601(const struct timeval &ts) {
+	struct tm tm;
 	char buf[64];
-	snprintf(buf,sizeof(buf),"%d.%06d",(int)ts.tv_sec, (int)ts.tv_usec);
-	xmlout(tag,buf);
+#ifdef HAVE_LOCALTIME_R
+	localtime_r(&ts.tv_sec,&tm);
+#else
+	time_t t = ts.tv_sec;
+	tm = *localtime(&t);
+#endif
+	strftime(buf,sizeof(buf),"%Y-%m-%dT%H:%M:%S",&tm);
+	if(ts.tv_usec>0){
+	    int len = strlen(buf);
+	    snprintf(buf+len,sizeof(buf)-len,".%06d",(int)ts.tv_usec);
+	}
+	strcat(buf,"Z");
+	return std::string(buf);
     }
 };
 #endif

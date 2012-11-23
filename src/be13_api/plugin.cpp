@@ -12,6 +12,10 @@
 #include <err.h>
 #endif
 
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
 #include "bulk_extractor_i.h"
 #include "xml.h"
 
@@ -148,11 +152,11 @@ void process_packet_info(const packet_info &pi)
  * - Histograms that the scanner makes
  * - pcap handlers that the scanner uses
  */
-void load_scanner(const scanner_t &scanner )
+void load_scanner(scanner_t scanner)
 {
     /* If scanner is already loaded, return */
     for(scanner_vector::const_iterator it = current_scanners.begin();it!=current_scanners.end();it++){
-	if((*it)->scanner==&scanner) return;
+	if((*it)->scanner==scanner) return;
     }
 
     pos0_t	pos0;
@@ -221,10 +225,10 @@ static void load_scanner_file(string fn )
     load_scanner(*scanner/*,histograms*/);
 }
 
-void load_scanners(const scanner_t *scanners[])
+void load_scanners(scanner_t * const *scanners)
 {
     for(int i=0;scanners[i];i++){
-	load_scanner(*scanners[i]);
+	load_scanner(scanners[i]);
     }
 }
 
@@ -371,7 +375,7 @@ void enable_feature_recorders(feature_file_names_t &feature_file_names)
     }
 }
 
-void info_scanners(bool detailed,const scanner_t *scanners_builtin[],const char enable_opt,const char disable_opt)
+void info_scanners(bool detailed,scanner_t * const *scanners_builtin,const char enable_opt,const char disable_opt)
 {
     /* Print a list of scanners */
     load_scanners(scanners_builtin /* ,histograms */);

@@ -34,6 +34,7 @@
 #include "cppmutex.h"
 #include "feature_recorder.h"
 #include "feature_recorder_set.h"
+#include "xml.h"
 #include "utf8.h"
 
 #include <vector>
@@ -116,10 +117,10 @@ inline bool operator !=(class histogram_def h1,class histogram_def h2)  {
 
 class packet_info {
 public:
-    packet_info(const struct timeval &ts_,const u_char *data_,unsigned int caplen_,uint32_t vlan_):
+    packet_info(const struct timeval &ts_,const uint8_t *data_,unsigned int caplen_,uint32_t vlan_):
 	ts(ts_),data(data_),caplen(caplen_),family(),vlan(vlan_){}
     const struct timeval &ts;
-    const u_char *data;
+    const uint8_t *data;
     uint32_t caplen;
     uint32_t family;
     uint32_t vlan;
@@ -137,7 +138,8 @@ private:
 	    return "copying feature_recorder objects is not implemented.";
 	}
     };
-    scanner_info(const scanner_info &i):si_version(),name(),author(),description(),url(),
+    scanner_info(const scanner_info &i) __attribute__((__noreturn__))
+    :si_version(),name(),author(),description(),url(),
 					scanner_version(),flags(),feature_names(),histogram_defs(),
 					packet_user(),packet_cb(){
 	throw new not_impl();}
@@ -271,20 +273,20 @@ class scanner_def {
 public:;
     static uint32_t max_depth;
     scanner_def():scanner(0),enabled(false),info(),pathPrefix(){};
-    const scanner_t  *scanner;		// pointer to the primary entry point
+    scanner_t  *scanner;		// pointer to the primary entry point
     bool	enabled;		// is enabled?
     scanner_info info;
     string	pathPrefix;		/* path prefix for recursive scanners */
 };
-void load_scanner(const scanner_t &scanner);
-void load_scanners(const scanner_t *scanners[]);		// load the scan_ plugins
+void load_scanner(scanner_t scanner);
+void load_scanners(scanner_t * const *scanners);		// load the scan_ plugins
 void load_scanner_directory(const string &dirname);		// load the scan_ plugins
 typedef vector<scanner_def *> scanner_vector;
 extern scanner_vector current_scanners;				// current scanners
 void enable_alert_recorder(feature_file_names_t &feature_file_names);
 void enable_feature_recorders(feature_file_names_t &feature_file_names);
 // print info about the scanners:
-void info_scanners(bool detailed,const scanner_t *scanners_builtin[],const char enable_opt,const char disable_opt);
+void info_scanners(bool detailed,scanner_t * const *scanners_builtin,const char enable_opt,const char disable_opt);
 void scanners_enable(const std::string &name); // saves a command to enable this scanner
 void scanners_enable_all();		       // enable all of them
 void scanners_disable(const std::string &name); // saves a command to disable this scanner

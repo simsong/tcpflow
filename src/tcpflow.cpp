@@ -93,7 +93,7 @@ static void usage()
  * Create the dfxml output
  */
 
-static void dfxml_create(xml &xreport,const std::string &command_line)
+static void dfxml_create(class xml &xreport,const std::string &command_line)
 {
     xreport.push("dfxml","xmloutputversion='1.0'");
     xreport.push("metadata",

@@ -13,9 +13,17 @@
  * MD5Context structure, pass it to MD5Init, call MD5Update as
  * needed on buffers full of bytes, and then call MD5Final, which
  * will fill a supplied 16-byte array with the digest.
+ *
+ * 2012-nov-22: slg - this code contains a 1-to-4 alignment error which
+ * was detected by clang:
+ *
+ * md5.c:102:25: warning: cast from 'unsigned char *' to 'uint32_t *' (aka 'unsigned int *') increases
+ *    required alignment from 1 to 4 [-Wcast-align]
+ *      MD5Transform(ctx->buf, (uint32_t *) ctx->in);
+ *                             ^~~~~~~~~~~~~~~~~~~~
  */
 
-/* $Id: md5.c 494 2011-09-16 21:21:40Z xchatty $ */
+#pragma GCC diagnostic ignored "-Wcast-align"
 
 #include "md5.h"
 
@@ -48,6 +56,9 @@ void byteReverse(unsigned char *buf, unsigned longs)
 }
 #endif  // ifndef ASM_MD5
 #endif  // ifndef WORDS_BIGENDIAN
+
+
+
 
 
 /*
@@ -162,7 +173,6 @@ void MD5Final(unsigned char digest[16], context_md5_t *ctx)
     uint32_t *ctxin = (uint32_t *)ctx->in; 
     ctxin[14] = ctx->bits[0];
     ctxin[15] = ctx->bits[1];
-
 
     MD5Transform(ctx->buf, (uint32_t *) ctx->in);
     byteReverse((unsigned char *) ctx->buf, 4);

@@ -192,8 +192,6 @@
 # define SEEK_SET 0
 #endif /* SEEK_SET */
 
-#include "xml.h"
-
 /* These may not be defined on some systems */
 
 #ifndef MAX_IPv4_STR_LEN

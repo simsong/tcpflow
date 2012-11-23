@@ -18,6 +18,7 @@
 
 
 #include "config.h"
+
 #ifdef WIN32
 #include <winsock2.h>
 #endif
@@ -25,12 +26,20 @@
 #include <errno.h>
 #include <unistd.h>
 
-#include "xml.h"
 
-#if defined(HAVE_REGEX_H) && defined(HAVE_REGCOMP)
+#ifdef HAVE_TRE_TRE_H
+#include <tre/tre.h>
+#define REGCOMP tre_regcomp
+#define REGFREE tre_regfree
+#define REGEXEC tre_regexec
+#else
+#ifdef HAVE_REGEX_H
 #include <regex.h>
+#define REGCOMP regcomp
+#define REGFREE regfree
+#define REGEXEC regexec
 #endif
-
+#endif
 
 #ifdef HAVE_PTHREAD
 #define MUTEX_LOCK(M)   pthread_mutex_lock(M)
@@ -50,6 +59,17 @@ using namespace std;
 #include <assert.h>
 #include <fcntl.h>
 #include <stack>
+
+#include <iostream>
+#include <streambuf>
+
+#ifdef _MSC_VER
+# include <io.h>
+#else
+# include <unistd.h>
+#endif
+
+#include "xml.h"
 
 static const char *xml_header = "<?xml version='1.0' encoding='UTF-8'?>\n";
 
@@ -99,25 +119,25 @@ static const char *cstr(const string &str){
     return str.c_str();
 }
 
-#if defined(HAVE_REGCOMP)
+#if defined(REGCOMP)
 /** A local class for regex matching with a single pattern */
 class Regex {
 public:
     regex_t reg;
     Regex(const char *pat):reg(){
 	memset(&reg,0,sizeof(reg));
-	if(regcomp(&reg,pat,REG_EXTENDED)){
+	if(REGCOMP(&reg,pat,REG_EXTENDED)){
 	    cerr << "xml.cpp: invalid regex pattern" << pat << "\n";
 	    exit(1);
 	}
     }
     ~Regex(){
-	regfree(&reg);
+	REGFREE(&reg);
     }
     string search(const string &line){
 	regmatch_t ary[2];
 	memset(ary,0,sizeof(ary));
-	if(regexec(&reg,cstr(line),2,ary,0)==0){
+	if(REGEXEC(&reg,cstr(line),2,ary,0)==0){
 	    return string(cstr(line)+ary[1].rm_so,ary[1].rm_eo-ary[1].rm_so);
 	}
 	else {
@@ -127,23 +147,36 @@ public:
 };
 #endif
 
+// XML escapes
 static string xml_lt("&lt;");
 static string xml_gt("&gt;");
 static string xml_am("&amp;");
 static string xml_ap("&apos;");
 static string xml_qu("&quot;");
 
+// % encodings
+static string encoding_null("%00");
+static string encoding_r("%0D");
+static string encoding_n("%0A");
+static string encoding_t("%09");
+
 string xml::xmlescape(const string &xml)
 {
     string ret;
     for(string::const_iterator i = xml.begin(); i!=xml.end(); i++){
 	switch(*i){
+        // XML escapes
 	case '>':  ret += xml_gt; break;
 	case '<':  ret += xml_lt; break;
 	case '&':  ret += xml_am; break;
 	case '\'': ret += xml_ap; break;
 	case '"':  ret += xml_qu; break;
-	case '\000': break;		// remove nulls
+
+        // % encodings
+	case '\000':  ret += encoding_null; break;	// retain encoded nulls
+	case '\r':  ret += encoding_r; break;
+	case '\n':  ret += encoding_n; break;
+	case '\t':  ret += encoding_t; break;
 	default:
 	    ret += *i;
 	}
@@ -166,14 +199,23 @@ string xml::xmlstrip(const string &xml)
     return ret;
 }
 
-#include <iostream>
-#include <streambuf>
+/**
+ * xmlmap:
+ * Turns a map into a blob of XML.
+ */
 
-#ifdef _MSC_VER
-# include <io.h>
-#else
-# include <unistd.h>
-#endif
+std::string xml::xmlmap(const xml::strstrmap_t &m,const std::string &outer,const std::string &attrs)
+{
+    std::stringstream ss;
+    ss << "<" << outer;
+    if(attrs.size()>0) ss << " " << attrs;
+    ss << ">";
+    for(std::map<std::string,std::string>::const_iterator it=m.begin();it!=m.end();it++){
+	ss << "<" << (*it).first  << ">" << (*it).second << "</" << (*it).first << ">";
+    }
+    ss << "</" << outer << ">";
+    return ss.str();
+}
 
 
 /* This goes to stdout */
@@ -205,7 +247,7 @@ xml::xml(const std::string &outfilename_,bool makeDTD):
     *out << xml_header;
 }
 
-#if defined(HAVE_REGCOMP)
+#if defined(REGCOMP)
 /**
  * opening an existing DFXML file...
  * Scan through and see if we can process.
@@ -680,6 +722,21 @@ void xml::add_DFXML_build_environment()
 #ifdef __GNUC__
     xmlprintf("compiler","","GCC %d.%d",__GNUC__, __GNUC_MINOR__);
 #endif
+#ifdef CPPFLAGS
+    xmlout("CPPFLAGS",CPPFLAGS,"",true);
+#endif
+#ifdef CFLAGS
+    xmlout("CFLAGS",CFLAGS,"",true);
+#endif
+#ifdef CXXFLAGS
+    xmlout("CXXFLAGS",CXXFLAGS,"",true);
+#endif    
+#ifdef LDFLAGS
+    xmlout("LDFLAGS",LDFLAGS,"",true);
+#endif    
+#ifdef LIBS
+    xmlout("LIBS",LIBS,"",true);
+#endif    
 #if defined(__DATE__) && defined(__TIME__) && defined(HAVE_STRPTIME)
     if(strptime(__DATE__,"%b %d %Y",&tm)){
 	char buf[64];
@@ -698,6 +755,9 @@ void xml::add_DFXML_build_environment()
 #endif
 #ifdef HAVE_EXIV2
     xmlout("library", "", std::string("name=\"exiv2\" version=\"") + Exiv2::version() + "\"",false);
+#endif
+#if defined(HAVE_LIBTRE) && defined(HAVE_TRE_VERSION)
+    xmlout("tre", "", std::string("name=\"tre\" version=\"") + tre_version() + "\"",false);
 #endif
 #ifdef HAVE_GNUEXIF
     // gnuexif does not have a programmatically obtainable version.

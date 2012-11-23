@@ -167,7 +167,7 @@ static inline bool isodigit(char c)
 /* statics */
 const std::string feature_recorder::feature_file_header("# Feature-File-Version: 1.1\n");
 const std::string feature_recorder::histogram_file_header("# Histogram-File-Version: 1.1\n");
-const std::string feature_recorder::bulk_extractor_version_header("# "PACKAGE_NAME "-Version: " PACKAGE_VERSION " ($Rev: 10790 $)\n");
+const std::string feature_recorder::bulk_extractor_version_header("# "PACKAGE_NAME "-Version: " PACKAGE_VERSION " ($Rev: 10844 $)\n");
 
 static inline int hexval(char ch)
 {

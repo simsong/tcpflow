@@ -1,6 +1,5 @@
 #include "config.h"
 #include "bulk_extractor_i.h"
-#include "beregex.h"
 #include "xml.h"
 
 #ifdef USE_HISTOGRAMS
@@ -83,7 +82,7 @@ void feature_recorder_set::add_stats(string bucket,double seconds)
     p.calls ++;
 }
 
-void feature_recorder_set::dump_stats(struct xml &x)
+void feature_recorder_set::dump_stats(xml &x)
 {
     x.push("scanner_times");
     for(scanner_stats_map::const_iterator it = scanner_stats.begin();it!=scanner_stats.end();it++){

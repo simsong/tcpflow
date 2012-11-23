@@ -56,10 +56,13 @@ private:
 	    return "copying feature_recorder objects is not implemented.";
 	}
     };
-    feature_recorder(const feature_recorder &fr):
+    feature_recorder(const feature_recorder &fr) __attribute__((__noreturn__)) :
 	flags(0),histogram_enabled(false),
 	outdir(),name(),count(0),ios(),Mf(),Mr(),
-	stop_list_recorder(0),carved_set(),file_number(0),file_extension(){ throw new not_impl(); }
+	stop_list_recorder(0),carved_set(),file_number(0),file_extension()
+	{
+	throw new not_impl();
+    }
     const feature_recorder &operator=(const feature_recorder &fr){ throw new not_impl(); }
     /****************************************************************/
 
