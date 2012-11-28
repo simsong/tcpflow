@@ -13,6 +13,8 @@
 
 #include "http-parser/http_parser.h"
 
+#include "mime_map.h"
+
 /* define a data structure for sharing state between scan_http() and its callbacks */
 typedef struct scan_http_data_t {
 	std::string path;
@@ -29,15 +31,17 @@ typedef struct scan_http_data_t {
 	
 	std::string output_path;
 	
+	int fd;
+	
 	scan_http_data_t(const std::string& path_, const sbuf_t * sbuf_, tcpdemux * d_) :
 		path(path_), sbuf(sbuf_), d(d_), request_no(0),
 		headers(), header_state(0), header_value(), header_field(),
-		output_path() {};
+		output_path(), fd(-1) {};
 	
 	scan_http_data_t(const scan_http_data_t& c) :
 		path(c.path), sbuf(c.sbuf), d(c.d), request_no(c.request_no),
 		headers(c.headers), header_state(c.header_state), header_value(c.header_value), header_field(c.header_field),
-		output_path(c.output_path) {};
+		output_path(c.output_path), fd(c.fd) {};
 };
 
 /* make it easy to refer to the relevant scan_http_data within the callbacks */
@@ -108,7 +112,7 @@ int scan_http_cb_on_headers_complete(http_parser * parser) {
 	if (data->header_state == 2) {
 		data->headers[data->header_field] = data->header_value;
 	}
-
+	
 	/* Set output path to <path>-HTTPBODY for the first body, -HTTPBODY-n for subsequent bodies
 	 * This is consistent with tcpflow <= 1.3.0, which supported only one HTTPBODY */
 	std::stringstream output_path;
@@ -116,7 +120,20 @@ int scan_http_cb_on_headers_complete(http_parser * parser) {
 	if (data->request_no != 1) {
 		output_path << "-" << data->request_no;
 	}
+	
+	/* See if we can guess a file extension */
+	std::string extension = get_extension_for_mime_type(data->headers["Content-Type"]);
+	if (extension != "") {
+		output_path << "." << extension;
+	}
+	
 	data->output_path = output_path.str();
+	
+	/* Open the output path */
+	data->fd = data->d->retrying_open(data->output_path, O_WRONLY|O_CREAT|O_BINARY|O_APPEND, 0644);
+	if (data->fd < 0) {
+		DEBUG(1) ("unable to open HTTP body file");
+	}
 	
 	/* We can do something smart with the headers here.
 	 *
@@ -137,23 +154,21 @@ int scan_http_cb_on_body(http_parser * parser, const char *at, size_t length) {
 	assert(offset < data->sbuf->size());
 	sbuf_t buf(*data->sbuf, offset, length);
 	
-	/* The body callback can, in principle, be called multiple times */
-	/* Open for appending instead of using the normal tcpdemux IO functions */
-	int fd = data->d->retrying_open(data->output_path, O_WRONLY|O_CREAT|O_BINARY|O_APPEND, 0644);
-	if (fd >= 0) {
+	if (data->fd >= 0) {
 		/* Write this buffer to the output file */
-		buf.raw_dump(fd, 0, buf.size());
-		if (close(fd) != 0) {
-			perror("close() of http body");
-		}
-	} else {
-		DEBUG(1) ("unable to open HTTP body file");
+		buf.raw_dump(data->fd, 0, buf.size());
 	}
 	
 	return 0;
 }
 
 int scan_http_cb_on_message_complete(http_parser * parser) {
+	/* Close the file */
+	if (close(data->fd) != 0) {
+		perror("close() of http body");
+	}
+	data->fd = -1;
+	
 	return 0;
 }
 
