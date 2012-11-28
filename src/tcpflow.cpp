@@ -442,6 +442,7 @@ int main(int argc, char *argv[])
 	    perror("setuid");
 	}
 #endif
+	demux.start_new_connections = true;
         process_infile(expression,device,"");
     }
     else {
