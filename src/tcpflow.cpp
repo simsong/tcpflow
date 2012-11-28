@@ -116,17 +116,20 @@ static void dfxml_create(class xml &xreport,const std::string &command_line)
 void replace(std::string &str,const std::string &from,const std::string &to)
 {
     if(from.size()==0) return;
+    bool changed = false;
 
     std::stringstream ss;
     for(unsigned int i=0;i<str.size();){
 	if(str.substr(i,from.size())==from){
 	    ss << to;
 	    i+=from.size();
+	    changed = true;
 	} else {
 	    ss << str.at(i);
 	    i++;
 	}
     }
+    if(changed) str = ss.str();			// copy over original
 }
 
 /* These must be global variables so they are available in the signal handler */
