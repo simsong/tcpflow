@@ -27,13 +27,17 @@ typedef struct scan_http_data_t {
 	int header_state;
 	std::string header_value, header_field;
 	
+	std::string output_path;
+	
 	scan_http_data_t(const std::string& path_, const sbuf_t * sbuf_, tcpdemux * d_) :
 		path(path_), sbuf(sbuf_), d(d_), request_no(0),
-		headers(), header_state(0), header_value(), header_field() {};
+		headers(), header_state(0), header_value(), header_field(),
+		output_path() {};
 	
 	scan_http_data_t(const scan_http_data_t& c) :
 		path(c.path), sbuf(c.sbuf), d(c.d), request_no(c.request_no),
-		headers(c.headers), header_state(c.header_state), header_value(c.header_value), header_field(c.header_field) {};
+		headers(c.headers), header_state(c.header_state), header_value(c.header_value), header_field(c.header_field),
+		output_path(c.output_path) {};
 };
 
 /* make it easy to refer to the relevant scan_http_data within the callbacks */
@@ -104,6 +108,15 @@ int scan_http_cb_on_headers_complete(http_parser * parser) {
 	if (data->header_state == 2) {
 		data->headers[data->header_field] = data->header_value;
 	}
+
+	/* Set output path to <path>-HTTPBODY for the first body, -HTTPBODY-n for subsequent bodies
+	 * This is consistent with tcpflow <= 1.3.0, which supported only one HTTPBODY */
+	std::stringstream output_path;
+	output_path << data->path << "-HTTPBODY";
+	if (data->request_no != 1) {
+		output_path << "-" << data->request_no;
+	}
+	data->output_path = output_path.str();
 	
 	/* We can do something smart with the headers here.
 	 *
@@ -118,14 +131,6 @@ int scan_http_cb_on_headers_complete(http_parser * parser) {
 }
 
 int scan_http_cb_on_body(http_parser * parser, const char *at, size_t length) {
-	/* Set output path to <path>-HTTPBODY for the first body, -HTTPBODY-n for subsequent bodies */
-	/* This is consistent with tcpflow <= 1.3.0, which supported only one HTTPBODY */
-	std::stringstream output_path;
-	output_path << data->path << "-HTTPBODY";
-	if (data->request_no != 1) {
-		output_path << "-" << data->request_no;
-	}
-
 	/* Turn this back into an sbuf_t by mathing out the buffer offset */
 	const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
 	size_t offset = at - sbuf_head;
@@ -134,7 +139,7 @@ int scan_http_cb_on_body(http_parser * parser, const char *at, size_t length) {
 	
 	/* The body callback can, in principle, be called multiple times */
 	/* Open for appending instead of using the normal tcpdemux IO functions */
-	int fd = data->d->retrying_open(output_path.str(), O_WRONLY|O_CREAT|O_BINARY|O_APPEND, 0644);
+	int fd = data->d->retrying_open(data->output_path, O_WRONLY|O_CREAT|O_BINARY|O_APPEND, 0644);
 	if (fd >= 0) {
 		/* Write this buffer to the output file */
 		buf.raw_dump(fd, 0, buf.size());
