@@ -70,18 +70,22 @@ int scan_http_cb_on_body(http_parser * parser, const char *at, size_t length) {
 	if (data->request_no != 1) {
 		output_path << "-" << data->request_no;
 	}
+
+	/* Turn this back into an sbuf_t by mathing out the buffer offset */
+	const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
+	size_t offset = at - sbuf_head;
+	assert(offset < data->sbuf->size());
+	sbuf_t buf(*data->sbuf, offset, length);
 	
 	/* The body callback can, in principle, be called multiple times */
 	/* Open for appending instead of using the normal tcpdemux IO functions */
 	int fd = data->d->retrying_open(output_path.str(), O_WRONLY|O_CREAT|O_BINARY|O_APPEND, 0644);
 	if (fd >= 0) {
-		/* Pass the file descriptor on to stdio */
-		FILE * fp = fdopen(fd, "wb");
-		int written = fwrite(at, length, 1, fp);
-		if (written != 1) {
-			DEBUG(1) ("writing of HTTP body failed");
+		/* Write this buffer to the output file */
+		buf.raw_dump(fd, 0, buf.size());
+		if (close(fd) != 0) {
+			perror("close() of http body");
 		}
-		fclose(fp);
 	} else {
 		DEBUG(1) ("unable to open HTTP body file");
 	}
