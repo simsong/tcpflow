@@ -7,6 +7,7 @@
 #include "config.h"
 #include "tcpflow.h"
 #include <iostream>
+#include <map>
 #include <sys/types.h>
 #include "bulk_extractor_i.h"
 
@@ -19,11 +20,20 @@ typedef struct scan_http_data_t {
 	tcpdemux *d;
 	int request_no;
 	
+	/* parsed headers */
+	std::map<std::string, std::string> headers;
+	
+	/* placeholders for possibly-incomplete header data */
+	int header_state;
+	std::string header_value, header_field;
+	
 	scan_http_data_t(const std::string& path_, const sbuf_t * sbuf_, tcpdemux * d_) :
-		path(path_), sbuf(sbuf_), d(d_), request_no(0) {};
+		path(path_), sbuf(sbuf_), d(d_), request_no(0),
+		headers(), header_state(0), header_value(), header_field() {};
 	
 	scan_http_data_t(const scan_http_data_t& c) :
-		path(c.path), sbuf(c.sbuf), d(c.d), request_no(c.request_no) {};
+		path(c.path), sbuf(c.sbuf), d(c.d), request_no(c.request_no),
+		headers(c.headers), header_state(c.header_state), header_value(c.header_value), header_field(c.header_field) {};
 };
 
 /* make it easy to refer to the relevant scan_http_data within the callbacks */
@@ -41,16 +51,61 @@ int scan_http_cb_on_url(http_parser * parser, const char *at, size_t length) {
 }
 
 int scan_http_cb_on_header_field(http_parser * parser, const char *at, size_t length) {
-	/* It might be smart to copy headers into a hashmap or something */
+	const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
+	size_t offset = at - sbuf_head;
+	assert(offset < data->sbuf->size());
+	sbuf_t buf(*data->sbuf, offset, length);
+	
+	if (data->header_state == 1) {
+		/* we're a continuation of a partly-read header field */
+		/* append it */
+		data->header_field.append(buf.asString());
+	} else {
+		/* we're a new header field */
+		if (data->header_state == 2) {
+			/* we must have finished reading a value */
+			/* add it to the map */
+			data->headers[data->header_field] = data->header_value;
+		}
+		
+		/* store this field name */
+		data->header_field = buf.asString();
+		
+		/* indicate that we just read a header field */
+		data->header_state = 1;
+	}
+	
 	return 0;
 }
 
 int scan_http_cb_on_header_value(http_parser * parser, const char *at, size_t length) {
+	const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
+	size_t offset = at - sbuf_head;
+	assert(offset < data->sbuf->size());
+	sbuf_t buf(*data->sbuf, offset, length);
+	
+	if (data->header_state == 2) {
+		/* we're a continuation of a partly-read header value */
+		data->header_value.append(buf.asString());
+	} else {
+		/* we're a new header value */
+		/* store the value */
+		data->header_value = buf.asString();
+		
+		/* indicate that we just read a header value */
+		data->header_state = 2;
+	}
+	
 	return 0;
 }
 
 int scan_http_cb_on_headers_complete(http_parser * parser) {
-	/* If headers were in a hashmap, we could do something smart with all of them here.
+	/* Add the most recently read header to the map, if any */
+	if (data->header_state == 2) {
+		data->headers[data->header_field] = data->header_value;
+	}
+	
+	/* We can do something smart with the headers here.
 	 *
 	 * For example, we could:
 	 *  - Record all headers into the report.xml
