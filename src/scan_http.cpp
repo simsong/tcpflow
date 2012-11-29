@@ -15,6 +15,14 @@
 
 #include "mime_map.h"
 
+
+/***
+ * data structures
+ */
+
+typedef struct scan_http_data_t;
+typedef int(*write_data_fn_t)(scan_http_data_t * data, sbuf_t& buf);
+
 /* define a data structure for sharing state between scan_http() and its callbacks */
 typedef struct scan_http_data_t {
 	std::string path;
@@ -32,17 +40,127 @@ typedef struct scan_http_data_t {
 	std::string output_path;
 	
 	int fd;
+	write_data_fn_t write_fn;
+	void * write_fn_state;
 	
 	scan_http_data_t(const std::string& path_, const sbuf_t * sbuf_, tcpdemux * d_) :
 		path(path_), sbuf(sbuf_), d(d_), request_no(0),
 		headers(), header_state(0), header_value(), header_field(),
-		output_path(), fd(-1) {};
+		output_path(), fd(-1), write_fn(NULL), write_fn_state(NULL) {};
 	
 	scan_http_data_t(const scan_http_data_t& c) :
 		path(c.path), sbuf(c.sbuf), d(c.d), request_no(c.request_no),
 		headers(c.headers), header_state(c.header_state), header_value(c.header_value), header_field(c.header_field),
-		output_path(c.output_path), fd(c.fd) {};
+		output_path(c.output_path), fd(c.fd), write_fn(c.write_fn), write_fn_state(c.write_fn_state) {};
+	
+	void close_fd() {
+		if ((fd >= 0) && (close(fd) != 0)) {
+			perror("close() of http body");
+		}
+		fd = -1;
+	};
 };
+
+
+/***
+ * data writing functions
+ */
+
+/* write data to a file with no decoding */
+int scan_http_write_data_raw(scan_http_data_t * data, sbuf_t& buf) {
+	buf.raw_dump(data->fd, 0, buf.size());
+	return 0;
+}
+
+#ifdef HAVE_LIBZ
+#define ZLIB_CONST
+#ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
+#  pragma GCC diagnostic ignored "-Wundef"
+#  pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+#ifdef HAVE_ZLIB_H
+#include <zlib.h>
+#endif
+
+#define zs (reinterpret_cast<z_stream *>(data->write_fn_state))
+
+/* write gzipped data to a file, un-gzipping it as we go */
+int scan_http_write_data_gzip(scan_http_data_t * data, sbuf_t& buf) {
+	if (buf.size() == 0 && data->write_fn_state) {
+		/* EOF */
+		inflateEnd(zs);
+		free(zs);
+		return 0;
+	}
+	
+	/* allocate a z_stream if this is the first call */
+	bool needs_init = false;
+	if (data->write_fn_state == NULL) {
+		data->write_fn_state = calloc(1, sizeof(z_stream));
+		needs_init = true;
+	}
+	
+	/* set up this round of decompression, using a small local buffer */
+	char decompressed[65536];
+	zs->next_in = (Bytef*)buf.buf;
+	zs->avail_in = buf.size();
+	zs->next_out = (Bytef*)decompressed;
+	zs->avail_out = sizeof(decompressed);
+	
+	/* is this our first call? */
+	if (needs_init) {
+		int rv = inflateInit2(zs, 16 + MAX_WBITS);	/* 16 forces gzip decoding */
+		if (rv != Z_OK) {
+			/* fail! */
+			DEBUG(3) ("gzip decompression failed at stream initialization; bad Content-Encoding?");
+			return -1;
+		}
+	}
+	
+	/* iteratively decompress, writing each time */
+	while (zs->avail_in > 0) {
+		/* decompress as much as possible */
+		int rv = inflate(zs, Z_SYNC_FLUSH);
+		
+		if (rv == Z_STREAM_END) {
+			/* are we done with the stream? */
+			if (zs->avail_in > 0) {
+				/* ...no. */
+				DEBUG(3) ("gzip decompression completed, but with trailing garbage");
+				return -2;
+			}
+		} else if (rv != Z_OK) {
+			/* some other error */
+			DEBUG(3) ("gzip decompression failed (corrupted stream?)");
+			return -3;
+		}
+		
+		/* successful decompression, at least partly */
+		/* write the result */
+		int bytes_decompressed = sizeof(decompressed) - zs->avail_out;
+		ssize_t written = write(data->fd, decompressed, bytes_decompressed);
+		if (written < bytes_decompressed) {
+			DEBUG(3) ("writing gzip decompressed data failed");
+			return -4;
+		}
+		
+		/* reset the buffer for the next iteration */
+		zs->next_out = (Bytef*)decompressed;
+		zs->avail_out = sizeof(decompressed);
+	}
+	
+	/* success! */
+	return 0;
+}
+
+#undef zs
+
+#endif
+
+
+/***
+ * http-parser callbacks
+ */
 
 /* make it easy to refer to the relevant scan_http_data within the callbacks */
 #define data (reinterpret_cast<scan_http_data_t*>(parser->data))
@@ -129,10 +247,25 @@ int scan_http_cb_on_headers_complete(http_parser * parser) {
 	
 	data->output_path = output_path.str();
 	
+	/* Choose an output function based on the content encoding */
+	if (data->headers["Content-Encoding"] == "gzip") {
+#ifdef HAVE_LIBZ
+	DEBUG(10) ( "%s: detected gzip content, decompressing", data->output_path.c_str());
+		data->write_fn = scan_http_write_data_gzip;
+#else
+		/* We can't decompress, but we can do something reasonable */
+		data->output_path.append(".gz");
+		data->write_fn = scan_http_write_data_raw;
+		DEBUG(5) ( "%s: refusing to decompress since zlib is unavailable", data->output_path.c_str() );
+#endif
+	} else {
+		data->write_fn = scan_http_write_data_raw;
+	}
+	
 	/* Open the output path */
 	data->fd = data->d->retrying_open(data->output_path, O_WRONLY|O_CREAT|O_BINARY|O_APPEND, 0644);
 	if (data->fd < 0) {
-		DEBUG(1) ("unable to open HTTP body file");
+		DEBUG(1) ("unable to open HTTP body file %s", data->output_path.c_str());
 	}
 	
 	/* We can do something smart with the headers here.
@@ -155,24 +288,35 @@ int scan_http_cb_on_body(http_parser * parser, const char *at, size_t length) {
 	sbuf_t buf(*data->sbuf, offset, length);
 	
 	if (data->fd >= 0) {
-		/* Write this buffer to the output file */
-		buf.raw_dump(data->fd, 0, buf.size());
+		/* Write this buffer to the output file via the appropriate function */
+		int rv = data->write_fn(data, buf);
+		if (rv) {
+			/* failed! close early */
+			data->close_fd();
+		}
 	}
 	
 	return 0;
 }
 
 int scan_http_cb_on_message_complete(http_parser * parser) {
+	/* Call the write function with an empty buffer to signal EOF */
+	sbuf_t empty_buffer(*data->sbuf, 0, 0);
+	data->write_fn(data, empty_buffer);
+	
 	/* Close the file */
-	if (close(data->fd) != 0) {
-		perror("close() of http body");
-	}
-	data->fd = -1;
+	data->close_fd();
 	
 	return 0;
 }
 
 #undef data
+
+
+
+/***
+ * the HTTP scanner plugin itself
+ */
 
 extern "C"
 void  scan_http(const class scanner_params &sp,const recursion_control_block &rcb)
