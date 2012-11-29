@@ -84,8 +84,8 @@ int scan_http_write_data_raw(scan_http_data_t * data, sbuf_t& buf) {
 
 #define zs (reinterpret_cast<z_stream *>(data->write_fn_state))
 
-/* write gzipped data to a file, un-gzipping it as we go */
-int scan_http_write_data_gzip(scan_http_data_t * data, sbuf_t& buf) {
+/* write gzipped data to a file, decompressing it as we go */
+int scan_http_write_data_zlib(scan_http_data_t * data, sbuf_t& buf) {
 	if (buf.size() == 0 && data->write_fn_state) {
 		/* EOF */
 		inflateEnd(zs);
@@ -109,10 +109,10 @@ int scan_http_write_data_gzip(scan_http_data_t * data, sbuf_t& buf) {
 	
 	/* is this our first call? */
 	if (needs_init) {
-		int rv = inflateInit2(zs, 16 + MAX_WBITS);	/* 16 forces gzip decoding */
+		int rv = inflateInit2(zs, 32 + MAX_WBITS);	/* 32 auto-detects gzip or deflate */
 		if (rv != Z_OK) {
 			/* fail! */
-			DEBUG(3) ("gzip decompression failed at stream initialization; bad Content-Encoding?");
+			DEBUG(3) ("decompression failed at stream initialization; bad Content-Encoding?");
 			return -1;
 		}
 	}
@@ -126,12 +126,12 @@ int scan_http_write_data_gzip(scan_http_data_t * data, sbuf_t& buf) {
 			/* are we done with the stream? */
 			if (zs->avail_in > 0) {
 				/* ...no. */
-				DEBUG(3) ("gzip decompression completed, but with trailing garbage");
+				DEBUG(3) ("decompression completed, but with trailing garbage");
 				return -2;
 			}
 		} else if (rv != Z_OK) {
 			/* some other error */
-			DEBUG(3) ("gzip decompression failed (corrupted stream?)");
+			DEBUG(3) ("decompression failed (corrupted stream?)");
 			return -3;
 		}
 		
@@ -140,7 +140,7 @@ int scan_http_write_data_gzip(scan_http_data_t * data, sbuf_t& buf) {
 		int bytes_decompressed = sizeof(decompressed) - zs->avail_out;
 		ssize_t written = write(data->fd, decompressed, bytes_decompressed);
 		if (written < bytes_decompressed) {
-			DEBUG(3) ("writing gzip decompressed data failed");
+			DEBUG(3) ("writing decompressed data failed");
 			return -4;
 		}
 		
@@ -248,10 +248,11 @@ int scan_http_cb_on_headers_complete(http_parser * parser) {
 	data->output_path = output_path.str();
 	
 	/* Choose an output function based on the content encoding */
-	if (data->headers["Content-Encoding"] == "gzip") {
+	std::string content_encoding(data->headers["Content-Encoding"]);
+	if (content_encoding == "gzip" || content_encoding == "deflate") {
 #ifdef HAVE_LIBZ
-	DEBUG(10) ( "%s: detected gzip content, decompressing", data->output_path.c_str());
-		data->write_fn = scan_http_write_data_gzip;
+	DEBUG(10) ( "%s: detected zlib content, decompressing", data->output_path.c_str());
+		data->write_fn = scan_http_write_data_zlib;
 #else
 		/* We can't decompress, but we can do something reasonable */
 		data->output_path.append(".gz");
@@ -272,8 +273,6 @@ int scan_http_cb_on_headers_complete(http_parser * parser) {
 	 *
 	 * For example, we could:
 	 *  - Record all headers into the report.xml
-	 *  - Automatically handle gzip/deflate Content-Encodings
-	 *  - Pick a suitable file extension for common Content-Types
 	 *  - Pick the intended filename if we see Content-Disposition: attachment; name="..."
 	 *  - Record headers into filesystem extended attributes on the body file
 	 */
