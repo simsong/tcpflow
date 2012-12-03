@@ -13,10 +13,11 @@
 #include <iostream>
 #include <sstream>
 
-
-
-
 /* Create a new tcp object.
+ * tcpip.cpp:
+ * Handle the TCP/IP connection
+ * 
+ *
  * Notice that nsn is not set because the file isn't open...
  */
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):

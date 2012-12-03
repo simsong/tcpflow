@@ -14,6 +14,10 @@
 
 	* src/plugin.cpp (process_sbuf): renamed process_extract to process_sbuf and put it here.
 
+2012-11-06  Simson Garfinkel  <simsong@mncrnpsedu.local>
+ 
+ 	* src/tcpdemux.cpp (tcpdemux::process_tcp): first packet sense was inverted. Fixed.
+ 	
 	* src/main.cpp (main): renamed main.cpp to tcpflow.cpp
 
 2012-11-05  Simson Garfinkel  <simsong@npsair.local>

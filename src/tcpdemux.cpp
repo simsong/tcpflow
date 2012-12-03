@@ -356,8 +356,8 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
      * in accordance with the TCP spec.
      */
     if(syn_set){
-	if(tcp->syn_count>0){
-	    DEBUG(1)("Multiple SYNs seen on a single connection?");
+	if(tcp->syn_count>1){
+	    DEBUG(1)("Multiple SYNs (%d) seen on a single connection.",tcp->syn_count);
 	}
 	tcp->syn_count++;
 	if( ack_set ){
