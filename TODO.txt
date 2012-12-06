@@ -49,3 +49,6 @@ Cairo - http://en.wikipedia.org/wiki/Cairo_(graphics)
   - Support for hardware acceleration
   - http://cairographics.org
 
+================================================================
+ http://net.doit.wisc.edu/~plonka/FlowScan/ 
+ http://ant.isi.edu/wiv2012/program.html
