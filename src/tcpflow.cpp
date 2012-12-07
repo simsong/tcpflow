@@ -51,7 +51,7 @@ static void usage()
     std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
     std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
     std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
-    std::cout << "   -a: do ALL processing (http expansion, create report.xml, etc.)\n";
+    std::cout << "   -a: do ALL processing (http expansion, unzip, create report.xml, PDF analysis, etc..)\n";
     std::cout << "   -b: max number of bytes per flow to save\n";
     std::cout << "   -B: force binary output to console, even with -c or -C\n";
     std::cout << "   -c: console print only (don't create files)\n";
@@ -73,7 +73,6 @@ static void usage()
     std::cout << "   -m  bytes    : specifies the minimum number of bytes that a stream may\n";
     std::cout << "  skip before starting a new stream (default "
 	      << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
-    std::cout << "   -AH : extract HTTP objects and unzip GZIP-compressed HTTP messages\n";
     std::cout << "   -Fc : append the connection counter to ALL filenames\n";
     std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
     std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
@@ -274,18 +273,13 @@ int main(int argc, char *argv[])
 	    demux.opt.opt_md5 = true;
 	    scanners_enable_all();
 	    opt_all = true;
-	    continue;
-	    
-	case 'A': 
-	    for(const char *cc=optarg;*cc;cc++){
-		switch(*cc){
-		case 'H': demux.opt.opt_after_header = true;break;
-		default:
-		    fprintf(stderr,"-A invalid after processing '%c'\n",*cc);
-		    need_usage=true;
-		}
-	    }
 	    break;
+
+	case 'A': 
+	    fprintf(stderr,"-AH has been deprecated. Just use -a\n");
+	    need_usage=true;
+	    break;
+
 	case 'b':
 	    demux.opt.max_bytes_per_flow = atoi(optarg);
 	    if(debug > 1) {

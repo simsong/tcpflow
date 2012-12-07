@@ -126,7 +126,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->last_packet_number = packet_counter++;
     new_tcpip->nsn   = isn+1;		// expected
-    DEBUG(5) ("%s: new flow. nsn:%d", new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
+    DEBUG(5) ("%s: new flow. next seq num (nsn):%d", new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
     flow_map[flow] = new_tcpip;
     return new_tcpip;
 }
@@ -393,6 +393,8 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	if(opt.opt_no_purge==false){
 	    DEBUG(50)("packet is FIN; closing connection");
 	    remove_flow(this_flow);	// take it out of the map
+	    // BUG BUG BUG
+	    // once the flow is removed, it's forgotten, and then additional packets cause corruption.
 	}
     }
 }
@@ -418,6 +420,10 @@ void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t
     }
 
     DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)caplen,(int)vlan,(int)ip_header->ip_p);
+    if(debug>200){
+	sbuf_t sbuf(pos0_t(),(const uint8_t *)data,caplen,caplen,false);
+	sbuf.hex_dump(std::cerr);
+    }
 
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip_p != IPPROTO_TCP) {

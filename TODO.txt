@@ -52,3 +52,14 @@ Cairo - http://en.wikipedia.org/wiki/Cairo_(graphics)
 ================================================================
  http://net.doit.wisc.edu/~plonka/FlowScan/ 
  http://ant.isi.edu/wiv2012/program.html
+================
+Current bugs:
+tests/bug2.pcap has a connection with multiple packets sent after it is closed.
+  src/tcpflow -d 100  -o bug2 -r  tests/bug2.pcap   --- gets data corruption because the retransmitted packets overwrite the beginning
+  src/tcpflow -P -d 100  -o bug2 -r  tests/bug2.pcap   --- doesn't.
+
+  - Need to see if the filename that's tried to open already exists. If it does, we need to incrment connection count and then go on.
+
+  - But then, we need to realize that it shouldn't be expired out...
+
+

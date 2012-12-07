@@ -41,9 +41,11 @@
  */
 class scan_http_cbo {
 private:
+    typedef enum {NOTHING,FIELD,VALUE} last_on_header_t;
+
     scan_http_cbo(const scan_http_cbo& c) :
         path(c.path), sbuf(c.sbuf), request_no(c.request_no),
-        headers(c.headers), header_state(c.header_state), header_value(c.header_value), header_field(c.header_field),
+        headers(c.headers), last_on_header(c.last_on_header), header_value(c.header_value), header_field(c.header_field),
         output_path(c.output_path), fd(c.fd), decompress_on_write(c.decompress_on_write), bytes_written(c.bytes_written), zs(), zinit(false){};
 public:
     virtual ~scan_http_cbo(){
@@ -51,7 +53,7 @@ public:
     }
     scan_http_cbo(const std::string& path_, const sbuf_t &sbuf_) :
         path(path_), sbuf(sbuf_), request_no(0),
-        headers(), header_state(0), header_value(), header_field(),
+        headers(), last_on_header(NOTHING), header_value(), header_field(),
         output_path(), fd(-1), decompress_on_write(false),bytes_written(0),zs(),zinit(false){};
 private:        
         
@@ -63,7 +65,7 @@ private:
     std::map<std::string, std::string> headers;
         
     /* placeholders for possibly-incomplete header data */
-    int header_state;                   // 0, 1 or 2 
+    last_on_header_t last_on_header;
     std::string header_value, header_field;
     std::string output_path;
         
@@ -73,9 +75,6 @@ private:
     z_stream zs;                       // zstream (avoids casting and memory allocation)
     bool zinit;                         // we have initialized the zstream 
     
-    //write_data_fn_t write_fn;
-    //void * write_fn_state;
-        
     void close();
 
     /* The static functions are callbacks; they wrap the method calls */
@@ -116,10 +115,10 @@ void scan_http_cbo::close()
         decompress_on_write = false;
     }
 }
-    //static int scan_http_write_data_raw(const sbuf_t& buf) {
-    //buf.raw_dump(data->fd, 0, buf.size());
-    //return 0;
-    //}
+//static int scan_http_write_data_raw(const sbuf_t& buf) {
+//buf.raw_dump(data->fd, 0, buf.size());
+//return 0;
+//}
 
 /**
  * on_message_begin:
@@ -138,31 +137,41 @@ int scan_http_cbo::on_url(const char *at, size_t length)
 }
 
 
+/* Note 1: The state machine is defined in http-parser/README.md
+ * Note 2: All header field names are lowercased
+ */
+
 int scan_http_cbo::on_header_field(const char *at,size_t length)
 {
     //const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
     //size_t offset = at - sbuf_head;
     //assert(offset < data->sbuf->size());
     //sbuf_t buf(*data->sbuf, offset, length);
-        
+    
     std::string field = sbuf.substr(sbuf.offset(reinterpret_cast<const uint8_t *>(at)),length);
-
-    switch(header_state){
-    case 1:
-        /* we're a continuation of a partly-read header field */
-        /* append it */
+    std::transform(field.begin(), field.end(), field.begin(), ::tolower);
+    
+    //std::cerr << "field=" << field << " state=" << int(last_on_header) << "\n";
+    
+    switch(last_on_header){
+    case NOTHING:                       
+        // Allocate new buffer and copy callback data into it
+        header_field = field;
+        break;
+    case VALUE:
+        // New header started.
+        // Copy current name,value buffers to headers
+        // list and allocate new buffer for new name
+        headers[header_field] = header_value;
+        header_field = field;
+        break;
+    case FIELD:
+        // Previous name continues. Reallocate name
+        // buffer and append callback data to it
         header_field.append(field);
         break;
-    case 2:
-        /* we must have finished reading a value */
-        /* add it to the map */
-        headers[header_field] = header_value;
-        break;
-    default:
-        /* store this field name */
-        header_field = field;
-        header_state = 1; /* indicate that we just read a header field */
     }
+    last_on_header = FIELD;
     return 0;
 }
 
@@ -174,25 +183,35 @@ int scan_http_cbo::on_header_value(const char *at, size_t length)
     //sbuf_t buf(*data->sbuf, offset, length);
         
     std::string value = sbuf.substr(sbuf.offset(reinterpret_cast<const uint8_t *>(at)),length);
-    switch(header_state){
-    case 2:
-        /* we're a continuation of a partly-read header value */        
+    //std::cerr << "value=" << value << " state=" << int(last_on_header) << "\n";
+    switch(last_on_header){
+    case FIELD:
+        //Value for current header started. Allocate
+        //new buffer and copy callback data to it
+        header_value = value;
+        break;
+    case VALUE:
+        //Value continues. Reallocate value buffer
+        //and append callback data to it
         header_value.append(value);
         break;
-    default:
-        /* we're a new header value */
-        header_value = value;        /* store the value */
-        header_state = 2;        /* indicate that we just read a header value */
-        break;
+    case NOTHING:
+        // this shouldn't happen
+        DEBUG(10)("Internal error in http-parser"); 
     }
+    last_on_header = VALUE;
+
+    //std::string content_encoding(headers["content-encoding"]);
+    //std::cerr << "content_encoding: " << content_encoding << "\n";
     return 0;
 }
 
 int scan_http_cbo::on_headers_complete()
 {
     /* Add the most recently read header to the map, if any */
-    if (header_state == 2) {
+    if (last_on_header==VALUE) {
         headers[header_field] = header_value;
+        header_field="";
     }
         
     /* Set output path to <path>-HTTPBODY for the first body, -HTTPBODY-n for subsequent bodies
@@ -204,7 +223,7 @@ int scan_http_cbo::on_headers_complete()
     }
         
     /* See if we can guess a file extension */
-    std::string extension = get_extension_for_mime_type(headers["Content-Type"]);
+    std::string extension = get_extension_for_mime_type(headers["content-type"]);
     if (extension != "") {
         os << "." << extension;
     }
@@ -212,7 +231,9 @@ int scan_http_cbo::on_headers_complete()
     output_path = os.str();
         
     /* Choose an output function based on the content encoding */
-    std::string content_encoding(headers["Content-Encoding"]);
+    std::string content_encoding(headers["content-encoding"]);
+    //std::cerr << "content_encoding: " << content_encoding << "\n";
+
     if (content_encoding == "gzip" || content_encoding == "deflate") {
 #ifdef HAVE_LIBZ
         DEBUG(10) ( "%s: detected zlib content, decompressing", output_path.c_str());
@@ -242,6 +263,7 @@ int scan_http_cbo::on_headers_complete()
      *  - Pick the intended filename if we see Content-Disposition: attachment; name="..."
      *  - Record headers into filesystem extended attributes on the body file
      */
+    //std::cerr << "\n";
     return 0;
 }
 
@@ -273,17 +295,17 @@ int scan_http_cbo::on_body(const char *at,size_t length)
         //needs_init = true;
         //}
             
-#ifdef HAVE_ZLIB
+#ifdef HAVE_LIBZ
         /* set up this round of decompression, using a small local buffer */
         char decompressed[65536];
-        zs.next_in = (Bytef*)buf.buf;
-        zs.avail_in = buf.size();
+        zs.next_in = (Bytef*)at;
+        zs.avail_in = length;
         zs.next_out = (Bytef*)decompressed;
         zs.avail_out = sizeof(decompressed);
         
         /* is this our first call? */
         if (bytes_written==0) {
-            int rv = inflateInit2(zs, 32 + MAX_WBITS);      /* 32 auto-detects gzip or deflate */
+            int rv = inflateInit2(&zs, 32 + MAX_WBITS);      /* 32 auto-detects gzip or deflate */
             if (rv != Z_OK) {
                 /* fail! */
                 DEBUG(3) ("decompression failed at stream initialization; bad Content-Encoding?");
@@ -295,7 +317,7 @@ int scan_http_cbo::on_body(const char *at,size_t length)
         /* iteratively decompress, writing each time */
         while (zinit && (zs.avail_in > 0)) {
             /* decompress as much as possible */
-            int rv = inflate(zs, Z_SYNC_FLUSH);
+            int rv = inflate(&zs, Z_SYNC_FLUSH);
                 
             if (rv == Z_STREAM_END) {
                 /* are we done with the stream? */
