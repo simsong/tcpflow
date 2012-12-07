@@ -184,16 +184,6 @@ static void process_infile(const std::string &expression,const char *device,cons
 	handler = find_handler(dlt, device);
     }
 
-#if 0
-    if(getenv("TCPFLOW_MFS")) {
-        // wrap the handler so that plugins through the PCB interface will be called
-        pcb::init(handler, true);
-        // currently no non-default plugins are loaded, so do startup right away
-        pcb::do_startup();
-        handler = &pcb::handle;
-    }
-#endif
-
     /* If DLT_NULL is "broken", giving *any* expression to the pcap
      * library when we are using a device of type DLT_NULL causes no
      * packets to be delivered.  In this case, we use no expression, and
@@ -358,8 +348,6 @@ int main(int argc, char *argv[])
     }
     argc -= optind;
     argv += optind;
-
-    if(getenv("TCPFLOW_MFS")) scanners_enable("pcapviz");    /* Special code for Mike */
 
     /* Load all the scanners and enable the ones we care about */
     if(demux.opt.opt_md5) scanners_enable("md5");

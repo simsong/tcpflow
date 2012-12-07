@@ -40,7 +40,8 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	scan_md5.cpp \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \
-	time_histogram.cpp time_histogram.h scan_netviz.cpp \
+	plot.cpp time_histogram.cpp time_histogram.h scan_netviz.cpp \
+        net_tcp.cpp \
 	$(BE13_API) \
 	http-parser/http_parser.c \
 	mime_map.cpp
