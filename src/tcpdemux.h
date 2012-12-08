@@ -208,7 +208,7 @@ public:
 	if (this->dport<b.dport) return true;
 	if (this->dport>b.dport) return false;
 	if (this->family < b.family) return true;
-	if (this->family > b.family) return true;
+	if (this->family > b.family) return false;
 	return false;    /* they are equal! */
     }
 };
