@@ -8,6 +8,7 @@
 #include "config.h"
 #include "tcpflow.h"
 #include <iostream>
+#include <algorithm>
 #include <map>
 #include <sys/types.h>
 #include "bulk_extractor_i.h"
