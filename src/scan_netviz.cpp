@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sys/types.h>
 #include "bulk_extractor_i.h"
-#include "time_histogram.h"
+#include "netviz/time_histogram.h"
 
 dyn_time_histogram th_histogram(time_histogram::default_config);
 

@@ -34,13 +34,20 @@ BE13_API = \
 	be13_api/unicode_escape.h \
 	be13_api/unicode_escape.cpp 
 
+NETVIZ = \
+        netviz/plot.cpp \
+        netviz/plot.h \
+        netviz/time_histogram.cpp \
+        netviz/time_histogram.h
+
 tcpflow_SOURCES = datalink.cpp flow.cpp \
 	tcpflow.cpp \
 	tcpip.cpp tcpdemux.h tcpdemux.cpp tcpflow.h util.cpp \
 	scan_md5.cpp \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \
-	plot.cpp time_histogram.cpp time_histogram.h scan_netviz.cpp \
+	scan_netviz.cpp \
+        $(NETVIZ) \
         net_tcp.cpp \
 	$(BE13_API) \
 	http-parser/http_parser.c \
