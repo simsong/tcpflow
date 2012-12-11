@@ -24,6 +24,12 @@
 /* Define to 1 if you have the <cairo/cairo-pdf.h> header file. */
 #undef HAVE_CAIRO_CAIRO_PDF_H
 
+/* Define to 1 if you have the <cairo.h> header file. */
+#undef HAVE_CAIRO_H
+
+/* Define to 1 if you have the <cairo-pdf.h> header file. */
+#undef HAVE_CAIRO_PDF_H
+
 /* Define to 1 if you have the <ctype.h> header file. */
 #undef HAVE_CTYPE_H
 

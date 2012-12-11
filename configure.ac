@@ -231,6 +231,7 @@ AC_CHECK_LIB([pthreadGC2],[pthread_create])
 #
 
 AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
+AC_CHECK_HEADERS([cairo.h cairo-pdf.h])
 AC_CHECK_LIB([cairo],[cairo_create])
 
 ################################################################

@@ -1,17 +1,7 @@
 #ifndef TIMEHISTOGRAM_H
 #define TIMEHISTOGRAM_H
 
-#ifdef HAVE_LIBCAIRO
-#ifdef HAVE_CAIRO_CAIRO_H
-#include <cairo/cairo.h>
-#endif
-#ifdef HAVE_CAIRO_CAIRO_PDF_H
-#include <cairo/cairo-pdf.h>
-#endif
-#else
-#define cairo_t void			// won't be using cairo
-#endif
-
+#include "render.h"
 #include "plot.h"
 
 /**
