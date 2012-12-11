@@ -1,0 +1,71 @@
+[mockup of 1 page report]
+
+tcpflow <version>                                     
+input:  <filename>
+
+Date range:   ISO-8601 to ISO-8601
+Packets Analyzed:   COUNT (XXX MB)
+Protocols:    IPv4 (%); IPv6 (%); ARP (%); Other (?)
+
++-------------------------------------------------------------+
+|                                                             |
+|                                                             |
+|                     Bandwidth Histogram                     |
+|                                                             |
++-------------------------------------------------------------+
+
++-------------------------------------------------------------+
+|                                                             |
+|                                                             |
+|                     MAP                                     |
+|                                                             |
++-------------------------------------------------------------+
+
+
++-----------------------+             +-----------------------+              
+|                       |             |                       |
+|                       |             |                       |
+|                       |             |                       |
+|   Top Server IPs      |    ->       |     Top Client IPs    |
+|                       |             |                       |
+|                       |             |                       |
++-----------------------+             +-----------------------+              
+Top #1: IP (%)                         Top #1: IP (%)
+Top #2: IP (%)			       Top #2: IP (%)
+Top #3: IP (%)			       Top #3: IP (%)
+
+
++-----------------------+             +-----------------------+              
+|                       |             |                       |
+|                       |             |                       |
+|                       |             |                       |
+|   Top Server Ports    |    ->       |     Top Client Ports  |
+|                       |             |                       |
+|                       |             |                       |
++-----------------------+             +-----------------------+              
+Top #1: Port (%)                         Top #1: Port (%)
+Top #2: Port (%)	 	         Top #2: Port (%)
+Top #3: Port (%)			 Top #3: Port (%)
+
+                          
+
++-----------------------+             +-----------------------+              
+|                       |             |                       |
+|                       |             |                       |
+|                       |             |                       |
+|                       |             |   Observed Downloaded |
+|                       |             |        Types          |
+|                       |             |                       |
++-----------------------+             +-----------------------+              
+
+
+
+
+====
+Notes:
+
+1 - DNS Resolution:
+    1.1 - IP addresses only.
+    1.2 - Passive DNS
+    1.3 - Passive DNS augmented by a list of DNS records (in PCAP format)
+    1.4 - Generate a list of IP addresses requiring resolution
