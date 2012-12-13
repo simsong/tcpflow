@@ -1,5 +1,4 @@
 #!/bin/sh
-
 # Hopefully you checked out with git clone --recursive git@github.com:simsong/tcpflow.git
 
 if [ ! -d src/be13_api/.git ] ;
