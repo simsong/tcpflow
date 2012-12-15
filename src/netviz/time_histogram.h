@@ -83,6 +83,7 @@ public:
     };
     static void time_struct_to_string(const struct tm & time_struct,
             std::stringstream &ss);
+    void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render(const std::string &outdir);
     void choose_subtitle(const render_vars &vars);
     plot::ticks_t build_tick_labels(const render_vars &vars);
@@ -95,6 +96,7 @@ class dyn_time_histogram {
 public:
     dyn_time_histogram(const time_histogram::config_t &conf_);
     void ingest_packet(const packet_info &pi);
+    void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render(const std::string &outdir);
     time_histogram &select_best_fit();
 

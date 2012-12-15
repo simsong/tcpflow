@@ -43,7 +43,10 @@ const plot::config_t plot::default_config = {
 void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
         const plot::ticks_t &ticks, const plot::legend_t &legend,
         const plot::config_t &conf, bounds_t &content_bounds) {
-#ifdef HAVE_LIBCAIRO
+#ifdef CAIRO_PDF_AVAILABLE
+    cairo_matrix_t original_matrix;
+    cairo_get_matrix(cr, &original_matrix);
+
     double pad_bottom = conf.height * conf.pad_bottom_factor;
     double pad_right = conf.width * conf.pad_right_factor;
 
@@ -133,7 +136,7 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
                 tick_length, tick_width);
         cairo_fill(cr);
     }
-    cairo_identity_matrix(cr);
+    cairo_set_matrix(cr, &original_matrix);
     cairo_translate(cr, bounds.x, bounds.y);
 
     // x ticks (time)
@@ -164,7 +167,7 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
         cairo_show_text(cr, label);
     }
 
-    cairo_identity_matrix(cr);
+    cairo_set_matrix(cr, &original_matrix);
     cairo_translate(cr, bounds.x, bounds.y);
 
     // render legend
@@ -208,7 +211,7 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     }
 
     cairo_set_source_rgb(cr, 0, 0, 0);
-    cairo_identity_matrix(cr);
+    cairo_set_matrix(cr, &original_matrix);
 
     // inform the calling class what bounds they should be rendering in
     content_bounds.x = bounds.x + left_padding;
