@@ -6,27 +6,24 @@
 #include <iostream>
 #include <sys/types.h>
 #include "bulk_extractor_i.h"
+#include "netviz/one_page_report.h"
 #include "netviz/time_histogram.h"
 
-dyn_time_histogram th_histogram(time_histogram::default_config);
+one_page_report th_one_page(one_page_report::default_config);
 
 void th_startup()
 {
-    time_histogram::config_t config = time_histogram::default_config;
-    config.graph.title = "TCP Packets Received";
-    config.graph.filename = "time_histogram.pdf";
-
-    th_histogram = dyn_time_histogram(config);
+    th_one_page = one_page_report(one_page_report::default_config);
 }
 
 void th_process_packet(void *user,const packet_info &pi)
 {
-    th_histogram.ingest_packet(pi);
+    th_one_page.ingest_packet(pi);
 }
 
 void th_shutdown(const class scanner_params &sp)
 {
-    th_histogram.render(sp.fs.outdir);
+    th_one_page.render(sp.fs.outdir);
 }
 
 

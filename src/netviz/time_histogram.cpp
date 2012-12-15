@@ -118,8 +118,9 @@ void time_histogram::ingest_packet(const packet_info &pi)
     }
 }
 
-void time_histogram::render(const std::string &outdir)
+void time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
+#ifdef CAIRO_PDF_AVAILABLE
     render_vars vars;
     vars.prep(*this);
 
@@ -132,14 +133,20 @@ void time_histogram::render(const std::string &outdir)
 
     plot::ticks_t ticks = build_tick_labels(vars);
     plot::legend_t legend = build_legend(vars);
-    plot::bounds_t bounds = plot::bounds_t(0.0, 0.0, conf.graph.width,
-            conf.graph.height);
+    plot::bounds_t content_bounds(0.0, 0.0, bounds.width,
+            bounds.height);
 
-    //
-    // Start rendering
-    //
+    // have the plot class do labeling, axes, legend etc
+    plot::render(cr, bounds, ticks, legend, conf.graph, content_bounds);
 
-#ifdef HAVE_CAIRO_CAIRO_H
+    // fill borders rendered by plot class
+    render_bars(cr, content_bounds, vars);
+#endif
+}
+
+void time_histogram::render(const std::string &outdir)
+{
+#ifdef CAIRO_PDF_AVAILABLE
     cairo_t *cr;
     cairo_surface_t *surface;
     std::string fname = outdir + "/" + conf.graph.filename;
@@ -149,17 +156,12 @@ void time_histogram::render(const std::string &outdir)
 				 conf.graph.height);
     cr = cairo_create(surface);
 
-    plot::bounds_t content_bounds(0.0, 0.0, conf.graph.width,
+    plot::bounds_t bounds(0.0, 0.0, conf.graph.width,
             conf.graph.height);
 
-    // have the plot class do labeling, axes, legend etc
-    plot::render(cr, bounds, ticks, legend, conf.graph, content_bounds);
-
-    // fill borders rendered by plot class
-    render_bars(cr, content_bounds, vars);
+    render(cr, bounds);
 
     // cleanup
-    cairo_identity_matrix(cr);
     cairo_destroy (cr);
     cairo_surface_destroy(surface);
 #endif
@@ -263,9 +265,10 @@ plot::legend_t time_histogram::build_legend(const render_vars &vars)
 void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
         render_vars &vars)
 {
-#ifdef HAVE_LIBCAIRO
+#ifdef CAIRO_PDF_AVAILABLE
+    cairo_matrix_t original_matrix;
 
-    cairo_identity_matrix(cr);
+    cairo_get_matrix(cr, &original_matrix);
     cairo_translate(cr, bounds.x, bounds.y);
 
     double offset_unit = bounds.width / vars.num_sig_buckets;
@@ -319,7 +322,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 	index++;
     }
 
-    cairo_identity_matrix(cr);
+    cairo_set_matrix(cr, &original_matrix);
 #endif
 }
 
@@ -343,6 +346,11 @@ void dyn_time_histogram::ingest_packet(const packet_info &pi)
             histogram != histograms.end(); histogram++) {
         histogram->ingest_packet(pi);
     }
+}
+
+void dyn_time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
+{
+    select_best_fit().render(cr, bounds);
 }
 
 void dyn_time_histogram::render(const std::string &outdir)
