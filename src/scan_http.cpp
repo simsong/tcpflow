@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <map>
 #include <sys/types.h>
+#include <iomanip>
 #include "bulk_extractor_i.h"
 
 #include "http-parser/http_parser.h"
@@ -47,15 +48,16 @@ private:
     scan_http_cbo(const scan_http_cbo& c) :
         path(c.path), sbuf(c.sbuf), request_no(c.request_no),
         headers(c.headers), last_on_header(c.last_on_header), header_value(c.header_value), header_field(c.header_field),
-        output_path(c.output_path), fd(c.fd), decompress_on_write(c.decompress_on_write), bytes_written(c.bytes_written), zs(), zinit(false){};
+        output_path(c.output_path), fd(c.fd), bytes_written(c.bytes_written),unzip(c.unzip), 
+        zs(), zinit(false), zfail(false) {};
 public:
     virtual ~scan_http_cbo(){
-        if(fd!=-1 || zinit) close();    // clean up if we are not clean
+        on_message_complete();          // make sure message was ended
     }
     scan_http_cbo(const std::string& path_, const sbuf_t &sbuf_) :
         path(path_), sbuf(sbuf_), request_no(0),
         headers(), last_on_header(NOTHING), header_value(), header_field(),
-        output_path(), fd(-1), decompress_on_write(false),bytes_written(0),zs(),zinit(false){};
+        output_path(), fd(-1), bytes_written(0),unzip(false),zs(),zinit(false),zfail(false){};
 private:        
         
     const std::string path;             // where data gets written
@@ -69,14 +71,14 @@ private:
     last_on_header_t last_on_header;
     std::string header_value, header_field;
     std::string output_path;
-        
     int fd;                             // fd for writing
-    bool decompress_on_write;           // should we be decompressing?
     uint64_t bytes_written;
-    z_stream zs;                       // zstream (avoids casting and memory allocation)
-    bool zinit;                         // we have initialized the zstream 
-    
-    void close();
+
+    /* decompression for gzip-encoded streams. */
+    bool     unzip;           // should we be decompressing?
+    z_stream zs;              // zstream (avoids casting and memory allocation)
+    bool     zinit;           // we have initialized the zstream 
+    bool     zfail;           // zstream failed in some manner, so ignore the rest of this stream
 
     /* The static functions are callbacks; they wrap the method calls */
 #define CBO (reinterpret_cast<scan_http_cbo*>(parser->data))
@@ -96,26 +98,10 @@ private:
     int on_header_value(const char *at, size_t length);
     int on_headers_complete();
     int on_body(const char *at, size_t length);
-    int on_message_complete();
+    int on_message_complete();          
 };
     
-/*
- * close the file descriptor and kill the decompressor if it is present
- */
-void scan_http_cbo::close()
-{
-    if(fd >= 0) {
-        if (::close(fd) != 0) {
-            perror("close() of http body");
-        }
-        fd = -1;
-    }
 
-    if(decompress_on_write){
-        inflateEnd(&zs);
-        decompress_on_write = false;
-    }
-}
 //static int scan_http_write_data_raw(const sbuf_t& buf) {
 //buf.raw_dump(data->fd, 0, buf.size());
 //return 0;
@@ -132,6 +118,10 @@ int scan_http_cbo::on_message_begin()
     return 0;
 }
 
+/**
+ * on_url currently not implemented.
+ */
+
 int scan_http_cbo::on_url(const char *at, size_t length)
 {
     return 0;
@@ -139,7 +129,8 @@ int scan_http_cbo::on_url(const char *at, size_t length)
 
 
 /* Note 1: The state machine is defined in http-parser/README.md
- * Note 2: All header field names are lowercased
+ * Note 2: All header field names are converted to lowercase.
+ *         This is consistent with the RFC.
  */
 
 int scan_http_cbo::on_header_field(const char *at,size_t length)
@@ -198,7 +189,8 @@ int scan_http_cbo::on_header_value(const char *at, size_t length)
         break;
     case NOTHING:
         // this shouldn't happen
-        DEBUG(10)("Internal error in http-parser"); 
+        DEBUG(10)("Internal error in http-parser");
+        break;
     }
     last_on_header = VALUE;
 
@@ -207,22 +199,30 @@ int scan_http_cbo::on_header_value(const char *at, size_t length)
     return 0;
 }
 
+/**
+ * called when last header is read.
+ * Determine the filename based on request_no and extension.
+ * Also see if decompressing is happening...
+ */
+
 int scan_http_cbo::on_headers_complete()
 {
+    cerr << "on_headers_complete\n";
+
     /* Add the most recently read header to the map, if any */
     if (last_on_header==VALUE) {
         headers[header_field] = header_value;
         header_field="";
     }
         
-    /* Set output path to <path>-HTTPBODY for the first body, -HTTPBODY-n for subsequent bodies
-     * This is consistent with tcpflow <= 1.3.0, which supported only one HTTPBODY */
+    /* Set output path to <path>-HTTPBODY-nnn.ext for each part.
+     * This is not consistent with tcpflow <= 1.3.0, which supported only one HTTPBODY,
+     * but it's correct...
+     */
+    
     std::stringstream os;
-    os << path << "-HTTPBODY";
-    if (request_no != 1) {
-        os << "-" << request_no;
-    }
-        
+    os << path << "-HTTPBODY-" << std::setw(3) << std::setfill('0') << request_no << std::setw(0);
+
     /* See if we can guess a file extension */
     std::string extension = get_extension_for_mime_type(headers["content-type"]);
     if (extension != "") {
@@ -233,12 +233,12 @@ int scan_http_cbo::on_headers_complete()
         
     /* Choose an output function based on the content encoding */
     std::string content_encoding(headers["content-encoding"]);
-    //std::cerr << "content_encoding: " << content_encoding << "\n";
+    std::cerr << "content_encoding: " << content_encoding << "\n";
 
     if (content_encoding == "gzip" || content_encoding == "deflate") {
 #ifdef HAVE_LIBZ
         DEBUG(10) ( "%s: detected zlib content, decompressing", output_path.c_str());
-        decompress_on_write = true;
+        unzip = true;
         //write_fn = scan_http_write_data_zlib;
 #else
         /* We can't decompress, so just give it a .gz */
@@ -256,6 +256,7 @@ int scan_http_cbo::on_headers_complete()
     if (fd < 0) {
         DEBUG(1) ("unable to open HTTP body file %s", output_path.c_str());
     }
+    cerr << "open " << output_path << "=" << fd << "\n";
         
     /* We can do something smart with the headers here.
      *
@@ -276,86 +277,108 @@ int scan_http_cbo::on_body(const char *at,size_t length)
     //size_t offset = at - sbuf_head;
     //assert(offset < data->sbuf->size());
     //sbuf_t buf(*data->sbuf, offset, length);
-    size_t offset = sbuf.offset(reinterpret_cast<const uint8_t *>(at));
-    
-    if(length==0) return 0;               // nothing to write
-        
-    if (fd < 0)  return -1;                // no open fd?
 
-    /* Write this buffer to the output file via the appropriate method */
-    if(decompress_on_write==false){
-        int rv = sbuf.write(fd,offset,length);
-        if(rv<0) return -1;
+    //size_t offset = sbuf.offset(reinterpret_cast<const uint8_t *>(at));
+    
+    cerr << "on_body() length=" << length << "\n";
+
+    if (fd < 0)    return -1;              // no open fd? (internal error)x
+    if (length==0) return 0;               // nothing to write
+
+    /* If not decompressing, just write the data and return. */
+    if(unzip==false){
+        int rv = write(fd,at,length);
+        if(rv<0) return -1;             // write error; that's bad
         bytes_written += rv;
+        return 0;
     }
-    else {
-        /* allocate a z_stream if this is the first call */
-        //bool needs_init = false;
-        //if (data->write_fn_state == NULL) {
-        //data->write_fn_state = calloc(1, sizeof(z_stream));
-        //needs_init = true;
-        //}
-            
-#ifdef HAVE_LIBZ
-        /* set up this round of decompression, using a small local buffer */
-        char decompressed[65536];
+
+#ifndef HAVE_LIBZ
+    assert(0);                          // shoudln't have gotten here
+#endif    
+    if(zfail) return 0;                 // stream was corrupt; ignore rest
+
+    /* set up this round of decompression, using a small local buffer */
+
+    for(size_t i=0;i<length;i++){
+        fprintf(stderr,"%02x ",(uint8_t)at[i]);
+    }
+    fprintf(stderr,"\n");
+    fflush(stderr);
+
+    std::cerr << "zinit= " << zinit << "bytes_written=" << bytes_written << " length="
+              << length << " avail_out=" << zs.avail_out << "\n";
+
+    /* Call init if we are not initialized */
+    char decompressed[65536];           // where decompressed data goes
+    if (!zinit) {
+        memset(&zs,0,sizeof(zs));
         zs.next_in = (Bytef*)at;
         zs.avail_in = length;
         zs.next_out = (Bytef*)decompressed;
         zs.avail_out = sizeof(decompressed);
         
-        /* is this our first call? */
-        if (bytes_written==0) {
-            int rv = inflateInit2(&zs, 32 + MAX_WBITS);      /* 32 auto-detects gzip or deflate */
-            if (rv != Z_OK) {
-                /* fail! */
-                DEBUG(3) ("decompression failed at stream initialization; bad Content-Encoding?");
-                return -1;
-            }
-            zinit = true;
+        int rv = inflateInit2(&zs, 32 + MAX_WBITS);      /* 32 auto-detects gzip or deflate */
+        if (rv != Z_OK) {
+            /* fail! */
+            DEBUG(3) ("decompression failed at stream initialization; rv=%d bad Content-Encoding?",rv);
+            zfail = true;
+            return 0;
         }
+        zinit = true;                   // successfully initted
+    } else {
+        zs.next_in = (Bytef*)at;
+        zs.avail_in = length;
+        zs.next_out = (Bytef*)decompressed;
+        zs.avail_out = sizeof(decompressed);
+    }
         
-        /* iteratively decompress, writing each time */
-        while (zinit && (zs.avail_in > 0)) {
-            /* decompress as much as possible */
-            int rv = inflate(&zs, Z_SYNC_FLUSH);
+    /* iteratively decompress, writing each time */
+    std::cerr << "zinit=" << zinit << " zs.avail_in= " << zs.avail_in << "\n";
+    while (zs.avail_in > 0) {
+        /* decompress as much as possible */
+        int rv = inflate(&zs, Z_SYNC_FLUSH);
                 
-            if (rv == Z_STREAM_END) {
-                /* are we done with the stream? */
-                if (zs.avail_in > 0) {
-                    /* ...no. */
-                    DEBUG(3) ("decompression completed, but with trailing garbage");
-                    return -2;
-                }
-            } else if (rv != Z_OK) {
-                /* some other error */
-                DEBUG(3) ("decompression failed (corrupted stream?)");
-                return -3;
+        if (rv == Z_STREAM_END) {
+            /* are we done with the stream? */
+            if (zs.avail_in > 0) {
+                /* ...no. */
+                DEBUG(3) ("decompression completed, but with trailing garbage");
+                return 0;
             }
-                
-            /* successful decompression, at least partly */
-            /* write the result */
-            int bytes_decompressed = sizeof(decompressed) - zs.avail_out;
-            ssize_t written = write(fd, decompressed, bytes_decompressed);
-            if (written < bytes_decompressed) {
-                DEBUG(3) ("writing decompressed data failed");
-                return -4;
-            }
-            bytes_written += written;
-                
-            /* reset the buffer for the next iteration */
-            zs.next_out = (Bytef*)decompressed;
-            zs.avail_out = sizeof(decompressed);
+        } else if (rv != Z_OK) {
+            /* some other error */
+            DEBUG(3) ("decompression failed (corrupted stream?)");
+            zfail = true;               // ignore the rest of this stream
+            return 0;
         }
-#else
-        assert(0);                      // shouldn't be able to get here
-#endif        
+                
+        /* successful decompression, at least partly */
+        /* write the result */
+        int bytes_decompressed = sizeof(decompressed) - zs.avail_out;
+        ssize_t written = write(fd, decompressed, bytes_decompressed);
+
+        cerr << "   zwrite(" << fd << ") = " << written << "\n";
+
+        if (written < bytes_decompressed) {
+            DEBUG(3) ("writing decompressed data failed");
+            zfail= true;
+            return 0;
+        }
+        bytes_written += written;
+                
+        /* reset the buffer for the next iteration */
+        zs.next_out = (Bytef*)decompressed;
+        zs.avail_out = sizeof(decompressed);
     }
     return 0;
 }
 
 
-/* These are callbacks for the parser. Each one calls the appropriate method call */
+/**
+ * called at the conclusion of each HTTP body.
+ * Clean out all of the state for this HTTP header/body pair.
+ */
 
 int scan_http_cbo::on_message_complete()
 {
@@ -363,8 +386,30 @@ int scan_http_cbo::on_message_complete()
     //sbuf_t empty_buffer(*data->sbuf, 0, 0);
     //data->write_fn(data, empty_buffer);
     //
+    std::cerr << "on_message_complete\n\n";
+    /* TODO: Update DFXML */
+
     /* Close the file */
-    close();
+    cerr << "headers.size=" << headers.size() << "\n";
+    headers.clear();
+    cerr << "headers.size=" << headers.size() << "\n";
+    last_on_header = NOTHING;
+    header_field = "";
+    header_value = "";
+    output_path = "";
+    if(fd >= 0) {
+        if (::close(fd) != 0) {
+            perror("close() of http body");
+        }
+        fd = -1;
+    }
+    bytes_written=0;
+    unzip = false;
+    if(zinit){
+        inflateEnd(&zs);
+        zinit = false;
+    }
+    zfail = false;
     return 0;
 }
 
