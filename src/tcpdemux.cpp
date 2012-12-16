@@ -251,25 +251,6 @@ unsigned int tcpdemux::get_max_fds(void)
 }
 
 
-/* write a portion of memory to the disk and a child fileobject. */
-void tcpdemux::write_to_file(std::stringstream &xmlattr,
-			     const std::string &fname,
-			     const sbuf_t &sbuf)
-{
-    int fd = retrying_open(fname,O_WRONLY|O_CREAT|O_BINARY|O_TRUNC,0644);
-    if(fd>=0){
-	size_t count = sbuf.write(fd,0,sbuf.size());
-	if(close(fd)!=0 || count!=sbuf.size()){
-	    xmlattr << "<write_error errno='" << errno << "' buflen='" << sbuf.size() << "' count='" << count << "'>";
-	} else {
-	    xmlattr << "<byte_run file_offset='" << sbuf.pos0.offset << "' len='" << sbuf.size() << "'>"
-		    << "<filename>" << fname << "</filename>"
-		    << "<hashdigest type='MD5'>" << sbuf.md5().hexdigest() << "</hashdigest>"
-		    << "</byte_run>\n";
-	}
-    }
-}
-
 /*
  * Called to processes a tcp packet
  */
@@ -325,13 +306,18 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     }
 
     /* At this point, tcp may be NULL because:
-     * case 1 - a connection wasn't found or because
-     * case 2 - a new connections should be started (jump is too much)
+     * case 1 - It's a new connection (and we have a syn)
+     * case 2 - It's an old connection, but it was already finished.
+     * case 3 - It's a connecton that had a huge gap...
      *
      * THIS IS THE ONLY PLACE THAT create_tcpip() is called.
      */
 
     if (tcp==NULL){
+
+        /* Don't process if this is not a SYN and there is no data. */
+        if(syn_set==false && length==0) return;
+
 	/* Create a new connection.
 	 * delta will be 0, because it's a new connection!
 	 */
@@ -591,61 +577,6 @@ void munmap(void *buf,size_t size)
 #endif
 
 
-#if 0
-/* This could be much more efficient */
-const uint8_t *find_crlfcrlf(const uint8_t *base,size_t len)
-{
-    while(len>4){
-	if(base[0]=='\r' && base[1]=='\n' && base[2]=='\r' && base[3]=='\n'){
-	    return base;
-	}
-	len--;
-	base++;
-    }
-    return 0;
-}
-
-
-
-#ifdef HAVE_LIBZ
-#define ZLIB_CONST
-#ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
-#  pragma GCC diagnostic ignored "-Wundef"
-#  pragma GCC diagnostic ignored "-Wcast-qual"
-#endif
-#ifdef HAVE_ZLIB_H
-#include <zlib.h>
-#endif
-static void process_gzip(class tcpdemux &demux,
-			 std::stringstream &ss,
-			 const std::string &fname,const unsigned char *base,size_t len)
-{
-    if((len>4) && (base[0]==0x1f) && (base[1]==0x8b) && (base[2]==0x08) && (base[3]==0x00)){
-	size_t uncompr_size = len * 16;
-	unsigned char *decompress_buf = (unsigned char *)malloc(uncompr_size);
-	if(decompress_buf==0) return;	// too big?
-
-	z_stream zs;
-	memset(&zs,0,sizeof(zs));
-	zs.next_in = (Bytef *)base; // note that next_in should be typedef const but is not
-	zs.avail_in = len;
-	zs.next_out = decompress_buf;
-	zs.avail_out = uncompr_size;
-		
-	int r = inflateInit2(&zs,16+MAX_WBITS);
-	if(r==0){
-	    r = inflate(&zs,Z_SYNC_FLUSH);
-	    /* Ignore the error return; process data if we got anything */
-	    if(zs.total_out>0){
-		demux.write_to_file(ss,fname,sbuf_t(pos0_t(),decompress_buf,zs.total_out,zs.total_out,false));
-	    }
-	    inflateEnd(&zs);
-	}
-	free(decompress_buf);
-    }
-}
-#endif
-#endif
 
 /** 
  * After the flow is finished, put it in an SBUF and process it.
@@ -663,6 +594,8 @@ void tcpdemux::post_process_capture_flow(std::stringstream &xmladd,
     sbuf_t *sbuf = sbuf_t::map_file(flow_pathname,pos0_t(flow_pathname),fd2);
     if(sbuf){
 	process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs,&xmladd));
+        delete sbuf;
+        sbuf = 0;
     }
     ::close(fd2);
 }

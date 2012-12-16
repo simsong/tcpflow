@@ -417,8 +417,6 @@ public:
     class feature_recorder_set *fs;
     
     static tcpdemux *getInstance();
-    void write_to_file(std::stringstream &ss,
-		       const std::string &fname,const sbuf_t &sbuf);
     void  close_all();
     void  close_tcpip(tcpip *);
     int   open_tcpfile(tcpip *);			// opens this file; return -1 if failure, 0 if success
@@ -430,15 +428,6 @@ public:
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn, const timeval &ts,uint64_t connection_count);
     tcpip *find_tcpip(const flow_addr &flow);
 
-#if 0
-    struct packet_info_t {
-	const strcut timeval &ts;
-	const u_char *data;
-	uint32_t caplen;
-	int32_t vlan;
-	sa_family_t family;
-    };
-#endif
     void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
 			    const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
     void  process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
