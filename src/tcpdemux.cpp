@@ -294,8 +294,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     tcp_seq seq  = ntohl(tcp_header->th_seq);
     bool syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
     bool ack_set = IS_SET(tcp_header->th_flags, TH_ACK);
-
-    //std::cerr << "\n*** process_tcp seq=" << seq << " \n";
+    bool fin_set = IS_SET(tcp_header->th_flags, TH_FIN);
 
     /* recalculate the beginning of data and its length, moving past the
      * TCP header
@@ -389,7 +388,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     }
 
     /* Finally, if there is a FIN, then kill this TCP connection*/
-    if (IS_SET(tcp_header->th_flags, TH_FIN)){
+    if (fin_set){
 	if(opt.opt_no_purge==false){
 	    DEBUG(50)("packet is FIN; closing connection");
 	    remove_flow(this_flow);	// take it out of the map

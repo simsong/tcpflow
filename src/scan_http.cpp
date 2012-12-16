@@ -37,24 +37,31 @@
 class scan_http_cbo {
 private:
     typedef enum {NOTHING,FIELD,VALUE} last_on_header_t;
+    class not_impl: public std::exception {
+	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
+    };
 
     scan_http_cbo(const scan_http_cbo& c) :
-        path(c.path), sbuf(c.sbuf), request_no(c.request_no),
+        path(c.path), base(c.base), xmlstream(c.xmlstream),request_no(c.request_no),
         headers(c.headers), last_on_header(c.last_on_header), header_value(c.header_value), header_field(c.header_field),
-        output_path(c.output_path), fd(c.fd), bytes_written(c.bytes_written),unzip(c.unzip), 
-        zs(), zinit(false), zfail(false) {};
+        output_path(c.output_path), fd(c.fd), first_body(c.first_body),bytes_written(c.bytes_written),unzip(c.unzip), 
+        zs(), zinit(false), zfail(false) {throw new not_impl();};
+
+    scan_http_cbo &operator=(const scan_http_cbo &c) {throw new not_impl();}
+
 public:
     virtual ~scan_http_cbo(){
         on_message_complete();          // make sure message was ended
     }
-    scan_http_cbo(const std::string& path_, const sbuf_t &sbuf_) :
-        path(path_), sbuf(sbuf_), request_no(0),
+    scan_http_cbo(const std::string& path_,const char *base_,std::stringstream *xmlstream_) :
+        path(path_), base(base_),xmlstream(xmlstream_),request_no(0),
         headers(), last_on_header(NOTHING), header_value(), header_field(),
-        output_path(), fd(-1), bytes_written(0),unzip(false),zs(),zinit(false),zfail(false){};
+        output_path(), fd(-1), first_body(true),bytes_written(0),unzip(false),zs(),zinit(false),zfail(false){};
 private:        
         
     const std::string path;             // where data gets written
-    const sbuf_t &sbuf;                 // sbuf holding the data
+    const char *base;                   // where data started in memory
+    std::stringstream *xmlstream;       // if present, where to put the fileobject annotations
     int request_no;                     // request number
         
     /* parsed headers */
@@ -64,8 +71,9 @@ private:
     last_on_header_t last_on_header;
     std::string header_value, header_field;
     std::string output_path;
-    int fd;                             // fd for writing
-    uint64_t bytes_written;
+    int         fd;                         // fd for writing
+    bool        first_body;
+    uint64_t    bytes_written;
 
     /* decompression for gzip-encoded streams. */
     bool     unzip;           // should we be decompressing?
@@ -123,7 +131,7 @@ int scan_http_cbo::on_url(const char *at, size_t length)
 
 int scan_http_cbo::on_header_field(const char *at,size_t length)
 {
-    std::string field = sbuf.substr(sbuf.offset(reinterpret_cast<const uint8_t *>(at)),length);
+    std::string field(at,length);
     std::transform(field.begin(), field.end(), field.begin(), ::tolower);
     
     switch(last_on_header){
@@ -150,7 +158,7 @@ int scan_http_cbo::on_header_field(const char *at,size_t length)
 
 int scan_http_cbo::on_header_value(const char *at, size_t length)
 {
-    std::string value = sbuf.substr(sbuf.offset(reinterpret_cast<const uint8_t *>(at)),length);
+    const std::string value(at,length);
     switch(last_on_header){
     case FIELD:
         //Value for current header started. Allocate
@@ -221,6 +229,8 @@ int scan_http_cbo::on_headers_complete()
     if (fd < 0) {
         DEBUG(1) ("unable to open HTTP body file %s", output_path.c_str());
     }
+
+    first_body = true;                  // next call to on_body will be the first one
         
     /* We can do something smart with the headers here.
      *
@@ -237,6 +247,13 @@ int scan_http_cbo::on_body(const char *at,size_t length)
 {
     if (fd < 0)    return -1;              // no open fd? (internal error)x
     if (length==0) return 0;               // nothing to write
+
+    if(first_body){                      // stuff for first time on_body is called
+        if(xmlstream){
+            (*xmlstream) << "     <byte_run file_offset='" << (at-base) << "'><fileobject><filename>" << output_path << "</filename>";
+        }
+        first_body = false;
+    }
 
     /* If not decompressing, just write the data and return. */
     if(unzip==false){
@@ -312,7 +329,7 @@ int scan_http_cbo::on_body(const char *at,size_t length)
         zs.avail_out = sizeof(decompressed);
     }
     return 0;
-}
+    }
 
 
 /**
@@ -323,6 +340,7 @@ int scan_http_cbo::on_body(const char *at,size_t length)
 int scan_http_cbo::on_message_complete()
 {
     /* TODO: Update DFXML */
+    if(xmlstream && bytes_written>0) (*xmlstream) << "<filesize>" << bytes_written << "</filesize></fileobject></byte_run>\n";
 
     /* Close the file */
     headers.clear();
@@ -380,7 +398,7 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
             scan_http_parser_settings.on_body                   = scan_http_cbo::scan_http_cb_on_body;
             scan_http_parser_settings.on_message_complete       = scan_http_cbo::scan_http_cb_on_message_complete;
                         
-            
+            if(sp.sbufxml) (*sp.sbufxml) << "\n    <byte_runs>\n";
             for(size_t offset=0;;){
                 /* Set up a parser instance for the next chunk of HTTP responses and data.
                  * This might be repeated several times due to connection re-use and multiple requests.
@@ -389,19 +407,22 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
                  * recover it with a cast in each of the callbacks.
                  */
                 
+                /* Make an sbuf for the remaining data.
+                 * Note that this may not be necessary, because in our test runs the parser
+                 * processed all of the data the first time through...
+                 */
+                sbuf_t sub_buf(sp.sbuf, offset);
+                                
+                const char *base = reinterpret_cast<const char*>(sub_buf.buf);
                 http_parser parser;
                 http_parser_init(&parser, HTTP_RESPONSE);
 
-                scan_http_cbo cbo(sp.sbuf.pos0.path, sp.sbuf);
+                scan_http_cbo cbo(sp.sbuf.pos0.path,base,sp.sbufxml);
                 parser.data = &cbo;
 
-                                
-                /* Make an sbuf for the remaining data */
-                sbuf_t sub_buf(sp.sbuf, offset);
-                                
                 /* Parse */
                 size_t parsed = http_parser_execute(&parser, &scan_http_parser_settings,
-                                                    reinterpret_cast<const char*>(sub_buf.buf), sub_buf.size());
+                                                    base, sub_buf.size());
                 assert(parsed <= sub_buf.size());
                                 
                 /* Indicate EOF (flushing callbacks) and terminate if we parsed the entire buffer.
@@ -425,6 +446,7 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
                 /* Bump the offset for next iteration */
                 offset += parsed;
             }
+            if(sp.sbufxml) (*sp.sbufxml) << "    </byte_runs>";
         }
     }
 }

@@ -77,6 +77,7 @@ tcpip::~tcpip()
 	demux.xreport->xmlout(tcpflow_str,"",attrs.str(),false);
 	if(xmladd.tellp()>0) demux.xreport->xmlout("",xmladd.str(),"",false);
 	demux.xreport->pop();
+        demux.xreport->flush();
     }
 }
 
