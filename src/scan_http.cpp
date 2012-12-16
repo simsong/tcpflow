@@ -32,13 +32,6 @@
 #endif
 
 
-/***
- * data structures
- */
-
-//typedef struct scan_http_data_t;
-//typedef int(*write_data_fn_t)(scan_http_data_t * data, sbuf_t& buf);
-
 /* define a callback object for sharing state between scan_http() and its callbacks
  */
 class scan_http_cbo {
@@ -102,11 +95,6 @@ private:
 };
     
 
-//static int scan_http_write_data_raw(const sbuf_t& buf) {
-//buf.raw_dump(data->fd, 0, buf.size());
-//return 0;
-//}
-
 /**
  * on_message_begin:
  * Increment request nubmer. Note that the first request is request_no = 1
@@ -135,15 +123,8 @@ int scan_http_cbo::on_url(const char *at, size_t length)
 
 int scan_http_cbo::on_header_field(const char *at,size_t length)
 {
-    //const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
-    //size_t offset = at - sbuf_head;
-    //assert(offset < data->sbuf->size());
-    //sbuf_t buf(*data->sbuf, offset, length);
-    
     std::string field = sbuf.substr(sbuf.offset(reinterpret_cast<const uint8_t *>(at)),length);
     std::transform(field.begin(), field.end(), field.begin(), ::tolower);
-    
-    //std::cerr << "field=" << field << " state=" << int(last_on_header) << "\n";
     
     switch(last_on_header){
     case NOTHING:                       
@@ -169,13 +150,7 @@ int scan_http_cbo::on_header_field(const char *at,size_t length)
 
 int scan_http_cbo::on_header_value(const char *at, size_t length)
 {
-    //const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
-    //size_t offset = at - sbuf_head;
-    //assert(offset < data->sbuf->size());
-    //sbuf_t buf(*data->sbuf, offset, length);
-        
     std::string value = sbuf.substr(sbuf.offset(reinterpret_cast<const uint8_t *>(at)),length);
-    //std::cerr << "value=" << value << " state=" << int(last_on_header) << "\n";
     switch(last_on_header){
     case FIELD:
         //Value for current header started. Allocate
@@ -194,8 +169,6 @@ int scan_http_cbo::on_header_value(const char *at, size_t length)
     }
     last_on_header = VALUE;
 
-    //std::string content_encoding(headers["content-encoding"]);
-    //std::cerr << "content_encoding: " << content_encoding << "\n";
     return 0;
 }
 
@@ -207,8 +180,6 @@ int scan_http_cbo::on_header_value(const char *at, size_t length)
 
 int scan_http_cbo::on_headers_complete()
 {
-    cerr << "on_headers_complete\n";
-
     /* Add the most recently read header to the map, if any */
     if (last_on_header==VALUE) {
         headers[header_field] = header_value;
@@ -225,7 +196,7 @@ int scan_http_cbo::on_headers_complete()
 
     /* See if we can guess a file extension */
     std::string extension = get_extension_for_mime_type(headers["content-type"]);
-    if (extension != "") {
+    if (extension.size()) {
         os << "." << extension;
     }
         
@@ -233,30 +204,23 @@ int scan_http_cbo::on_headers_complete()
         
     /* Choose an output function based on the content encoding */
     std::string content_encoding(headers["content-encoding"]);
-    std::cerr << "content_encoding: " << content_encoding << "\n";
 
     if (content_encoding == "gzip" || content_encoding == "deflate") {
 #ifdef HAVE_LIBZ
         DEBUG(10) ( "%s: detected zlib content, decompressing", output_path.c_str());
         unzip = true;
-        //write_fn = scan_http_write_data_zlib;
 #else
         /* We can't decompress, so just give it a .gz */
         output_path.append(".gz");
-        //write_fn = scan_http_write_data_raw;
         DEBUG(5) ( "%s: refusing to decompress since zlib is unavailable", output_path.c_str() );
 #endif
     } 
-    //else {
-    //        write_fn = scan_http_write_data_raw;
-    //}
         
     /* Open the output path */
     fd = tcpdemux::getInstance()->retrying_open(output_path, O_WRONLY|O_CREAT|O_BINARY|O_APPEND, 0644);
     if (fd < 0) {
         DEBUG(1) ("unable to open HTTP body file %s", output_path.c_str());
     }
-    cerr << "open " << output_path << "=" << fd << "\n";
         
     /* We can do something smart with the headers here.
      *
@@ -265,23 +229,12 @@ int scan_http_cbo::on_headers_complete()
      *  - Pick the intended filename if we see Content-Disposition: attachment; name="..."
      *  - Record headers into filesystem extended attributes on the body file
      */
-    //std::cerr << "\n";
     return 0;
 }
 
 /* Write to fd, optionally decompressing as we go */
 int scan_http_cbo::on_body(const char *at,size_t length)
 {
-    /* Turn this back into an sbuf_t by mathing out the buffer offset */
-    //const char * sbuf_head = reinterpret_cast<const char *>(data->sbuf->buf);
-    //size_t offset = at - sbuf_head;
-    //assert(offset < data->sbuf->size());
-    //sbuf_t buf(*data->sbuf, offset, length);
-
-    //size_t offset = sbuf.offset(reinterpret_cast<const uint8_t *>(at));
-    
-    cerr << "on_body() length=" << length << "\n";
-
     if (fd < 0)    return -1;              // no open fd? (internal error)x
     if (length==0) return 0;               // nothing to write
 
@@ -297,17 +250,7 @@ int scan_http_cbo::on_body(const char *at,size_t length)
     assert(0);                          // shoudln't have gotten here
 #endif    
     if(zfail) return 0;                 // stream was corrupt; ignore rest
-
     /* set up this round of decompression, using a small local buffer */
-
-    for(size_t i=0;i<length;i++){
-        fprintf(stderr,"%02x ",(uint8_t)at[i]);
-    }
-    fprintf(stderr,"\n");
-    fflush(stderr);
-
-    std::cerr << "zinit= " << zinit << "bytes_written=" << bytes_written << " length="
-              << length << " avail_out=" << zs.avail_out << "\n";
 
     /* Call init if we are not initialized */
     char decompressed[65536];           // where decompressed data goes
@@ -334,7 +277,6 @@ int scan_http_cbo::on_body(const char *at,size_t length)
     }
         
     /* iteratively decompress, writing each time */
-    std::cerr << "zinit=" << zinit << " zs.avail_in= " << zs.avail_in << "\n";
     while (zs.avail_in > 0) {
         /* decompress as much as possible */
         int rv = inflate(&zs, Z_SYNC_FLUSH);
@@ -358,8 +300,6 @@ int scan_http_cbo::on_body(const char *at,size_t length)
         int bytes_decompressed = sizeof(decompressed) - zs.avail_out;
         ssize_t written = write(fd, decompressed, bytes_decompressed);
 
-        cerr << "   zwrite(" << fd << ") = " << written << "\n";
-
         if (written < bytes_decompressed) {
             DEBUG(3) ("writing decompressed data failed");
             zfail= true;
@@ -382,17 +322,10 @@ int scan_http_cbo::on_body(const char *at,size_t length)
 
 int scan_http_cbo::on_message_complete()
 {
-    ///* Call the write function with an empty buffer to signal EOF */
-    //sbuf_t empty_buffer(*data->sbuf, 0, 0);
-    //data->write_fn(data, empty_buffer);
-    //
-    std::cerr << "on_message_complete\n\n";
     /* TODO: Update DFXML */
 
     /* Close the file */
-    cerr << "headers.size=" << headers.size() << "\n";
     headers.clear();
-    cerr << "headers.size=" << headers.size() << "\n";
     last_on_header = NOTHING;
     header_field = "";
     header_value = "";
@@ -412,88 +345,6 @@ int scan_http_cbo::on_message_complete()
     zfail = false;
     return 0;
 }
-
-
-/***
- * data writing functions
- */
-
-/* write data to a file with no decoding */
-
-
-
-#if 0
-/* write gzipped data to a file, decompressing it as we go */
-int scan_http_write_data_zlib(scan_http_data_t * data, sbuf_t& buf) {
-    z_stream *zs = reinterpret_cast<z_stream *>(data->write_fn_state);
-    if (buf.size() == 0 && data->write_fn_state) {
-        /* EOF */
-        inflateEnd(zs);
-        free(zs);
-        return 0;
-    }
-        
-    /* allocate a z_stream if this is the first call */
-    bool needs_init = false;
-    if (data->write_fn_state == NULL) {
-        data->write_fn_state = calloc(1, sizeof(z_stream));
-        needs_init = true;
-    }
-        
-    /* set up this round of decompression, using a small local buffer */
-    char decompressed[65536];
-    zs->next_in = (Bytef*)buf.buf;
-    zs->avail_in = buf.size();
-    zs->next_out = (Bytef*)decompressed;
-    zs->avail_out = sizeof(decompressed);
-        
-    /* is this our first call? */
-    if (needs_init) {
-        int rv = inflateInit2(zs, 32 + MAX_WBITS);      /* 32 auto-detects gzip or deflate */
-        if (rv != Z_OK) {
-            /* fail! */
-            DEBUG(3) ("decompression failed at stream initialization; bad Content-Encoding?");
-            return -1;
-        }
-    }
-        
-    /* iteratively decompress, writing each time */
-    while (zs->avail_in > 0) {
-        /* decompress as much as possible */
-        int rv = inflate(zs, Z_SYNC_FLUSH);
-                
-        if (rv == Z_STREAM_END) {
-            /* are we done with the stream? */
-            if (zs->avail_in > 0) {
-                /* ...no. */
-                DEBUG(3) ("decompression completed, but with trailing garbage");
-                return -2;
-            }
-        } else if (rv != Z_OK) {
-            /* some other error */
-            DEBUG(3) ("decompression failed (corrupted stream?)");
-            return -3;
-        }
-                
-        /* successful decompression, at least partly */
-        /* write the result */
-        int bytes_decompressed = sizeof(decompressed) - zs->avail_out;
-        ssize_t written = write(data->fd, decompressed, bytes_decompressed);
-        if (written < bytes_decompressed) {
-            DEBUG(3) ("writing decompressed data failed");
-            return -4;
-        }
-                
-        /* reset the buffer for the next iteration */
-        zs->next_out = (Bytef*)decompressed;
-        zs->avail_out = sizeof(decompressed);
-    }
-        
-    /* success! */
-    return 0;
-}
-#endif
-
 
 
 /***
