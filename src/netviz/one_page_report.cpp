@@ -128,7 +128,7 @@ double one_page_report::render_text_line(cairo_t *cr, std::string text,
     cairo_show_text(cr, text.c_str());
     return end_of_content + extents.height + line_space;
 #else
-    return 0.0;
+    return end_of_content;
 #endif
 }
 
@@ -142,6 +142,6 @@ double one_page_report::render_bandwidth_histogram(cairo_t *cr,
 
     return end_of_content + bounds.height;
 #else
-    return 0.0;
+    return end_of_content;
 #endif
 }
