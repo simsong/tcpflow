@@ -145,7 +145,6 @@ double one_page_report::render_header(cairo_t *cr, double end_of_content,
     for(std::map<uint32_t, uint64_t>::iterator ii = transport_counts.begin();
             ii != transport_counts.end(); ii++) {
         transport_total += ii->second;
-        std::cout << ii->first << " -> " << ii->second << std::endl;
     }
     formatted.str(std::string());
     formatted << "Transports: " << "IPv4 " <<
