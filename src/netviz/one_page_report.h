@@ -21,11 +21,24 @@ public:
 
     static const config_t default_config;
 
+    // string constants
+    static const std::string title_version;
+    static const std::vector<std::string> size_suffixes;
+    // ratio constants
+    static const double page_margin_factor;
+    static const double line_space_factor;
+
+private:
+
     config_t conf;
     uint64_t packet_count;
     uint64_t byte_count;
+    struct timeval earliest;
+    struct timeval latest;
+    std::map<uint32_t, uint64_t> transport_counts;
     dyn_time_histogram bandwidth_histogram;
-private:
+
+    static std::vector<std::string> build_size_suffixes();
 
     double render_header(cairo_t *cr, double end_of_content,
             const plot::bounds_t &bounds);
