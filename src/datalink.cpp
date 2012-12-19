@@ -83,7 +83,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
 
     //process_packet(h->ts,p + NULL_HDRLEN, caplen - NULL_HDRLEN,flow::NO_VLAN);
-    packet_info pi(h->ts,p+NULL_HDRLEN,caplen - NULL_HDRLEN,flow::NO_VLAN);
+    packet_info pi(h->ts,p+NULL_HDRLEN,caplen - NULL_HDRLEN,flow::NO_VLAN,family);
     process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -127,12 +127,6 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
-	//process_packet_info(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
-    {
-	packet_info pi(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan);
-	process_packet_info(pi);
-	return;
-    }
 #ifdef ETHERTYPE_ARP
     case ETHERTYPE_ARP:
 #endif
@@ -142,13 +136,14 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #ifdef ETHERTYPE_REVARP
     case ETHERTYPE_REVARP:
 #endif
-	return;
+        break;
     default:
+        /* Unknown Ethernet Frame Type */
+        DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
 	break;
     }
-
-    /* Unknown Ethernet Frame Type */
-    DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
+    packet_info pi(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan,ntohs(*ether_type));
+    process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
