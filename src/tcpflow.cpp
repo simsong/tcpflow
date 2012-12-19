@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 	case 'H': info_scanners(true,scanners_builtin,'E','x'); exit(0);
 	case 'h': case '?': usage(); break;
 	default:
-	    DEBUG(1) ("error: unrecognized switch '%c'", optarg);
+	    DEBUG(1) ("error: unrecognized switch '%c'", arg);
 	    need_usage = 1;
 	    break;
 	}
