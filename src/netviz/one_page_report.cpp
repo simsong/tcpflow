@@ -164,7 +164,7 @@ double one_page_report::render_header(cairo_t *cr, double end_of_content,
         "% " <<
         "Other " <<
         std::setprecision(2) << std::fixed <<
-        (1.0 - ((double) (transport_counts[ETHERTYPE_ARP] +
+        (1.0 - ((double) (transport_counts[ETHERTYPE_IP] +
             transport_counts[ETHERTYPE_IPV6] +
             transport_counts[ETHERTYPE_ARP]) /
          (double) transport_total)) * 100.0 <<
