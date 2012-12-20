@@ -39,6 +39,8 @@ NETVIZ = \
 	netviz/plot.h \
 	netviz/time_histogram.cpp \
 	netviz/time_histogram.h \
+	netviz/address_histogram.cpp \
+	netviz/address_histogram.h \
 	netviz/one_page_report.cpp \
 	netviz/one_page_report.h
 
