@@ -20,7 +20,7 @@
 // string constants
 const std::string one_page_report::title_version = PACKAGE " " VERSION;
 const std::vector<std::string> one_page_report::size_suffixes =
-        build_size_suffixes();
+        one_page_report::build_size_suffixes();
 // ratio constants
 const double one_page_report::page_margin_factor = 0.05;
 const double one_page_report::line_space_factor = 0.25;
