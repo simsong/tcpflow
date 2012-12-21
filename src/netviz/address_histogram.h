@@ -19,8 +19,11 @@ public:
         int max_bars;
     };
 
-    address_histogram(const config_t conf_) :
+    address_histogram(const config_t &conf_) :
         conf(conf_), address_counts() {};
+
+    void ingest_packet(const packet_info &pi);
+    void render(cairo_t *cr, const plot::bounds_t &bounds);
 
     static const config_t default_config;
 

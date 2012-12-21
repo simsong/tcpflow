@@ -3,6 +3,7 @@
 
 #include "plot.h"
 #include "time_histogram.h"
+#include "address_histogram.h"
 
 class one_page_report {
 public:
@@ -37,6 +38,8 @@ private:
     struct timeval latest;
     std::map<uint32_t, uint64_t> transport_counts;
     dyn_time_histogram bandwidth_histogram;
+    address_histogram src_addr_histogram;
+    address_histogram dst_addr_histogram;
 
     static std::vector<std::string> build_size_suffixes();
 
@@ -46,6 +49,10 @@ private:
             double line_space, double end_of_content,
             const plot::bounds_t &parent_bounds);
     double render_bandwidth_histogram(cairo_t *cr, double end_of_content,
+            const plot::bounds_t &parent_bounds);
+    double render_map(cairo_t *cr, double end_of_content,
+            const plot::bounds_t &parent_bounds);
+    double render_address_histograms(cairo_t *cr, double end_of_content,
             const plot::bounds_t &parent_bounds);
 };
 

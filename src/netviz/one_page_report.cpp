@@ -33,7 +33,9 @@ const one_page_report::config_t one_page_report::default_config = {
 
 one_page_report::one_page_report(const config_t &conf_) : 
     conf(conf_), packet_count(0), byte_count(0), earliest(), latest(),
-    transport_counts(), bandwidth_histogram(time_histogram::default_config)
+    transport_counts(), bandwidth_histogram(time_histogram::default_config),
+    src_addr_histogram(address_histogram::default_config),
+    dst_addr_histogram(address_histogram::default_config)
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
@@ -60,6 +62,8 @@ void one_page_report::ingest_packet(const packet_info &pi)
     transport_counts[pi.family]++;
 
     bandwidth_histogram.ingest_packet(pi);
+    src_addr_histogram.ingest_packet(pi);
+    dst_addr_histogram.ingest_packet(pi);
 }
 
 void one_page_report::render(const std::string &outdir)
@@ -84,6 +88,8 @@ void one_page_report::render(const std::string &outdir)
 
     end_of_content = render_header(cr, end_of_content, pad_bounds);
     end_of_content = render_bandwidth_histogram(cr, end_of_content, pad_bounds);
+    end_of_content = render_map(cr, end_of_content, pad_bounds);
+    end_of_content = render_address_histograms(cr, end_of_content, pad_bounds);
 
     // cleanup
     cairo_destroy (cr);
@@ -202,7 +208,35 @@ double one_page_report::render_bandwidth_histogram(cairo_t *cr,
 
     bandwidth_histogram.render(cr, bounds);
 
-    return end_of_content + bounds.height;
+    return end_of_content + bounds.height * 1.2;
+#else
+    return end_of_content;
+#endif
+}
+
+double one_page_report::render_map(cairo_t *cr,
+        double end_of_content, const plot::bounds_t &parent_bounds)
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    return end_of_content;
+#else
+    return end_of_content;
+#endif
+}
+
+double one_page_report::render_address_histograms(cairo_t *cr,
+        double end_of_content, const plot::bounds_t &parent_bounds)
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    double width = parent_bounds.width / 2.5;
+
+    plot::bounds_t bounds(0.0, end_of_content, width, 150.0);
+    src_addr_histogram.render(cr, bounds);
+
+    bounds = plot::bounds_t(parent_bounds.width - width, end_of_content, width, 150.0);
+    dst_addr_histogram.render(cr, bounds);
+
+    return end_of_content;
 #else
     return end_of_content;
 #endif
