@@ -227,6 +227,10 @@ AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_LIB([pthreadGC2],[pthread_create])
 
 ################################################################
+# boost interval set
+AC_CHECK_HEADERS([boost/icl/interval.hpp boost/icl/interval_set.hpp])
+
+################################################################
 # drawing support via cairo
 #
 

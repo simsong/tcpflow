@@ -272,11 +272,14 @@ public:
 
 
 /*
- * A tcpip is a flow that is being reconstructed.
+ * The tcpip class is a passive tcp/ip implementation.
+ * It can reconstruct flows!
+ *
  * It includes:
  *   - the flow (as an embedded object)
  *   - Information about where the flow is written.
  *   - Information about how much of the flow has been captured.
+ * Currently flows only go in one direction and do not know about their sibling flow
  */
 
 class tcpip {
@@ -308,18 +311,20 @@ private:
     /*** End Effective C++ error suppression */
 
 public:;
-    /* instances - individual tcp/ip flows */
     tcpip(class tcpdemux &demux_,const flow &flow_,tcp_seq isn_);    /* constructor in tcpip.cpp */
     virtual ~tcpip();			// destructor
+
     class tcpdemux &demux;		// our demultiplexer
-    /* Flow state information */
+
+
+    /* State information for the flow being reconstructed */
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
     tcp_seq	isn;			// Flow's initial sequence number
-    tcp_seq	nsn;			// expected next sequence number for current fd file position
+    tcp_seq	nsn;			// fd - expected next sequence number 
     uint32_t	syn_count;		// has a SYN been seen?
 
-    uint64_t	pos;			// current position+1 (next byte in stream to be written)
+    uint64_t	pos;			// fd - current position+1 (next byte in stream to be written)
 
     /* Archiving information */
     std::string flow_pathname;		// path where flow is stored
@@ -337,13 +342,13 @@ public:;
     void close_file();				// close fp
     void print_packet(const u_char *data, uint32_t length);
     void store_packet(const u_char *data, uint32_t length, int32_t delta);
+    void process_packet(const struct timeval &ts,const int32_t delta,const u_char *data,const uint32_t length);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
     os << "tcpip[" << f.myflow << " isn:" << f.isn << " pos:" << f.pos << "]";
     return os;
 }
-
 
 /**
  * the tcp demultiplixer
@@ -383,7 +388,7 @@ public:
     public:;
 	enum { MAX_SEEK=1024*1024*16 };
 	options():console_output(false),opt_output_enabled(true),opt_md5(false),
-		  opt_after_header(false),opt_gzip_decompress(true),
+		  opt_post_processing(false),opt_gzip_decompress(true),
 		  max_bytes_per_flow(),
 		  max_desired_fds(),max_flows(0),suppress_header(0),
 		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK),
@@ -392,7 +397,7 @@ public:
 	bool	console_output;
 	bool	opt_output_enabled;	// do we output?
 	bool	opt_md5;		// do we calculate MD5 on DFXML output?
-	bool	opt_after_header;	// decode headers after tcp connection closes
+	bool	opt_post_processing;	// decode headers after tcp connection closes
 	bool	opt_gzip_decompress;
 	uint64_t max_bytes_per_flow;
 	uint32_t max_desired_fds;
@@ -434,7 +439,6 @@ public:
     void  process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
     void  process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
     void  flow_map_clear();		// clears out the map
-    void  post_process_capture_flow(std::stringstream &byte_runs,const std::string &flow_pathname);
 };
 
 #endif

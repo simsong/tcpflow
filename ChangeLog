@@ -1,3 +1,12 @@
+2012-12-22  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/tcpip.cpp (tcpip): no longer closes the file at the end of every tcpip and then re-opens it if there is post-processing. Now it re-uses the same fd.
+	(tcpip): renamed opt_after_header to opt_post_processing
+
+2012-12-18  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/tcpflow.cpp (main): fixed opt_all; it was always true, but it shoudln't be.
+
 2012-12-16  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/tcpdemux.h (class tcpdemux): removed write_to_file

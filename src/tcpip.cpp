@@ -49,14 +49,33 @@ tcpip::~tcpip()
     static const std::string filename_str("filename");
     static const std::string tcpflow_str("tcpflow");
 
-    if(fd>=0) close_file();		// close the file if it is open for some reason
 
     std::stringstream xmladd;		// for this <fileobject>
 
-    if(demux.opt.opt_after_header && file_created){
-	/* open the file and see if it is a HTTP header */
-	demux.post_process_capture_flow(xmladd,flow_pathname);
+    if(demux.opt.opt_post_processing && file_created){
+        /** 
+         * After the flow is finished, put it in an SBUF and process it.
+         * if we are doing post-processing.
+         * This is called from tcpip::~tcpip() in tcpip.cpp.
+         */
+
+        /* Open the fd if it is not already open */
+        if(fd<0){
+            fd = demux.retrying_open(flow_pathname,O_RDONLY|O_BINARY,0);
+            if(fd<0){
+                perror("open");
+            }
+        }
+        if(fd>=0){
+            sbuf_t *sbuf = sbuf_t::map_file(flow_pathname,pos0_t(flow_pathname),fd);
+            if(sbuf){
+                process_sbuf(scanner_params(scanner_params::scan,*sbuf,*(demux.fs),&xmladd));
+                delete sbuf;
+                sbuf = 0;
+            }
+        }
     }
+    if(fd>=0) close_file();		// close the file if it is open for some reason
     if(demux.xreport){
 	demux.xreport->push(fileobject_str);
 	if(flow_pathname.size()) demux.xreport->xmlout(filename_str,flow_pathname);
@@ -326,4 +345,5 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     demux.close_tcpip(this);			
 #endif
 }
+
 

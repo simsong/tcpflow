@@ -578,25 +578,4 @@ void munmap(void *buf,size_t size)
 
 
 
-/** 
- * After the flow is finished, put it in an SBUF and process it.
- * if we are doing post-processing.
- * This is called from tcpip::~tcpip() in tcpip.cpp.
- */
-void tcpdemux::post_process_capture_flow(std::stringstream &xmladd,
-					 const std::string &flow_pathname)
-{
-    int fd2 = retrying_open(flow_pathname,O_RDONLY|O_BINARY,0);
-    if(fd2<0){
-	perror("open");
-	return;
-    }
-    sbuf_t *sbuf = sbuf_t::map_file(flow_pathname,pos0_t(flow_pathname),fd2);
-    if(sbuf){
-	process_sbuf(scanner_params(scanner_params::scan,*sbuf,*fs,&xmladd));
-        delete sbuf;
-        sbuf = 0;
-    }
-    ::close(fd2);
-}
 

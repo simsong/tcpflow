@@ -232,7 +232,7 @@ static void process_infile(const std::string &expression,const char *device,cons
 int main(int argc, char *argv[])
 {
     bool force_binary_output = false;
-    bool opt_all = true;
+    bool opt_all = false;
     char *device = NULL;
     const char *lockname = 0;
     int need_usage = 0;
@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
     while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:PpR:r:sT:Vvx:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
-	    demux.opt.opt_after_header = true;
+	    demux.opt.opt_post_processing = true;
 	    demux.opt.opt_md5 = true;
 	    scanners_enable_all();
 	    opt_all = true;
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 	case 'H': info_scanners(true,scanners_builtin,'E','x'); exit(0);
 	case 'h': case '?': usage(); break;
 	default:
-	    DEBUG(1) ("error: unrecognized switch '%c'", optarg);
+	    DEBUG(1) ("error: unrecognized switch '%c'", arg);
 	    need_usage = 1;
 	    break;
 	}
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
     load_scanners(scanners_builtin);
     scanners_process_commands();
 
-    if( (opt_all) && (reportfilename.size()==0) ){
+    if( opt_all && (reportfilename.size()==0) ){
 	reportfilename = demux.outdir + "/report.xml";
     }
 
