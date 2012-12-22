@@ -11,7 +11,7 @@
 #ifndef NET_TCP_H
 #define NET_TCP_H
 
-class pcaket_info;
+class packet_info;
 
 class net_tcp {
 public:
