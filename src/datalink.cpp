@@ -42,7 +42,8 @@
 
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
  * order 32 bit integer that specifies the family, e.g. AF_INET.
- * DLT_NULL is used by the localhost interface. */
+ * DLT_NULL is used by the localhost interface.
+ */
 #define	NULL_HDRLEN 4
 
 /* Some systems hasn't defined ETHERTYPE_IPV6 */
@@ -55,7 +56,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
     u_int length = h->len;
-    uint32_t family = *(uint32_t *)p;;
+    uint32_t family = *(uint32_t *)p;
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte null frame",
@@ -73,8 +74,6 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
      */
 #ifndef DLT_NULL_BROKEN
     /* make sure this is AF_INET */
-    //memcpy((char *)&family, (char *)p, sizeof(family));
-    //family = ntohl(family);
     if (family != AF_INET && family != AF_INET6) {
 	DEBUG(6)("warning: received null frame with unknown type (type 0x%x) (AF_INET=%x; AF_INET6=%x)",
 		 family,AF_INET,AF_INET6);
@@ -82,7 +81,6 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 #endif
 
-    //process_packet(h->ts,p + NULL_HDRLEN, caplen - NULL_HDRLEN,flow::NO_VLAN);
     packet_info pi(h->ts,p+NULL_HDRLEN,caplen - NULL_HDRLEN,flow::NO_VLAN,family);
     process_packet_info(pi);
 }
