@@ -225,7 +225,7 @@ int scan_http_cbo::on_headers_complete()
     } 
         
     /* Open the output path */
-    fd = tcpdemux::getInstance()->retrying_open(output_path, O_WRONLY|O_CREAT|O_BINARY|O_TRUNC, 0644);
+    fd = open(output_path.c_str(), O_WRONLY|O_CREAT|O_BINARY|O_TRUNC, 0644);
     if (fd < 0) {
         DEBUG(1) ("unable to open HTTP body file %s", output_path.c_str());
     }

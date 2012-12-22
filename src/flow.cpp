@@ -14,6 +14,7 @@
  */
 
 #include "tcpflow.h"
+#include "tcpip.h"
 
 #include <assert.h>
 #include <iostream>

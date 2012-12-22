@@ -1,5 +1,9 @@
 2012-12-22  Simson Garfinkel  <simsong@Mucha.local>
 
+	* src/scan_http.cpp (scan_http_cbo::on_headers_complete): changed retrying_open to open() to eliminate dependency on tcpdemux
+
+	* src/tcpip.h: put in its own file
+
 	* src/util.cpp (mmap): moved fake mmap() cover to util.cpp
 
 	* src/tcpip.cpp (tcpip): no longer closes the file at the end of every tcpip and then re-opens it if there is post-processing. Now it re-uses the same fd.

@@ -10,6 +10,8 @@
 #define __MAIN_C__
 
 #include "tcpflow.h"
+#include "tcpip.h"
+#include "tcpdemux.h"
 #include "bulk_extractor_i.h"
 #include <string>
 #include <vector>
@@ -137,7 +139,6 @@ xml *xreport = 0;
 void terminate(int sig)
 {
     DEBUG(1) ("terminating");
-
     phase_shutdown(*the_fs,*xreport);	// give plugins a chance to do a clean shutdown
     exit(0); /* libpcap uses onexit to clean up */
 }

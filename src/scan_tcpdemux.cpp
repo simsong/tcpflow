@@ -13,6 +13,8 @@
 
 #include "config.h"
 #include "tcpflow.h"
+#include "tcpip.h"
+#include "tcpdemux.h"
 #include <iostream>
 #include <sys/types.h>
 #include "bulk_extractor_i.h"

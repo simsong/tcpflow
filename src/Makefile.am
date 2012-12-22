@@ -44,7 +44,9 @@ NETVIZ = \
 
 tcpflow_SOURCES = datalink.cpp flow.cpp \
 	tcpflow.cpp \
-	tcpip.cpp tcpdemux.h tcpdemux.cpp tcpflow.h util.cpp \
+	tcpip.h tcpip.cpp \
+	tcpdemux.h tcpdemux.cpp \
+	tcpflow.h util.cpp \
 	scan_md5.cpp \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \

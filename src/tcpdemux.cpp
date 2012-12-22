@@ -12,6 +12,8 @@
  */
 
 #include "tcpflow.h"
+#include "tcpip.h"
+#include "tcpdemux.h"
 
 #include <iostream>
 #include <sstream>
@@ -39,7 +41,6 @@ tcpdemux *tcpdemux::getInstance()
     if(theInstance==0) theInstance = new tcpdemux();
     return theInstance;
 }
-
 
 
 

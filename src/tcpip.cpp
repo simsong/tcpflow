@@ -8,6 +8,8 @@
  */
 
 #include "tcpflow.h"
+#include "tcpip.h"
+#include "tcpdemux.h"
 #include "bulk_extractor_i.h"
 
 #include <iostream>

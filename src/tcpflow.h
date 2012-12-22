@@ -238,13 +238,13 @@ struct private_in6_addr {		// our own private ipv6 definition
 
 #define DEFAULT_DEBUG_LEVEL 1
 #define MAX_FD_GUESS        64
-#define NUM_RESERVED_FDS    5     /* number of FDs to set aside */
+#define NUM_RESERVED_FDS    10    /* number of FDs to set aside; allows files to be opened as necessary */
 #define SNAPLEN             65536 /* largest possible MTU we'll see */
 
 #include <iostream>
 
 #include "be13_api/bulk_extractor_i.h"
-#include "tcpdemux.h"
+//#include "tcpdemux.h"
   
 /***************************** Macros *************************************/
 

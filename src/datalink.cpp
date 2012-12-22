@@ -40,6 +40,9 @@
 
 #include "tcpflow.h"
 
+static const int32_t NO_VLAN=-1;			/* vlan flag for no vlan */
+
+
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
  * order 32 bit integer that specifies the family, e.g. AF_INET.
  * DLT_NULL is used by the localhost interface.
@@ -81,7 +84,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 #endif
 
-    packet_info pi(h->ts,p+NULL_HDRLEN,caplen - NULL_HDRLEN,flow::NO_VLAN,family);
+    packet_info pi(h->ts,p+NULL_HDRLEN,caplen - NULL_HDRLEN,NO_VLAN,family);
     process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -99,7 +102,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     struct ether_header *eth_header = (struct ether_header *) p;
 
     /* Variables to support VLAN */
-    int32_t vlan = flow::NO_VLAN;			       /* default is no vlan */
+    int32_t vlan = NO_VLAN;			       /* default is no vlan */
     const u_short *ether_type = &eth_header->ether_type; /* where the ether type is located */
     const u_char *ether_data = p+sizeof(struct ether_header); /* where the data is located */
 
@@ -165,8 +168,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    //process_packet_info(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,flow::NO_VLAN);
-    packet_info pi(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,flow::NO_VLAN);
+    packet_info pi(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,NO_VLAN);
     process_packet_info(pi);
 }
 
@@ -184,7 +186,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		  caplen, length);
     }
     //process_packet_info(h->ts,p, caplen,flow::NO_VLAN);
-    packet_info pi(h->ts,p, caplen,flow::NO_VLAN);
+    packet_info pi(h->ts,p, caplen,NO_VLAN);
     process_packet_info(pi);
 }
 
@@ -205,7 +207,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
     }
   
     //process_packet_info(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
-    packet_info pi(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
+    packet_info pi(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,NO_VLAN);
     process_packet_info(pi);
 }
 
