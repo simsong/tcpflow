@@ -89,3 +89,4 @@ out
 src/a.out
 tests/out
 tests/packet1.pcap
+config.h.in
