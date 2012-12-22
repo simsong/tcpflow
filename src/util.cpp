@@ -122,3 +122,35 @@ void (*portable_signal(int signo, void (*func)(int)))(int)
     return signal(signo, func);
 #endif /* HAVE_SIGACTION, HAVE_SIGSET */
 }
+
+
+/************
+ *** MMAP ***
+ ************/
+
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
+
+/**
+ * fake implementation of mmap and munmap if we don't have them
+ */
+#if !defined(HAVE_MMAP)
+#define PROT_READ 0
+#define MAP_FILE 0
+#define MAP_SHARED 0
+void *mmap(void *addr,size_t length,int prot, int flags, int fd, off_t offset)
+{
+    void *buf = (void *)malloc(length);
+    if(!buf) return 0;
+    read(fd,buf,length);			// should explore return code
+    return buf;
+}
+
+void munmap(void *buf,size_t size)
+{
+    free(buf);
+}
+
+#endif
+

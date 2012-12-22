@@ -1,5 +1,7 @@
 2012-12-22  Simson Garfinkel  <simsong@Mucha.local>
 
+	* src/util.cpp (mmap): moved fake mmap() cover to util.cpp
+
 	* src/tcpip.cpp (tcpip): no longer closes the file at the end of every tcpip and then re-opens it if there is post-processing. Now it re-uses the same fd.
 	(tcpip): renamed opt_after_header to opt_post_processing
 

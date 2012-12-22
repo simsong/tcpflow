@@ -21,6 +21,19 @@
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
+
+#pragma GCC diagnostic ignored "-Weffc++"
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wall"
+#include <boost/icl/interval.hpp>
+#include <boost/icl/interval_map.hpp>
+#include <boost/icl/interval_set.hpp>
+typedef boost::icl::interval_set<int> recon_set; // Boost interval set of bytes that were reconstructed.
+#pragma GCC diagnostic warning "-Weffc++"
+#pragma GCC diagnostic warning "-Wshadow"
+#pragma GCC diagnostic warning "-Wall"
+
+
 #ifdef WIN32
 /* Defines not present in Microsoft Windows stack */
 typedef uint8_t u_int8_t ;
@@ -330,6 +343,8 @@ public:;
     std::string flow_pathname;		// path where flow is stored
     int		fd;			// file descriptor for file storing this flow's data 
     bool	file_created;		// true if file was created
+
+
 
     /* Stats */
     uint64_t	bytes_processed;	// number of bytes processed by demultiplxier
