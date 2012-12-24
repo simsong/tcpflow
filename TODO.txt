@@ -63,3 +63,62 @@ tests/bug2.pcap has a connection with multiple packets sent after it is closed.
   - But then, we need to realize that it shouldn't be expired out...
 
 
+tests/bug3.pcap (think that it's the same problem as above)
+ - Run the program twice to the same output directory and the second transcript file doesn't match the first.
+ - Run the program with remove_flow() commented out in tcpdemux.cpp:391 and the results are correct; run with it in and the results are different.
+
+   - Should be the same results each time.
+
+bug3 has some retransmitted packets:
+
+18:44 Mucha:~/gits/tcpflow/src$ tcpdump -n -r bugshow.pcap
+reading from file bugshow.pcap, link-type EN10MB (Ethernet)
+19:59:14.168870 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [S.], seq 2626615675, ack 2244319387, win 8190, options [mss 1404], length 0
+19:59:14.245209 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], ack 176, win 6432, length 0
+19:59:14.262536 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 1:1405, ack 176, win 6432, length 1404
+19:59:14.264902 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 1405:2809, ack 176, win 6432, length 1404
+19:59:14.339295 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 2809:4213, ack 176, win 6432, length 1404
+19:59:14.341381 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 4213:5617, ack 176, win 6432, length 1404
+19:59:14.415653 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 5617:7021, ack 176, win 6432, length 1404
+19:59:14.616627 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 1405:2809, ack 176, win 6432, length 1404
+19:59:15.168975 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 1405:2809, ack 176, win 6432, length 1404
+19:59:15.244915 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 4213:5617, ack 176, win 6432, length 1404
+19:59:16.352607 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 4213:5617, ack 176, win 6432, length 1404
+19:59:18.560576 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 4213:5617, ack 176, win 6432, length 1404
+19:59:18.741621 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 5617:7021, ack 176, win 6432, length 1404
+19:59:18.941183 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 7021:8425, ack 176, win 6432, length 1404
+19:59:23.360857 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 7021:8425, ack 176, win 6432, length 1404
+19:59:32.192737 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 7021:8425, ack 176, win 6432, length 1404
+19:59:44.267381 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 8425:9829, ack 176, win 6432, length 1404
+19:59:44.269510 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 9829:11233, ack 176, win 6432, length 1404
+19:59:44.271699 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 11233:12637, ack 176, win 6432, length 1404
+19:59:44.273920 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 12637:14041, ack 176, win 6432, length 1404
+19:59:44.276258 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 14041:15445, ack 176, win 6432, length 1404
+19:59:44.278144 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 15445:16849, ack 176, win 6432, length 1404
+19:59:44.280288 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 16849:18253, ack 176, win 6432, length 1404
+19:59:44.282501 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 18253:19657, ack 176, win 6432, length 1404
+19:59:44.284995 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 19657:21061, ack 176, win 6432, length 1404
+19:59:44.287025 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 21061:22465, ack 176, win 6432, length 1404
+19:59:44.289222 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 22465:23869, ack 176, win 6432, length 1404
+19:59:44.291409 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 23869:25273, ack 176, win 6432, length 1404
+19:59:44.293651 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 25273:26677, ack 176, win 6432, length 1404
+19:59:44.295618 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 26677:28081, ack 176, win 6432, length 1404
+19:59:44.297842 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 28081:29485, ack 176, win 6432, length 1404
+19:59:44.300019 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 29485:30889, ack 176, win 6432, length 1404
+19:59:44.302461 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 30889:32293, ack 176, win 6432, length 1404
+19:59:44.304704 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 32293:33697, ack 176, win 6432, length 1404
+19:59:44.304718 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [FP.], seq 35101:35106, ack 176, win 6432, length 5
+19:59:44.306948 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 33697:35101, ack 176, win 6432, length 1404
+19:59:44.347541 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [F.], seq 35106, ack 176, win 8190, length 0
+19:59:49.856312 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 7021:8425, ack 176, win 6432, length 1404
+19:59:49.929110 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [F.], seq 35106, ack 176, win 8190, length 0
+19:59:49.931878 IP 65.212.118.21.80 > 192.168.1.64.33410: Flags [.], seq 11233:12637, ack 176, win 6432, length 1404
+18:44 Mucha:~/gits/tcpflow/src$ 
+
+So we are not handling the retransmits properly.
+
+If the file is already there:
+ - Assume it's our file and open it; set up the buffers accordingly
+
+On retransmit:
+ - If the data doesn't match, increment the connection count (easy way to document the retransmit)

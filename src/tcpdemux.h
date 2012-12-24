@@ -1,5 +1,5 @@
-#ifndef FLOW_H
-#define FLOW_H
+#ifndef TCPDEMUX_H
+#define TCPDEMUX_H
 
 /**
  * tcpdemux.h
@@ -21,24 +21,10 @@
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
-
-#pragma GCC diagnostic ignored "-Weffc++"
-#pragma GCC diagnostic ignored "-Wshadow"
-#pragma GCC diagnostic ignored "-Wall"
-#include <boost/icl/interval.hpp>
-#include <boost/icl/interval_map.hpp>
-#include <boost/icl/interval_set.hpp>
-typedef boost::icl::interval_set<int> recon_set; // Boost interval set of bytes that were reconstructed.
-#pragma GCC diagnostic warning "-Weffc++"
-#pragma GCC diagnostic warning "-Wshadow"
-#pragma GCC diagnostic warning "-Wall"
-
 /**
  * the tcp demultiplixer
  * This is a singleton class; we only need a single demultiplexer.
  */
-class tcpip;                            // forward reference
-
 class tcpdemux {
 private:
     unsigned int get_max_fds(void);		// returns the max
@@ -48,7 +34,7 @@ private:
 	}
     };
     tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),
-				max_fds(),flow_map(),start_new_connections(),openflows(),opt(),fs(){
+				max_fds(),flow_map(),openflows(),start_new_connections(),opt(),fs(){
 	throw new not_impl();
     }
     tcpdemux &operator=(const tcpdemux &that){
@@ -72,17 +58,17 @@ public:
     class options {
     public:;
 	enum { MAX_SEEK=1024*1024*16 };
-	options():console_output(false),opt_output_enabled(true),opt_md5(false),
-		  opt_post_processing(false),opt_gzip_decompress(true),
+	options():console_output(false),store_output(true),opt_md5(false),
+		  post_processing(false),opt_gzip_decompress(true),
 		  max_bytes_per_flow(),
 		  max_desired_fds(),max_flows(0),suppress_header(0),
 		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK),
 		  opt_no_purge(false) {
 	}
 	bool	console_output;
-	bool	opt_output_enabled;	// do we output?
+	bool	store_output;	// do we output?
 	bool	opt_md5;		// do we calculate MD5 on DFXML output?
-	bool	opt_post_processing;	// decode headers after tcp connection closes
+	bool	post_processing;	// decode headers after tcp connection closes
 	bool	opt_gzip_decompress;
 	uint64_t max_bytes_per_flow;
 	uint32_t max_desired_fds;
@@ -100,16 +86,15 @@ public:
     xml		*xreport;		// DFXML output file
     unsigned int max_fds;		// maximum number of file descriptors for this tcpdemux
 
-    flow_map_t	flow_map;		// the database
+    flow_map_t	flow_map;		// db of flow->tcpip objects
+    tcpset	openflows;		// the tcpip flows with open files
     bool	start_new_connections;	// true if we should start new connections
-    tcpset	openflows;		// the tcpip flows with open FPs 
     options	opt;
     class feature_recorder_set *fs;
     
     static tcpdemux *getInstance();
     void  close_all();
     void  close_tcpip(tcpip *);
-    int   open_tcpfile(tcpip *);			// opens this file; return -1 if failure, 0 if success
     void  close_oldest();
     void  remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
     int   retrying_open(const std::string &filename,int oflag,int mask);

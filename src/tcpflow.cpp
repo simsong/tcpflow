@@ -46,52 +46,58 @@ bool opt_no_promisc = false;		// true if we should not use promiscious mode
  *** USAGE
  ****************************************************************/
 
-static void usage() __attribute__ ((__noreturn__));
+static int usage_count = 0;
 static void usage()
 {
-    std::cout << PACKAGE << " version " << VERSION << "\n\n";
-    std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
-    std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
-    std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
-    std::cout << "   -a: do ALL processing (http expansion, unzip, create report.xml, PDF analysis, etc..)\n";
-    std::cout << "   -b: max number of bytes per flow to save\n";
-    std::cout << "   -B: force binary output to console, even with -c or -C\n";
-    std::cout << "   -c: console print only (don't create files)\n";
-    std::cout << "   -C: console print only, but without the display of source/dest header\n";
-    std::cout << "   -d: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
-    std::cout << "   -e: output each flow in alternating colors\n";
-    std::cout << "   -f: maximum number of file descriptors to use\n";
-    std::cout << "   -h: print this help message\n";
-    std::cout << "   -i: network interface on which to listen\n";
-    std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
-    std::cout << "   -p: don't use promiscuous mode\n";
-    std::cout << "   -r: read packets from tcpdump pcap file (may be repeated)\n";
-    std::cout << "   -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
-    std::cout << "   -s: strip non-printable characters (change to '.')\n";
-    std::cout << "   -v: verbose operation equivalent to -d 10\n";
-    std::cout << "   -V: print version number and exit\n";
-    std::cout << "   -o  outdir   : specify output directory (default '.')\n";
-    std::cout << "   -X  filename : DFXML output to filename\n";
-    std::cout << "   -m  bytes    : specifies the minimum number of bytes that a stream may\n";
-    std::cout << "  skip before starting a new stream (default "
-	      << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
-    std::cout << "   -Fc : append the connection counter to ALL filenames\n";
-    std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
-    std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
-    std::cout << "   -FX : Do not output any files (other than report files)\n";
-    std::cout << "   -FM : Calculate the MD5 for every flow\n";
-    std::cout << "   -T<template> : specify an arbitrary filename template (default "
-	 << flow::filename_template << ")\n";
-    std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
-    info_scanners(false,scanners_builtin,'E','x');
-    std::cout << "\n";
-    std::cout << "Depricated: (don't use)\n";
-    std::cout << "   -P: don't purge tcp connections on FIN (could result in lost data)\n";
-    std::cout << "\n";
-    std::cout << "expression: tcpdump-like filtering expression\n";
-    flow::usage();
-    std::cout << "\nSee the man page for additional information.\n\n";
-    exit(0);
+    switch(++usage_count){
+    case 1:
+        std::cout << PACKAGE << " version " << VERSION << "\n\n";
+        std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
+        std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
+        std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
+        std::cout << "   -a: do ALL processing (http expansion, unzip, create report.xml, PDF analysis, etc..)\n";
+        std::cout << "   -b: max number of bytes per flow to save\n";
+        std::cout << "   -B: force binary output to console, even with -c or -C\n";
+        std::cout << "   -c: console print only (don't create files)\n";
+        std::cout << "   -C: console print only, but without the display of source/dest header\n";
+        std::cout << "   -d: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
+        std::cout << "   -e: output each flow in alternating colors\n";
+        std::cout << "   -f: maximum number of file descriptors to use\n";
+        std::cout << "   -h: print this help message (repeat for more help)\n";
+        std::cout << "   -i: network interface on which to listen\n";
+        std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
+        std::cout << "   -p: don't use promiscuous mode\n";
+        std::cout << "   -r: read packets from tcpdump pcap file (may be repeated)\n";
+        std::cout << "   -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
+        std::cout << "   -s: strip non-printable characters (change to '.')\n";
+        std::cout << "   -v: verbose operation equivalent to -d 10\n";
+        std::cout << "   -V: print version number and exit\n";
+        std::cout << "   -o  outdir   : specify output directory (default '.')\n";
+        std::cout << "   -X  filename : DFXML output to filename\n";
+        std::cout << "   -m  bytes    : specifies the minimum number of bytes that a stream may\n";
+        std::cout << "  skip before starting a new stream (default "
+                  << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
+        std::cout << "   -Fc : append the connection counter to ALL filenames\n";
+        std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
+        std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
+        std::cout << "   -FX : Do not output any files (other than report files)\n";
+        std::cout << "   -FM : Calculate the MD5 for every flow\n";
+        std::cout << "   -T<template> : specify an arbitrary filename template (default "
+                  << flow::filename_template << ")\n";
+        std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
+        info_scanners(false,scanners_builtin,'E','x');
+        std::cout << "\n";
+        std::cout << "Depricated: (don't use)\n";
+        std::cout << "   -P: don't purge tcp connections on FIN (could result in lost data)\n";
+        std::cout << "\n";
+        std::cout << "expression: tcpdump-like filtering expression\n";
+        flow::usage();
+        std::cout << "\nSee the man page for additional information.\n\n";
+        break;
+    case 2:
+        std::cout << "DEBUG Levels (specify with -dNN):\n";
+        break;
+    }
 }
 
 /**
@@ -232,6 +238,12 @@ static void process_infile(const std::string &expression,const char *device,cons
 
 int main(int argc, char *argv[])
 {
+    bool didhelp = false;
+    std::cerr << "WARNING: YOU ARE USING AN EXPERIMENTAL VERSION OF TCPFLOW \n";
+    std::cerr << "THAT DOES NOT WORK PROPERLY. PLEASE USE A RELEASE DOWNLOADED\n";
+    std::cerr << "FROM http://digitalcorpora.org/downloads/tcpflow\n";
+    std::cerr << "\n";
+
     bool force_binary_output = false;
     bool opt_all = false;
     char *device = NULL;
@@ -260,7 +272,7 @@ int main(int argc, char *argv[])
     while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:PpR:r:sT:Vvx:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
-	    demux.opt.opt_post_processing = true;
+	    demux.opt.post_processing = true;
 	    demux.opt.opt_md5 = true;
 	    scanners_enable_all();
 	    opt_all = true;
@@ -306,7 +318,7 @@ int main(int argc, char *argv[])
 		case 'c': replace(flow::filename_template,"%c","%C"); break;
 		case 't': flow::filename_template = "%tT" + flow::filename_template; break;
 		case 'T': flow::filename_template = "%T"  + flow::filename_template; break;
-		case 'X': demux.opt.opt_output_enabled = false;break;
+		case 'X': demux.opt.store_output = false;break;
 		case 'M': demux.opt.opt_md5 = true;break;
 		default:
 		    fprintf(stderr,"-F invalid format specification '%c'\n",*cc);
@@ -339,14 +351,22 @@ int main(int argc, char *argv[])
 	case 'x': scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
 	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
-	case 'H': info_scanners(true,scanners_builtin,'E','x'); exit(0);
-	case 'h': case '?': usage(); break;
+	case 'H':
+            info_scanners(true,scanners_builtin,'E','x');
+            didhelp = true;
+            break;
+	case 'h': case '?':
+            usage();
+            didhelp = true;
+            break;
 	default:
 	    DEBUG(1) ("error: unrecognized switch '%c'", arg);
 	    need_usage = 1;
 	    break;
 	}
     }
+    if(didhelp) exit(0);
+
     argc -= optind;
     argv += optind;
 

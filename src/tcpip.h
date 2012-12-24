@@ -262,6 +262,17 @@ public:
  * Currently flows only go in one direction and do not know about their sibling flow
  */
 
+#pragma GCC diagnostic ignored "-Weffc++"
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wall"
+#include <boost/icl/interval.hpp>
+#include <boost/icl/interval_map.hpp>
+#include <boost/icl/interval_set.hpp>
+typedef boost::icl::interval_set<uint64_t> recon_set; // Boost interval set of bytes that were reconstructed.
+#pragma GCC diagnostic warning "-Weffc++"
+#pragma GCC diagnostic warning "-Wshadow"
+#pragma GCC diagnostic warning "-Wall"
+
 class tcpip {
 public:
     /** track the direction of the flow; this is largely unused */
@@ -279,12 +290,13 @@ private:
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
     tcpip(const tcpip &t) __attribute__((__noreturn__)) : demux(t.demux),myflow(),dir(),isn(),nsn(),
-			  syn_count(),pos(),
-			  flow_pathname(),fd(),file_created(),
-			  bytes_processed(),omitted_bytes(),
-			  last_packet_number(),
-			  out_of_order_count(),
-			  violations(){
+        syn_count(),fin_count(), fin_size(), pos(),
+        flow_pathname(),fd(),file_created(),
+        seen(),
+        last_byte(),                    // highest byte processed
+        last_packet_number(),
+        out_of_order_count(),
+        violations(){
 	throw new not_impl();
     }
     tcpip &operator=(const tcpip &that) { throw new not_impl(); }
@@ -296,14 +308,14 @@ public:;
 
     class tcpdemux &demux;		// our demultiplexer
 
-
     /* State information for the flow being reconstructed */
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
     tcp_seq	isn;			// Flow's initial sequence number
     tcp_seq	nsn;			// fd - expected next sequence number 
-    uint32_t	syn_count;		// has a SYN been seen?
-
+    uint32_t	syn_count;		// number of SYNs seen
+    uint32_t    fin_count;              // number of FINs received
+    uint32_t    fin_size;               // length of stream as determined when fin is sent
     uint64_t	pos;			// fd - current position+1 (next byte in stream to be written)
 
     /* Archiving information */
@@ -311,20 +323,22 @@ public:;
     int		fd;			// file descriptor for file storing this flow's data 
     bool	file_created;		// true if file was created
 
-    //recon_set   seen;                   // what we've seen
 
     /* Stats */
-    uint64_t	bytes_processed;	// number of bytes processed by demultiplxier
-    uint64_t    omitted_bytes;		// number of bytes not written to this file
+    recon_set   *seen;                  // what we've seen; it must be * due to boost lossage
+    uint64_t    last_byte;              // last byte processed
     uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
     uint64_t    violations;		// protocol violation count
 
     /* Methods */
-    void close_file();				// close fp
+    void close_file();			// close fd
+    int  open_file();                   // opens store file; return -1 if failure, 0 if success
     void print_packet(const u_char *data, uint32_t length);
     void store_packet(const u_char *data, uint32_t length, int32_t delta);
     void process_packet(const struct timeval &ts,const int32_t delta,const u_char *data,const uint32_t length);
+    uint32_t seen_bytes();
+    void dump_seen();
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {

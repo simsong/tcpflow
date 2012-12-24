@@ -6,13 +6,17 @@
  */
 
 #include "config.h"
-#include "tcpflow.h"
+#include "bulk_extractor_i.h"
+
 #include <iostream>
 #include <algorithm>
 #include <map>
 #include <sys/types.h>
 #include <iomanip>
-#include "bulk_extractor_i.h"
+
+#include "tcpflow.h"
+#include "tcpip.h"
+#include "tcpdemux.h"
 
 #include "http-parser/http_parser.h"
 
@@ -225,7 +229,7 @@ int scan_http_cbo::on_headers_complete()
     } 
         
     /* Open the output path */
-    fd = open(output_path.c_str(), O_WRONLY|O_CREAT|O_BINARY|O_TRUNC, 0644);
+    fd = tcpdemux::getInstance()->retrying_open(output_path.c_str(), O_WRONLY|O_CREAT|O_BINARY|O_TRUNC, 0644);
     if (fd < 0) {
         DEBUG(1) ("unable to open HTTP body file %s", output_path.c_str());
     }

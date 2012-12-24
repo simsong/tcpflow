@@ -5,10 +5,12 @@
  * This source code is under the GNU Public License (GPL).  See
  * LICENSE for details.
  *
+ * 
+ *
  */
 
-#ifndef __TCPFLOW_H__
-#define __TCPFLOW_H__
+#ifndef TCPFLOW_H
+#define TCPFLOW_H
 
 #include "config.h"
 

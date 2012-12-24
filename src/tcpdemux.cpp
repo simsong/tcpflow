@@ -22,9 +22,8 @@
 
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),max_fds(10),flow_map(),start_new_connections(false),
-		     openflows(),
-		     opt(),fs()
+		     xreport(0),max_fds(10),flow_map(),openflows(),
+		     start_new_connections(false),opt(),fs()
 		     
 {
     /* Find out how many files we can have open safely...subtract 4 for
@@ -91,7 +90,7 @@ int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
 	    DEBUG(2)("retrying_open ::open failed with errno=%d (%s)",errno,strerror(errno));
 	    return -1;		// wonder what it was
 	}
-	DEBUG(5) ("too many open files -- contracting FD ring to %d", max_fds);
+	DEBUG(5) ("too many open files -- contracting FD ring (size=%d)", (int)openflows.size());
 	close_oldest();
     }
 }
@@ -132,14 +131,22 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
     return new_tcpip;
 }
 
+/**
+ * remove a flow from the database and close the flow
+ */
+
 void tcpdemux::remove_flow(const flow_addr &flow)
 {
+    std::cerr << "remove_flow\n";
+    std::cerr << "flows in map: " << flow_map.size() << "\n";
     flow_map_t::iterator it = flow_map.find(flow);
     if(it!=flow_map.end()){
 	close_tcpip(it->second);
 	delete it->second;
 	flow_map.erase(it);
     }
+    std::cerr << "flows in map: " << flow_map.size() << "\n";
+    std::cerr << "\n";
 }
 
 void tcpdemux::flow_map_clear()
@@ -150,37 +157,6 @@ void tcpdemux::flow_map_clear()
     flow_map.clear();
 }
 
-int tcpdemux::open_tcpfile(tcpip *tcp)
-{
-    /* This shouldn't be called if the file is already open */
-    assert(tcp->fd < 0);
-
-    /* Now try and open the file */
-    if(tcp->file_created) {
-	DEBUG(5) ("%s: re-opening output file", tcp->flow_pathname.c_str());
-	tcp->fd = retrying_open(tcp->flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
-    } else {
-	DEBUG(5) ("%s: opening new output file", tcp->flow_pathname.c_str());
-	tcp->fd = retrying_open(tcp->flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
-	tcp->file_created = true;		// remember we made it
-    }
-
-    /* If the file isn't open at this point, there's a problem */
-    if (tcp->fd < 0 ) {
-	/* we had some problem opening the file -- set FINISHED so we
-	 * don't keep trying over and over again to reopen it
-	 */
-	perror(tcp->flow_pathname.c_str());
-	return -1;
-    }
-
-    openflows.insert(tcp);
-    tcp->pos = lseek(tcp->fd,(off_t)0,SEEK_END);	// seek to end
-    tcp->nsn = tcp->isn + 1 + tcp->pos;			// byte 0 is seq=isn+1; note this will handle files > 4GiB
-    return 0;
-}
-
-
 /****************************************************************
  *** tcpdemultiplexer 
  ****************************************************************/
@@ -189,7 +165,7 @@ int tcpdemux::open_tcpfile(tcpip *tcp)
 unsigned int tcpdemux::get_max_fds(void)
 {
     int max_descs = 0;
-    const char *method;
+    const char *method=0;
 
     /* Use OPEN_MAX if it is available */
 #if defined (OPEN_MAX)
@@ -237,10 +213,9 @@ unsigned int tcpdemux::get_max_fds(void)
 
     /* if everything has failed, we'll just take a guess */
 #else
-    method = "random guess";
+    method = "MAX_FD_GUESS";
     max_descs = MAX_FD_GUESS;
 #endif
-
     /* this must go here, after rlimit code */
     if (opt.max_desired_fds) {
 	DEBUG(10) ("using only %d FDs", opt.max_desired_fds);
@@ -254,6 +229,9 @@ unsigned int tcpdemux::get_max_fds(void)
 
 /*
  * Called to processes a tcp packet
+ * 
+ * creates a new tcp connection if necessary, then asks the connection to either
+ * print the packet or store it.
  */
 
 #pragma GCC diagnostic ignored "-Wcast-align"
@@ -307,12 +285,16 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     }
 
     /* At this point, tcp may be NULL because:
-     * case 1 - It's a new connection (and we have a syn)
-     * case 2 - It's an old connection, but it was already finished.
-     * case 3 - It's a connecton that had a huge gap...
+     * case 1 - It's a new connection and SYN IS SET; normal case
+     * case 2 - Extra packets on a now-closed connection
+     * case 3 - Packets for which the initial part of the connection was missed
+     * case 4 - It's a connecton that had a huge gap and was expired out of the databsae
      *
      * THIS IS THE ONLY PLACE THAT create_tcpip() is called.
      */
+
+    /* q: what if syn is set AND there is data? */
+    /* q: what if syn is set AND we already know about this connection? */
 
     if (tcp==NULL){
 
@@ -346,7 +328,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	    DEBUG(1)("Multiple SYNs (%d) seen on a single connection.",tcp->syn_count);
 	}
 	tcp->syn_count++;
-	if( ack_set ){
+	if( !ack_set ){
 	    DEBUG(50) ("packet is handshake SYN"); /* First packet of three-way handshake */
 	    tcp->dir = tcpip::dir_cs;	// client->server
 	} else {
@@ -368,21 +350,31 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	if (opt.console_output) {
 	    tcp->print_packet(data, length);
 	} else {
-	    if (opt.opt_output_enabled){
+	    if (opt.store_output){
 		tcp->store_packet(data, length, delta);
 	    }
 	}
     }
 
-    /* Finally, if there is a FIN, then kill this TCP connection*/
+    /* Count the FINs.
+     * If this is a fin, determine the size of the stream
+     */
     if (fin_set){
-	if(opt.opt_no_purge==false){
-	    DEBUG(50)("packet is FIN; closing connection");
-	    remove_flow(this_flow);	// take it out of the map
-	    // BUG BUG BUG
-	    // once the flow is removed, it's forgotten, and then additional packets cause corruption.
-	}
+        tcp->fin_count++;
+        if(tcp->fin_count==1){
+            tcp->fin_size = (seq+length-tcp->isn)-1;
+        }
     }
+
+    /* If a fin was sent and we've seen all of the bytes, close the stream */
+    DEBUG(50)("%d>0 && %d == %d",tcp->fin_count,tcp->seen_bytes(),tcp->fin_size);
+    if (tcp->fin_count>0 && tcp->seen_bytes() == tcp->fin_size){
+        DEBUG(50)("all bytes have been received; closing connection");
+        //remove_flow(this_flow);	// take it out of the map  // BUG??
+        //fprintf(stderr,"***FLOW REMOVED\n");
+    }
+    DEBUG(50)("fin_set=%d  seq=%u fin_count=%d  seq_count=%d len=%d isn=%u",
+            fin_set,seq,tcp->fin_count,tcp->syn_count,length,tcp->isn);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 

@@ -1,4 +1,10 @@
+2012-12-23  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/tcpdemux.cpp (tcpdemux::process_tcp): option output_enabled changed to store_output
+
 2012-12-22  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/be13_api/sbuf.cpp (sbuf_t::map_file): 
 
 	* src/scan_http.cpp (scan_http_cbo::on_headers_complete): changed retrying_open to open() to eliminate dependency on tcpdemux
 
