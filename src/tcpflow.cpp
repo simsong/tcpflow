@@ -365,6 +365,10 @@ int main(int argc, char *argv[])
 	}
     }
     if(didhelp) exit(0);
+    if(demux.opt.post_processing && !demux.opt.store_output){
+        std::cerr << "ERROR: post_processing currently requires storing output.\n";
+        exit(1);
+    }
 
     argc -= optind;
     argv += optind;
