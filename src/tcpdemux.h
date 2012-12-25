@@ -62,8 +62,7 @@ public:
 		  post_processing(false),opt_gzip_decompress(true),
 		  max_bytes_per_flow(),
 		  max_desired_fds(),max_flows(0),suppress_header(0),
-		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK),
-		  opt_no_purge(false) {
+		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK){
 	}
 	bool	console_output;
 	bool	store_output;	// do we output?
@@ -77,7 +76,6 @@ public:
 	bool	strip_nonprint;
 	bool	use_color;
 	int32_t max_seek;		// signed becuase we compare with abs()
-	bool	opt_no_purge;
     };
 
     std::string outdir;			/* output directory */

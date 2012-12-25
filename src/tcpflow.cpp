@@ -87,9 +87,6 @@ static void usage()
         std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
         info_scanners(false,scanners_builtin,'E','x');
         std::cout << "\n";
-        std::cout << "Depricated: (don't use)\n";
-        std::cout << "   -P: don't purge tcp connections on FIN (could result in lost data)\n";
-        std::cout << "\n";
         std::cout << "expression: tcpdump-like filtering expression\n";
         flow::usage();
         std::cout << "\nSee the man page for additional information.\n\n";
@@ -269,7 +266,7 @@ int main(int argc, char *argv[])
     }
 
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:PpR:r:sT:Vvx:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:pR:r:sT:Vvx:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -342,7 +339,6 @@ int main(int argc, char *argv[])
             demux.outdir = optarg;
             flow::outdir = optarg;
             break;
-	case 'P': demux.opt.opt_no_purge = true; break;
 	case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
 	case 'R': Rfiles.push_back(optarg); break;
 	case 'r': rfiles.push_back(optarg); break;
