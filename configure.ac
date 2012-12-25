@@ -23,8 +23,6 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
 
-
-
 ################################################################
 ## See if we are running on mingw
 # http://osdir.com/ml/gnu.mingw.devel/2003-09/msg00040.html

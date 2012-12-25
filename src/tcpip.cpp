@@ -18,11 +18,9 @@
 #pragma GCC diagnostic ignored "-Weffc++"
 #pragma GCC diagnostic ignored "-Wshadow"
 /* Create a new tcp object.
- * tcpip.cpp:
- * Handle the TCP/IP connection
  * 
- *
- * Notice that nsn is not set because the file isn't open...
+ * Creating a new object creates a new passive TCP/IP decoder.
+ * It will *NOT* append to a flow that is already on the disk or in memory.
  */
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
     demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),
@@ -32,15 +30,10 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
     last_byte(),
     last_packet_number(),out_of_order_count(0),violations(0)
 {
-    /* If we are outputting the transcripts, compute the filename */
-
-    static const std::string slash("/");
+    /* If we are outputting the transcripts, compute the filename and open the file*/
     if(demux.opt.store_output){
-	if(demux.outdir=="."){
-	    flow_pathname = myflow.filename();
-	} else {
-	    flow_pathname = demux.outdir + slash + myflow.filename();
-	}
+        flow_pathname = myflow.new_filename();
+        open_file();
     }
 }
 
@@ -123,16 +116,22 @@ tcpip::~tcpip()
 	demux.xreport->pop();
         demux.xreport->flush();
     }
-
-    //DEBUG(50)("tcpip::~tcpip: ");
-    //if(debug>=50) dump_seen();
-    //DEBUG(50)("");
-
     if(seen) delete seen;
 }
 
 #pragma GCC diagnostic warning "-Weffc++"
 #pragma GCC diagnostic warning "-Wshadow"
+
+
+/****************************************************************
+ ** SAVE FILE MANAGEMENT
+ ****************************************************************
+ *
+ * Unlike the tcp/ip object, which is created once, the file can be opened, closed, and
+ * re-opened depending on the availability of file handles.
+ * 
+ * Closing the file does not delete the tcp/ip object.
+ */
 
 
 /* Closes the file belonging to a flow.
@@ -153,8 +152,7 @@ void tcpip::close_file()
 	    fprintf(stderr,"%s: futimes(fd=%d)\n",strerror(errno),fd);
             abort();
 	}
-#endif
-#if defined(HAVE_FUTIMENS) && !defined(HAVE_FUTIMES)
+#elif defined(HAVE_FUTIMENS) 
 	struct timespec tstimes[2];
 	for(int i=0;i<2;i++){
 	    tstimes[i].tv_sec = times[i].tv_sec;

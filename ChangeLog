@@ -1,3 +1,7 @@
+2012-12-24  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/tcpip.h (class flow): removed connection_count from flow identifier becuase it cannot be derrived from the flow. We really should have the LSN as part of the flow or something. The connection_count will be found when the filename is made.
+
 2012-12-23  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/tcpdemux.cpp (tcpdemux::process_tcp): option output_enabled changed to store_output

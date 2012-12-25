@@ -207,20 +207,21 @@ class flow : public flow_addr {
 public:;
     static void usage();			// print information on flow notation
     static std::string filename_template;	// 
+    static std::string outdir;                  // where the output gets written
     static const int32_t NO_VLAN=-1;			/* vlan flag for no vlan */
-    flow():id(),vlan(),tstart(),tlast(),packet_count(),connection_count(){};
+    flow():id(),vlan(),tstart(),tlast(),packet_count(){};
     flow(const flow_addr &flow_addr_,int32_t vlan_,const struct timeval &t1,
-	 const struct timeval &t2,uint64_t id_,uint64_t connection_count_):
+	 const struct timeval &t2,uint64_t id_):
 	flow_addr(flow_addr_),id(id_),vlan(vlan_),tstart(t1),tlast(t2),
-	packet_count(0),connection_count(connection_count_){}
+	packet_count(0){}
     virtual ~flow(){};
     uint64_t  id;			// flow_counter when this flow was created
     int32_t   vlan;			// vlan interface we observed; -1 means no vlan 
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
     uint64_t packet_count;			// packet count
-    uint64_t connection_count;		// how many times have we seen a flow with the same quad?
-    std::string filename();		// returns filename for a flow based on the temlate
+    std::string filename_for_connection_count(uint32_t connection_count);		// returns a new filename for a flow based on the temlate
+    std::string new_filename();		// returns a new filename for a flow based on the temlate
 };
 
 /*

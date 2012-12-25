@@ -117,11 +117,10 @@ tcpip *tcpdemux::find_tcpip(const flow_addr &flow)
  * since it doesn't need to shuffle entire structures.
  */
 
-tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
-			      const timeval &ts,uint64_t connection_count)
+tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,const timeval &ts)
 {
     /* create space for the new state */
-    flow flow(flowa,vlan,ts,ts,flow_counter++,connection_count);
+    flow flow(flowa,vlan,ts,ts,flow_counter++);
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->last_packet_number = packet_counter++;
@@ -137,16 +136,12 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,
 
 void tcpdemux::remove_flow(const flow_addr &flow)
 {
-    std::cerr << "remove_flow\n";
-    std::cerr << "flows in map: " << flow_map.size() << "\n";
     flow_map_t::iterator it = flow_map.find(flow);
     if(it!=flow_map.end()){
 	close_tcpip(it->second);
 	delete it->second;
 	flow_map.erase(it);
     }
-    std::cerr << "flows in map: " << flow_map.size() << "\n";
-    std::cerr << "\n";
 }
 
 void tcpdemux::flow_map_clear()
@@ -263,7 +258,6 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     length -= tcp_header_len;
 
     /* see if we have state about this flow; if not, create it */
-    uint64_t connection_count = 0;
     int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
     tcpip   *tcp = find_tcpip(this_flow);
     
@@ -274,11 +268,16 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     if(tcp){
 	/* Compute delta based on next expected sequence number.
 	 * If delta will be too much, start a new flow.
+         *
+         * Gosh, I hope we don't get a packet from the old flow when
+         * we are processing the new one. Perhaps we should be able to have
+         * multiple flows at the same time with the same quad, and they are
+         * at different window areas...
+         * 
 	 */
 	delta = seq - tcp->nsn;		// notice that signed offset is calculated
 
 	if(abs(delta) > opt.max_seek){
-	    connection_count = tcp->myflow.connection_count+1;
 	    remove_flow(this_flow);
 	    tcp = 0;
 	}
@@ -305,7 +304,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	 * delta will be 0, because it's a new connection!
 	 */
 	tcp_seq isn = syn_set ? seq : seq-1;
-	tcp = create_tcpip(this_flow, vlan, isn, ts,connection_count);
+	tcp = create_tcpip(this_flow, vlan, isn, ts);
     }
 
     /* Now tcp is valid */
@@ -370,8 +369,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     DEBUG(50)("%d>0 && %d == %d",tcp->fin_count,tcp->seen_bytes(),tcp->fin_size);
     if (tcp->fin_count>0 && tcp->seen_bytes() == tcp->fin_size){
         DEBUG(50)("all bytes have been received; closing connection");
-        //remove_flow(this_flow);	// take it out of the map  // BUG??
-        //fprintf(stderr,"***FLOW REMOVED\n");
+        remove_flow(this_flow);	// take it out of the map  // BUG??
     }
     DEBUG(50)("fin_set=%d  seq=%u fin_count=%d  seq_count=%d len=%d isn=%u",
             fin_set,seq,tcp->fin_count,tcp->syn_count,length,tcp->isn);

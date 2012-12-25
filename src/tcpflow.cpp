@@ -338,7 +338,10 @@ int main(int argc, char *argv[])
 	case 'm':
 	    demux.opt.max_seek = atoi(optarg);
 	    DEBUG(10) ("max_seek set to %d",demux.opt.max_seek); break;
-	case 'o': demux.outdir = optarg; break;
+	case 'o':
+            demux.outdir = optarg;
+            flow::outdir = optarg;
+            break;
 	case 'P': demux.opt.opt_no_purge = true; break;
 	case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
 	case 'R': Rfiles.push_back(optarg); break;

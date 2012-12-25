@@ -100,7 +100,8 @@ public:
     int   retrying_open(const std::string &filename,int oflag,int mask);
 
     /* the flow database */
-    tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn, const timeval &ts,uint64_t connection_count);
+    /* vlans are signed int; -1 means no vlan */
+    tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn, const timeval &ts);
     tcpip *find_tcpip(const flow_addr &flow);
 
     void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
