@@ -280,6 +280,7 @@ public:
 #pragma GCC diagnostic ignored "-Weffc++"
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wmissing-noreturn"
 #include <boost/icl/interval.hpp>
 #include <boost/icl/interval_map.hpp>
 #include <boost/icl/interval_set.hpp>
@@ -287,6 +288,7 @@ typedef boost::icl::interval_set<uint64_t> recon_set; // Boost interval set of b
 #pragma GCC diagnostic warning "-Weffc++"
 #pragma GCC diagnostic warning "-Wshadow"
 #pragma GCC diagnostic warning "-Wall"
+#pragma GCC diagnostic warning "-Wmissing-noreturn"
 
 class tcpip {
 public:

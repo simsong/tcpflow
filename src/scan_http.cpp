@@ -45,7 +45,7 @@ private:
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
     };
 
-    scan_http_cbo(const scan_http_cbo& c) :
+    scan_http_cbo(const scan_http_cbo& c) __attribute__ ((__noreturn__)):
         path(c.path), base(c.base), xmlstream(c.xmlstream),request_no(c.request_no),
         headers(c.headers), last_on_header(c.last_on_header), header_value(c.header_value), header_field(c.header_field),
         output_path(c.output_path), fd(c.fd), first_body(c.first_body),bytes_written(c.bytes_written),unzip(c.unzip), 
