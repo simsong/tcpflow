@@ -415,7 +415,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 
 #ifdef DEBUG_REOPEN_LOGIC
     /* For debugging, force this connection closed */
-    demux.close_tcpip(this);			
+    demux.close_tcpip_fd(this);			
 #endif
 }
 

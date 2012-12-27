@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
     DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.openflows.size());
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
 
-    demux.close_all();
+    demux.close_all_fd();
     phase_shutdown(fs,*xreport);
     
     /*
@@ -482,7 +482,7 @@ int main(int argc, char *argv[])
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
     if(xreport){
-	demux.flow_map_clear();	// empty the map to capture the state
+	demux.remove_all_flows();	// empty the map to capture the state
 	xreport->add_rusage();
 	xreport->pop();			// bulk_extractor
 	xreport->close();

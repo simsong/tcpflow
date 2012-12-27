@@ -20,6 +20,7 @@
 #include "md5.h"
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
+#include <queue>
 
 /**
  * the tcp demultiplixer
@@ -34,7 +35,7 @@ private:
 	}
     };
     tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),
-				max_fds(),flow_map(),openflows(),start_new_connections(),opt(),fs(){
+        max_fds(),flow_map(),openflows(),stored_flow_map(),stored_flows(),start_new_connections(),opt(),fs(){
 	throw new not_impl();
     }
     tcpdemux &operator=(const tcpdemux &that){
@@ -51,7 +52,9 @@ private:
     } flow_addr_key_eq;
 
     typedef std::tr1::unordered_set<class tcpip *> tcpset;
-    typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // should be unordered_map
+    typedef std::tr1::unordered_set<class stored_flow *> storedflowset;
+    typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
+    typedef std::tr1::unordered_map<flow_addr,stored_flow,flow_addr_hash,flow_addr_key_eq> stored_flow_map_t; // flows that have been stored
     tcpdemux();
 public:
     /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
@@ -84,30 +87,39 @@ public:
     xml		*xreport;		// DFXML output file
     unsigned int max_fds;		// maximum number of file descriptors for this tcpdemux
 
-    flow_map_t	flow_map;		// db of flow->tcpip objects
+    flow_map_t	flow_map;		// db of open tcpip objects, indexed by flow
     tcpset	openflows;		// the tcpip flows with open files
+
+    stored_flow_map_t stored_flow_map;  // db of stored flows, indexed by flow
+    storedflowset     stored_flows;     // the flows that were stored
     bool	start_new_connections;	// true if we should start new connections
     options	opt;
-    class feature_recorder_set *fs;
+    class       feature_recorder_set *fs; // where features extracted from each flow should be stored
     
+    static int        max_stored_flows;       // how many stored flows are kept in the stored_flow_map
     static tcpdemux *getInstance();
-    void  close_all();
-    void  close_tcpip(tcpip *);
-    void  close_oldest();
+
+    /* management of open fds and in-process tcpip flows*/
+    void  close_all_fd();
+    void  close_tcpip_fd(tcpip *);         
+    void  close_oldest_fd();
     void  remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
+    void  remove_all_flows();                 // stop processing all tcpip connections
+
+    /* open a new file, closing an fd in the openflow database if necessary */
     int   retrying_open(const std::string &filename,int oflag,int mask);
 
-    /* the flow database */
+    /* the flow database holds in-process tcpip connections */
     /* vlans are signed int; -1 means no vlan */
     tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn, const timeval &ts);
     tcpip *find_tcpip(const flow_addr &flow);
 
+    /* packet processing */
     void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
-			    const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
+                      const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
     void  process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
     void  process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
     void  process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
-    void  flow_map_clear();		// clears out the map
 };
 
 #endif

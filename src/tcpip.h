@@ -159,12 +159,12 @@ public:
 #pragma GCC diagnostic ignored "-Wcast-align"
     uint64_t hash() const {
 	if(family==AF_INET){
-	    uint32_t *s =  (uint32_t *)src.addr; uint64_t S0 = s[0];
-	    uint32_t *d =  (uint32_t *)dst.addr; uint64_t D0 = d[0];
+	    const uint32_t *s =  (uint32_t *)src.addr; const uint64_t S0 = s[0];
+	    const uint32_t *d =  (uint32_t *)dst.addr; const uint64_t D0 = d[0];
 	    return (S0<<32 | D0) ^ (D0<<32 | S0) ^ (sport<<16 | dport);
 	} else {
-	    uint64_t *s =  (uint64_t *)src.addr; uint64_t S0 = s[0];uint64_t S8 = s[1];
-	    uint64_t *d =  (uint64_t *)dst.addr; uint64_t D0 = d[0];uint64_t D8 = d[1];
+	    const uint64_t *s =  (uint64_t *)src.addr; const uint64_t S0 = s[0];const uint64_t S8 = s[1];
+	    const uint64_t *d =  (uint64_t *)dst.addr; const uint64_t D0 = d[0];const uint64_t D8 = d[1];
 	    return (S0<<32 ^ D0) ^ (D0<<32 ^ S0) ^ (S8 ^ D8) ^ (sport<<16 | dport);
 	}
     }
@@ -223,6 +223,20 @@ public:;
     std::string filename_for_connection_count(uint32_t connection_count);		// returns a new filename for a flow based on the temlate
     std::string new_filename();		// returns a new filename for a flow based on the temlate
 };
+
+/*
+ * An stored_flow is a flow for which all of the packets have been received and tcpip state
+ * has been discarded. The stored_flow allows matches against newly received packets
+ * that are not SYN or ACK packets but have data. We can see if the data matches data that's
+ * been written to disk. To do this we need ot know the filename and the ISN...
+ */
+
+class stored_flow : public flow_addr {
+public:
+    std::string stored_filename;        // where the flow was stored
+    tcp_seq     isn;                    // the flow's ISN
+};
+
 
 /*
  * Convenience class for working with TCP headers
@@ -323,7 +337,6 @@ public:;
     std::string flow_pathname;		// path where flow is stored
     int		fd;			// file descriptor for file storing this flow's data 
     bool	file_created;		// true if file was created
-
 
     /* Stats */
     recon_set   *seen;                  // what we've seen; it must be * due to boost lossage

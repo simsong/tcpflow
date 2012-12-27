@@ -264,9 +264,6 @@ extern int debug;
 /* datalink.cpp - callback for libpcap */
 pcap_handler find_handler(int datalink_type, const char *device); // callback for pcap
 
-/* flow.cpp - handles the flow database */
-void flow_close_all();
-
 /* tcpflow.cpp - CLI */
 extern const char *progname;
 void terminate(int sig) __attribute__ ((__noreturn__));

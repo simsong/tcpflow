@@ -21,9 +21,11 @@
 
 
 
+/* static */ int tcpdemux::max_stored_flows = 100;
+
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),max_fds(10),flow_map(),openflows(),
-		     start_new_connections(false),opt(),fs()
+		     xreport(0),max_fds(10),flow_map(),openflows(),stored_flow_map(),
+		     stored_flows(),start_new_connections(false),opt(),fs()
 		     
 {
     /* Find out how many files we can have open safely...subtract 4 for
@@ -34,7 +36,7 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
     max_fds = get_max_fds() - NUM_RESERVED_FDS;
 }
 
-tcpdemux *tcpdemux::getInstance()
+/* static */ tcpdemux *tcpdemux::getInstance()
 {
     static tcpdemux * theInstance = 0;
     if(theInstance==0) theInstance = new tcpdemux();
@@ -47,7 +49,7 @@ tcpdemux *tcpdemux::getInstance()
  * Implement a list of openflows, each with an associated file descriptor.
  * When a new file needs to be opened, we can close a flow if necessary.
  */
-void tcpdemux::close_all()
+void tcpdemux::close_all_fd()
 {
     for(tcpset::iterator it = openflows.begin();it!=openflows.end();it++){
 	(*it)->close_file();
@@ -56,7 +58,7 @@ void tcpdemux::close_all()
 }
 
 
-void tcpdemux::close_tcpip(tcpip *i)
+void tcpdemux::close_tcpip_fd(tcpip *i)
 {
     i->close_file();
     openflows.erase(i);
@@ -65,7 +67,7 @@ void tcpdemux::close_tcpip(tcpip *i)
 /**
  * find the flow that has been written to in the furthest past and close it.
  */
-void tcpdemux::close_oldest()
+void tcpdemux::close_oldest_fd()
 {
     tcpip *oldest_tcp=0;
     for(tcpset::iterator it = openflows.begin();it!=openflows.end();it++){
@@ -73,7 +75,7 @@ void tcpdemux::close_oldest()
 	    oldest_tcp = (*it);
 	}
     }
-    if(oldest_tcp) close_tcpip(oldest_tcp);
+    if(oldest_tcp) close_tcpip_fd(oldest_tcp);
 }
 
 /* Open a file, closing one of the existing flows f necessary.
@@ -81,7 +83,7 @@ void tcpdemux::close_oldest()
 int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
 {
     while(true){
-	if(openflows.size() >= max_fds) close_oldest();
+	if(openflows.size() >= max_fds) close_oldest_fd();
 	int fd = ::open(filename.c_str(),oflag,mask);
 	DEBUG(2)("::open(%s,%d,%d)=%d",filename.c_str(),oflag,mask,fd);
 	if(fd>=0) return fd;
@@ -91,7 +93,7 @@ int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
 	    return -1;		// wonder what it was
 	}
 	DEBUG(5) ("too many open files -- contracting FD ring (size=%d)", (int)openflows.size());
-	close_oldest();
+	close_oldest_fd();
     }
 }
 
@@ -138,13 +140,13 @@ void tcpdemux::remove_flow(const flow_addr &flow)
 {
     flow_map_t::iterator it = flow_map.find(flow);
     if(it!=flow_map.end()){
-	close_tcpip(it->second);
+	close_tcpip_fd(it->second);
 	delete it->second;
 	flow_map.erase(it);
     }
 }
 
-void tcpdemux::flow_map_clear()
+void tcpdemux::remove_all_flows()
 {
     for(flow_map_t::iterator it=flow_map.begin();it!=flow_map.end();it++){
 	delete it->second;
