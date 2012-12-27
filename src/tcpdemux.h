@@ -99,6 +99,8 @@ public:
     static int        max_saved_flows;       // how many saved flows are kept in the saved_flow_map
     static tcpdemux *getInstance();
 
+    void post_process(tcpip *tcp);      // just before closing; writes XML and closes fd
+
     /* management of open fds and in-process tcpip flows*/
     void  close_all_fd();
     void  close_tcpip_fd(tcpip *);         

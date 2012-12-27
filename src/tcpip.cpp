@@ -54,6 +54,36 @@ void tcpip::dump_seen()
     }
 }
 
+void tcpip::dump_xml(class xml *xreport,const std::string &xmladd)
+{
+    static const std::string fileobject_str("fileobject");
+    static const std::string filesize_str("filesize");
+    static const std::string filename_str("filename");
+    static const std::string tcpflow_str("tcpflow");
+
+    xreport->push(fileobject_str);
+    if(flow_pathname.size()) xreport->xmlout(filename_str,flow_pathname);
+
+    xreport->xmlout(filesize_str,last_byte);
+	
+    std::stringstream attrs;
+    attrs << "startime='" << xml::to8601(myflow.tstart) << "' ";
+    attrs << "endtime='"  << xml::to8601(myflow.tlast)  << "' ";
+    attrs << "src_ipn='"  << myflow.src << "' ";
+    attrs << "dst_ipn='"  << myflow.dst << "' ";
+    attrs << "packets='"  << myflow.packet_count << "' ";
+    attrs << "srcport='"  << myflow.sport << "' ";
+    attrs << "dstport='"  << myflow.dport << "' ";
+    attrs << "family='"   << (int)myflow.family << "' ";
+    if(out_of_order_count) attrs << "out_of_order_count='" << out_of_order_count << "' ";
+    if(violations)         attrs << "violations='" << violations << "' ";
+	
+    xreport->xmlout(tcpflow_str,"",attrs.str(),false);
+    if(xmladd.size()>0) xreport->xmlout("",xmladd,"",false);
+    xreport->pop();
+    xreport->flush();
+}
+
 
 /**
  * Destructor is called when flow is closed.
@@ -63,61 +93,7 @@ void tcpip::dump_seen()
  */
 tcpip::~tcpip()
 {
-    static const std::string fileobject_str("fileobject");
-    static const std::string filesize_str("filesize");
-    static const std::string filename_str("filename");
-    static const std::string tcpflow_str("tcpflow");
-
-    std::stringstream xmladd;		// for this <fileobject>
-
-    if(demux.opt.post_processing && file_created){
-        /** 
-         * After the flow is finished, put it in an SBUF and process it.
-         * if we are doing post-processing.
-         * This is called from tcpip::~tcpip() in tcpip.cpp.
-         */
-
-        /* Open the fd if it is not already open */
-        if(fd<0){
-            DEBUG(10)("tcpip::~tcpip: re-opening %s for post-processing",flow_pathname.c_str());
-            fd = demux.retrying_open(flow_pathname,O_RDONLY|O_BINARY,0);
-            if(fd<0){
-                perror("open");
-            }
-        }
-        if(fd>=0){
-            sbuf_t *sbuf = sbuf_t::map_file(flow_pathname,pos0_t(flow_pathname),fd);
-            if(sbuf){
-                process_sbuf(scanner_params(scanner_params::scan,*sbuf,*(demux.fs),&xmladd));
-                delete sbuf;
-                sbuf = 0;
-            }
-        }
-    }
-    if(fd>=0) close_file();		// close the file if it is open for some reason
-    if(demux.xreport){
-	demux.xreport->push(fileobject_str);
-	if(flow_pathname.size()) demux.xreport->xmlout(filename_str,flow_pathname);
-
-	demux.xreport->xmlout(filesize_str,last_byte);
-	
-	std::stringstream attrs;
-	attrs << "startime='" << xml::to8601(myflow.tstart) << "' ";
-	attrs << "endtime='"  << xml::to8601(myflow.tlast)  << "' ";
-	attrs << "src_ipn='"  << myflow.src << "' ";
-	attrs << "dst_ipn='"  << myflow.dst << "' ";
-	attrs << "packets='"  << myflow.packet_count << "' ";
-	attrs << "srcport='"  << myflow.sport << "' ";
-	attrs << "dstport='"  << myflow.dport << "' ";
-	attrs << "family='"   << (int)myflow.family << "' ";
-	if(out_of_order_count) attrs << "out_of_order_count='" << out_of_order_count << "' ";
-	if(violations)         attrs << "violations='" << violations << "' ";
-	
-	demux.xreport->xmlout(tcpflow_str,"",attrs.str(),false);
-	if(xmladd.tellp()>0) demux.xreport->xmlout("",xmladd.str(),"",false);
-	demux.xreport->pop();
-        demux.xreport->flush();
-    }
+    assert(fd<0);                       // file must be closed
     if(seen) delete seen;
 }
 
@@ -137,8 +113,8 @@ tcpip::~tcpip()
 
 
 /* Closes the file belonging to a flow.
- * Don't take it out of the map --- we're still thinking about it.
- * Don't reset pos; we will keep track of where we are, even if the file is not open
+ * Does not take tcpip out of flow database.
+ * Does not change pos. 
  */
 void tcpip::close_file()
 {
@@ -167,11 +143,14 @@ void tcpip::close_file()
 	close(fd);
 	fd = -1;
     }
+    demux.openflows.erase(this);           // we are no longer open
+
 }
 
 /*
- * Opens the file transcript file
- * called by store_packet()
+ * Opens the file transcript file. 
+ * Called by store_packet()
+ * Does not change pos.
  */
 
 int tcpip::open_file()

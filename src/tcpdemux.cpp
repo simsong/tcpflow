@@ -58,12 +58,6 @@ void tcpdemux::close_all_fd()
 }
 
 
-void tcpdemux::close_tcpip_fd(tcpip *i)
-{
-    i->close_file();
-    openflows.erase(i);
-}
-
 /**
  * find the flow that has been written to in the furthest past and close it.
  */
@@ -75,7 +69,7 @@ void tcpdemux::close_oldest_fd()
 	    oldest_tcp = (*it);
 	}
     }
-    if(oldest_tcp) close_tcpip_fd(oldest_tcp);
+    if(oldest_tcp) oldest_tcp->close_file();
 }
 
 /* Open a file, closing one of the existing flows f necessary.
@@ -137,11 +131,36 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,c
  * These are the only places where a tcpip object is deleted.
  */
 
+void tcpdemux::post_process(tcpip *tcp)
+{
+    std::stringstream xmladd;		// for this <fileobject>
+    if(opt.post_processing && tcp->file_created){
+        /** 
+         * After the flow is finished, put it in an SBUF and process it.
+         * if we are doing post-processing.
+         * This is called from tcpip::~tcpip() in tcpip.cpp.
+         */
+
+        /* Open the fd if it is not already open */
+        tcp->open_file();
+        if(tcp->fd>=0){
+            sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,pos0_t(tcp->flow_pathname),tcp->fd);
+            if(sbuf){
+                process_sbuf(scanner_params(scanner_params::scan,*sbuf,*(fs),&xmladd));
+                delete sbuf;
+                sbuf = 0;
+            }
+        }
+    }
+    tcp->close_file();
+    if(xreport) tcp->dump_xml(xreport,xmladd.str());
+}
+
 void tcpdemux::remove_flow(const flow_addr &flow)
 {
     flow_map_t::iterator it = flow_map.find(flow);
     if(it!=flow_map.end()){
-	close_tcpip_fd(it->second);
+        post_process(it->second);
 	delete it->second;
 	flow_map.erase(it);
     }
@@ -150,6 +169,7 @@ void tcpdemux::remove_flow(const flow_addr &flow)
 void tcpdemux::remove_all_flows()
 {
     for(flow_map_t::iterator it=flow_map.begin();it!=flow_map.end();it++){
+        post_process(it->second);
 	delete it->second;
     }
     flow_map.clear();

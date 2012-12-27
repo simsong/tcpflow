@@ -353,6 +353,7 @@ public:;
     void process_packet(const struct timeval &ts,const int32_t delta,const u_char *data,const uint32_t length);
     uint32_t seen_bytes();
     void dump_seen();
+    void dump_xml(class xml *xmlreport,const std::string &xmladd);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
