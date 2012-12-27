@@ -484,9 +484,9 @@ int main(int argc, char *argv[])
     if(xreport){
 	demux.remove_all_flows();	// empty the map to capture the state
 	xreport->add_rusage();
-	xreport->pop();			// bulk_extractor
+	xreport->pop();                 // bulk_extractor
 	xreport->close();
-	delete xreport;		// causes crash on windows with mingw32
+	delete xreport;                 
     }
-    exit(0);			// return(0) causes crash on Windows
+    exit(0);                            // return(0) causes crash on Windows
 }

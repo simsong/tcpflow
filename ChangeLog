@@ -1,5 +1,7 @@
 2012-12-27  Simson Garfinkel  <simsong@Mucha.local>
 
+	* renamed stored_flow as saved_flow becuase they are all stored, but only some are saved in the ring bufer.
+
 	* src/tcpdemux.cpp (tcpdemux::close_all): renamed close_all_fd(). close_tcpip renamed close_tcpip_fd; close_oldest renamed close_oldest_fd()
 	(tcpdemux::remove_all_flows): renamed.
 

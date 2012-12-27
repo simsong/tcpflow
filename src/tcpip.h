@@ -225,15 +225,15 @@ public:;
 };
 
 /*
- * An stored_flow is a flow for which all of the packets have been received and tcpip state
- * has been discarded. The stored_flow allows matches against newly received packets
+ * An saved_flow is a flow for which all of the packets have been received and tcpip state
+ * has been discarded. The saved_flow allows matches against newly received packets
  * that are not SYN or ACK packets but have data. We can see if the data matches data that's
  * been written to disk. To do this we need ot know the filename and the ISN...
  */
 
-class stored_flow : public flow_addr {
+class saved_flow : public flow_addr {
 public:
-    std::string stored_filename;        // where the flow was stored
+    std::string saved_filename;        // where the flow was saved
     tcp_seq     isn;                    // the flow's ISN
 };
 
@@ -334,7 +334,7 @@ public:;
     uint64_t	pos;			// fd - current position+1 (next byte in stream to be written)
 
     /* Archiving information */
-    std::string flow_pathname;		// path where flow is stored
+    std::string flow_pathname;		// path where flow is saved
     int		fd;			// file descriptor for file storing this flow's data 
     bool	file_created;		// true if file was created
 
@@ -347,7 +347,7 @@ public:;
 
     /* Methods */
     void close_file();			// close fd
-    int  open_file();                   // opens store file; return -1 if failure, 0 if success
+    int  open_file();                   // opens save file; return -1 if failure, 0 if success
     void print_packet(const u_char *data, uint32_t length);
     void store_packet(const u_char *data, uint32_t length, int32_t delta);
     void process_packet(const struct timeval &ts,const int32_t delta,const u_char *data,const uint32_t length);

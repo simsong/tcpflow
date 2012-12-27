@@ -58,6 +58,8 @@ void tcpip::dump_seen()
 /**
  * Destructor is called when flow is closed.
  * It implements "after" processing.
+ * This should only be called from remove_flow() or remove_all_flows()
+ * when a flow is deleted.
  */
 tcpip::~tcpip()
 {

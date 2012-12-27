@@ -21,11 +21,11 @@
 
 
 
-/* static */ int tcpdemux::max_stored_flows = 100;
+/* static */ int tcpdemux::max_saved_flows = 100;
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),max_fds(10),flow_map(),openflows(),stored_flow_map(),
-		     stored_flows(),start_new_connections(false),opt(),fs()
+		     xreport(0),max_fds(10),flow_map(),openflows(),saved_flow_map(),
+		     saved_flows(),start_new_connections(false),opt(),fs()
 		     
 {
     /* Find out how many files we can have open safely...subtract 4 for
@@ -134,6 +134,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,c
 
 /**
  * remove a flow from the database and close the flow
+ * These are the only places where a tcpip object is deleted.
  */
 
 void tcpdemux::remove_flow(const flow_addr &flow)
@@ -271,7 +272,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	/* Compute delta based on next expected sequence number.
 	 * If delta will be too much, start a new flow.
          *
-         * Gosh, I hope we don't get a packet from the old flow when
+         * NOTE: I hope we don't get a packet from the old flow when
          * we are processing the new one. Perhaps we should be able to have
          * multiple flows at the same time with the same quad, and they are
          * at different window areas...
@@ -370,8 +371,8 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     /* If a fin was sent and we've seen all of the bytes, close the stream */
     DEBUG(50)("%d>0 && %d == %d",tcp->fin_count,tcp->seen_bytes(),tcp->fin_size);
     if (tcp->fin_count>0 && tcp->seen_bytes() == tcp->fin_size){
-        DEBUG(50)("all bytes have been received; closing connection");
-        remove_flow(this_flow);	// take it out of the map  // BUG??
+        DEBUG(50)("all bytes have been received; removing flow");
+        remove_flow(this_flow);	// take it out of the map  
     }
     DEBUG(50)("fin_set=%d  seq=%u fin_count=%d  seq_count=%d len=%d isn=%u",
             fin_set,seq,tcp->fin_count,tcp->syn_count,length,tcp->isn);
@@ -537,5 +538,3 @@ void tcpdemux::process_ip(const struct timeval &ts,const u_char *data, uint32_t 
     }
 }
 #pragma GCC diagnostic warning "-Wcast-align"
- 
- 
