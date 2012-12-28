@@ -21,10 +21,10 @@
 
 
 
-/* static */ int tcpdemux::max_saved_flows = 100;
+/* static */ uint32_t tcpdemux::max_saved_flows = 100;
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),max_fds(10),flow_map(),openflows(),saved_flow_map(),
+		     xreport(0),max_fds(10),flow_map(),open_flows(),saved_flow_map(),
 		     saved_flows(),start_new_connections(false),opt(),fs()
 		     
 {
@@ -46,15 +46,15 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
 
 
 /**
- * Implement a list of openflows, each with an associated file descriptor.
+ * Implement a list of open_flows, each with an associated file descriptor.
  * When a new file needs to be opened, we can close a flow if necessary.
  */
 void tcpdemux::close_all_fd()
 {
-    for(tcpset::iterator it = openflows.begin();it!=openflows.end();it++){
+    for(tcpset::iterator it = open_flows.begin();it!=open_flows.end();it++){
 	(*it)->close_file();
     }
-    openflows.clear();
+    open_flows.clear();
 }
 
 
@@ -64,7 +64,7 @@ void tcpdemux::close_all_fd()
 void tcpdemux::close_oldest_fd()
 {
     tcpip *oldest_tcp=0;
-    for(tcpset::iterator it = openflows.begin();it!=openflows.end();it++){
+    for(tcpset::iterator it = open_flows.begin();it!=open_flows.end();it++){
 	if(oldest_tcp==0 || (*it)->last_packet_number < oldest_tcp->last_packet_number){
 	    oldest_tcp = (*it);
 	}
@@ -77,7 +77,7 @@ void tcpdemux::close_oldest_fd()
 int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
 {
     while(true){
-	if(openflows.size() >= max_fds) close_oldest_fd();
+	if(open_flows.size() >= max_fds) close_oldest_fd();
 	int fd = ::open(filename.c_str(),oflag,mask);
 	DEBUG(2)("::open(%s,%d,%d)=%d",filename.c_str(),oflag,mask,fd);
 	if(fd>=0) return fd;
@@ -86,7 +86,7 @@ int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
 	    DEBUG(2)("retrying_open ::open failed with errno=%d (%s)",errno,strerror(errno));
 	    return -1;		// wonder what it was
 	}
-	DEBUG(5) ("too many open files -- contracting FD ring (size=%d)", (int)openflows.size());
+	DEBUG(5) ("too many open files -- contracting FD ring (size=%d)", (int)open_flows.size());
 	close_oldest_fd();
     }
 }
@@ -154,6 +154,12 @@ void tcpdemux::post_process(tcpip *tcp)
     }
     tcp->close_file();
     if(xreport) tcp->dump_xml(xreport,xmladd.str());
+    /**
+     * Before we delete the tcp structure, save information about the saved flow
+     */
+    saved_flow_remove_oldest_if_necessary();
+    save_flow(tcp);
+    delete tcp;
 }
 
 void tcpdemux::remove_flow(const flow_addr &flow)
@@ -161,7 +167,6 @@ void tcpdemux::remove_flow(const flow_addr &flow)
     flow_map_t::iterator it = flow_map.find(flow);
     if(it!=flow_map.end()){
         post_process(it->second);
-	delete it->second;
 	flow_map.erase(it);
     }
 }
@@ -170,7 +175,6 @@ void tcpdemux::remove_all_flows()
 {
     for(flow_map_t::iterator it=flow_map.begin();it!=flow_map.end();it++){
         post_process(it->second);
-	delete it->second;
     }
     flow_map.clear();
 }
@@ -245,6 +249,25 @@ unsigned int tcpdemux::get_max_fds(void)
 }
 
 
+/**
+ * save information on this flow needed to handle strangling packets
+ */
+void tcpdemux::save_flow(tcpip *tcp)
+{
+    saved_flow *sf = new saved_flow(tcp);
+    saved_flow_map[*sf] = sf;
+    saved_flows.push_back(sf);
+}
+
+void tcpdemux::saved_flow_remove_oldest_if_necessary()
+{
+    if(saved_flows.size()>0 && saved_flows.size()>max_saved_flows){
+        flow_addr this_flow = *saved_flows.at(0);
+        saved_flow_map.erase(this_flow);
+        saved_flows.erase(saved_flows.begin());
+    }
+}
+
 /*
  * Called to processes a tcp packet
  * 
@@ -287,7 +310,39 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
     if(tcp==0 && start_new_connections==false) return; 
 
-    /* flow is in the database; find it */
+    if(tcp==0){
+        if(length==0){                       // zero length packet
+            if(fin_set) return;              // FIN on a connection that's unknown; safe to ignore
+            if(syn_set==false && ack_set==false) return; // neither a SYN nor ACK; return
+        } else {
+            /* Data present on a flow that is not actively being demultiplexed.
+             * See if it is a saved flow. If so, see if the data in the packet
+             * matches what is on the disk. If so, return.
+             *
+             */
+            saved_flow_map_t::const_iterator it = saved_flow_map.find(this_flow);
+            if(it!=saved_flow_map.end()){
+                uint32_t offset = seq - it->second->isn - 1;
+                bool data_match = false;
+                int fd = open(it->second->saved_filename.c_str(),O_RDONLY | O_BINARY);
+                if(fd>0){
+                    char *buf = (char *)malloc(length);
+                    if(buf){
+                        lseek(fd,offset,SEEK_SET);
+                        ssize_t r = read(fd,buf,length);
+                        data_match = (r==length) && memcmp(buf,data,length)==0;
+                        free(buf);
+                    }
+                    close(fd);
+                }
+                DEBUG(60)("Packet matches saved flow. offset=%u len=%d filename=%s data match=%d\n",
+                          offset,length,it->second->saved_filename.c_str(),data_match);
+                if(data_match) return;
+            }
+        }
+    }
+
+    /* flow is in the database; make sure the gap isn't too big.*/
     if(tcp){
 	/* Compute delta based on next expected sequence number.
 	 * If delta will be too much, start a new flow.

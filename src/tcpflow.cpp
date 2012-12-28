@@ -236,10 +236,12 @@ static void process_infile(const std::string &expression,const char *device,cons
 int main(int argc, char *argv[])
 {
     bool didhelp = false;
+#ifdef BROKEN
     std::cerr << "WARNING: YOU ARE USING AN EXPERIMENTAL VERSION OF TCPFLOW \n";
     std::cerr << "THAT DOES NOT WORK PROPERLY. PLEASE USE A RELEASE DOWNLOADED\n";
     std::cerr << "FROM http://digitalcorpora.org/downloads/tcpflow\n";
     std::cerr << "\n";
+#endif
 
     bool force_binary_output = false;
     bool opt_all = false;
@@ -466,7 +468,7 @@ int main(int argc, char *argv[])
 
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */
 
-    DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.openflows.size());
+    DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.open_flows.size());
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
 
     demux.close_all_fd();

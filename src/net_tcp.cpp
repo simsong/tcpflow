@@ -16,6 +16,7 @@
 // quickly try and get the port out of the packet.  It is assumed that the
 // packet is an IPv4 or 6 datagram in an ethernet frame.
 // any and all errors simply result in -1 being returned
+#pragma GCC diagnostic ignored "-Wcast-align"
 int net_tcp::get_port(const packet_info &pi)
 {
     // keep track of the length of the packet not yet examined

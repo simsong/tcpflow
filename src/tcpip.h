@@ -225,20 +225,6 @@ public:;
 };
 
 /*
- * An saved_flow is a flow for which all of the packets have been received and tcpip state
- * has been discarded. The saved_flow allows matches against newly received packets
- * that are not SYN or ACK packets but have data. We can see if the data matches data that's
- * been written to disk. To do this we need ot know the filename and the ISN...
- */
-
-class saved_flow : public flow_addr {
-public:
-    std::string saved_filename;        // where the flow was saved
-    tcp_seq     isn;                    // the flow's ISN
-};
-
-
-/*
  * Convenience class for working with TCP headers
  */
 class tcp_header_t {
@@ -362,5 +348,23 @@ inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
     os << "tcpip[" << f.myflow << " isn:" << f.isn << " pos:" << f.pos << "]";
     return os;
 }
+
+/*
+ * An saved_flow is a flow for which all of the packets have been received and tcpip state
+ * has been discarded. The saved_flow allows matches against newly received packets
+ * that are not SYN or ACK packets but have data. We can see if the data matches data that's
+ * been written to disk. To do this we need ot know the filename and the ISN...
+ */
+
+class saved_flow : public flow_addr {
+public:
+    saved_flow(tcpip *tcp):flow_addr(tcp->myflow),
+                           saved_filename(tcp->flow_pathname),
+                           isn(tcp->isn) {}
+                           
+    std::string saved_filename;        // where the flow was saved
+    tcp_seq     isn;                    // the flow's ISN
+};
+
 
 #endif

@@ -143,8 +143,7 @@ void tcpip::close_file()
 	close(fd);
 	fd = -1;
     }
-    demux.openflows.erase(this);           // we are no longer open
-
+    demux.open_flows.erase(this);           // we are no longer open
 }
 
 /*
@@ -155,23 +154,22 @@ void tcpip::close_file()
 
 int tcpip::open_file()
 {
-    /* This shouldn't be called if the file is already open */
-    assert(fd < 0);
-
-    /* Now try and open the file */
-    DEBUG(5) ("%s: %sopening output file", file_created ? "re-" : "", flow_pathname.c_str());
-    fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
-
-    /* If the file isn't open at this point, there's a problem */
-    if (fd < 0 ) {
-	/* we had some problem opening the file -- set FINISHED so we
-	 * don't keep trying over and over again to reopen it
-	 */
-	perror(flow_pathname.c_str());
-	return -1;
+    if(fd<0){
+        /* Now try and open the file */
+        DEBUG(5) ("%s: %sopening output file", file_created ? "re-" : "", flow_pathname.c_str());
+        fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
+        
+        /* If the file isn't open at this point, there's a problem */
+        if (fd < 0 ) {
+            /* we had some problem opening the file -- set FINISHED so we
+             * don't keep trying over and over again to reopen it
+             */
+            perror(flow_pathname.c_str());
+            return -1;
+        }
+        file_created = true;		// remember we made it
+        demux.open_flows.insert(this);
     }
-    file_created = true;		// remember we made it
-    demux.openflows.insert(this);
     return 0;
 }
 

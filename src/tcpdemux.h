@@ -28,75 +28,76 @@
  */
 class tcpdemux {
 private:
-    unsigned int get_max_fds(void);		// returns the max
+    unsigned int get_max_fds(void);             // returns the max
     class not_impl: public std::exception {
-	virtual const char *what() const throw() {
-	    return "copying tcpdemux objects is not implemented.";
-	}
+        virtual const char *what() const throw() {
+            return "copying tcpdemux objects is not implemented.";
+        }
     };
     tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),
-        max_fds(),flow_map(),openflows(),saved_flow_map(),saved_flows(),start_new_connections(),opt(),fs(){
-	throw new not_impl();
+        max_fds(),flow_map(),open_flows(),saved_flow_map(),saved_flows(),start_new_connections(),opt(),fs(){
+        throw new not_impl();
     }
     tcpdemux &operator=(const tcpdemux &that){
-	throw new not_impl();
+        throw new not_impl();
     }
 
     /* see http://mikecvet.wordpress.com/tag/hashing/ */
     typedef struct {
-	long operator() (const flow_addr &k) const {return k.hash(); }
+        long operator() (const flow_addr &k) const {return k.hash(); }
     } flow_addr_hash;
 
     typedef struct {
-	bool operator() (const flow_addr &x, const flow_addr &y) const { return x==y;}
+        bool operator() (const flow_addr &x, const flow_addr &y) const { return x==y;}
     } flow_addr_key_eq;
 
     typedef std::tr1::unordered_set<class tcpip *> tcpset;
-    typedef std::tr1::unordered_set<class saved_flow *> saved_flowset;
+    typedef std::vector<class saved_flow *> saved_flows_t; // needs to be ordered
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
-    typedef std::tr1::unordered_map<flow_addr,saved_flow,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
+    typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
     tcpdemux();
 public:
     /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
     class options {
     public:;
-	enum { MAX_SEEK=1024*1024*16 };
-	options():console_output(false),store_output(true),opt_md5(false),
-		  post_processing(false),opt_gzip_decompress(true),
-		  max_bytes_per_flow(),
-		  max_desired_fds(),max_flows(0),suppress_header(0),
-		  strip_nonprint(),use_color(0),max_seek(MAX_SEEK){
-	}
-	bool	console_output;
-	bool	store_output;	// do we output?
-	bool	opt_md5;		// do we calculate MD5 on DFXML output?
-	bool	post_processing;	// decode headers after tcp connection closes
-	bool	opt_gzip_decompress;
-	uint64_t max_bytes_per_flow;
-	uint32_t max_desired_fds;
-	uint32_t max_flows;
-	bool	suppress_header;
-	bool	strip_nonprint;
-	bool	use_color;
-	int32_t max_seek;		// signed becuase we compare with abs()
+        enum { MAX_SEEK=1024*1024*16 };
+        options():console_output(false),store_output(true),opt_md5(false),
+                  post_processing(false),opt_gzip_decompress(true),
+                  max_bytes_per_flow(),
+                  max_desired_fds(),max_flows(0),suppress_header(0),
+                  strip_nonprint(),use_color(0),max_seek(MAX_SEEK){
+        }
+        bool    console_output;
+        bool    store_output;   // do we output?
+        bool    opt_md5;                // do we calculate MD5 on DFXML output?
+        bool    post_processing;        // decode headers after tcp connection closes
+        bool    opt_gzip_decompress;
+        uint64_t max_bytes_per_flow;
+        uint32_t max_desired_fds;
+        uint32_t max_flows;
+        bool    suppress_header;
+        bool    strip_nonprint;
+        bool    use_color;
+        int32_t max_seek;               // signed becuase we compare with abs()
     };
 
-    std::string outdir;			/* output directory */
-    uint64_t	flow_counter;		// how many flows have we seen?
-    uint64_t	packet_counter;		// monotomically increasing 
-    xml		*xreport;		// DFXML output file
-    unsigned int max_fds;		// maximum number of file descriptors for this tcpdemux
+    std::string outdir;                 /* output directory */
+    uint64_t    flow_counter;           // how many flows have we seen?
+    uint64_t    packet_counter;         // monotomically increasing 
+    xml         *xreport;               // DFXML output file
+    unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux
 
-    flow_map_t	flow_map;		// db of open tcpip objects, indexed by flow
-    tcpset	openflows;		// the tcpip flows with open files
+    flow_map_t  flow_map;               // db of open tcpip objects, indexed by flow
+    tcpset      open_flows;              // the tcpip flows with open files
 
     saved_flow_map_t saved_flow_map;  // db of saved flows, indexed by flow
-    saved_flowset    saved_flows;     // the flows that were saved
-    bool	start_new_connections;	// true if we should start new connections
-    options	opt;
+    saved_flows_t    saved_flows;     // the flows that were saved
+    bool             start_new_connections;  // true if we should start new connections
+
+    options     opt;
     class       feature_recorder_set *fs; // where features extracted from each flow should be stored
     
-    static int        max_saved_flows;       // how many saved flows are kept in the saved_flow_map
+    static uint32_t      max_saved_flows;       // how many saved flows are kept in the saved_flow_map
     static tcpdemux *getInstance();
 
     void post_process(tcpip *tcp);      // just before closing; writes XML and closes fd
@@ -121,6 +122,7 @@ public:
      * new flows.
      */
     void  save_flow(tcpip *);
+    void  saved_flow_remove_oldest_if_necessary();
 
     /* packet processing */
     void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
