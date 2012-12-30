@@ -262,6 +262,7 @@ extern int debug;
 /************************* Function prototypes ****************************/
 
 /* datalink.cpp - callback for libpcap */
+extern int32_t datalink_tdelta;                                   // time delta to add to each packet
 pcap_handler find_handler(int datalink_type, const char *device); // callback for pcap
 
 /* tcpflow.cpp - CLI */
@@ -275,6 +276,8 @@ extern sem_t *semlock;
 
 /* util.c - utility functions */
 extern int debug;
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
+std::vector<std::string> split(const std::string &s, char delim);
 
 #define DEBUG_PEDANTIC    0x0001       // check values more rigorously
 void init_debug(char *argv[]);

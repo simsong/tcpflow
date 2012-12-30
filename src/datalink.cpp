@@ -1,47 +1,19 @@
-/*
- * This file is part of tcpflow by Jeremy Elson <jelson@circlemud.org>
+/**
+ * 
+ * This file is part of tcpflow. Originally by Jeremy Elson
+ * <jelson@circlemud.org>, rewritten by Simson Garfinkel.
+ *
  * Initial Release: 7 April 1999.
  *
  * This source code is under the GNU Public License (GPL).  See
  * LICENSE for details.
  *
- * $Id: datalink.c,v 1.8 2002/03/29 23:18:51 jelson Exp $
- *
- * $Log: datalink.c,v $
- * Revision 1.8  2002/03/29 23:18:51  jelson
- * oops... fixed typo
- *
- * Revision 1.7  2002/03/29 22:31:16  jelson
- * Added support for ISDN (/dev/ippp0), datalink handler for
- * DLT_LINUX_SLL.  Contributed by Detlef Conradin <dconradin at gmx.net>
- *
- * Revision 1.6  1999/04/21 01:40:13  jelson
- * DLT_NULL fixes, u_char fixes, additions to configure.in, man page update
- *
- * Revision 1.5  1999/04/20 19:39:18  jelson
- * changes to fix broken localhost (DLT_NULL) handling
- *
- * Revision 1.4  1999/04/13 23:17:55  jelson
- * More portability fixes.  All system header files now conditionally
- * included from sysdep.h.
- *
- * Integrated patch from Johnny Tevessen <j.tevessen@gmx.net> for Linux
- * systems still using libc5.
- *
- * Revision 1.3  1999/04/13 01:38:10  jelson
- * Added portability features with 'automake' and 'autoconf'.  Added AUTHORS,
- * NEWS, README, etc files (currently empty) to conform to GNU standards.
- *
- * Various portability fixes, including the FGETPOS/FSETPOS macros; detection
- * of header files using autoconf; restructuring of debugging code to not
- * need vsnprintf.
- *
+ * This file contains datalink handlers which are called by the pcap callback.
+ * The purpose of each handler is to make a packet_info() object and then call
+ * process_packet_info.
  */
 
 #include "tcpflow.h"
-
-static const int32_t NO_VLAN=-1;			/* vlan flag for no vlan */
-
 
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
  * order 32 bit integer that specifies the family, e.g. AF_INET.
@@ -53,6 +25,17 @@ static const int32_t NO_VLAN=-1;			/* vlan flag for no vlan */
 #ifndef ETHERTYPE_IPV6
 # define ETHERTYPE_IPV6 0x86DD
 #endif
+
+int32_t datalink_tdelta = 0;
+
+inline timeval tvshift(const struct timeval &tv_)
+{
+    struct timeval tv;
+    tv.tv_sec  = tv_.tv_sec + datalink_tdelta;
+    tv.tv_usec = tv_.tv_usec;
+    return tv;
+}
+
 
 #pragma GCC diagnostic ignored "-Wcast-align"
 void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
@@ -84,7 +67,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 #endif
 
-    packet_info pi(h->ts,p+NULL_HDRLEN,caplen - NULL_HDRLEN,NO_VLAN,family);
+    packet_info pi(tvshift(h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN,packet_info::NO_VLAN,family);
     process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -102,7 +85,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     struct ether_header *eth_header = (struct ether_header *) p;
 
     /* Variables to support VLAN */
-    int32_t vlan = NO_VLAN;			       /* default is no vlan */
+    int32_t vlan = packet_info::NO_VLAN;			       /* default is no vlan */
     const u_short *ether_type = &eth_header->ether_type; /* where the ether type is located */
     const u_char *ether_data = p+sizeof(struct ether_header); /* where the data is located */
 
@@ -143,7 +126,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
 	break;
     }
-    packet_info pi(h->ts,ether_data, caplen - sizeof(struct ether_header),vlan,ntohs(*ether_type));
+    packet_info pi(tvshift(h->ts),ether_data, caplen - sizeof(struct ether_header),vlan,ntohs(*ether_type));
     process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -168,7 +151,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    packet_info pi(h->ts,p + PPP_HDRLEN, caplen - PPP_HDRLEN,NO_VLAN);
+    packet_info pi(tvshift(h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN,packet_info::NO_VLAN);
     process_packet_info(pi);
 }
 
@@ -185,8 +168,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	DEBUG(6) ("warning: only captured %d bytes of %d byte raw frame",
 		  caplen, length);
     }
-    //process_packet_info(h->ts,p, caplen,flow::NO_VLAN);
-    packet_info pi(h->ts,p, caplen,NO_VLAN);
+    packet_info pi(tvshift(h->ts),p, caplen,packet_info::NO_VLAN);
     process_packet_info(pi);
 }
 
@@ -206,8 +188,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
 	return;
     }
   
-    //process_packet_info(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,flow::NO_VLAN);
-    packet_info pi(h->ts,p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,NO_VLAN);
+    packet_info pi(tvshift(h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,packet_info::NO_VLAN);
     process_packet_info(pi);
 }
 

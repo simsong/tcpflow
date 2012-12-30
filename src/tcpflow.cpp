@@ -16,6 +16,19 @@
 #include <string>
 #include <vector>
 
+be_config_t be_config; // system configuration
+
+typedef struct {
+    const char *name;
+    const char *dvalue;
+    const char *help;
+} default_t;
+
+default_t defaults[] = {
+    {"tdelta","0","Time delta in seconds"},
+    {0,0,0}
+};
+
 #ifdef HAVE_NETINET_IP_H
 #include <netinet/ip.h>
 #endif
@@ -70,6 +83,7 @@ static void usage()
         std::cout << "   -r: read packets from tcpdump pcap file (may be repeated)\n";
         std::cout << "   -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
         std::cout << "   -s: strip non-printable characters (change to '.')\n";
+        std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
         std::cout << "   -v: verbose operation equivalent to -d 10\n";
         std::cout << "   -V: print version number and exit\n";
         std::cout << "   -o  outdir   : specify output directory (default '.')\n";
@@ -92,6 +106,13 @@ static void usage()
         std::cout << "\nSee the man page for additional information.\n\n";
         break;
     case 2:
+        std::cout << "-S name=value options:\n";
+        for(int i=0;defaults[i].name;i++){
+            std::stringstream ss;
+            ss << defaults[i].name << "=" << defaults[i].dvalue;
+            printf("   %-20s %s\n",ss.str().c_str(),defaults[i].help);
+        }
+        std::cout << "\n";
         std::cout << "DEBUG Levels (specify with -dNN):\n";
         break;
     }
@@ -268,7 +289,7 @@ int main(int argc, char *argv[])
     }
 
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:pR:r:sT:Vvx:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:pR:r:S:sT:Vvx:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -344,6 +365,17 @@ int main(int argc, char *argv[])
 	case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
 	case 'R': Rfiles.push_back(optarg); break;
 	case 'r': rfiles.push_back(optarg); break;
+        case 'S':
+	    {
+		std::vector<std::string> params = split(optarg,'=');
+		if(params.size()!=2){
+		    std::cerr << "Invalid paramter: " << optarg << "\n";
+		    exit(1);
+		}
+		be_config[params[0]] = params[1];
+		continue;
+	    }
+
 	case 's': demux.opt.strip_nonprint = 1;
 	    DEBUG(10) ("converting non-printable characters to '.'"); break;
 	case 'T': flow::filename_template = optarg;break;
@@ -441,6 +473,9 @@ int main(int argc, char *argv[])
     feature_recorder_set fs(feature_file_names,image_fname,demux.outdir,false);
     the_fs   = &fs;
     demux.fs = &fs;
+
+    datalink_tdelta = atoi(be_config["tdelta"].c_str()); // specify the time delta
+    if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
