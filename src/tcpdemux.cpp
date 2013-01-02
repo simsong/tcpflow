@@ -134,7 +134,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,c
 void tcpdemux::post_process(tcpip *tcp)
 {
     std::stringstream xmladd;		// for this <fileobject>
-    if(opt.post_processing && tcp->file_created){
+    if(opt.post_processing && tcp->file_created && tcp->last_byte>0){
         /** 
          * After the flow is finished, put it in an SBUF and process it.
          * if we are doing post-processing.
@@ -402,7 +402,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
      */
     if(syn_set){
 	if(tcp->syn_count>1){
-	    DEBUG(1)("Multiple SYNs (%d) seen on a single connection.",tcp->syn_count);
+	    DEBUG(2)("Multiple SYNs (%d) seen on connection %s",tcp->syn_count,tcp->flow_pathname.c_str());
 	}
 	tcp->syn_count++;
 	if( !ack_set ){

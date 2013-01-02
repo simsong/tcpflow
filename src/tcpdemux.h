@@ -97,7 +97,7 @@ public:
     options     opt;
     class       feature_recorder_set *fs; // where features extracted from each flow should be stored
     
-    static uint32_t      max_saved_flows;       // how many saved flows are kept in the saved_flow_map
+    static uint32_t max_saved_flows;       // how many saved flows are kept in the saved_flow_map
     static tcpdemux *getInstance();
 
     void post_process(tcpip *tcp);      // just before closing; writes XML and closes fd

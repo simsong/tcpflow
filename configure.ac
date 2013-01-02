@@ -124,7 +124,7 @@ done
 unset option
 
 
-# Check G++
+# C++
 # We don't use these warnings:
 # -Waggregate-return -- aggregate returns are GOOD; they simplify code design
 # We can use these warnings after ZLIB gets upgraded:
@@ -226,7 +226,14 @@ AC_CHECK_LIB([pthreadGC2],[pthread_create])
 
 ################################################################
 # boost interval set
-AC_CHECK_HEADERS([boost/icl/interval.hpp boost/icl/interval_set.hpp])
+AC_LANG_PUSH(C++)
+  have_interval=yes
+  AC_CHECK_HEADERS([boost/icl/interval.hpp boost/icl/interval_map.hpp boost/icl/interval_set.hpp],,have_interval=no)
+  if test "${have_interval}" != yes ; then
+    AC_MSG_ERROR([tcpflow now requires boost interval_map and interval_set. 
+    Please install boost.])
+  fi
+AC_LANG_POP()    
 
 ################################################################
 # drawing support via cairo

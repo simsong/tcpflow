@@ -30,7 +30,6 @@ void th_shutdown(const class scanner_params &sp)
 extern "C"
 void  scan_netviz(const class scanner_params &sp,const recursion_control_block &rcb)
 {
-
     if(sp.sp_version!=scanner_params::CURRENT_SP_VERSION){
 	std::cerr << "scan_timehistogram requires sp version " << scanner_params::CURRENT_SP_VERSION << "; "
 		  << "got version " << sp.sp_version << "\n";
@@ -54,5 +53,4 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
     if(sp.phase==scanner_params::shutdown){
 	th_shutdown(sp);
     }
-
 }

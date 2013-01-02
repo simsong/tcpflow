@@ -42,6 +42,8 @@ int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
 sem_t *semlock = 0;
 #endif
 
+#define DEFAULT_REPORT_FILENAME "report.xml"
+
 /****************************************************************
  *** SCANNER PLUG-IN SYSTEM 
  ****************************************************************/
@@ -412,8 +414,9 @@ int main(int argc, char *argv[])
     load_scanners(scanners_builtin);
     scanners_process_commands();
 
+    /* If we were asked to do everything and there is no report filename, call it report.xml in the output directory */
     if( opt_all && (reportfilename.size()==0) ){
-	reportfilename = demux.outdir + "/report.xml";
+	reportfilename = demux.outdir + "/" + DEFAULT_REPORT_FILENAME;
     }
 
     /* print help and exit if there was an error in the arguments */
