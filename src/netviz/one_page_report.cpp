@@ -20,10 +20,15 @@
 // string constants
 const std::string one_page_report::title_version = PACKAGE " " VERSION;
 const std::vector<std::string> one_page_report::size_suffixes =
-        build_size_suffixes();
+        one_page_report::build_size_suffixes();
 // ratio constants
 const double one_page_report::page_margin_factor = 0.05;
 const double one_page_report::line_space_factor = 0.25;
+const double one_page_report::histogram_pad_factor_y = 1.2;
+const double one_page_report::address_histogram_width_divisor = 2.5;
+// size constants
+const double one_page_report::bandwidth_histogram_height = 100.0;
+const double one_page_report::address_histogram_height = 150.0;
 
 const one_page_report::config_t one_page_report::default_config = {
     /* filename */ "one_page_report.pdf",
@@ -33,7 +38,11 @@ const one_page_report::config_t one_page_report::default_config = {
 
 one_page_report::one_page_report(const config_t &conf_) : 
     conf(conf_), packet_count(0), byte_count(0), earliest(), latest(),
-    transport_counts(), bandwidth_histogram(time_histogram::default_config)
+    transport_counts(), bandwidth_histogram(time_histogram::default_config),
+    src_addr_histogram(address_histogram::default_config),
+    dst_addr_histogram(address_histogram::default_config),
+    src_port_histogram(port_histogram::default_config),
+    dst_port_histogram(port_histogram::default_config)
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
@@ -60,6 +69,8 @@ void one_page_report::ingest_packet(const packet_info &pi)
     transport_counts[pi.family]++;
 
     bandwidth_histogram.ingest_packet(pi);
+    src_addr_histogram.ingest_packet(pi);
+    dst_addr_histogram.ingest_packet(pi);
 }
 
 void one_page_report::render(const std::string &outdir)
@@ -80,10 +91,13 @@ void one_page_report::render(const std::string &outdir)
             conf.bounds.height - pad_size * 2);
     cairo_translate(cr, pad_bounds.x, pad_bounds.y);
 
-    double end_of_content = 0.0; // x value of the lowest point rendered so far
+    render_pass pass(*this, cr, pad_bounds);
 
-    end_of_content = render_header(cr, end_of_content, pad_bounds);
-    end_of_content = render_bandwidth_histogram(cr, end_of_content, pad_bounds);
+    pass.render_header();
+    pass.render_bandwidth_histogram();
+    pass.render_map();
+    pass.render_address_histograms();
+    pass.render_port_histograms();
 
     // cleanup
     cairo_destroy (cr);
@@ -91,26 +105,26 @@ void one_page_report::render(const std::string &outdir)
 #endif
 }
 
-double one_page_report::render_header(cairo_t *cr, double end_of_content,
-        const plot::bounds_t &bounds)
+void one_page_report::render_pass::render_header()
 {
+#ifdef CAIRO_PDF_AVAILABLE
     std::stringstream formatted;
     // title
-    double title_line_space = conf.header_font_size * line_space_factor;
+    double title_line_space = report.conf.header_font_size * line_space_factor;
     //// version
-    end_of_content = render_text_line(cr, title_version, conf.header_font_size,
-            title_line_space, end_of_content, bounds);
+    render_text_line(title_version, report.conf.header_font_size,
+            title_line_space);
     //// input
     formatted.str(std::string());
     formatted << "Input: " << "some_such.pcap";
-    end_of_content = render_text_line(cr, formatted.str(),
-            conf.header_font_size, title_line_space, end_of_content, bounds);
+    render_text_line(formatted.str(), report.conf.header_font_size,
+            title_line_space);
     //// trailing pad
     end_of_content += title_line_space * 4;
     // quick stats
     //// date range
-    struct tm start = *localtime(&earliest.tv_sec);
-    struct tm stop = *localtime(&latest.tv_sec);
+    struct tm start = *localtime(&report.earliest.tv_sec);
+    struct tm stop = *localtime(&report.latest.tv_sec);
     formatted.str(std::string());
     formatted << "Date range: " <<
         std::setfill('0') << setw(4) << (1900 + start.tm_year) << "-" <<
@@ -126,85 +140,118 @@ double one_page_report::render_header(cairo_t *cr, double end_of_content,
         std::setw(2) << stop.tm_hour << ":" <<
         std::setw(2) << stop.tm_min << ":" <<
         std::setw(2) << stop.tm_sec;
-    end_of_content = render_text_line(cr, formatted.str(),
-            conf.header_font_size, title_line_space, end_of_content, bounds);
+    render_text_line(formatted.str(), report.conf.header_font_size,
+            title_line_space);
     //// packet count/size
-    uint64_t size_log_1000 = (uint64_t) (log(byte_count) / log(1000));
+    uint64_t size_log_1000 = (uint64_t) (log(report.byte_count) / log(1000));
     if(size_log_1000 >= size_suffixes.size()) {
         size_log_1000 = 0;
     }
     formatted.str(std::string());
-    formatted << "Packets analyzed: " << packet_count << " (" <<
+    formatted << "Packets analyzed: " << report.packet_count << " (" <<
         std::setprecision(2) << std::fixed <<
-        ((double) byte_count) / pow(1000.0, (double) size_log_1000) <<
+        ((double) report.byte_count) / pow(1000.0, (double) size_log_1000) <<
         " " << size_suffixes.at(size_log_1000) << ")";
-    end_of_content = render_text_line(cr, formatted.str(),
-            conf.header_font_size, title_line_space, end_of_content, bounds);
+    render_text_line(formatted.str(), report.conf.header_font_size,
+            title_line_space);
     //// protocol breakdown
     uint64_t transport_total = 0;
-    for(std::map<uint32_t, uint64_t>::iterator ii = transport_counts.begin();
-            ii != transport_counts.end(); ii++) {
+    for(std::map<uint32_t, uint64_t>::const_iterator ii =
+                report.transport_counts.begin();
+            ii != report.transport_counts.end(); ii++) {
         transport_total += ii->second;
     }
     formatted.str(std::string());
     formatted << "Transports: " << "IPv4 " <<
         std::setprecision(2) << std::fixed <<
-        ((double) transport_counts[ETHERTYPE_IP] /
+        ((double) report.transport_counts[ETHERTYPE_IP] /
          (double) transport_total) * 100.0 <<
         "% " <<
         "IPv6 " <<
         std::setprecision(2) << std::fixed <<
-        ((double) transport_counts[ETHERTYPE_IPV6] /
+        ((double) report.transport_counts[ETHERTYPE_IPV6] /
          (double) transport_total) * 100.0 <<
         "% " <<
         "ARP " <<
         std::setprecision(2) << std::fixed <<
-        ((double) transport_counts[ETHERTYPE_ARP] /
+        ((double) report.transport_counts[ETHERTYPE_ARP] /
          (double) transport_total) * 100.0 <<
         "% " <<
         "Other " <<
         std::setprecision(2) << std::fixed <<
-        (1.0 - ((double) (transport_counts[ETHERTYPE_IP] +
-            transport_counts[ETHERTYPE_IPV6] +
-            transport_counts[ETHERTYPE_ARP]) /
+        (1.0 - ((double) (report.transport_counts[ETHERTYPE_IP] +
+            report.transport_counts[ETHERTYPE_IPV6] +
+            report.transport_counts[ETHERTYPE_ARP]) /
          (double) transport_total)) * 100.0 <<
         "% ";
-    end_of_content = render_text_line(cr, formatted.str(),
-            conf.header_font_size, title_line_space, end_of_content, bounds);
+    render_text_line(formatted.str(), report.conf.header_font_size,
+            title_line_space);
     // trailing pad for entire header
     end_of_content += title_line_space * 8;
-
-    return end_of_content;
-}
-
-double one_page_report::render_text_line(cairo_t *cr, std::string text,
-        double font_size, double line_space, double end_of_content,
-        const plot::bounds_t &parent_bounds)
-{
-#ifdef CAIRO_PDF_AVAILABLE
-    cairo_set_font_size(cr, font_size);
-    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-    cairo_text_extents_t extents;
-    cairo_text_extents(cr, text.c_str(), &extents);
-    cairo_move_to(cr, 0.0, end_of_content + extents.height);
-    cairo_show_text(cr, text.c_str());
-    return end_of_content + extents.height + line_space;
-#else
-    return end_of_content;
 #endif
 }
 
-double one_page_report::render_bandwidth_histogram(cairo_t *cr,
-        double end_of_content, const plot::bounds_t &parent_bounds)
+void one_page_report::render_pass::render_text_line(std::string text,
+        double font_size, double line_space)
 {
 #ifdef CAIRO_PDF_AVAILABLE
-    plot::bounds_t bounds(0.0, end_of_content, parent_bounds.width, 100.0);
+    cairo_set_font_size(surface, font_size);
+    cairo_set_source_rgb(surface, 0.0, 0.0, 0.0);
+    cairo_text_extents_t extents;
+    cairo_text_extents(surface, text.c_str(), &extents);
+    cairo_move_to(surface, 0.0, end_of_content + extents.height);
+    cairo_show_text(surface, text.c_str());
+    end_of_content += extents.height + line_space;
+#endif
+}
 
-    bandwidth_histogram.render(cr, bounds);
+void one_page_report::render_pass::render_bandwidth_histogram()
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    plot::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
+            bandwidth_histogram_height);
 
-    return end_of_content + bounds.height;
-#else
-    return end_of_content;
+    report.bandwidth_histogram.render(surface, bounds);
+
+    end_of_content += bounds.height * histogram_pad_factor_y;
+#endif
+}
+
+void one_page_report::render_pass::render_map()
+{
+#ifdef CAIRO_PDF_AVAILABLE
+#endif
+}
+
+void one_page_report::render_pass::render_address_histograms()
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    double width = surface_bounds.width / address_histogram_width_divisor;
+
+    plot::bounds_t bounds(0.0, end_of_content, width, address_histogram_height);
+    report.src_addr_histogram.render(surface, bounds);
+
+    bounds = plot::bounds_t(surface_bounds.width - width, end_of_content,
+            width, address_histogram_height);
+    report.dst_addr_histogram.render(surface, bounds);
+
+    end_of_content += bounds.height * histogram_pad_factor_y;
+#endif
+}
+
+void one_page_report::render_pass::render_port_histograms()
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    double width = surface_bounds.width / address_histogram_width_divisor;
+
+    plot::bounds_t bounds(0.0, end_of_content, width, address_histogram_height);
+    report.src_port_histogram.render(surface, bounds);
+
+    bounds = plot::bounds_t(surface_bounds.width - width, end_of_content,
+            width, address_histogram_height);
+    report.dst_port_histogram.render(surface, bounds);
+
+    end_of_content += bounds.height * histogram_pad_factor_y;
 #endif
 }
 
