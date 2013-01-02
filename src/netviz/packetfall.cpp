@@ -1,5 +1,5 @@
 /**
- * port_histogram.cpp: 
+ * packetfall.cpp: 
  * Show packets received vs port
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -11,20 +11,17 @@
 #include "config.h"
 #include "tcpflow.h"
 
-#include "port_histogram.h"
+#include "packetfall.h"
 
-const port_histogram::config_t port_histogram::default_config = {
+const packetfall::config_t packetfall::default_config = {
     /* graph */ plot::default_config,
-    /* relationship */ port_histogram::SND_OR_RCV,
-    /* bar_space_factor */ 1.2,
-    /* max_bars */ 10
 };
 
-void port_histogram::ingest_packet(const packet_info &pi)
+void packetfall::ingest_packet(const packet_info &pi)
 {
 }
 
-void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
+void packetfall::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
 #ifdef CAIRO_PDF_AVAILABLE
     plot::ticks_t ticks;

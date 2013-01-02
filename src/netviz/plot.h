@@ -52,6 +52,8 @@ public:
         double subtitle_y_pad_factor;
         // multiple of the title font size for the subtitle font size
         double subtitle_font_size_factor;
+        // axis scale
+        double axis_thickness_factor;
         // size of scale ticks, in pt
         double tick_length_factor;
         double tick_width_factor;

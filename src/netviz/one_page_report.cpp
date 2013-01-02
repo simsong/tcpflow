@@ -12,6 +12,7 @@
 #include "tcpflow.h"
 #include "render.h"
 
+#include <ctime>
 #include <iomanip>
 #include <math.h>
 
@@ -37,12 +38,14 @@ const one_page_report::config_t one_page_report::default_config = {
 };
 
 one_page_report::one_page_report(const config_t &conf_) : 
+    source_identifier(),
     conf(conf_), packet_count(0), byte_count(0), earliest(), latest(),
     transport_counts(), bandwidth_histogram(time_histogram::default_config),
     src_addr_histogram(address_histogram::default_config),
     dst_addr_histogram(address_histogram::default_config),
     src_port_histogram(port_histogram::default_config),
-    dst_port_histogram(port_histogram::default_config)
+    dst_port_histogram(port_histogram::default_config),
+    pfall(packetfall::default_config)
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
@@ -71,6 +74,9 @@ void one_page_report::ingest_packet(const packet_info &pi)
     bandwidth_histogram.ingest_packet(pi);
     src_addr_histogram.ingest_packet(pi);
     dst_addr_histogram.ingest_packet(pi);
+    src_port_histogram.ingest_packet(pi);
+    dst_port_histogram.ingest_packet(pi);
+    pfall.ingest_packet(pi);
 }
 
 void one_page_report::render(const std::string &outdir)
@@ -96,6 +102,7 @@ void one_page_report::render(const std::string &outdir)
     pass.render_header();
     pass.render_bandwidth_histogram();
     pass.render_map();
+    pass.render_packetfall();
     pass.render_address_histograms();
     pass.render_port_histograms();
 
@@ -116,7 +123,20 @@ void one_page_report::render_pass::render_header()
             title_line_space);
     //// input
     formatted.str(std::string());
-    formatted << "Input: " << "some_such.pcap";
+    formatted << "Input: " << report.source_identifier;
+    render_text_line(formatted.str(), report.conf.header_font_size,
+            title_line_space);
+    //// date generated
+    time_t gen_unix = time(0);
+    struct tm gen_time = *localtime(&gen_unix);
+    formatted.str(std::string());
+    formatted << "Generated: " << 
+        std::setfill('0') << setw(4) << (1900 + gen_time.tm_year) << "-" <<
+        std::setw(2) << (1 + gen_time.tm_mon) << "-" <<
+        std::setw(2) << gen_time.tm_mday << "T" <<
+        std::setw(2) << gen_time.tm_hour << ":" <<
+        std::setw(2) << gen_time.tm_min << ":" <<
+        std::setw(2) << gen_time.tm_sec;
     render_text_line(formatted.str(), report.conf.header_font_size,
             title_line_space);
     //// trailing pad
@@ -217,6 +237,18 @@ void one_page_report::render_pass::render_bandwidth_histogram()
 #endif
 }
 
+void one_page_report::render_pass::render_packetfall()
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    plot::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
+            bandwidth_histogram_height);
+
+    report.pfall.render(surface, bounds);
+
+    end_of_content += bounds.height * histogram_pad_factor_y;
+#endif
+}
+
 void one_page_report::render_pass::render_map()
 {
 #ifdef CAIRO_PDF_AVAILABLE
@@ -259,11 +291,11 @@ std::vector<std::string> one_page_report::build_size_suffixes()
 {
     std::vector<std::string> v;
     v.push_back("B");
-    v.push_back("KiB");
-    v.push_back("MiB");
-    v.push_back("GiB");
-    v.push_back("TiB");
-    v.push_back("PiB");
-    v.push_back("EiB");
+    v.push_back("KB");
+    v.push_back("MB");
+    v.push_back("GB");
+    v.push_back("TB");
+    v.push_back("PB");
+    v.push_back("EB");
     return v;
 }

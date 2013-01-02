@@ -23,6 +23,7 @@ void th_process_packet(void *user,const packet_info &pi)
 
 void th_shutdown(const class scanner_params &sp)
 {
+    th_one_page.source_identifier = sp.fs.input_fname;
     th_one_page.render(sp.fs.outdir);
 }
 

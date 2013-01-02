@@ -5,6 +5,7 @@
 #include "time_histogram.h"
 #include "address_histogram.h"
 #include "port_histogram.h"
+#include "packetfall.h"
 #include "render.h"
 
 class one_page_report {
@@ -16,6 +17,8 @@ public:
         plot::bounds_t bounds;
         double header_font_size;
     };
+
+    std::string source_identifier;
 
     // a single render event: content moves down a bounded cairo surface as
     // indicated by end_of_content between render method invocations
@@ -34,6 +37,7 @@ public:
         void render_address_histograms();
         void render_port_histograms();
         void render_map();
+        void render_packetfall();
 
         one_page_report &report;
         cairo_t *surface;
@@ -74,6 +78,7 @@ private:
     address_histogram dst_addr_histogram;
     port_histogram src_port_histogram;
     port_histogram dst_port_histogram;
+    packetfall pfall;
 
     static std::vector<std::string> build_size_suffixes();
 };

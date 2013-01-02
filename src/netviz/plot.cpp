@@ -24,6 +24,7 @@ const plot::config_t plot::default_config = {
     /* title_y_pad_factor */ 2.0,
     /* subtitle_y_pad_factor */ 0.2,
     /* subtitle_font_size_factor */ 0.4,
+    /* axis_thickness_factor */ 0.002,
     /* tick_length_factor */ 0.0124,
     /* tick_width_factor */ 0.002,
     /* x_tick_count */ 5,
@@ -213,11 +214,25 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     cairo_set_source_rgb(cr, 0, 0, 0);
     cairo_set_matrix(cr, &original_matrix);
 
-    // inform the calling class what bounds they should be rendering in
+    // compute bounds for calling class to render content into
     content_bounds.x = bounds.x + left_padding;
     content_bounds.y = bounds.y + titles_padded_height;
     content_bounds.width = bounds.width - pad_right - left_padding;
     content_bounds.height = bounds.height - pad_bottom - titles_padded_height;
+
+    // render axes and update content bounds
+    double axis_width = bounds.height * conf.axis_thickness_factor;
+
+    cairo_rectangle(cr, content_bounds.x, content_bounds.y, axis_width,
+            content_bounds.height);
+    cairo_rectangle(cr, content_bounds.x,
+            content_bounds.y + (content_bounds.height - axis_width),
+            content_bounds.width, axis_width);
+    cairo_fill(cr);
+
+    content_bounds.x += axis_width;
+    content_bounds.width -= axis_width;
+    content_bounds.height -= axis_width;
 #endif
 }
 
