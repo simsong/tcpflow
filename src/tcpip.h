@@ -220,8 +220,8 @@ public:;
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
     uint64_t packet_count;			// packet count
-    std::string filename_for_connection_count(uint32_t connection_count);		// returns a new filename for a flow based on the temlate
-    std::string new_filename();		// returns a new filename for a flow based on the temlate
+    std::string filename(uint32_t connection_count); // returns a new filename for a flow based on the template
+    std::string new_filename();	// returns a new filename for a flow based on the temlate, opening if fd is provided
 };
 
 /*
@@ -267,10 +267,14 @@ public:
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wall"
 #pragma GCC diagnostic ignored "-Wmissing-noreturn"
+
+#if defined(HAVE_BOOST_ICL_INTERVAL_HPP) && defined(HAVE_BOOST_ICL_INTERVAL_MAP_HPP) && defined(HAVE_BOOST_ICL_INTERVAL_SET_HPP)
 #include <boost/icl/interval.hpp>
 #include <boost/icl/interval_map.hpp>
 #include <boost/icl/interval_set.hpp>
 typedef boost::icl::interval_set<uint64_t> recon_set; // Boost interval set of bytes that were reconstructed.
+#endif
+
 #pragma GCC diagnostic warning "-Weffc++"
 #pragma GCC diagnostic warning "-Wshadow"
 #pragma GCC diagnostic warning "-Wall"
@@ -328,7 +332,7 @@ public:;
 
     /* Stats */
     recon_set   *seen;                  // what we've seen; it must be * due to boost lossage
-    uint64_t    last_byte;              // last byte processed
+    uint64_t    last_byte;              // last byte in flow processed
     uint64_t	last_packet_number;	// for finding most recent packet
     uint64_t	out_of_order_count;	// all packets were contigious
     uint64_t    violations;		// protocol violation count

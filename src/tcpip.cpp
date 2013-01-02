@@ -30,11 +30,6 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
     last_byte(),
     last_packet_number(),out_of_order_count(0),violations(0)
 {
-    /* If we are outputting the transcripts, compute the filename and open the file*/
-    if(demux.opt.store_output){
-        flow_pathname = myflow.new_filename();
-        open_file();
-    }
 }
 
 
@@ -147,7 +142,7 @@ void tcpip::close_file()
 }
 
 /*
- * Opens the file transcript file. 
+ * Opens the file transcript file (creating file if necessary).
  * Called by store_packet()
  * Does not change pos.
  */
@@ -155,8 +150,16 @@ void tcpip::close_file()
 int tcpip::open_file()
 {
     if(fd<0){
+
+        /* Get a filename if we don't have one */
+        if(flow_pathname.size()==0) {
+            flow_pathname = myflow.new_filename();
+        }
+
         /* Now try and open the file */
-        DEBUG(5) ("%s: %sopening output file", file_created ? "re-" : "", flow_pathname.c_str());
+        if(debug>=5){
+            DEBUG(5) ("%s: %sopening output file", file_created ? "re-" : "", flow_pathname.c_str());
+        }
         fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
         
         /* If the file isn't open at this point, there's a problem */

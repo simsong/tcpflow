@@ -39,7 +39,7 @@ void flow::usage()
     std::cout << "\n";
 }
 
-std::string flow::filename_for_connection_count(uint32_t connection_count)
+std::string flow::filename(uint32_t connection_count)
 {
     bool used_cc=false;
     std::stringstream ss;
@@ -132,13 +132,14 @@ std::string flow::filename_for_connection_count(uint32_t connection_count)
     return ss.str();
 }
 
+/** Note: This has a test-and-set security problem */
 
 std::string flow::new_filename()
 {
     /* Loop connection count until we find a file that doesn't exist */
     for(uint32_t connection_count=0;;connection_count++){
-        std::string filename = filename_for_connection_count(connection_count);
-        if(access(filename.c_str(),F_OK)!=0) return filename;
+        std::string nfn = filename(connection_count);
+        if(access(nfn.c_str(),F_OK)!=0) return nfn;
     }
     return std::string("<<CANNOT CREATE FILE>>");               // error; no file
 }

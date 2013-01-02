@@ -1,3 +1,9 @@
+2013-01-02  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/scan_http.cpp: zero-length attachments are no longer created on disk.
+
+	* src/tcpip.cpp (tcpip::store_packet): zero-length flows are no longer created on disk.
+
 2012-12-27  Simson Garfinkel  <simsong@Mucha.local>
 
 	* renamed stored_flow as saved_flow becuase they are all stored, but only some are saved in the ring bufer.

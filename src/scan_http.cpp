@@ -46,7 +46,7 @@ private:
     };
 
     scan_http_cbo(const scan_http_cbo& c) __attribute__ ((__noreturn__)):
-        path(c.path), base(c.base), xmlstream(c.xmlstream),request_no(c.request_no),
+    path(c.path), base(c.base), xmlstream(c.xmlstream),xml_fo(),request_no(c.request_no),
         headers(c.headers), last_on_header(c.last_on_header), header_value(c.header_value), header_field(c.header_field),
         output_path(c.output_path), fd(c.fd), first_body(c.first_body),bytes_written(c.bytes_written),unzip(c.unzip), 
         zs(), zinit(false), zfail(false) {throw new not_impl();};
@@ -58,7 +58,7 @@ public:
         on_message_complete();          // make sure message was ended
     }
     scan_http_cbo(const std::string& path_,const char *base_,std::stringstream *xmlstream_) :
-        path(path_), base(base_),xmlstream(xmlstream_),request_no(0),
+        path(path_), base(base_),xmlstream(xmlstream_),xml_fo(),request_no(0),
         headers(), last_on_header(NOTHING), header_value(), header_field(),
         output_path(), fd(-1), first_body(true),bytes_written(0),unzip(false),zs(),zinit(false),zfail(false){};
 private:        
@@ -66,6 +66,7 @@ private:
     const std::string path;             // where data gets written
     const char *base;                   // where data started in memory
     std::stringstream *xmlstream;       // if present, where to put the fileobject annotations
+    std::stringstream xml_fo;           // xml stream for this file object
     int request_no;                     // request number
         
     /* parsed headers */
@@ -253,9 +254,7 @@ int scan_http_cbo::on_body(const char *at,size_t length)
     if (length==0) return 0;               // nothing to write
 
     if(first_body){                      // stuff for first time on_body is called
-        if(xmlstream){
-            (*xmlstream) << "     <byte_run file_offset='" << (at-base) << "'><fileobject><filename>" << output_path << "</filename>";
-        }
+        xml_fo << "     <byte_run file_offset='" << (at-base) << "'><fileobject><filename>" << output_path << "</filename>";
         first_body = false;
     }
 
@@ -333,7 +332,7 @@ int scan_http_cbo::on_body(const char *at,size_t length)
         zs.avail_out = sizeof(decompressed);
     }
     return 0;
-    }
+}
 
 
 /**
@@ -343,21 +342,36 @@ int scan_http_cbo::on_body(const char *at,size_t length)
 
 int scan_http_cbo::on_message_complete()
 {
-    /* TODO: Update DFXML */
-    if(xmlstream && bytes_written>0) (*xmlstream) << "<filesize>" << bytes_written << "</filesize></fileobject></byte_run>\n";
-
     /* Close the file */
     headers.clear();
-    last_on_header = NOTHING;
     header_field = "";
     header_value = "";
-    output_path = "";
+    last_on_header = NOTHING;
     if(fd >= 0) {
         if (::close(fd) != 0) {
             perror("close() of http body");
         }
         fd = -1;
     }
+
+    /* Erase zero-length files and update the DFXML */
+    if(bytes_written>0){
+        /* Update DFXML */
+        if(xmlstream){
+            xml_fo << "<filesize>" << bytes_written << "</filesize></fileobject></byte_run>\n";
+            if(xmlstream) *xmlstream << xml_fo.str();
+        }
+    } else {
+        /* Nothing written; erase the file */
+        if(output_path.size() > 0){
+            std::cerr << "unlink " << output_path << "\n";
+            ::unlink(output_path.c_str());
+        }
+    }
+
+    /* Erase the state variables for this part */
+    xml_fo.str() = "";
+    output_path = "";
     bytes_written=0;
     unzip = false;
     if(zinit){
