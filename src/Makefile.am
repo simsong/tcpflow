@@ -41,6 +41,8 @@ NETVIZ = \
 	netviz/time_histogram.h \
 	netviz/address_histogram.cpp \
 	netviz/address_histogram.h \
+	netviz/port_histogram.cpp \
+	netviz/port_histogram.h \
 	netviz/one_page_report.cpp \
 	netviz/one_page_report.h
 
