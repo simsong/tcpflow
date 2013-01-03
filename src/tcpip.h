@@ -221,7 +221,7 @@ public:;
     struct timeval tlast;		// when last seen
     uint64_t packet_count;			// packet count
     std::string filename(uint32_t connection_count); // returns a new filename for a flow based on the template
-    std::string new_filename();	// returns a new filename for a flow based on the temlate, opening if fd is provided
+    std::string new_filename(int *fd,int flags,int mode);	// returns a new filename for a flow based on the temlate, opening if fd is provided
 };
 
 /*

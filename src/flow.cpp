@@ -132,14 +132,20 @@ std::string flow::filename(uint32_t connection_count)
     return ss.str();
 }
 
-/** Note: This has a test-and-set security problem */
+/**
+ * Open the flow and return the filename
+ */
 
-std::string flow::new_filename()
+std::string flow::new_filename(int *fd,int flags,int mode)
 {
     /* Loop connection count until we find a file that doesn't exist */
     for(uint32_t connection_count=0;;connection_count++){
         std::string nfn = filename(connection_count);
-        if(access(nfn.c_str(),F_OK)!=0) return nfn;
+        int nfd = open(nfn.c_str(),flags,mode);
+        if(nfd>=0){
+            *fd = nfd;
+            return nfn;
+        }
     }
     return std::string("<<CANNOT CREATE FILE>>");               // error; no file
 }

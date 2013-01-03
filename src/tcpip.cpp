@@ -151,16 +151,16 @@ int tcpip::open_file()
 {
     if(fd<0){
 
-        /* Get a filename if we don't have one */
+        /* If we don't have a filename, create the flow */
         if(flow_pathname.size()==0) {
-            flow_pathname = myflow.new_filename();
+            flow_pathname = myflow.new_filename(&fd,O_RDWR|O_BINARY|O_CREAT,0666);
+            file_created = true;		// remember we made it
+            DEBUG(5) ("%s: created new file",flow_pathname.c_str());
+        } else {
+            /* open an existing flow */
+            fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
+            DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
-
-        /* Now try and open the file */
-        if(debug>=5){
-            DEBUG(5) ("%s: %sopening output file", file_created ? "re-" : "", flow_pathname.c_str());
-        }
-        fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
         
         /* If the file isn't open at this point, there's a problem */
         if (fd < 0 ) {
@@ -170,7 +170,7 @@ int tcpip::open_file()
             perror(flow_pathname.c_str());
             return -1;
         }
-        file_created = true;		// remember we made it
+        /* Remember that we have this open */
         demux.open_flows.insert(this);
     }
     return 0;
