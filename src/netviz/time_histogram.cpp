@@ -198,10 +198,7 @@ void time_histogram::render_vars::prep(const time_histogram &graph)
 void time_histogram::choose_subtitle(const render_vars &vars)
 {
     // choose subtitle based on magnitude of units
-    parent.subtitle = unit_strings[0];
-    if(vars.unit_log_1000 < (sizeof(unit_strings) / sizeof(char *))) {
-	parent.subtitle = unit_strings[vars.unit_log_1000];
-    }
+    parent.subtitle = "";
 }
 
 plot::ticks_t time_histogram::build_tick_labels(const render_vars &vars)
