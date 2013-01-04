@@ -1,34 +1,10 @@
 /*
- * This file is part of tcpflow by Jeremy Elson <jelson@circlemud.org>
- * Initial Release: 7 April 1999.
+ * This file is part of tcpflow.
+ * Originally by Jeremy Elson <jelson@circlemud.org>
+ * Now maintained by Simson L. Garfinkel <simsong@acm.org>
  *
- * This source code is under the GNU Public License (GPL).  See
- * LICENSE for details.
- *
- * $Id: util.c,v 1.9 2001/08/08 19:39:40 jelson Exp $
- *
- * $Log: util.c,v $
- * Revision 1.9  2001/08/08 19:39:40  jelson
- * ARGH!  These are changes that made up tcpflow 0.20, which for some reason I
- * did not check into the repository until now.  (Which of couse means
- * I never tagged v0.20.... argh.)
- *
- * Changes include:
- *
- *   -- portable signal handlers now used to do proper termination
- *
- *   -- patch to allow tcpflow to read from tcpdump stored captures
- *
- * Revision 1.8  1999/04/14 03:02:39  jelson
- * added typecasts for portability
- *
- * Revision 1.7  1999/04/13 01:38:16  jelson
- * Added portability features with 'automake' and 'autoconf'.  Added AUTHORS,
- * NEWS, README, etc files (currently empty) to conform to GNU standards.
- *
- * Various portability fixes, including the FGETPOS/FSETPOS macros; detection
- * of header files using autoconf; restructuring of debugging code to not
- * need vsnprintf.
+ * This source code is under the GNU Public License (GPL).  
+ * See LICENSE for details.
  *
  */
 
@@ -68,6 +44,40 @@ void init_debug(char *argv[])
     sprintf(debug_prefix, "%s[%d]", argv[0], (int) getpid());
 }
 
+
+void mkdirs_for_path(std::string path)
+{
+    static std::set<std::string> made_dirs;
+    if(path.size()==0);
+
+    std::string mpath;
+
+    if(path.at(0)=='/'){
+        std::cerr << "path begins / " << path << "\n" ;
+        mpath = "/";
+        path = path.substr(1);
+    }
+
+    std::vector<std::string> parts = split(path,'/');
+
+    /* Notice that this won't mkdir for the last part.
+     * That's okay, because it's a filename.
+     */
+    for(std::vector<std::string>::const_iterator it=parts.begin();it!=parts.end();it++){
+        if(made_dirs.find(mpath)==made_dirs.end()){
+            if(mpath.size()){
+                int r = mkdir(mpath.c_str(),0777);
+                if(r<0 && errno!=EEXIST){
+                    perror(mpath.c_str());
+                    exit(1);
+                }
+                made_dirs.insert(mpath);
+            }
+        }
+        if(mpath.size()>0) mpath += "/";
+        mpath += *it;
+    }
+}
 
 /*
  * Print a debugging message, given a va_list

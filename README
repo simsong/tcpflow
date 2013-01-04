@@ -1,12 +1,15 @@
-=== TCPFLOW 1.2
+TCPFLOW 1.3
+===========
 
 By Simson L. Garfinkel <simsong@acm.org>
 originally by Jeremy Elson <jelson@circlemud.org>
 
-For the latest information on tcpflow, please see:
-http://www.afflib.org/software/tcpflow/
 
-== What is tcpflow?
+Downloads directory: http://www.digitalcorpora.org/downloads/tcpflow/
+
+
+Introduction
+------------
 
 tcpflow is a program that captures data transmitted as part of TCP
 connections (flows), and stores the data in a way that is convenient
@@ -55,10 +58,9 @@ HERE are some examples:
    
 
 You can change the template that is used to create filenames with the
--F and -T options.  
+-F and -T options.  If a directory appears in the template the directory will be automatically created.
 
-If you use the -AH option, tcpflow will automatically interpert HTTP
-responses.
+If you use the -a option, tcpflow will automatically interpert HTTP responses.
 
        If the output file is
           208.111.153.175.00080-192.168.001.064.37314,
@@ -98,7 +100,8 @@ rich filtering expressions that programs like 'tcpdump' support.  It
 should compile under most popular versions of UNIX; see the INSTALL
 file for details.
 
-== What use is it?
+What use is it?
+---------------
 
 tcpflow is a useful tool for understanding network packet flows and
 performing network forensics. Unlike programs such as WireShark, which
@@ -123,9 +126,10 @@ version of the program called NetIntercept. Those programs are
 commercial. After Simson left Sandstorm he had need for a tcp flow
 reassembling program. He found tcpflow and took over its maintenance.
 
-== Bugs
+Bugs
+----
 
-Please send bug reports to simsong@acm.org.
+Please enter bugs on the [github issue tracker](https://github.com/simsong/tcpflow/issues?state=open)
 
 tcpflow currently does not understand IP fragments.  Flows containing
 IP fragments will not be recorded correctly. IP fragmentation is

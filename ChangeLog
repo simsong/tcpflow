@@ -1,3 +1,7 @@
+2013-01-03  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/flow.cpp (flow::new_filename): now automatically makes subdirectories if necessary
+
 2013-01-02  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* src/scan_http.cpp: zero-length attachments are no longer created on disk.
