@@ -62,7 +62,7 @@ public:
     public:;
         enum { MAX_SEEK=1024*1024*16 };
         options():console_output(false),store_output(true),opt_md5(false),
-                  post_processing(false),opt_gzip_decompress(true),
+                  post_processing(false),gzip_decompress(true),
                   max_bytes_per_flow(),
                   max_desired_fds(),max_flows(0),suppress_header(0),
                   strip_nonprint(),use_color(0),max_seek(MAX_SEEK){
@@ -71,7 +71,7 @@ public:
         bool    store_output;   // do we output?
         bool    opt_md5;                // do we calculate MD5 on DFXML output?
         bool    post_processing;        // decode headers after tcp connection closes
-        bool    opt_gzip_decompress;
+        bool    gzip_decompress;
         uint64_t max_bytes_per_flow;
         uint32_t max_desired_fds;
         uint32_t max_flows;
@@ -124,12 +124,15 @@ public:
     void  save_flow(tcpip *);
     void  saved_flow_remove_oldest_if_necessary();
 
-    /* packet processing */
-    void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
-                      const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
-    void  process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
-    void  process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
-    void  process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
+    /** packet processing.
+     * Each returns 0 if processed, 1 if not processed, -1 if error.
+     */
+    int  process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
+                     const u_char *tcp_data, uint32_t tcp_length,
+                     const packet_info &pi);
+    int  process_ip4(const packet_info &pi);
+    int  process_ip6(const packet_info &pi);
+    int  process_ip(const packet_info &pi);
 };
 
 #endif

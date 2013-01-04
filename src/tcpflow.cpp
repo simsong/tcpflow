@@ -70,7 +70,7 @@ static void usage()
         std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
         std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
         std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
-        std::cout << "   -a: do ALL processing (http expansion, unzip, create report.xml, PDF analysis, etc..)\n";
+        std::cout << "   -a: do ALL post-processing.\n";
         std::cout << "   -b: max number of bytes per flow to save\n";
         std::cout << "   -B: force binary output to console, even with -c or -C\n";
         std::cout << "   -c: console print only (don't create files)\n";
@@ -78,7 +78,7 @@ static void usage()
         std::cout << "   -d: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
         std::cout << "   -e: output each flow in alternating colors\n";
         std::cout << "   -f: maximum number of file descriptors to use\n";
-        std::cout << "   -h: print this help message (repeat for more help)\n";
+        std::cout << "   -h: print this help message (-hh for more help)\n";
         std::cout << "   -i: network interface on which to listen\n";
         std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
         std::cout << "   -p: don't use promiscuous mode\n";
@@ -90,24 +90,28 @@ static void usage()
         std::cout << "   -V: print version number and exit\n";
         std::cout << "   -o  outdir   : specify output directory (default '.')\n";
         std::cout << "   -X  filename : DFXML output to filename\n";
-        std::cout << "   -m  bytes    : specifies the minimum number of bytes that a stream may\n";
-        std::cout << "  skip before starting a new stream (default "
+        std::cout << "   -m  bytes    : specifies skip that starts a new stream (default "
                   << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
-        std::cout << "   -Fc : append the connection counter to ALL filenames\n";
-        std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
-        std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
-        std::cout << "   -FX : Do not output any files (other than report files)\n";
-        std::cout << "   -FM : Calculate the MD5 for every flow\n";
-        std::cout << "   -T<template> : specify an arbitrary filename template (default "
+        std::cout << "   -F{p} : filename prefix/suffix (-hh for options)\n";
+        std::cout << "   -T{t} : filename template (-hh for options; default "
                   << flow::filename_template << ")\n";
         std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
         info_scanners(false,scanners_builtin,'E','x');
         std::cout << "\n";
         std::cout << "expression: tcpdump-like filtering expression\n";
-        flow::usage();
         std::cout << "\nSee the man page for additional information.\n\n";
         break;
     case 2:
+        std::cout << "Filename Prefixes:\n";
+        std::cout << "   -Fc : append the connection counter to ALL filenames\n";
+        std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
+        std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
+        std::cout << "   -FX : Do not output any files (other than report files)\n";
+        std::cout << "   -FM : Calculate the MD5 for every flow (stores in DFXML)\n";
+        std::cout << "   -Fk : Bin output in 1K directories\n";
+        std::cout << "   -Fm : Bin output in 1M directories (2 levels)\n";
+        std::cout << "   -Fg : Bin output in 1G directories (3 levels)\n";
+        flow::usage();
         std::cout << "-S name=value options:\n";
         for(int i=0;defaults[i].name;i++){
             std::stringstream ss;
@@ -338,6 +342,9 @@ int main(int argc, char *argv[])
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){
 		case 'c': replace(flow::filename_template,"%c","%C"); break;
+                case 'k': flow::filename_template = "%K/" + flow::filename_template; break;
+                case 'm': flow::filename_template = "%M000-%M999/%M%K/" + flow::filename_template; break;
+                case 'g': flow::filename_template = "%G000000-%G999999/%G%M000-%G%M999/%G%M%K/" + flow::filename_template; break;
 		case 't': flow::filename_template = "%tT" + flow::filename_template; break;
 		case 'T': flow::filename_template = "%T"  + flow::filename_template; break;
 		case 'X': demux.opt.store_output = false;break;
@@ -385,7 +392,7 @@ int main(int argc, char *argv[])
 	case 'v': debug = 10; break;
 	case 'x': scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
-	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
+	case 'Z': demux.opt.gzip_decompress = 0; break;
 	case 'H':
             info_scanners(true,scanners_builtin,'E','x');
             didhelp = true;

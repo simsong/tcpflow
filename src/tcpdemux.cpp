@@ -276,15 +276,16 @@ void tcpdemux::saved_flow_remove_oldest_if_necessary()
  */
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
-			const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family)
+int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
+                           const u_char *tcp_data, uint32_t tcp_length,
+                           const packet_info &pi)
 {
-    if (length < sizeof(struct tcphdr)) {
+    if (tcp_length < sizeof(struct tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment!");
-	return;
+	return 0;
     }
 
-    struct tcphdr *tcp_header = (struct tcphdr *) data;
+    struct tcphdr *tcp_header = (struct tcphdr *) tcp_data;
 
     /* calculate the total length of the TCP header including options */
     u_int tcp_header_len = tcp_header->th_off * 4;
@@ -300,20 +301,20 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     /* recalculate the beginning of data and its length, moving past the
      * TCP header
      */
-    data   += tcp_header_len;
-    length -= tcp_header_len;
+    tcp_data   += tcp_header_len;
+    tcp_length -= tcp_header_len;
 
     /* see if we have state about this flow; if not, create it */
     int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
     tcpip   *tcp = find_tcpip(this_flow);
     
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
-    if(tcp==0 && start_new_connections==false) return; 
+    if(tcp==0 && start_new_connections==false) return 0; 
 
     if(tcp==0){
-        if(length==0){                       // zero length packet
-            if(fin_set) return;              // FIN on a connection that's unknown; safe to ignore
-            if(syn_set==false && ack_set==false) return; // neither a SYN nor ACK; return
+        if(tcp_length==0){                       // zero length packet
+            if(fin_set) return 0;              // FIN on a connection that's unknown; safe to ignore
+            if(syn_set==false && ack_set==false) return 0; // neither a SYN nor ACK; return
         } else {
             /* Data present on a flow that is not actively being demultiplexed.
              * See if it is a saved flow. If so, see if the data in the packet
@@ -326,18 +327,18 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
                 bool data_match = false;
                 int fd = open(it->second->saved_filename.c_str(),O_RDONLY | O_BINARY);
                 if(fd>0){
-                    char *buf = (char *)malloc(length);
+                    char *buf = (char *)malloc(tcp_length);
                     if(buf){
                         lseek(fd,offset,SEEK_SET);
-                        ssize_t r = read(fd,buf,length);
-                        data_match = (r==length) && memcmp(buf,data,length)==0;
+                        ssize_t r = read(fd,buf,tcp_length);
+                        data_match = (r==tcp_length) && memcmp(buf,tcp_data,tcp_length)==0;
                         free(buf);
                     }
                     close(fd);
                 }
                 DEBUG(60)("Packet matches saved flow. offset=%u len=%d filename=%s data match=%d\n",
-                          offset,length,it->second->saved_filename.c_str(),data_match);
-                if(data_match) return;
+                          offset,tcp_length,it->second->saved_filename.c_str(),data_match);
+                if(data_match) return 0;
             }
         }
     }
@@ -376,17 +377,17 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     if (tcp==NULL){
 
         /* Don't process if this is not a SYN and there is no data. */
-        if(syn_set==false && length==0) return;
+        if(syn_set==false && tcp_length==0) return 0;
 
 	/* Create a new connection.
 	 * delta will be 0, because it's a new connection!
 	 */
 	tcp_seq isn = syn_set ? seq : seq-1;
-	tcp = create_tcpip(this_flow, vlan, isn, ts);
+	tcp = create_tcpip(this_flow, pi.vlan, isn, pi.ts);
     }
 
     /* Now tcp is valid */
-    tcp->myflow.tlast = ts;		// most recently seen packet
+    tcp->myflow.tlast = pi.ts;		// most recently seen packet
     tcp->myflow.packet_count++;
 
     /*
@@ -412,23 +413,23 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
 	    DEBUG(50) ("packet is handshake SYN/ACK"); /* second packet of three-way handshake  */
 	    tcp->dir = tcpip::dir_sc;	// server->client
 	}
-	if(length>0){
+	if(tcp_length>0){
 	    tcp->violations++;
-	    DEBUG(1) ("TCP PROTOCOL VIOLATION: SYN with data! (length=%d)",length);
+	    DEBUG(1) ("TCP PROTOCOL VIOLATION: SYN with data! (length=%d)",tcp_length);
 	}
     }
-    if(length==0) DEBUG(50) ("got TCP segment with no data"); // seems pointless to notify
+    if(tcp_length==0) DEBUG(50) ("got TCP segment with no data"); // seems pointless to notify
 
     /* process any data.
      * Notice that this typically won't be called for the SYN or SYN/ACK,
      * since they both have no data by definition.
      */
-    if (length>0){
+    if (tcp_length>0){
 	if (opt.console_output) {
-	    tcp->print_packet(data, length);
+	    tcp->print_packet(tcp_data, tcp_length);
 	} else {
 	    if (opt.store_output){
-		tcp->store_packet(data, length, delta);
+		tcp->store_packet(tcp_data, tcp_length, delta);
 	    }
 	}
     }
@@ -439,7 +440,7 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
     if (fin_set){
         tcp->fin_count++;
         if(tcp->fin_count==1){
-            tcp->fin_size = (seq+length-tcp->isn)-1;
+            tcp->fin_size = (seq+tcp_length-tcp->isn)-1;
         }
     }
 
@@ -450,7 +451,8 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
         remove_flow(this_flow);	// take it out of the map  
     }
     DEBUG(50)("fin_set=%d  seq=%u fin_count=%d  seq_count=%d len=%d isn=%u",
-            fin_set,seq,tcp->fin_count,tcp->syn_count,length,tcp->isn);
+            fin_set,seq,tcp->fin_count,tcp->syn_count,tcp_length,tcp->isn);
+    return 0;                           // successfully processed
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
@@ -461,28 +463,28 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
  *
  * Note: we currently don't know how to handle IP fragments. */
 #pragma GCC diagnostic ignored "-Wcast-align"
-void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
+int tcpdemux::process_ip4(const packet_info &pi)
 {
-    const struct ip *ip_header = (struct ip *) data;
+    const struct ip *ip_header = (struct ip *) pi.data;
     u_int ip_header_len;
     u_int ip_total_len;
 
     /* make sure that the packet is at least as long as the min IP header */
-    if (caplen < sizeof(struct ip)) {
+    if (pi.caplen < sizeof(struct ip)) {
 	DEBUG(6) ("received truncated IP datagram!");
-	return;
+	return 0;
     }
 
-    DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)caplen,(int)vlan,(int)ip_header->ip_p);
+    DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)pi.caplen,(int)pi.vlan,(int)ip_header->ip_p);
     if(debug>200){
-	sbuf_t sbuf(pos0_t(),(const uint8_t *)data,caplen,caplen,false);
+	sbuf_t sbuf(pos0_t(),(const uint8_t *)pi.data,pi.caplen,pi.caplen,false);
 	sbuf.hex_dump(std::cerr);
     }
 
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip_p != IPPROTO_TCP) {
 	DEBUG(50) ("got non-TCP frame -- IP proto %d", ip_header->ip_p);
-	return;
+	return 0;
     }
 
     /* check and see if we got everything.  NOTE: we must use
@@ -490,9 +492,9 @@ void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t
      * beyond the end of the packet (e.g. ethernet padding).
      */
     ip_total_len = ntohs(ip_header->ip_len);
-    if (caplen < ip_total_len) {
+    if (pi.caplen < ip_total_len) {
 	DEBUG(6) ("warning: captured only %ld bytes of %ld-byte IP datagram",
-		  (long) caplen, (long) ip_total_len);
+		  (long) pi.caplen, (long) ip_total_len);
     }
 
     /* XXX - throw away everything but fragment 0; this version doesn't
@@ -500,7 +502,7 @@ void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t
      */
     if (ntohs(ip_header->ip_off) & 0x1fff) {
 	DEBUG(2) ("warning: throwing away IP fragment from X to X");
-	return;
+	return 1;
     }
 
     /* figure out where the IP header ends */
@@ -509,14 +511,13 @@ void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t
     /* make sure there's some data */
     if (ip_header_len > ip_total_len) {
 	DEBUG(6) ("received truncated IP datagram!");
-	return;
+	return 1;
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    process_tcp(ts,data + ip_header_len, ip_total_len - ip_header_len,
-		ipaddr(ip_header->ip_src.s_addr),
-		ipaddr(ip_header->ip_dst.s_addr),
-		vlan,AF_INET);
+    return process_tcp(ipaddr(ip_header->ip_src.s_addr),ipaddr(ip_header->ip_dst.s_addr),AF_INET,
+                pi.data + ip_header_len, ip_total_len - ip_header_len,
+                pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
@@ -541,22 +542,21 @@ void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t
 #define ip6_hlim	ip6_ctlun.ip6_un1.ip6_un1_hlim
 #define ip6_hops	ip6_ctlun.ip6_un1.ip6_un1_hlim
 
-void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan)
+int tcpdemux::process_ip6(const packet_info &pi)
 {
-    const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) data;
+    const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) pi.data;
     u_int16_t ip_payload_len;
 
     /* make sure that the packet is at least as long as the IPv6 header */
-    if (caplen < sizeof(struct private_ip6_hdr)) {
+    if (pi.caplen < sizeof(struct private_ip6_hdr)) {
 	DEBUG(6) ("received truncated IPv6 datagram!");
-	return;
+	return 1;
     }
-
 
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip6_nxt != IPPROTO_TCP) {
 	DEBUG(50) ("got non-TCP frame -- IP proto %d", ip_header->ip6_nxt);
-	return;
+	return 1;
     }
 
     ip_payload_len = ntohs(ip_header->ip6_plen);
@@ -564,38 +564,34 @@ void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const ui
     /* make sure there's some data */
     if (ip_payload_len == 0) {
 	DEBUG(6) ("received truncated IP datagram!");
-	return;
+	return 1;
     }
 
     /* do TCP processing */
 
-    process_tcp(ts,
-		data + sizeof(struct private_ip6_hdr),
-		ip_payload_len,
-		ipaddr(ip_header->ip6_src.s6_addr),
-		ipaddr(ip_header->ip6_dst.s6_addr),
-		vlan,AF_INET6);
+    return process_tcp(ipaddr(ip_header->ip6_src.s6_addr), ipaddr(ip_header->ip6_dst.s6_addr),AF_INET6,
+                       pi.data + sizeof(struct private_ip6_hdr),ip_payload_len,
+                       pi);
 }
 
 
 
 /* This is called when we receive an IPv4 or IPv6 datagram.
  * This function calls process_ip4 or process_ip6
+ * Returns 0 if packet is processed, 1 if it is not processed, -1 if error.
  */
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-void tcpdemux::process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
+int tcpdemux::process_ip(const packet_info &pi)
 {
-    const struct ip *ip_header = (struct ip *) data;
-    if (caplen < sizeof(struct ip)) {
-	DEBUG(6) ("can't determine IP datagram version!");
-	return;
+    const struct ip *ip_header = (struct ip *) pi.data;
+    if (pi.caplen >= sizeof(struct ip)) {
+        if(ip_header->ip_v == 6) {
+            return process_ip6(pi);
+        } else {
+            return process_ip4(pi);
+        }
     }
-
-    if(ip_header->ip_v == 6) {
-	process_ip6(ts,data, caplen,vlan);
-    } else {
-	process_ip4(ts,data, caplen,vlan);
-    }
+    return 1;                           // cannot process
 }
 #pragma GCC diagnostic warning "-Wcast-align"

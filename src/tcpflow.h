@@ -267,10 +267,11 @@ void terminate(int sig) __attribute__ ((__noreturn__));
 extern sem_t *semlock;
 #endif
 
-/* util.c - utility functions */
+/* util.cpp - utility functions */
 extern int debug;
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> split(const std::string &s, char delim);
+void mkdirs_for_path(std::string path); // creates any directories necessary for the path
 
 #define DEBUG_PEDANTIC    0x0001       // check values more rigorously
 void init_debug(char *argv[]);

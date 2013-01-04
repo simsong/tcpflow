@@ -32,9 +32,14 @@ void flow::usage()
 {
     std::cout << "Filename template format:\n";
     std::cout << "  %A/%a - source IP address/port;          %B/%b - dest IP address/port\n";
-    std::cout << "  %c/%# - connection_count;                %C - 'c' if connection_count >0\n";
     std::cout << "  %V/%v - VLAN number, '--' if no vlan/'' if no vlan\n";
     std::cout << "  %T/%t - Timestamp in ISO8601 format/unix time_t\n";
+    std::cout << "  %c - connection_count for connections>0 / %# for all connections;";
+    std::cout << "  %C - 'c' if connection_count >0\n";
+    std::cout << "  %N - (connection_number )             % 1000\n";
+    std::cout << "  %K - (connection_number / 1000)       % 1000\n";
+    std::cout << "  %M - (connection_number / 1000000)    % 1000\n";
+    std::cout << "  %G - (connection_number / 1000000000) % 1000\n";
     std::cout << "  %% - Output a '%'\n";
     std::cout << "\n";
 }
@@ -88,6 +93,12 @@ std::string flow::filename(uint32_t connection_count)
 	    case 'b': // dest IP port
 		snprintf(buf,sizeof(buf),"%05d",dport);
 		break;
+                /* binning by connection number */
+            case 'N': snprintf(buf,sizeof(buf),"%03d",(int)(id)             % 1000);break;
+            case 'K': snprintf(buf,sizeof(buf),"%03d",(int)(id /1000 )      % 1000);break;
+            case 'M': snprintf(buf,sizeof(buf),"%03d",(int)(id /1000000)    % 1000);break;
+            case 'G': snprintf(buf,sizeof(buf),"%03d",(int)(id /1000000000) % 1000);break;
+
 	    case 'T': // Timestamp in ISO8601 format
 	      {
 		time_t t = tstart.tv_sec;
@@ -141,6 +152,7 @@ std::string flow::new_filename(int *fd,int flags,int mode)
     /* Loop connection count until we find a file that doesn't exist */
     for(uint32_t connection_count=0;;connection_count++){
         std::string nfn = filename(connection_count);
+        if(nfn.find('/')!=std::string::npos) mkdirs_for_path(nfn.c_str());
         int nfd = open(nfn.c_str(),flags,mode);
         if(nfd>=0){
             *fd = nfd;

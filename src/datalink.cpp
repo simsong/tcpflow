@@ -66,7 +66,6 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 #endif
-
     packet_info pi(tvshift(h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN,packet_info::NO_VLAN,family);
     process_packet_info(pi);
 }
