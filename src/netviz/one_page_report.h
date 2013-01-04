@@ -10,15 +10,10 @@
 
 class one_page_report {
 public:
-
-    class config_t {
-    public:
-        const char *filename;
-        plot::bounds_t bounds;
-        double header_font_size;
-    };
-
     std::string source_identifier;
+    const char *filename;
+    plot::bounds_t bounds;
+    double header_font_size;
 
     // a single render event: content moves down a bounded cairo surface as
     // indicated by end_of_content between render method invocations
@@ -46,12 +41,10 @@ public:
     };
     friend class render_pass;
 
-    one_page_report(const config_t &conf_);
+    one_page_report();
 
     void ingest_packet(const packet_info &pi);
     void render(const std::string &outdir);
-
-    static const config_t default_config;
 
     // string constants
     static const std::string title_version;
@@ -67,7 +60,6 @@ public:
 
 private:
 
-    config_t conf;
     uint64_t packet_count;
     uint64_t byte_count;
     struct timeval earliest;

@@ -13,10 +13,6 @@
 
 #include "packetfall.h"
 
-const packetfall::config_t packetfall::default_config = {
-    /* graph */ plot::default_config,
-};
-
 void packetfall::ingest_packet(const packet_info &pi)
 {
 }
@@ -29,7 +25,7 @@ void packetfall::render(cairo_t *cr, const plot::bounds_t &bounds)
     plot::bounds_t content_bounds(0.0, 0.0, bounds.width,
             bounds.height);
     //// have the plot class do labeling, axes, legend etc
-    plot::render(cr, bounds, ticks, legend, conf.graph, content_bounds);
+    parent.render(cr, bounds, ticks, legend, content_bounds);
 
     //// fill borders rendered by plot class
     //render_bars(cr, content_bounds, vars);

@@ -10,25 +10,19 @@ public:
         SENDER = 0, RECEIVER, SND_OR_RCV
     } relationship_t;
 
-    class config_t {
-    public:
-        // generic graph parent config
-        plot::config_t graph;
-        relationship_t relationship;
-        double bar_space_factor;
-        int max_bars;
-    };
-
-    address_histogram(const config_t &conf_) :
-        conf(conf_), address_counts() {};
+    address_histogram() :
+        parent(), relationship(SND_OR_RCV), bar_space_factor(1.2), max_bars(10),
+        address_counts() {};
 
     void ingest_packet(const packet_info &pi);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
 
-    static const config_t default_config;
+    plot parent;
+    relationship_t relationship;
+    double bar_space_factor;
+    int max_bars;
 
 private:
-    config_t conf;
     std::map<std::string, uint64_t> address_counts;
 };
 

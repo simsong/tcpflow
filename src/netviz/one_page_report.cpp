@@ -31,31 +31,21 @@ const double one_page_report::address_histogram_width_divisor = 2.5;
 const double one_page_report::bandwidth_histogram_height = 100.0;
 const double one_page_report::address_histogram_height = 150.0;
 
-const one_page_report::config_t one_page_report::default_config = {
-    /* filename */ "one_page_report.pdf",
-    /* bounds */ plot::bounds_t(0.0, 0.0, 612.0, 792.0), // 8.5x11 inches
-    /* header_font_size */ 8.0
-};
-
-one_page_report::one_page_report(const config_t &conf_) : 
-    source_identifier(),
-    conf(conf_), packet_count(0), byte_count(0), earliest(), latest(),
-    transport_counts(), bandwidth_histogram(time_histogram::default_config),
-    src_addr_histogram(address_histogram::default_config),
-    dst_addr_histogram(address_histogram::default_config),
-    src_port_histogram(port_histogram::default_config),
-    dst_port_histogram(port_histogram::default_config),
-    pfall(packetfall::default_config)
+one_page_report::one_page_report() : 
+    source_identifier(), filename("one_page_report.pdf"),
+    bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
+    packet_count(0), byte_count(0), earliest(), latest(),
+    transport_counts(), bandwidth_histogram(), src_addr_histogram(),
+    dst_addr_histogram(), src_port_histogram(), dst_port_histogram(),
+    pfall()
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
 
-    time_histogram::config_t bh_config = time_histogram::default_config;
-    bh_config.graph.title = "TCP Packets Received";
-    bh_config.graph.y_tick_font_size = 6.0;
-    bh_config.graph.x_tick_font_size = 6.0;
-    bh_config.graph.legend_font_size = 5.0;
-    bandwidth_histogram = dyn_time_histogram(bh_config);
+    bandwidth_histogram.parent.title = "TCP Packets Received";
+    bandwidth_histogram.parent.y_tick_font_size = 6.0;
+    bandwidth_histogram.parent.x_tick_font_size = 6.0;
+    bandwidth_histogram.parent.legend_font_size = 5.0;
 }
 
 void one_page_report::ingest_packet(const packet_info &pi)
@@ -84,17 +74,17 @@ void one_page_report::render(const std::string &outdir)
 #ifdef CAIRO_PDF_AVAILABLE
     cairo_t *cr;
     cairo_surface_t *surface;
-    std::string fname = outdir + "/" + conf.filename;
+    std::string fname = outdir + "/" + filename;
 
     surface = cairo_pdf_surface_create(fname.c_str(),
-				 conf.bounds.width,
-				 conf.bounds.height);
+				 bounds.width,
+				 bounds.height);
     cr = cairo_create(surface);
 
-    double pad_size = conf.bounds.width * page_margin_factor;
-    plot::bounds_t pad_bounds(conf.bounds.x + pad_size,
-            conf.bounds.y + pad_size, conf.bounds.width - pad_size * 2,
-            conf.bounds.height - pad_size * 2);
+    double pad_size = bounds.width * page_margin_factor;
+    plot::bounds_t pad_bounds(bounds.x + pad_size,
+            bounds.y + pad_size, bounds.width - pad_size * 2,
+            bounds.height - pad_size * 2);
     cairo_translate(cr, pad_bounds.x, pad_bounds.y);
 
     render_pass pass(*this, cr, pad_bounds);
@@ -117,14 +107,14 @@ void one_page_report::render_pass::render_header()
 #ifdef CAIRO_PDF_AVAILABLE
     std::stringstream formatted;
     // title
-    double title_line_space = report.conf.header_font_size * line_space_factor;
+    double title_line_space = report.header_font_size * line_space_factor;
     //// version
-    render_text_line(title_version, report.conf.header_font_size,
+    render_text_line(title_version, report.header_font_size,
             title_line_space);
     //// input
     formatted.str(std::string());
     formatted << "Input: " << report.source_identifier;
-    render_text_line(formatted.str(), report.conf.header_font_size,
+    render_text_line(formatted.str(), report.header_font_size,
             title_line_space);
     //// date generated
     time_t gen_unix = time(0);
@@ -137,7 +127,7 @@ void one_page_report::render_pass::render_header()
         std::setw(2) << gen_time.tm_hour << ":" <<
         std::setw(2) << gen_time.tm_min << ":" <<
         std::setw(2) << gen_time.tm_sec;
-    render_text_line(formatted.str(), report.conf.header_font_size,
+    render_text_line(formatted.str(), report.header_font_size,
             title_line_space);
     //// trailing pad
     end_of_content += title_line_space * 4;
@@ -160,7 +150,7 @@ void one_page_report::render_pass::render_header()
         std::setw(2) << stop.tm_hour << ":" <<
         std::setw(2) << stop.tm_min << ":" <<
         std::setw(2) << stop.tm_sec;
-    render_text_line(formatted.str(), report.conf.header_font_size,
+    render_text_line(formatted.str(), report.header_font_size,
             title_line_space);
     //// packet count/size
     uint64_t size_log_1000 = (uint64_t) (log(report.byte_count) / log(1000));
@@ -172,7 +162,7 @@ void one_page_report::render_pass::render_header()
         std::setprecision(2) << std::fixed <<
         ((double) report.byte_count) / pow(1000.0, (double) size_log_1000) <<
         " " << size_suffixes.at(size_log_1000) << ")";
-    render_text_line(formatted.str(), report.conf.header_font_size,
+    render_text_line(formatted.str(), report.header_font_size,
             title_line_space);
     //// protocol breakdown
     uint64_t transport_total = 0;
@@ -204,7 +194,7 @@ void one_page_report::render_pass::render_header()
             report.transport_counts[ETHERTYPE_ARP]) /
          (double) transport_total)) * 100.0 <<
         "% ";
-    render_text_line(formatted.str(), report.conf.header_font_size,
+    render_text_line(formatted.str(), report.header_font_size,
             title_line_space);
     // trailing pad for entire header
     end_of_content += title_line_space * 8;

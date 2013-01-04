@@ -13,47 +13,19 @@
 
 #include "plot.h"
 
-const plot::config_t plot::default_config = {
-    /* filename */ "graph",
-    /* title */ "graph of things",
-    /* subtitle */ "x vs y",
-    /* width */ 161.803,
-    /* height */ 100.000,
-    /* title_font_size */ 8.0,
-    /* title_max_width_ratio */ 0.8,
-    /* title_y_pad_factor */ 2.0,
-    /* subtitle_y_pad_factor */ 0.2,
-    /* subtitle_font_size_factor */ 0.4,
-    /* axis_thickness_factor */ 0.002,
-    /* tick_length_factor */ 0.0124,
-    /* tick_width_factor */ 0.002,
-    /* x_tick_count */ 5,
-    /* y_tick_count */ 5,
-    /* x_tick_label_max_len */ 64,
-    /* y_tick_label_max_len */ 8,
-    /* x_tick_label_pad_factor */ 4.0,
-    /* y_tick_label_pad_factor */ 2.0,
-    /* y_tick_font_size */ 3.0,
-    /* x_tick_font_size */ 3.0,
-    /* pad_bottom_factor */ 0.08,
-    /* pad_right_factor */ 0.148,
-    /* legend_chip_factor */ 1.2,
-    /* legend_font_size */ 2.5
-};
-
 void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
         const plot::ticks_t &ticks, const plot::legend_t &legend,
-        const plot::config_t &conf, bounds_t &content_bounds) {
+        bounds_t &content_bounds) {
 #ifdef CAIRO_PDF_AVAILABLE
     cairo_matrix_t original_matrix;
     cairo_get_matrix(cr, &original_matrix);
 
-    double pad_bottom = conf.height * conf.pad_bottom_factor;
-    double pad_right = conf.width * conf.pad_right_factor;
+    double pad_bottom = height * pad_bottom_factor;
+    double pad_right = width * pad_right_factor;
 
     cairo_text_extents_t title_extents;
     cairo_text_extents_t subtitle_extents;
-    double font_size_title = conf.title_font_size;
+    double font_size_title = title_font_size;
 
     cairo_translate(cr, bounds.x, bounds.y);
 
@@ -61,50 +33,50 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size_title);
     cairo_set_source_rgb(cr, 0, 0, 0);
-    cairo_text_extents(cr, conf.title, &title_extents);
+    cairo_text_extents(cr, title, &title_extents);
     // Is the title too wide?
-    double title_max_width = bounds.width * conf.title_max_width_ratio;
+    double title_max_width = bounds.width * title_max_width_ratio;
     if(title_extents.width > title_max_width) {
         // scale the font size accordingly
         font_size_title *= title_max_width / title_extents.width;
         cairo_set_font_size(cr, font_size_title);
-        cairo_text_extents(cr, conf.title, &title_extents);
+        cairo_text_extents(cr, title, &title_extents);
     }
     // derive subtitle size and measure
     double font_size_subtitle = font_size_title *
-        conf.subtitle_font_size_factor;
+        subtitle_font_size_factor;
     cairo_set_font_size(cr, font_size_subtitle);
-    cairo_text_extents(cr, conf.subtitle, &subtitle_extents);
+    cairo_text_extents(cr, subtitle, &subtitle_extents);
     double intertitle_padding = subtitle_extents.height *
-        conf.subtitle_y_pad_factor;
+        subtitle_y_pad_factor;
     cairo_set_font_size(cr, font_size_title);
     double title_padded_height = title_extents.height *
-        conf.title_y_pad_factor;
+        title_y_pad_factor;
     double titles_padded_height = title_padded_height +
         intertitle_padding + subtitle_extents.height;
     // render title text
     cairo_move_to(cr, (bounds.width - title_extents.width) / 2.0,
           title_extents.height +
           (title_padded_height - title_extents.height) / 2);
-    cairo_show_text(cr, conf.title);
+    cairo_show_text(cr, title);
     // render subtitle text
     cairo_set_font_size(cr, font_size_subtitle);
     cairo_move_to(cr, (bounds.width - subtitle_extents.width) / 2.0,
           ((title_padded_height - title_extents.height) / 2) +
           title_extents.height + intertitle_padding +
           subtitle_extents.height);
-    cairo_show_text(cr, conf.subtitle);
+    cairo_show_text(cr, subtitle);
 
     // render ticks
 
-    double tick_length = bounds.width * conf.tick_length_factor;
-    double tick_width = bounds.height * conf.tick_width_factor;
+    double tick_length = bounds.width * tick_length_factor;
+    double tick_width = bounds.height * tick_width_factor;
 
     // y ticks (packet counts)
 
     // find longest label and pad for it
     cairo_text_extents_t label_extents;
-    cairo_set_font_size(cr, conf.y_tick_font_size);
+    cairo_set_font_size(cr, y_tick_font_size);
     double max_label_width = 0.0;
     for(size_t ii = 0; ii < ticks.y_labels.size(); ii++) {
         cairo_text_extents(cr, ticks.y_labels.at(ii).c_str(),
@@ -114,7 +86,7 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
         }
     }
     double y_label_allotment = max_label_width *
-        conf.y_tick_label_pad_factor;
+        y_tick_label_pad_factor;
     double left_padding = y_label_allotment + tick_length;
 
     // translate down so the top of the window aligns with the top of
@@ -143,7 +115,7 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     // x ticks (time)
     // TODO prevent overlap
 
-    cairo_set_font_size(cr, conf.x_tick_font_size);
+    cairo_set_font_size(cr, x_tick_font_size);
 
     cairo_translate(cr, left_padding, bounds.height - pad_bottom);
 
@@ -156,7 +128,7 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
         const char *label = ticks.x_labels.at(ii).c_str();
 
         cairo_text_extents(cr, label, &label_extents);
-        double pad = ((label_extents.height * conf.x_tick_label_pad_factor) -
+        double pad = ((label_extents.height * x_tick_label_pad_factor) -
                 label_extents.height) / 2;
 
         // prevent labels from running off the edge of the image
@@ -183,12 +155,12 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
 
         chip_length = max(chip_length, legend_label_extents.height);
     }
-    chip_length *= conf.legend_chip_factor;
+    chip_length *= legend_chip_factor;
 
     cairo_translate(cr, bounds.width - (pad_right * 0.9),
         titles_padded_height);
 
-    cairo_set_font_size(cr, conf.legend_font_size);
+    cairo_set_font_size(cr, legend_font_size);
 
     for(size_t ii = 0; ii < legend.size(); ii++) {
         const legend_entry_t &entry = legend.at(ii);
@@ -221,7 +193,7 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     content_bounds.height = bounds.height - pad_bottom - titles_padded_height;
 
     // render axes and update content bounds
-    double axis_width = bounds.height * conf.axis_thickness_factor;
+    double axis_width = bounds.height * axis_thickness_factor;
 
     cairo_rectangle(cr, content_bounds.x, content_bounds.y, axis_width,
             content_bounds.height);

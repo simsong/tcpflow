@@ -20,15 +20,7 @@ public:
     class config_t {
     public:
         // generic graph parent config
-        plot::config_t graph;
-        span_t span;
-        double bar_space_factor;
-        int bucket_count;
-        // multiplied by the length of the bucket vector to find the first
-        // bucket to insert into
-        double first_bucket_factor;
     };
-    static const config_t default_config;
 
     class bucket_t {
     public:
@@ -37,16 +29,27 @@ public:
         uint64_t other;
     };
 
-    time_histogram(const config_t &conf_) :
-        conf(conf_), length(span_lengths[conf_.span]),
-        bucket_width(length / conf.bucket_count), underflow_count(0),
-        overflow_count(0), buckets(conf.bucket_count),
+    time_histogram(span_t span_) :
+        parent(), span(span_), x_tick_count(2), y_tick_count(5),
+        bar_space_factor(1.2), bucket_count(600), first_bucket_factor(0.1),
+        length(span_lengths[span]),
+        bucket_width(length / bucket_count), underflow_count(0),
+        overflow_count(0), buckets(bucket_count),
         base_time(0), received_data(false),
         color_http(0.05, 0.33, 0.65), color_https(0.00, 0.75, 0.20),
         color_other(1.00, 0.77, 0.00)   { }
 
-    // render configuration
-    config_t conf;
+    //// render configuration
+    plot parent;
+    span_t span;
+    int x_tick_count;
+    int y_tick_count;
+    double bar_space_factor;
+    int bucket_count;
+    // multiplied by the length of the bucket vector to find the first
+    // bucket to insert into
+    double first_bucket_factor;
+
     // total number of microseconds this histogram covers
     uint64_t length;
     // number of microseconds each bucket represents
@@ -94,14 +97,13 @@ public:
 
 class dyn_time_histogram {
 public:
-    dyn_time_histogram(const time_histogram::config_t &conf_);
+    dyn_time_histogram();
     void ingest_packet(const packet_info &pi);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render(const std::string &outdir);
     time_histogram &select_best_fit();
 
-    // render configuration to be passed to children
-    time_histogram::config_t conf;
+    plot parent;
     // children
     std::vector<time_histogram> histograms;
 };

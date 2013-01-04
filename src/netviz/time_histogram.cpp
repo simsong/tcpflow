@@ -22,14 +22,6 @@
 
 using namespace std;
 
-const time_histogram::config_t time_histogram::default_config = {
-    /* graph */ plot::default_config,
-    /* span */ time_histogram::MINUTE,
-    /* bar_space_factor */ 1.2,
-    /* bucket_count */ 600,
-    /* first_bucket_factor */ 0.1
-};
-
 // Unit in libpcap is microsecond, so shall it be here
 const uint64_t time_histogram::span_lengths[] = {
     /* minute */ 60L * 1000L * 1000L,
@@ -76,8 +68,8 @@ void time_histogram::ingest_packet(const packet_info &pi)
     uint64_t time = pi.ts.tv_usec + pi.ts.tv_sec * 1000000L; // microseconds
     // if we haven't received any data yet, we need to set the base time
     if(!received_data) {
-	uint64_t first_bucket = (uint64_t) ((double) conf.bucket_count *
-                conf.first_bucket_factor);
+	uint64_t first_bucket = (uint64_t) ((double) bucket_count *
+                first_bucket_factor);
 	base_time = time - (bucket_width * first_bucket);
 	received_data = true;
     }
@@ -88,7 +80,7 @@ void time_histogram::ingest_packet(const packet_info &pi)
 	underflow_count++;
 	return;
     }
-    if(target_index >= conf.bucket_count) {
+    if(target_index >= bucket_count) {
 	overflow_count++;
 	return;
     }
@@ -141,7 +133,7 @@ void time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
             bounds.height);
 
     // have the plot class do labeling, axes, legend etc
-    plot::render(cr, bounds, ticks, legend, conf.graph, content_bounds);
+    parent.render(cr, bounds, ticks, legend, content_bounds);
 
     // fill borders rendered by plot class
     render_bars(cr, content_bounds, vars);
@@ -153,15 +145,15 @@ void time_histogram::render(const std::string &outdir)
 #ifdef CAIRO_PDF_AVAILABLE
     cairo_t *cr;
     cairo_surface_t *surface;
-    std::string fname = outdir + "/" + conf.graph.filename;
+    std::string fname = outdir + "/" + parent.filename;
 
     surface = cairo_pdf_surface_create(fname.c_str(),
-				 conf.graph.width,
-				 conf.graph.height);
+				 parent.width,
+				 parent.height);
     cr = cairo_create(surface);
 
-    plot::bounds_t bounds(0.0, 0.0, conf.graph.width,
-            conf.graph.height);
+    plot::bounds_t bounds(0.0, 0.0, parent.width,
+            parent.height);
 
     render(cr, bounds);
 
@@ -206,9 +198,9 @@ void time_histogram::render_vars::prep(const time_histogram &graph)
 void time_histogram::choose_subtitle(const render_vars &vars)
 {
     // choose subtitle based on magnitude of units
-    conf.graph.subtitle = unit_strings[0];
+    parent.subtitle = unit_strings[0];
     if(vars.unit_log_1000 < (sizeof(unit_strings) / sizeof(char *))) {
-	conf.graph.subtitle = unit_strings[vars.unit_log_1000];
+	parent.subtitle = unit_strings[vars.unit_log_1000];
     }
 }
 
@@ -223,13 +215,11 @@ plot::ticks_t time_histogram::build_tick_labels(const render_vars &vars)
 
     double y_scale_range = vars.greatest_bucket_sum /
 	pow(1000.0, (double) vars.unit_log_1000);
-    double y_scale_interval = y_scale_range /
-	(conf.graph.y_tick_count - 1);
+    double y_scale_interval = y_scale_range / (y_tick_count - 1);
 
-    for(int ii = 0; ii < conf.graph.y_tick_count; ii++) {
+    for(int ii = 0; ii < y_tick_count; ii++) {
 	formatted << setprecision(2) << fixed;
-	formatted << ((conf.graph.y_tick_count - (ii + 1)) *
-		      y_scale_interval);
+	formatted << ((y_tick_count - (ii + 1)) * y_scale_interval);
 
 	ticks.y_labels.push_back(formatted.str());
 
@@ -276,7 +266,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
     cairo_translate(cr, bounds.x, bounds.y);
 
     double offset_unit = bounds.width / vars.num_sig_buckets;
-    double bar_width = offset_unit / conf.bar_space_factor;
+    double bar_width = offset_unit / bar_space_factor;
     int index = 0;
     for(vector<bucket_t>::iterator bucket =
 	    buckets.begin() + vars.first_index;
@@ -334,13 +324,11 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 // Dynamic time histogram
 //
 
-dyn_time_histogram::dyn_time_histogram(const time_histogram::config_t &conf_) :
-    conf(conf_), histograms()
+dyn_time_histogram::dyn_time_histogram() :
+    parent(), histograms()
 {
     for(int ii = time_histogram::MINUTE; ii <= time_histogram::YEAR; ii++) {
-        time_histogram::config_t config = conf;
-        config.span = (time_histogram::span_t) ii;
-	histograms.push_back(time_histogram(config));
+	histograms.push_back(time_histogram((time_histogram::span_t) ii));
     }
 }
 
@@ -354,7 +342,11 @@ void dyn_time_histogram::ingest_packet(const packet_info &pi)
 
 void dyn_time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
-    select_best_fit().render(cr, bounds);
+    time_histogram best_fit = select_best_fit();
+
+    best_fit.parent = parent;
+
+    best_fit.render(cr, bounds);
 }
 
 void dyn_time_histogram::render(const std::string &outdir)

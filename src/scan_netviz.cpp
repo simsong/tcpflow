@@ -9,11 +9,10 @@
 #include "netviz/one_page_report.h"
 #include "netviz/time_histogram.h"
 
-one_page_report th_one_page(one_page_report::default_config);
+one_page_report th_one_page;
 
 void th_startup()
 {
-    th_one_page = one_page_report(one_page_report::default_config);
 }
 
 void th_process_packet(void *user,const packet_info &pi)
