@@ -33,20 +33,20 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
                CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, font_size_title);
     cairo_set_source_rgb(cr, 0, 0, 0);
-    cairo_text_extents(cr, title, &title_extents);
+    cairo_text_extents(cr, title.c_str(), &title_extents);
     // Is the title too wide?
     double title_max_width = bounds.width * title_max_width_ratio;
     if(title_extents.width > title_max_width) {
         // scale the font size accordingly
         font_size_title *= title_max_width / title_extents.width;
         cairo_set_font_size(cr, font_size_title);
-        cairo_text_extents(cr, title, &title_extents);
+        cairo_text_extents(cr, title.c_str(), &title_extents);
     }
     // derive subtitle size and measure
     double font_size_subtitle = font_size_title *
         subtitle_font_size_factor;
     cairo_set_font_size(cr, font_size_subtitle);
-    cairo_text_extents(cr, subtitle, &subtitle_extents);
+    cairo_text_extents(cr, subtitle.c_str(), &subtitle_extents);
     double intertitle_padding = subtitle_extents.height *
         subtitle_y_pad_factor;
     cairo_set_font_size(cr, font_size_title);
@@ -58,14 +58,14 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     cairo_move_to(cr, (bounds.width - title_extents.width) / 2.0,
           title_extents.height +
           (title_padded_height - title_extents.height) / 2);
-    cairo_show_text(cr, title);
+    cairo_show_text(cr, title.c_str());
     // render subtitle text
     cairo_set_font_size(cr, font_size_subtitle);
     cairo_move_to(cr, (bounds.width - subtitle_extents.width) / 2.0,
           ((title_padded_height - title_extents.height) / 2) +
           title_extents.height + intertitle_padding +
           subtitle_extents.height);
-    cairo_show_text(cr, subtitle);
+    cairo_show_text(cr, subtitle.c_str());
 
     // render ticks
 

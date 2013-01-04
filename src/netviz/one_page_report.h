@@ -11,7 +11,7 @@
 class one_page_report {
 public:
     std::string source_identifier;
-    const char *filename;
+    std::string filename;
     plot::bounds_t bounds;
     double header_font_size;
 

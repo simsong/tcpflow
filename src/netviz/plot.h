@@ -55,9 +55,9 @@ public:
         double height;
     };
 
-    const char *filename;
-    const char *title;
-    const char *subtitle;
+    std::string filename;
+    std::string title;
+    std::string subtitle;
     // width and height are in pt
     double width;
     double height;
