@@ -384,7 +384,7 @@ int main(int argc, char *argv[])
 	case 'v': debug = 10; break;
 	case 'x': scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
-	case 'Z': demux.opt.opt_gzip_decompress = 0; break;
+	case 'Z': demux.opt.gzip_decompress = 0; break;
 	case 'H':
             info_scanners(true,scanners_builtin,'E','x');
             didhelp = true;

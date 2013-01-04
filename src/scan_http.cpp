@@ -193,6 +193,8 @@ int scan_http_cbo::on_header_value(const char *at, size_t length)
 
 int scan_http_cbo::on_headers_complete()
 {
+    tcpdemux *demux = tcpdemux::getInstance();
+
     /* Add the most recently read header to the map, if any */
     if (last_on_header==VALUE) {
         headers[header_field] = header_value;
@@ -218,7 +220,7 @@ int scan_http_cbo::on_headers_complete()
     /* Choose an output function based on the content encoding */
     std::string content_encoding(headers["content-encoding"]);
 
-    if (content_encoding == "gzip" || content_encoding == "deflate") {
+    if ((content_encoding == "gzip" || content_encoding == "deflate") && (demux->opt.gzip_decompress)){
 #ifdef HAVE_LIBZ
         DEBUG(10) ( "%s: detected zlib content, decompressing", output_path.c_str());
         unzip = true;
@@ -230,7 +232,7 @@ int scan_http_cbo::on_headers_complete()
     } 
         
     /* Open the output path */
-    fd = tcpdemux::getInstance()->retrying_open(output_path.c_str(), O_WRONLY|O_CREAT|O_BINARY|O_TRUNC, 0644);
+    fd = demux->retrying_open(output_path.c_str(), O_WRONLY|O_CREAT|O_BINARY|O_TRUNC, 0644);
     if (fd < 0) {
         DEBUG(1) ("unable to open HTTP body file %s", output_path.c_str());
     }

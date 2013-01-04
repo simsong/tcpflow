@@ -62,7 +62,7 @@ public:
     public:;
         enum { MAX_SEEK=1024*1024*16 };
         options():console_output(false),store_output(true),opt_md5(false),
-                  post_processing(false),opt_gzip_decompress(true),
+                  post_processing(false),gzip_decompress(true),
                   max_bytes_per_flow(),
                   max_desired_fds(),max_flows(0),suppress_header(0),
                   strip_nonprint(),use_color(0),max_seek(MAX_SEEK){
@@ -71,7 +71,7 @@ public:
         bool    store_output;   // do we output?
         bool    opt_md5;                // do we calculate MD5 on DFXML output?
         bool    post_processing;        // decode headers after tcp connection closes
-        bool    opt_gzip_decompress;
+        bool    gzip_decompress;
         uint64_t max_bytes_per_flow;
         uint32_t max_desired_fds;
         uint32_t max_flows;
