@@ -10,8 +10,7 @@
 
 #include "config.h"
 #include "tcpflow.h"
-#include "net_ip.h"
-#include "net_tcp.h"
+#include "tcpip.h"
 
 #include <math.h>
 #include <iomanip>
@@ -96,7 +95,16 @@ void time_histogram::ingest_packet(const packet_info &pi)
 
     bucket_t *target_bucket = &buckets.at(target_index);
 
-    switch(net_tcp::get_port(pi)) {
+    struct tcphdr segment_header;
+    const uint8_t *segment_data;
+    uint64_t segment_data_len;
+    if(!tcpip::tcp_from_ip_bytes(pi.data, pi.caplen, segment_header, segment_data, segment_data_len)) {
+        return;
+    }
+
+    uint16_t port = ntohs(segment_header.th_sport);
+
+    switch(port) {
     case PORT_HTTP:
     case PORT_HTTP_ALT_0:
     case PORT_HTTP_ALT_1:
@@ -108,10 +116,6 @@ void time_histogram::ingest_packet(const packet_info &pi)
 	break;
     case PORT_HTTPS:
 	target_bucket->https++;
-	break;
-    case -1:
-	// get_tcp_port() returns -1 for any error, including if
-	// there isn't a TCP segment in the packet
 	break;
     default:
 	target_bucket->other++;

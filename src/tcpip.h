@@ -18,6 +18,31 @@ typedef uint32_t in_addr_t;
 #ifndef HAVE_SA_FAMILY_T
 typedef unsigned short int sa_family_t;
 #endif
+
+/*
+ * IPv6 header structure
+ */
+struct private_in6_addr {		// our own private ipv6 definition
+    union {
+	uint8_t   __u6_addr8[16];
+	uint16_t  __u6_addr16[8];
+	uint32_t  __u6_addr32[4];
+    } __u6_addr;                    /* 128-bit IP6 address */
+};
+struct private_ip6_hdr {
+    union {
+	struct ip6_hdrctl {
+	    uint32_t ip6_un1_flow;	/* 20 bits of flow-ID */
+	    uint16_t ip6_un1_plen;	/* payload length */
+	    uint8_t  ip6_un1_nxt;	/* next header */
+	    uint8_t  ip6_un1_hlim;	/* hop limit */
+	} ip6_un1;
+	uint8_t ip6_un2_vfc;	/* 4 bits version, top 4 bits class */
+    } ip6_ctlun;
+    struct private_in6_addr ip6_src;	/* source address */
+    struct private_in6_addr ip6_dst;	/* destination address */
+} __attribute__((__packed__));
+
 #ifndef HAVE_TCP_SEQ
 #ifdef WIN32
 #define __LITTLE_ENDIAN 1234
@@ -227,6 +252,14 @@ public:;
 /*
  * Convenience class for working with TCP headers
  */
+#define PORT_HTTP 80
+#define PORT_HTTP_ALT_0 8080
+#define PORT_HTTP_ALT_1 8000
+#define PORT_HTTP_ALT_2 8888
+#define PORT_HTTP_ALT_3 81
+#define PORT_HTTP_ALT_4 82
+#define PORT_HTTP_ALT_5 8090
+#define PORT_HTTPS 443
 class tcp_header_t {
 public:
 #pragma GCC diagnostic ignored "-Wcast-align"
@@ -346,6 +379,16 @@ public:;
     uint32_t seen_bytes();
     void dump_seen();
     void dump_xml(class xml *xmlreport,const std::string &xmladd);
+
+    /* Helper methods */
+    static bool tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
+            const uint8_t *&payload, uint64_t &payload_len);
+    static bool tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
+            const uint8_t *&payload, uint64_t &payload_len);
+    static bool ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip &ip,
+            const uint8_t *&payload, uint64_t &payload_len);
+    static bool ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct private_ip6_hdr &ip,
+            const uint8_t *&payload, uint64_t &payload_len);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {

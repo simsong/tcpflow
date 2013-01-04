@@ -58,7 +58,6 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
 	$(NETVIZ) \
-	net_tcp.cpp \
 	$(BE13_API) \
 	http-parser/http_parser.c \
 	mime_map.cpp

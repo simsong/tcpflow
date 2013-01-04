@@ -407,5 +407,115 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 /* Note --- Turn off warning so that creating the seen() map doesn't throw an error */
 //#pragma GCC diagnostic ignored "-Weffc++"
 
+/*
+ * byte-parsing helper functions
+ */
+bool tcpip::tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
+        const uint8_t *&payload, uint64_t &payload_len)
+{
+    if(len < sizeof(struct tcphdr)) {
+        return false;
+    }
 
+    const struct tcphdr *tcp_header = (struct tcphdr *) bytes;
 
+    uint64_t header_len = tcp_header->th_off * 4;
+    if(len > header_len) {
+        payload = bytes + header_len;
+    }
+    else {
+        payload = NULL;
+    }
+
+    tcp = *tcp_header;
+
+    return true;
+}
+
+bool tcpip::tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
+        const uint8_t *&payload, uint64_t &payload_len)
+{
+    struct ip ip4;
+    struct private_ip6_hdr ip6;
+    uint64_t tcp_len = 0;
+    const uint8_t *tcp_bytes;
+
+    if(ip4_from_bytes(bytes, len, ip4, tcp_bytes, tcp_len)) {
+        if(ip4.ip_p != IPPROTO_TCP) {
+            return false;
+        }
+    }
+    else if(ip6_from_bytes(bytes, len, ip6, tcp_bytes, tcp_len)) {
+        if(ip6.ip6_ctlun.ip6_un1.ip6_un1_nxt != IPPROTO_TCP) {
+            return false;
+        }
+    }
+    else {
+        return false;
+    }
+
+    if(!tcp_from_bytes(tcp_bytes, tcp_len, tcp, payload, payload_len)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool tcpip::ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip &ip,
+    const uint8_t *&payload, uint64_t &payload_len)
+{
+    if(len < sizeof(struct ip)) {
+        return false;
+    }
+
+    const struct ip *ip_header = (struct ip *) bytes;
+
+    if(ip_header->ip_v != 4) {
+        return false;
+    }
+
+    uint64_t header_len = ip_header->ip_hl * 4;
+    if(len > header_len) {
+        payload = bytes + header_len;
+        payload_len = len - header_len;
+    }
+    else {
+        payload = NULL;
+        payload_len = 0;
+    }
+
+    ip = *ip_header;
+
+    return true;
+}
+
+bool tcpip::ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct private_ip6_hdr &ip,
+        const uint8_t *&payload, uint64_t &payload_len)
+{
+    if(len < sizeof(private_ip6_hdr)) {
+        return false;
+    }
+
+    const struct ip *ip_header = (struct ip *) bytes;
+
+    if(ip_header->ip_v != 6) {
+        return false;
+    }
+
+    const struct private_ip6_hdr *ip6_header = (struct private_ip6_hdr *) bytes;
+
+    uint64_t header_len = sizeof(private_ip6_hdr);
+
+    if(len > header_len) {
+        payload = bytes + header_len;
+        payload_len = len - header_len;
+    }
+    else {
+        payload = NULL;
+        payload_len = 0;
+    }
+
+    ip = *ip6_header;
+
+    return true;
+}

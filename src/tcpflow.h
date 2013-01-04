@@ -214,13 +214,6 @@ typedef size_t socklen_t;
 #define IN6_IS_ADDR_V4COMPAT(x) 0
 #endif
 
-struct private_in6_addr {		// our own private ipv6 definition
-    union {
-	uint8_t   __u6_addr8[16];
-	uint16_t  __u6_addr16[8];
-	uint32_t  __u6_addr32[4];
-    } __u6_addr;                    /* 128-bit IP6 address */
-};
 #undef s6_addr
 #define s6_addr			__u6_addr.__u6_addr8
 
