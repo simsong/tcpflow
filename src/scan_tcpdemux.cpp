@@ -20,6 +20,8 @@
 #include "bulk_extractor_i.h"
 
 
+/** callback called by process_packet_info()
+ */ 
 static void packet_handler(void *user,const packet_info &pi)
 {
     reinterpret_cast<tcpdemux *>(user)->process_ip(pi);

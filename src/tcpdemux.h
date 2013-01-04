@@ -124,12 +124,15 @@ public:
     void  save_flow(tcpip *);
     void  saved_flow_remove_oldest_if_necessary();
 
-    /* packet processing */
-    void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
-                      const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
-    void  process_ip4(const packet_info &pi);
-    void  process_ip6(const packet_info &pi);
-    void  process_ip(const packet_info &pi);
+    /** packet processing.
+     * Each returns 0 if processed, 1 if not processed, -1 if error.
+     */
+    int  process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
+                     const u_char *tcp_data, uint32_t tcp_length,
+                     const packet_info &pi);
+    int  process_ip4(const packet_info &pi);
+    int  process_ip6(const packet_info &pi);
+    int  process_ip(const packet_info &pi);
 };
 
 #endif
