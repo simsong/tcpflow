@@ -35,6 +35,8 @@
 #  define z_stream void *               // prevents z_stream from generating an error
 #endif
 
+#define MIN_HTTP_BUFSIZE 80             // don't bother parsing smaller than this
+
 
 /* define a callback object for sharing state between scan_http() and its callbacks
  */
@@ -366,7 +368,7 @@ int scan_http_cbo::on_message_complete()
     } else {
         /* Nothing written; erase the file */
         if(output_path.size() > 0){
-            std::cerr << "unlink " << output_path << "\n";
+            //std::cerr << "unlink " << output_path << "\n";
             ::unlink(output_path.c_str());
         }
     }
@@ -406,7 +408,7 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
 
     if(sp.phase==scanner_params::scan){
         /* See if there is an HTTP response */
-        if(sp.sbuf.memcmp(reinterpret_cast<const uint8_t *>("HTTP/1."),0,7)==0){
+        if(sp.sbuf.bufsize>=MIN_HTTP_BUFSIZE && sp.sbuf.memcmp(reinterpret_cast<const uint8_t *>("HTTP/1."),0,7)==0){
             /* Smells enough like HTTP to try parsing */
             /* Set up callbacks */
             http_parser_settings scan_http_parser_settings;
