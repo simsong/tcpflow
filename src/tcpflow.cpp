@@ -90,8 +90,7 @@ static void usage()
         std::cout << "   -V: print version number and exit\n";
         std::cout << "   -o  outdir   : specify output directory (default '.')\n";
         std::cout << "   -X  filename : DFXML output to filename\n";
-        std::cout << "   -m  bytes    : specifies the minimum number of bytes that a stream may\n";
-        std::cout << "  skip before starting a new stream (default "
+        std::cout << "   -m  bytes    : specifies skip that starts a new stream (default "
                   << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
         std::cout << "   -Fc : append the connection counter to ALL filenames\n";
         std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
