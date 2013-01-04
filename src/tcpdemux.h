@@ -127,9 +127,9 @@ public:
     /* packet processing */
     void  process_tcp(const struct timeval &ts,const u_char *data, uint32_t length,
                       const ipaddr &src, const ipaddr &dst,int32_t vlan,sa_family_t family);
-    void  process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
-    void  process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan);
-    void  process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan);
+    void  process_ip4(const packet_info &pi);
+    void  process_ip6(const packet_info &pi);
+    void  process_ip(const packet_info &pi);
 };
 
 #endif

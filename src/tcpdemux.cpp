@@ -461,21 +461,21 @@ void tcpdemux::process_tcp(const struct timeval &ts,const u_char *data, uint32_t
  *
  * Note: we currently don't know how to handle IP fragments. */
 #pragma GCC diagnostic ignored "-Wcast-align"
-void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
+void tcpdemux::process_ip4(const packet_info &pi)
 {
-    const struct ip *ip_header = (struct ip *) data;
+    const struct ip *ip_header = (struct ip *) pi.data;
     u_int ip_header_len;
     u_int ip_total_len;
 
     /* make sure that the packet is at least as long as the min IP header */
-    if (caplen < sizeof(struct ip)) {
+    if (pi.caplen < sizeof(struct ip)) {
 	DEBUG(6) ("received truncated IP datagram!");
 	return;
     }
 
-    DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)caplen,(int)vlan,(int)ip_header->ip_p);
+    DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)pi.caplen,(int)pi.vlan,(int)ip_header->ip_p);
     if(debug>200){
-	sbuf_t sbuf(pos0_t(),(const uint8_t *)data,caplen,caplen,false);
+	sbuf_t sbuf(pos0_t(),(const uint8_t *)pi.data,pi.caplen,pi.caplen,false);
 	sbuf.hex_dump(std::cerr);
     }
 
@@ -490,9 +490,9 @@ void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t
      * beyond the end of the packet (e.g. ethernet padding).
      */
     ip_total_len = ntohs(ip_header->ip_len);
-    if (caplen < ip_total_len) {
+    if (pi.caplen < ip_total_len) {
 	DEBUG(6) ("warning: captured only %ld bytes of %ld-byte IP datagram",
-		  (long) caplen, (long) ip_total_len);
+		  (long) pi.caplen, (long) ip_total_len);
     }
 
     /* XXX - throw away everything but fragment 0; this version doesn't
@@ -513,10 +513,10 @@ void tcpdemux::process_ip4(const struct timeval &ts,const u_char *data, uint32_t
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    process_tcp(ts,data + ip_header_len, ip_total_len - ip_header_len,
+    process_tcp(pi.ts,pi.data + ip_header_len, ip_total_len - ip_header_len,
 		ipaddr(ip_header->ip_src.s_addr),
 		ipaddr(ip_header->ip_dst.s_addr),
-		vlan,AF_INET);
+		pi.vlan,AF_INET);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
@@ -555,17 +555,16 @@ struct private_ip6_hdr {
 #define ip6_hlim	ip6_ctlun.ip6_un1.ip6_un1_hlim
 #define ip6_hops	ip6_ctlun.ip6_un1.ip6_un1_hlim
 
-void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const uint32_t caplen, const int32_t vlan)
+void tcpdemux::process_ip6(const packet_info &pi)
 {
-    const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) data;
+    const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) pi.data;
     u_int16_t ip_payload_len;
 
     /* make sure that the packet is at least as long as the IPv6 header */
-    if (caplen < sizeof(struct private_ip6_hdr)) {
+    if (pi.caplen < sizeof(struct private_ip6_hdr)) {
 	DEBUG(6) ("received truncated IPv6 datagram!");
 	return;
     }
-
 
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip6_nxt != IPPROTO_TCP) {
@@ -583,12 +582,12 @@ void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const ui
 
     /* do TCP processing */
 
-    process_tcp(ts,
-		data + sizeof(struct private_ip6_hdr),
+    process_tcp(pi.ts,
+		pi.data + sizeof(struct private_ip6_hdr),
 		ip_payload_len,
 		ipaddr(ip_header->ip6_src.s6_addr),
 		ipaddr(ip_header->ip6_dst.s6_addr),
-		vlan,AF_INET6);
+		pi.vlan,AF_INET6);
 }
 
 
@@ -598,18 +597,18 @@ void tcpdemux::process_ip6(const struct timeval &ts,const u_char *data, const ui
  */
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-void tcpdemux::process_ip(const struct timeval &ts,const u_char *data, uint32_t caplen,int32_t vlan)
+void tcpdemux::process_ip(const packet_info &pi)
 {
-    const struct ip *ip_header = (struct ip *) data;
-    if (caplen < sizeof(struct ip)) {
+    const struct ip *ip_header = (struct ip *) pi.data;
+    if (pi.caplen < sizeof(struct ip)) {
 	DEBUG(6) ("can't determine IP datagram version!");
 	return;
     }
 
     if(ip_header->ip_v == 6) {
-	process_ip6(ts,data, caplen,vlan);
+	process_ip6(pi);
     } else {
-	process_ip4(ts,data, caplen,vlan);
+	process_ip4(pi);
     }
 }
 #pragma GCC diagnostic warning "-Wcast-align"

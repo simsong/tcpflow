@@ -57,6 +57,7 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
+	pcap_writer.h \
 	$(NETVIZ) \
 	net_tcp.cpp \
 	$(BE13_API) \
