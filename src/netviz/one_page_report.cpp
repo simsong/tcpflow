@@ -46,6 +46,18 @@ one_page_report::one_page_report() :
     bandwidth_histogram.parent.y_tick_font_size = 6.0;
     bandwidth_histogram.parent.x_tick_font_size = 6.0;
     bandwidth_histogram.parent.legend_font_size = 5.0;
+
+    pfall.parent.title = "";
+    pfall.parent.subtitle = "";
+
+    dst_addr_histogram.parent.title = "Top Outbound Addresses";
+    dst_addr_histogram.parent.subtitle = "";
+    src_addr_histogram.parent.title = "Top Inbound Addresses";
+    src_addr_histogram.parent.subtitle = "";
+    dst_port_histogram.parent.title = "Top Outbound Ports";
+    dst_port_histogram.parent.subtitle = "";
+    src_port_histogram.parent.title = "Top Inbound Ports";
+    src_port_histogram.parent.subtitle = "";
 }
 
 void one_page_report::ingest_packet(const packet_info &pi)
