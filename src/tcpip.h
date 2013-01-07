@@ -252,7 +252,6 @@ public:;
     static void usage();			// print information on flow notation
     static std::string filename_template;	// 
     static std::string outdir;                  // where the output gets written
-    static const int32_t NO_VLAN=-1;            // vlan flag for no vlan 
     flow():id(),vlan(),tstart(),tlast(),packet_count(){};
     flow(const flow_addr &flow_addr_,int32_t vlan_,const struct timeval &t1,
 	 const struct timeval &t2,uint64_t id_):

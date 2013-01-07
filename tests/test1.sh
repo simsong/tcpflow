@@ -3,8 +3,6 @@
 # test to make sure that we can process the packets normally
 #
 
-/bin/rm -rf out
-
 case x"$srcdir" in 
   x)
     echo No srcdir specified. Assuming $0 is run locally
@@ -57,6 +55,7 @@ do
   DMPFILE=$DMPDIR/test$t.pcap
   echo checking $DMPFILE
   if ! [ -r $DMPFILE ] ; then echo $DMPFILE not found ; fi
+  /bin/rm -rf out
   cmd="$TCPFLOW -o out -X out/report.xml -r $DMPFILE"
   echo $cmd
   if ! $cmd; then echo tcpdump failed; exit 1 ; fi

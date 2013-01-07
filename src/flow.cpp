@@ -109,10 +109,10 @@ std::string flow::filename(uint32_t connection_count)
 		ss << tstart.tv_sec;
 		break;
 	    case 'V': // '--' if VLAN is present
-		if(vlan!=NO_VLAN) ss << "--";
+		if(vlan!=packet_info::NO_VLAN) ss << "--";
 		break;
 	    case 'v': // VLAN number if VLAN is present
-		if(vlan!=NO_VLAN) ss << vlan;
+		if(vlan!=packet_info::NO_VLAN) ss << vlan;
 		break;
 	    case 'C': // 'c' if connection_count >0
 		if(connection_count>0) ss << "c";

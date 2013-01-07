@@ -10,7 +10,8 @@
  *
  * This file contains datalink handlers which are called by the pcap callback.
  * The purpose of each handler is to make a packet_info() object and then call
- * process_packet_info.
+ * process_packet_info. The packet_info() object contains both the original
+ * MAC-layer (with some of the fields broken out) and the packet data layer.
  */
 
 #include "tcpflow.h"
@@ -28,6 +29,9 @@
 
 int32_t datalink_tdelta = 0;
 
+/**
+ * shift the time value, in line with what the user requested...
+ */
 inline timeval tvshift(const struct timeval &tv_)
 {
     struct timeval tv;
@@ -66,16 +70,30 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 #endif
-    packet_info pi(tvshift(h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN,packet_info::NO_VLAN,family);
+    packet_info pi(DLT_NULL,h,p,tvshift(h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
     process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
-
+#ifdef DLT_RAW
+/* DLT_RAW: just a raw IP packet, no encapsulation or link-layer
+ * headers.  Used for PPP connections under some OSs including Linux
+ * and IRIX. */
+void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+{
+    if (h->caplen != h->len) {
+	DEBUG(6) ("warning: only captured %d bytes of %d byte raw frame",
+		  h->caplen, h->len);
+    }
+    packet_info pi(DLT_RAW,h,p,tvshift(h->ts),p, h->caplen);
+    process_packet_info(pi);
+}
+#endif
 
 /* Ethernet datalink handler; used by all 10 and 100 mbit/sec
  * ethernet.  We are given the entire ethernet header so we check to
- * make sure it's marked as being IP. */
+ * make sure it's marked as being IP.
+ */
 #pragma GCC diagnostic ignored "-Wcast-align"
 void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
@@ -84,7 +102,6 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     struct ether_header *eth_header = (struct ether_header *) p;
 
     /* Variables to support VLAN */
-    int32_t vlan = packet_info::NO_VLAN;			       /* default is no vlan */
     const u_short *ether_type = &eth_header->ether_type; /* where the ether type is located */
     const u_char *ether_data = p+sizeof(struct ether_header); /* where the data is located */
 
@@ -95,7 +112,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     /* Handle basic VLAN packets */
     if (ntohs(*ether_type) == ETHERTYPE_VLAN) {
-	vlan = ntohs(*(u_short *)(p+sizeof(struct ether_header)));
+	//vlan = ntohs(*(u_short *)(p+sizeof(struct ether_header)));
 	ether_type += 2;			/* skip past VLAN header (note it skips by 2s) */
 	ether_data += 4;			/* skip past VLAN header */
 	caplen     -= 4;
@@ -107,32 +124,41 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* switch on ether type */
+    packet_info pi(DLT_IEEE802,h,p,tvshift(h->ts),ether_data, caplen - sizeof(struct ether_header));
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
+        process_packet_info(pi);
+        break;
+
 #ifdef ETHERTYPE_ARP
     case ETHERTYPE_ARP:
+        /* What should we do for ARP? */
+        break;
 #endif
 #ifdef ETHERTYPE_LOOPBACK
     case ETHERTYPE_LOOPBACK:
+        /* What do do for loopback? */
+        break;
 #endif
 #ifdef ETHERTYPE_REVARP
     case ETHERTYPE_REVARP:
-#endif
+        /* What to do for REVARP? */
         break;
+#endif
     default:
         /* Unknown Ethernet Frame Type */
         DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
 	break;
     }
-    packet_info pi(tvshift(h->ts),ether_data, caplen - sizeof(struct ether_header),vlan,ntohs(*ether_type));
-    process_packet_info(pi);
 }
+
 #pragma GCC diagnostic warning "-Wcast-align"
 
 /* The DLT_PPP packet header is 4 bytes long.  We just move past it
  * without parsing it.  It is used for PPP on some OSs (DLT_RAW is
- * used by others; see below) */
+ * used by others; see below)
+ */
 #define	PPP_HDRLEN 4
 
 void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
@@ -150,29 +176,13 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    packet_info pi(tvshift(h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN,packet_info::NO_VLAN);
+    packet_info pi(DLT_PPP,h,p,tvshift(h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
     process_packet_info(pi);
 }
 
 
-/* DLT_RAW: just a raw IP packet, no encapsulation or link-layer
- * headers.  Used for PPP connections under some OSs including Linux
- * and IRIX. */
-void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
-{
-    u_int caplen = h->caplen;
-    u_int length = h->len;
-
-    if (length != caplen) {
-	DEBUG(6) ("warning: only captured %d bytes of %d byte raw frame",
-		  caplen, length);
-    }
-    packet_info pi(tvshift(h->ts),p, caplen,packet_info::NO_VLAN);
-    process_packet_info(pi);
-}
-
+#ifdef DLT_LINUX_SLL
 #define SLL_HDR_LEN       16
-
 void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
     u_int caplen = h->caplen;
     u_int length = h->len;
@@ -187,31 +197,35 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
 	return;
     }
   
-    packet_info pi(tvshift(h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN,packet_info::NO_VLAN);
+    packet_info pi(DLT_LINUX_SLL,h,p,tvshift(h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
     process_packet_info(pi);
 }
+#endif
 
+
+/* List of callbacks for each data link type */
+typedef struct {
+    pcap_handler handler;
+    int type;
+} dlt_handlers;
+
+dlt_handlers handlers[] = {
+    { dl_null,	   DLT_NULL },
+#ifdef DLT_RAW /* older versions of libpcap do not have DLT_RAW */
+    { dl_raw,      DLT_RAW },
+#endif
+    { dl_ethernet, DLT_EN10MB },
+    { dl_ethernet, DLT_IEEE802 },
+    { dl_ppp,      DLT_PPP },
+#ifdef DLT_LINUX_SLL
+    { dl_linux_sll,DLT_LINUX_SLL },
+#endif
+    { NULL, 0 },
+};
 
 pcap_handler find_handler(int datalink_type, const char *device)
 {
     int i;
-
-    struct {
-	pcap_handler handler;
-	int type;
-    } handlers[] = {
-	{ dl_null,	DLT_NULL },
-#ifdef DLT_RAW /* older versions of libpcap do not have DLT_RAW */
-	{ dl_raw,	DLT_RAW },
-#endif
-	{ dl_ethernet,	DLT_EN10MB },
-	{ dl_ethernet,	DLT_IEEE802 },
-	{ dl_ppp,	DLT_PPP },
-#ifdef DLT_LINUX_SLL
-	{ dl_linux_sll, DLT_LINUX_SLL },
-#endif
-	{ NULL, 0 },
-    };
 
     DEBUG(3) ("looking for handler for datalink type %d for interface %s",
 	      datalink_type, device);
@@ -221,7 +235,6 @@ pcap_handler find_handler(int datalink_type, const char *device)
     }
 
     die("sorry - unknown datalink type %d on interface %s", datalink_type, device);
-    /* NOTREACHED */
-    return NULL;
+    return NULL;    /* NOTREACHED */
 }
 

@@ -110,20 +110,12 @@
 # include <net/if.h>
 #endif
 
-#ifdef HAVE_NET_ETHERNET_H
-# include <net/ethernet.h>		// for freebsd
-#endif
-
 #ifdef HAVE_NETINET_IN_H
 # include <netinet/in.h>
 #endif
 
 #ifdef HAVE_NETINET_IN_SYSTM_H
 # include <netinet/in_systm.h>
-#endif
-
-#ifdef HAVE_NETINET_IP_H
-# include <netinet/ip.h>
 #endif
 
 #ifdef HAVE_NETINET_IP6_H

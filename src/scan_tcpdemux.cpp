@@ -24,7 +24,7 @@
  */ 
 static void packet_handler(void *user,const packet_info &pi)
 {
-    reinterpret_cast<tcpdemux *>(user)->process_ip(pi);
+    reinterpret_cast<tcpdemux *>(user)->process_pkt(pi);
 }
 
 extern "C"

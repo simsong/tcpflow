@@ -59,9 +59,9 @@ void time_histogram::time_struct_to_string(const struct tm &time_struct,
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
-//
-// Rendering classes
-//
+/**
+ * callback which handles each packet.
+ */
 
 void time_histogram::ingest_packet(const packet_info &pi)
 {
@@ -88,7 +88,7 @@ void time_histogram::ingest_packet(const packet_info &pi)
     bucket_t *target_bucket = &buckets.at(target_index);
 
     struct tcp_seg tcp_segment;
-    if(!tcpip::tcp_from_ip_bytes(pi.data, pi.caplen, tcp_segment)) {
+    if(!tcpip::tcp_from_ip_bytes(pi.ip_data, pi.ip_datalen, tcp_segment)) {
         return;
     }
 

@@ -19,7 +19,7 @@ void port_histogram::ingest_packet(const packet_info &pi)
     struct tcp_seg tcp;
     std::stringstream ss;
 
-    if(!tcpip::tcp_from_ip_bytes(pi.data, pi.caplen, tcp)) {
+    if(!tcpip::tcp_from_ip_bytes(pi.ip_data, pi.ip_datalen, tcp)) {
         return;
     }
 
