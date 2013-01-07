@@ -87,14 +87,12 @@ void time_histogram::ingest_packet(const packet_info &pi)
 
     bucket_t *target_bucket = &buckets.at(target_index);
 
-    struct tcphdr segment_header;
-    const uint8_t *segment_data;
-    uint64_t segment_data_len;
-    if(!tcpip::tcp_from_ip_bytes(pi.data, pi.caplen, segment_header, segment_data, segment_data_len)) {
+    struct tcp_seg tcp_segment;
+    if(!tcpip::tcp_from_ip_bytes(pi.data, pi.caplen, tcp_segment)) {
         return;
     }
 
-    uint16_t port = ntohs(segment_header.th_sport);
+    uint16_t port = ntohs(tcp_segment.header->th_sport);
 
     switch(port) {
     case PORT_HTTP:

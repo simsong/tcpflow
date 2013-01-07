@@ -106,6 +106,25 @@ struct tcphdr {
     uint16_t th_urp;		/* urgent pointer */
 };
 #endif
+// convenience structs for entire PDU of TCP/IP protocols
+/*
+ * TCP segment
+ */
+struct tcp_seg {
+    const struct tcphdr *header;
+    const uint8_t *body;
+    uint64_t body_len;
+};
+struct ip4_dgram {
+    const struct ip *header;
+    const uint8_t *payload;
+    uint64_t payload_len;
+};
+struct ip6_dgram {
+    const struct private_ip6_hdr *header;
+    const uint8_t *payload;
+    uint64_t payload_len;
+};
 
 /**
  * ipaddress class.
@@ -381,14 +400,10 @@ public:;
     void dump_xml(class xml *xmlreport,const std::string &xmladd);
 
     /* Helper methods */
-    static bool tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
-            const uint8_t *&payload, uint64_t &payload_len);
-    static bool tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
-            const uint8_t *&payload, uint64_t &payload_len);
-    static bool ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip &ip,
-            const uint8_t *&payload, uint64_t &payload_len);
-    static bool ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct private_ip6_hdr &ip,
-            const uint8_t *&payload, uint64_t &payload_len);
+    static bool tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp);
+    static bool tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp);
+    static bool ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip4_dgram &ip);
+    static bool ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip6_dgram &ip);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {

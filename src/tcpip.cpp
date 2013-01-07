@@ -410,112 +410,111 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 /*
  * byte-parsing helper functions
  */
-bool tcpip::tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
-        const uint8_t *&payload, uint64_t &payload_len)
+bool tcpip::tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp)
 {
+    // bytes must be longer than the minimal TCP header
     if(len < sizeof(struct tcphdr)) {
         return false;
     }
 
-    const struct tcphdr *tcp_header = (struct tcphdr *) bytes;
+    tcp.header = (struct tcphdr *) bytes;
+    // TODO sanity check - possibly checksum based?
 
-    uint64_t header_len = tcp_header->th_off * 4;
+    // check for TCP body
+    uint64_t header_len = tcp.header->th_off * 4;
     if(len > header_len) {
-        payload = bytes + header_len;
+        tcp.body = bytes + header_len;
+        tcp.body_len = len - header_len;
     }
     else {
-        payload = NULL;
+        tcp.body = NULL;
+        tcp.body_len = 0;
     }
-
-    tcp = *tcp_header;
 
     return true;
 }
 
-bool tcpip::tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcphdr &tcp,
-        const uint8_t *&payload, uint64_t &payload_len)
+bool tcpip::tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp)
 {
-    struct ip ip4;
-    struct private_ip6_hdr ip6;
+    struct ip4_dgram ip4;
+    struct ip6_dgram ip6;
     uint64_t tcp_len = 0;
     const uint8_t *tcp_bytes;
 
-    if(ip4_from_bytes(bytes, len, ip4, tcp_bytes, tcp_len)) {
-        if(ip4.ip_p != IPPROTO_TCP) {
+    if(ip4_from_bytes(bytes, len, ip4)) {
+        if(ip4.header->ip_p != IPPROTO_TCP) {
             return false;
         }
+        tcp_bytes = ip4.payload;
+        tcp_len = ip4.payload_len;
     }
-    else if(ip6_from_bytes(bytes, len, ip6, tcp_bytes, tcp_len)) {
-        if(ip6.ip6_ctlun.ip6_un1.ip6_un1_nxt != IPPROTO_TCP) {
+    else if(ip6_from_bytes(bytes, len, ip6)) {
+        if(ip6.header->ip6_ctlun.ip6_un1.ip6_un1_nxt != IPPROTO_TCP) {
             return false;
         }
+        tcp_bytes = ip6.payload;
+        tcp_len = ip6.payload_len;
     }
     else {
         return false;
     }
 
-    if(!tcp_from_bytes(tcp_bytes, tcp_len, tcp, payload, payload_len)) {
-        return false;
-    }
-
-    return true;
+    return tcp_from_bytes(tcp_bytes, tcp_len, tcp);
 }
 
-bool tcpip::ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip &ip,
-    const uint8_t *&payload, uint64_t &payload_len)
+bool tcpip::ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip4_dgram &ip)
 {
+    // bytes must be longer than the minimal IPv4 header
     if(len < sizeof(struct ip)) {
         return false;
     }
 
-    const struct ip *ip_header = (struct ip *) bytes;
+    ip.header = (struct ip *) bytes;
 
-    if(ip_header->ip_v != 4) {
+    if(ip.header->ip_v != 4) {
         return false;
     }
 
-    uint64_t header_len = ip_header->ip_hl * 4;
+    // check for IP payload
+    uint64_t header_len = ip.header->ip_hl * 4;
     if(len > header_len) {
-        payload = bytes + header_len;
-        payload_len = len - header_len;
+        ip.payload = bytes + header_len;
+        ip.payload_len = len - header_len;
     }
     else {
-        payload = NULL;
-        payload_len = 0;
+        ip.payload = NULL;
+        ip.payload_len = 0;
     }
-
-    ip = *ip_header;
 
     return true;
 }
 
-bool tcpip::ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct private_ip6_hdr &ip,
-        const uint8_t *&payload, uint64_t &payload_len)
+bool tcpip::ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip6_dgram &ip)
 {
+    // bytes must be longer than the minimal IPv4 header
     if(len < sizeof(private_ip6_hdr)) {
         return false;
     }
 
+    // check for expected IP version
     const struct ip *ip_header = (struct ip *) bytes;
-
     if(ip_header->ip_v != 6) {
         return false;
     }
 
-    const struct private_ip6_hdr *ip6_header = (struct private_ip6_hdr *) bytes;
+    ip.header = (struct private_ip6_hdr *) bytes;
 
+    // TODO account for nested headers?
     uint64_t header_len = sizeof(private_ip6_hdr);
 
     if(len > header_len) {
-        payload = bytes + header_len;
-        payload_len = len - header_len;
+        ip.payload = bytes + header_len;
+        ip.payload_len = len - header_len;
     }
     else {
-        payload = NULL;
-        payload_len = 0;
+        ip.payload = NULL;
+        ip.payload_len = 0;
     }
-
-    ip = *ip6_header;
 
     return true;
 }
