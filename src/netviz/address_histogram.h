@@ -3,6 +3,7 @@
 
 #include "render.h"
 #include "plot.h"
+#include "count_histogram.h"
 
 class address_histogram {
 public:
@@ -11,19 +12,13 @@ public:
     } relationship_t;
 
     address_histogram() :
-        parent(), relationship(SND_OR_RCV), bar_space_factor(1.2), max_bars(10),
-        address_counts() {};
+        parent_count_histogram(), relationship(SND_OR_RCV) {}
 
     void ingest_packet(const packet_info &pi);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
 
-    plot parent;
+    count_histogram parent_count_histogram;
     relationship_t relationship;
-    double bar_space_factor;
-    int max_bars;
-
-private:
-    std::map<std::string, uint64_t> address_counts;
 };
 
 #endif

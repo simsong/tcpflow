@@ -51,17 +51,17 @@ one_page_report::one_page_report() :
     pfall.parent.subtitle = "";
 
     dst_addr_histogram.relationship = address_histogram::RECEIVER;
-    dst_addr_histogram.parent.title = "Top Outbound Addresses";
-    dst_addr_histogram.parent.subtitle = "";
+    dst_addr_histogram.parent_count_histogram.parent_plot.title = "Top Outbound Addresses";
+    dst_addr_histogram.parent_count_histogram.parent_plot.subtitle = "";
     src_addr_histogram.relationship = address_histogram::SENDER;
-    src_addr_histogram.parent.title = "Top Inbound Addresses";
-    src_addr_histogram.parent.subtitle = "";
+    src_addr_histogram.parent_count_histogram.parent_plot.title = "Top Inbound Addresses";
+    src_addr_histogram.parent_count_histogram.parent_plot.subtitle = "";
     dst_port_histogram.relationship = port_histogram::RECEIVER;
-    dst_port_histogram.parent.title = "Top Outbound Ports";
-    dst_port_histogram.parent.subtitle = "";
+    dst_port_histogram.parent_count_histogram.parent_plot.title = "Top Outbound Ports";
+    dst_port_histogram.parent_count_histogram.parent_plot.subtitle = "";
     src_port_histogram.relationship = port_histogram::SENDER;
-    src_port_histogram.parent.title = "Top Inbound Ports";
-    src_port_histogram.parent.subtitle = "";
+    src_port_histogram.parent_count_histogram.parent_plot.title = "Top Inbound Ports";
+    src_port_histogram.parent_count_histogram.parent_plot.subtitle = "";
 }
 
 void one_page_report::ingest_packet(const packet_info &pi)

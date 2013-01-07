@@ -37,6 +37,8 @@ BE13_API = \
 NETVIZ = \
 	netviz/plot.cpp \
 	netviz/plot.h \
+	netviz/count_histogram.cpp \
+	netviz/count_histogram.h \
 	netviz/time_histogram.cpp \
 	netviz/time_histogram.h \
 	netviz/address_histogram.cpp \

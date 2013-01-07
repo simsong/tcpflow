@@ -3,6 +3,7 @@
 
 #include "plot.h"
 #include "time_histogram.h"
+#include "count_histogram.h"
 #include "address_histogram.h"
 #include "port_histogram.h"
 #include "packetfall.h"
