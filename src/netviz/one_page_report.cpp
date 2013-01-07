@@ -70,8 +70,8 @@ void one_page_report::ingest_packet(const packet_info &pi)
     }
 
     packet_count++;
-    byte_count += pi.caplen;
-    transport_counts[pi.family]++;
+    byte_count += pi.pcap_hdr->caplen;
+    transport_counts[pi.ether_type()]++; // should we handle VLANs?
 
     bandwidth_histogram.ingest_packet(pi);
     src_addr_histogram.ingest_packet(pi);
