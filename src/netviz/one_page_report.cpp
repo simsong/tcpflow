@@ -29,7 +29,7 @@ const double one_page_report::histogram_pad_factor_y = 1.2;
 const double one_page_report::address_histogram_width_divisor = 2.5;
 // size constants
 const double one_page_report::bandwidth_histogram_height = 100.0;
-const double one_page_report::address_histogram_height = 150.0;
+const double one_page_report::address_histogram_height = 100.0;
 
 one_page_report::one_page_report() : 
     source_identifier(), filename("one_page_report.pdf"),
@@ -50,12 +50,16 @@ one_page_report::one_page_report() :
     pfall.parent.title = "";
     pfall.parent.subtitle = "";
 
+    dst_addr_histogram.relationship = address_histogram::RECEIVER;
     dst_addr_histogram.parent.title = "Top Outbound Addresses";
     dst_addr_histogram.parent.subtitle = "";
+    src_addr_histogram.relationship = address_histogram::SENDER;
     src_addr_histogram.parent.title = "Top Inbound Addresses";
     src_addr_histogram.parent.subtitle = "";
+    dst_port_histogram.relationship = port_histogram::RECEIVER;
     dst_port_histogram.parent.title = "Top Outbound Ports";
     dst_port_histogram.parent.subtitle = "";
+    src_port_histogram.relationship = port_histogram::SENDER;
     src_port_histogram.parent.title = "Top Inbound Ports";
     src_port_histogram.parent.subtitle = "";
 }
