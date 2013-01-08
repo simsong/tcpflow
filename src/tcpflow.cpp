@@ -469,22 +469,20 @@ int main(int argc, char *argv[])
 	}
     }
 
+    std::string input_fname;
+    if(rfiles.size()>0) input_fname = rfiles.at(0);
+
     if(reportfilename.size()>0){
 	xreport = new xml(reportfilename,false);
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
     }
     if(opt_unk_packets.size()>0){
-        if(rfiles.size()==0){
+        if(input_fname.size()==0){
             std::cerr << "currently the -w option requires the -r option\n";
             exit(1);
         }
-        std::string ifile = rfiles.at(0);
-        if(access(ifile.c_str(),R_OK)!=0){
-            perror(ifile.c_str());
-            exit(1);
-        }
-        demux.save_unk_packets(opt_unk_packets,rfiles.at(0));
+        demux.save_unk_packets(opt_unk_packets,input_fname);
     }
 
     argc -= optind;
@@ -492,10 +490,9 @@ int main(int argc, char *argv[])
 
     DEBUG(10) ("%s version %s ", PACKAGE, VERSION);
 
-    std::string image_fname;		// input filename?
     feature_file_names_t feature_file_names;
     enable_feature_recorders(feature_file_names);
-    feature_recorder_set fs(feature_file_names,image_fname,demux.outdir,false);
+    feature_recorder_set fs(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir,false);
     the_fs   = &fs;
     demux.fs = &fs;
 
@@ -512,6 +509,7 @@ int main(int argc, char *argv[])
 #endif
 	demux.start_new_connections = true;
         process_infile(expression,device,"");
+        input_fname = device;
     }
     else {
 	/* first pick up the new connections with -r */
