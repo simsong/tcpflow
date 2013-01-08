@@ -474,7 +474,18 @@ int main(int argc, char *argv[])
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
     }
-    if(opt_unk_packets.size()>0) demux.save_unk_packets(rfiles.at(0),opt_unk_packets);
+    if(opt_unk_packets.size()>0){
+        if(rfiles.size()==0){
+            std::cerr << "currently the -w option requires the -r option\n";
+            exit(1);
+        }
+        std::string ifile = rfiles.at(0);
+        if(access(ifile.c_str(),R_OK)!=0){
+            perror(ifile.c_str());
+            exit(1);
+        }
+        demux.save_unk_packets(opt_unk_packets,rfiles.at(0));
+    }
 
     argc -= optind;
     argv += optind;
