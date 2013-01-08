@@ -9,21 +9,24 @@
 #include "netviz/one_page_report.h"
 #include "netviz/time_histogram.h"
 
-one_page_report th_one_page;
+one_page_report *th_one_page=0;
 
-void th_startup()
+static void th_startup()
 {
+    if(th_one_page==0) th_one_page = new one_page_report();
 }
 
-void th_process_packet(void *user,const packet_info &pi)
+static void th_process_packet(void *user,const packet_info &pi)
 {
-    th_one_page.ingest_packet(pi);
+    th_one_page->ingest_packet(pi);
 }
 
-void th_shutdown(const class scanner_params &sp)
+static void th_shutdown(const class scanner_params &sp)
 {
-    th_one_page.source_identifier = sp.fs.input_fname;
-    th_one_page.render(sp.fs.outdir);
+    th_one_page->source_identifier = sp.fs.input_fname;
+    th_one_page->render(sp.fs.outdir);
+    delete th_one_page;
+    th_one_page = 0;
 }
 
 

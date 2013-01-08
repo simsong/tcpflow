@@ -1,3 +1,7 @@
+2013-01-08  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/scan_netviz.cpp (th_shutdown): th_one_page is now lazily created and destroyed at end
+
 2013-01-03  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/tcpflow.cpp (main): opt_gzip_decompress renamed to gzip_decompress and implemented.

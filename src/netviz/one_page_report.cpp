@@ -32,7 +32,7 @@ const double one_page_report::bandwidth_histogram_height = 100.0;
 const double one_page_report::address_histogram_height = 100.0;
 
 one_page_report::one_page_report() : 
-    source_identifier(), filename("one_page_report.pdf"),
+    source_identifier(), filename("report.pdf"),
     bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
     packet_count(0), byte_count(0), earliest(), latest(),
     transport_counts(), bandwidth_histogram(), src_addr_histogram(),
@@ -187,6 +187,11 @@ void one_page_report::render_pass::render_header()
             ii != report.transport_counts.end(); ii++) {
         transport_total += ii->second;
     }
+  
+    // SLG - Although this is the C++ way to do formatting
+    // code is much simpler to view if you use sprintf(). That's what
+    // most people do.
+
     formatted.str(std::string());
     formatted << "Transports: " << "IPv4 " <<
         std::setprecision(2) << std::fixed <<
@@ -293,6 +298,13 @@ void one_page_report::render_pass::render_port_histograms()
 #endif
 }
 
+/* SLG - Should the prefixes be in a structure where the structure encodes both the
+   prefix and its multiplier? It seems that the position encodes the multiplier here,
+   but I would like to see that explicit. ALso the prefixes are "", "K", "M", etc,
+   the B is really not a prefix...
+*/
+   
+   
 std::vector<std::string> one_page_report::build_size_suffixes()
 {
     std::vector<std::string> v;

@@ -17,21 +17,20 @@
 void port_histogram::ingest_packet(const packet_info &pi)
 {
     struct tcp_seg tcp;
-    std::stringstream ss;
 
     if(!tcpip::tcp_from_ip_bytes(pi.ip_data, pi.ip_datalen, tcp)) {
         return;
     }
 
     if(relationship == SENDER || relationship == SND_OR_RCV) {
+        std::stringstream ss;
         ss << ntohs(tcp.header->th_sport);
         parent_count_histogram.increment(ss.str(), 1);
-        ss.str(std::string());
     }
     if(relationship == RECEIVER || relationship == SND_OR_RCV) {
+        std::stringstream ss;
         ss << ntohs(tcp.header->th_dport);
         parent_count_histogram.increment(ss.str(), 1);
-        ss.str(std::string());
     }
 }
 
