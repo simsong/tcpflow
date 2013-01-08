@@ -113,17 +113,17 @@ struct tcphdr {
 struct tcp_seg {
     const struct tcphdr *header;
     const uint8_t *body;
-    uint64_t body_len;
+    uint32_t body_len;
 };
 struct ip4_dgram {
     const struct ip *header;
     const uint8_t *payload;
-    uint64_t payload_len;
+    uint32_t payload_len;
 };
 struct ip6_dgram {
     const struct private_ip6_hdr *header;
     const uint8_t *payload;
-    uint64_t payload_len;
+    uint32_t payload_len;
 };
 
 /**
@@ -398,7 +398,7 @@ public:;
     void dump_seen();
     void dump_xml(class xml *xmlreport,const std::string &xmladd);
 
-    /* Helper methods */
+    /* Helper methods; these probably want to be moved to packet_info() */
     static bool tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp);
     static bool tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp);
     static bool ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip4_dgram &ip);

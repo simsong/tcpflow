@@ -17,6 +17,7 @@
  *                     and creates tcpip objects as required
  */
 
+#include "pcap_writer.h"
 #include "md5.h"
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
@@ -34,7 +35,7 @@ private:
             return "copying tcpdemux objects is not implemented.";
         }
     };
-    tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),
+    tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),pwriter(),
         max_fds(),flow_map(),open_flows(),saved_flow_map(),saved_flows(),start_new_connections(),opt(),fs(){
         throw new not_impl();
     }
@@ -57,6 +58,11 @@ private:
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
     tcpdemux();
 public:
+    virtual ~tcpdemux(){
+        if(xreport) delete xreport;
+        if(pwriter) delete pwriter;
+    }
+
     /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
     class options {
     public:;
@@ -85,6 +91,7 @@ public:
     uint64_t    flow_counter;           // how many flows have we seen?
     uint64_t    packet_counter;         // monotomically increasing 
     xml         *xreport;               // DFXML output file
+    pcap_writer *pwriter;               // where we should write packets
     unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux
 
     flow_map_t  flow_map;               // db of open tcpip objects, indexed by flow
@@ -100,7 +107,8 @@ public:
     static uint32_t max_saved_flows;       // how many saved flows are kept in the saved_flow_map
     static tcpdemux *getInstance();
 
-    void post_process(tcpip *tcp);      // just before closing; writes XML and closes fd
+    void  save_unk_packets(const std::string &wfname,const std::string &ifname); // save unknown packets at this location
+    void  post_process(tcpip *tcp);      // just before closing; writes XML and closes fd
 
     /* management of open fds and in-process tcpip flows*/
     void  close_all_fd();

@@ -123,7 +123,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    /* switch on ether type */
+    /* Create a packet_info structure with ip data and data length  */
     packet_info pi(DLT_IEEE802,h,p,tvshift(h->ts),ether_data, caplen - sizeof(struct ether_header));
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:

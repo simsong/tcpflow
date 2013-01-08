@@ -14,7 +14,6 @@
 #include "tcpflow.h"
 #include "tcpip.h"
 #include "tcpdemux.h"
-#include "pcap_writer.h"
 
 #include <iostream>
 #include <sstream>
@@ -25,7 +24,7 @@
 /* static */ uint32_t tcpdemux::max_saved_flows = 100;
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),max_fds(10),flow_map(),open_flows(),saved_flow_map(),
+		     xreport(0),pwriter(0),max_fds(10),flow_map(),open_flows(),saved_flow_map(),
 		     saved_flows(),start_new_connections(false),opt(),fs()
 		     
 {
@@ -249,6 +248,14 @@ unsigned int tcpdemux::get_max_fds(void)
     return max_descs;
 }
 
+
+/*
+ * open the packet save flow
+ */
+void tcpdemux::save_unk_packets(const std::string &ofname,const std::string &ifname)
+{
+    pwriter = pcap_writer::open_copy(ofname,ifname);
+}
 
 /**
  * save information on this flow needed to handle strangling packets
@@ -582,7 +589,6 @@ int tcpdemux::process_ip6(const packet_info &pi)
  */
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-pcap_writer *pw = 0;
 int tcpdemux::process_pkt(const packet_info &pi)
 {
     //if(pw==0) pw = new pcap_writer("test.pcap");

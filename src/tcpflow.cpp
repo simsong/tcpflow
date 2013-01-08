@@ -68,7 +68,7 @@ static void usage()
     case 1:
         std::cout << PACKAGE << " version " << VERSION << "\n\n";
         std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
-        std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-o outdir] [-X xmlfile]\n";
+        std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-w file] [-o outdir] [-X xmlfile]\n";
         std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
         std::cout << "   -a: do ALL post-processing.\n";
         std::cout << "   -b: max number of bytes per flow to save\n";
@@ -82,8 +82,9 @@ static void usage()
         std::cout << "   -i: network interface on which to listen\n";
         std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
         std::cout << "   -p: don't use promiscuous mode\n";
-        std::cout << "   -r: read packets from tcpdump pcap file (may be repeated)\n";
-        std::cout << "   -R: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
+        std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
+        std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
+        std::cout << "   -w file: write packets not processed to file\n";
         std::cout << "   -s: strip non-printable characters (change to '.')\n";
         std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
         std::cout << "   -v: verbose operation equivalent to -d 10\n";
@@ -280,6 +281,7 @@ int main(int argc, char *argv[])
     std::vector<std::string> rfiles;	// files to read
     tcpdemux &demux = *tcpdemux::getInstance();			// the demux object we will be using.
     std::string command_line = xml::make_command_line(argc,argv);
+    std::string opt_unk_packets;
 
     /* Set up debug system */
     progname = argv[0];
@@ -295,7 +297,7 @@ int main(int argc, char *argv[])
     }
 
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:pR:r:S:sT:Vvx:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -390,6 +392,7 @@ int main(int argc, char *argv[])
 	case 'T': flow::filename_template = optarg;break;
 	case 'V': std::cout << PACKAGE << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
+        case 'w': opt_unk_packets = optarg;break;
 	case 'x': scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
 	case 'Z': demux.opt.gzip_decompress = 0; break;
@@ -471,6 +474,7 @@ int main(int argc, char *argv[])
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
     }
+    if(opt_unk_packets.size()>0) demux.save_unk_packets(rfiles.at(0),opt_unk_packets);
 
     argc -= optind;
     argv += optind;

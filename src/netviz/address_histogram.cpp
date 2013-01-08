@@ -23,7 +23,7 @@ void address_histogram::ingest_packet(const packet_info &pi)
     std::stringstream ss;
 
     // IPv4?
-    if(tcpip::ip4_from_bytes(pi.data, pi.caplen, ip4)) {
+    if(tcpip::ip4_from_bytes(pi.ip_data, pi.ip_datalen, ip4)) {
         // recording source addresses?
         if(relationship == SENDER || relationship == SND_OR_RCV) {
             parent_count_histogram.increment(std::string(inet_ntoa(ip4.header->ip_src)), 1);
@@ -33,7 +33,7 @@ void address_histogram::ingest_packet(const packet_info &pi)
         }
     }
     // IPv6?
-    else if(tcpip::ip6_from_bytes(pi.data, pi.caplen, ip6)) {
+    else if(tcpip::ip6_from_bytes(pi.ip_data, pi.ip_datalen, ip6)) {
         ss.str(std::string());
         ss << std::hex << std::setfill('0');
         // recording source addresses?
