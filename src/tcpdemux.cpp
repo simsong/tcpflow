@@ -591,10 +591,6 @@ int tcpdemux::process_ip6(const packet_info &pi)
 #pragma GCC diagnostic ignored "-Wcast-align"
 int tcpdemux::process_pkt(const packet_info &pi)
 {
-    //if(pw==0) pw = new pcap_writer("test.pcap");
-
-    //pw->writepkt(pi.ts.tv_sec,pi.ts.tv_usec,pi.caplen,pi.caplen,pi.data);
-
     int r = 1;                          // not processed yet
     switch(pi.ip_version()){
     case 4: r = process_ip4(pi); break;
@@ -602,6 +598,7 @@ int tcpdemux::process_pkt(const packet_info &pi)
     }
     if(r!=0){                           // packet not processed?
         /* Write the packet if we didn't process it */
+        if(pwriter) pwriter->writepkt(pi.pcap_hdr,pi.pcap_data);
     }
     return r;     
 }

@@ -9,7 +9,9 @@
 class pcap_writer {
 private:
     class not_impl: public std::exception {
-	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
+	virtual const char *what() const throw() {
+            return "copying tcpip objects is not implemented.";
+        }
     };
     class write_error: public std::exception {
         virtual const char *what() const throw() {
@@ -53,6 +55,10 @@ private:
         if(f2==0) throw new write_error();
         char buf[PCAP_HEADER_SIZE];
         if(fread(buf,1,sizeof(buf),f2)!=sizeof(buf)) throw new write_error();
+        if(buf[0]!=0xd4 || buf[1]!=0xc3 || buf[2]!=0xb2 || buf[3]!=0xa1){
+            std::cerr << "pcap file " << ifname << " is in wrong byte order. Cannot continue.\n";
+            throw new write_error();
+        }
         if(fwrite(buf,1,sizeof(buf),fcap)!=sizeof(buf)) throw new write_error();
         if(fclose(f2)!=0) throw new write_error();
     }
@@ -78,15 +84,14 @@ public:
     virtual ~pcap_writer(){
         if(fcap) fclose(fcap);
     }
-    void writepkt(const uint32_t seconds,const uint32_t useconds,
-                  const size_t cap_len,const size_t pkt_len,const uint8_t *data) {
+    void writepkt(const struct pcap_pkthdr *h,const u_char *p) {
         /* Write a packet */
-        write4(seconds);		// time stamp, seconds avalue
-        write4(useconds);		// time stamp, microseconds
-        write4(cap_len);
-        write4(pkt_len);
-        size_t count = fwrite(data,1,cap_len,fcap);	// the packet
-        if(count!=cap_len) throw new write_error();
+        write4(h->ts.tv_sec);		// time stamp, seconds avalue
+        write4(h->ts.tv_usec);		// time stamp, microseconds
+        write4(h->caplen);
+        write4(h->len);
+        size_t count = fwrite(p,1,h->caplen,fcap);	// the packet
+        if(count!=h->caplen) throw new write_error();
     }
 };
     
