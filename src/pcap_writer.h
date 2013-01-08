@@ -53,9 +53,9 @@ private:
         /* assert byte order is correct */
         FILE *f2 = fopen(ifname.c_str(),"rb");
         if(f2==0) throw new write_error();
-        char buf[PCAP_HEADER_SIZE];
+        u_char buf[PCAP_HEADER_SIZE];
         if(fread(buf,1,sizeof(buf),f2)!=sizeof(buf)) throw new write_error();
-        if(buf[0]!=0xd4 || buf[1]!=0xc3 || buf[2]!=0xb2 || buf[3]!=0xa1){
+        if((buf[0]!=0xd4) || (buf[1]!=0xc3) || (buf[2]!=0xb2) || (buf[3]!=0xa1)){
             std::cerr << "pcap file " << ifname << " is in wrong byte order. Cannot continue.\n";
             throw new write_error();
         }
