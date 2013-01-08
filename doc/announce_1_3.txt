@@ -1,0 +1,11 @@
+I'm pleased to announce the release of tcpflow version 1.3.0.
+
+Key elements in 1.3.0 include:
+- Compiles with mingw32 and mingw64 for 32-bit and 64-bit windows. I am now
+distributing pre-compiled binaries of some releases.
+- Better support for DFXML (fixed some bugs)
+
+You can download version 1.3.0, both source and precompiled windows binaries,
+from:
+
+https://github.com/simsong/tcpflow/downloads

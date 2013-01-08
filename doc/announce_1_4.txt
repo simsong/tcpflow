@@ -1,0 +1,41 @@
+I'm pleased to announce the release of tcpflow version 1.4.0.
+
+Key elements in 1.4.0 include:
+
+Completely rewritten TCP implementation that:
+
+* Produces a one-page visualization (report.pdf) of the packets that
+  were analyzed.
+
+* New -w option writes a PCAP file of packets not processed by tcpflow.
+
+* Handles TCP flows larger than 4GiB
+
+* Handles TCP packets sent after a connection is closed. Such packets are
+  compared with the packets from the connection that were already
+  received. If the packets match, they are discarded as
+  retransmissions. If they do not match they are put in new transcript
+  files.
+
+* Automatically creates new directories as necessary for output
+  filenames that include forward slashes ("/").
+
+* -Fk option automatically bins up to a thousand flows in a thousand
+   directories in one directory layer, easily handling up to million
+   flows.
+
+* -Fm option automatically bins up to a thousand flows in a million
+   directories (two directory layers), easily handling up to billion flows.
+
+* -Fg option automatically bins up to a thousand flows in a billion
+   directories (three directory layers), easily handling up to trillion flows.
+
+* Better support for decoding and decompressing HTTP objects,
+  including multiple objects sent over a single HTTP stream.
+
+* Full support for the bulk_extractor plug-in system
+
+You can download version 1.3.0, both source and precompiled windows binaries,
+from:
+
+https://github.com/simsong/tcpflow/downloads
