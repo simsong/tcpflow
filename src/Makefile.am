@@ -14,7 +14,6 @@ BE13_API = \
 	be13_api/feature_recorder_set.h \
 	be13_api/md5.c \
 	be13_api/md5.h \
-	be13_api/packet_info.cpp \
 	be13_api/pcap_fake.h \
 	be13_api/pcap_fake.cpp \
 	be13_api/plugin.cpp\
