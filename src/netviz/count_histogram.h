@@ -10,13 +10,14 @@ public:
 
     count_histogram() :
         parent_plot(), bar_space_factor(1.2), max_bars(10),
-        bar_color(0.05, 0.33, 0.65),
-        counts() {};
+        bar_color(134.0 / 255.0, 134.0 / 255.0, 134.0 / 255.0),
+        counts(), count_sum(0), top_list(), top_list_dirty(false) {};
 
     void increment(std::string key, uint64_t delta);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render_bars(cairo_t *cr, const plot::bounds_t &bounds, const std::vector<count_pair> &bars);
-    std::vector<count_pair> build_port_list();
+    std::vector<count_pair> get_top_list();
+    uint64_t get_count_sum();
 
     plot parent_plot;
     double bar_space_factor;
@@ -29,7 +30,12 @@ public:
     };
 
 private:
+    void build_top_list();
+
     std::map<std::string, uint64_t> counts;
+    uint64_t count_sum;
+    std::vector<count_pair> top_list;
+    bool top_list_dirty;
 };
 
 #endif

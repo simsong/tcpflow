@@ -34,6 +34,7 @@ const double one_page_report::address_histogram_height = 100.0;
 one_page_report::one_page_report() : 
     source_identifier(), filename("report.pdf"),
     bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
+    top_list_font_size(8.0), histogram_show_top_n_text(3),
     packet_count(0), byte_count(0), earliest(), latest(),
     transport_counts(), bandwidth_histogram(), src_addr_histogram(),
     dst_addr_histogram(), src_port_histogram(), dst_port_histogram(),
@@ -50,18 +51,10 @@ one_page_report::one_page_report() :
     pfall.parent.title = "";
     pfall.parent.subtitle = "";
 
-    dst_addr_histogram.relationship = address_histogram::RECEIVER;
-    dst_addr_histogram.parent_count_histogram.parent_plot.title = "Top Outbound Addresses";
-    dst_addr_histogram.parent_count_histogram.parent_plot.subtitle = "";
-    src_addr_histogram.relationship = address_histogram::SENDER;
-    src_addr_histogram.parent_count_histogram.parent_plot.title = "Top Inbound Addresses";
-    src_addr_histogram.parent_count_histogram.parent_plot.subtitle = "";
-    dst_port_histogram.relationship = port_histogram::RECEIVER;
-    dst_port_histogram.parent_count_histogram.parent_plot.title = "Top Outbound Ports";
-    dst_port_histogram.parent_count_histogram.parent_plot.subtitle = "";
-    src_port_histogram.relationship = port_histogram::SENDER;
-    src_port_histogram.parent_count_histogram.parent_plot.title = "Top Inbound Ports";
-    src_port_histogram.parent_count_histogram.parent_plot.subtitle = "";
+    dst_addr_histogram.quick_config(address_histogram::DESTINATION, "Top Destination Addresses", "");
+    src_addr_histogram.quick_config(address_histogram::SOURCE, "Top Source Addresses", "");
+    dst_port_histogram.quick_config(port_histogram::DESTINATION, "Top Destination Ports", "");
+    src_port_histogram.quick_config(port_histogram::SOURCE, "Top Source Ports", "");
 }
 
 void one_page_report::ingest_packet(const packet_info &pi)
@@ -222,16 +215,25 @@ void one_page_report::render_pass::render_header()
 #endif
 }
 
-void one_page_report::render_pass::render_text_line(std::string text,
-        double font_size, double line_space)
+void one_page_report::render_pass::render_text(std::string text,
+        double font_size, double x_offset,
+        cairo_text_extents_t &rendered_extents)
 {
 #ifdef CAIRO_PDF_AVAILABLE
     cairo_set_font_size(surface, font_size);
     cairo_set_source_rgb(surface, 0.0, 0.0, 0.0);
-    cairo_text_extents_t extents;
-    cairo_text_extents(surface, text.c_str(), &extents);
-    cairo_move_to(surface, 0.0, end_of_content + extents.height);
+    cairo_text_extents(surface, text.c_str(), &rendered_extents);
+    cairo_move_to(surface, x_offset, end_of_content + rendered_extents.height);
     cairo_show_text(surface, text.c_str());
+#endif
+}
+
+void one_page_report::render_pass::render_text_line(std::string text,
+        double font_size, double line_space)
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    cairo_text_extents_t extents;
+    render_text(text, font_size, 0.0, extents);
     end_of_content += extents.height + line_space;
 #endif
 }
@@ -269,16 +271,26 @@ void one_page_report::render_pass::render_map()
 void one_page_report::render_pass::render_address_histograms()
 {
 #ifdef CAIRO_PDF_AVAILABLE
+    // histograms
     double width = surface_bounds.width / address_histogram_width_divisor;
 
-    plot::bounds_t bounds(0.0, end_of_content, width, address_histogram_height);
-    report.src_addr_histogram.render(surface, bounds);
+    plot::bounds_t left_bounds(0.0, end_of_content, width,
+            address_histogram_height);
+    report.src_addr_histogram.render(surface, left_bounds);
 
-    bounds = plot::bounds_t(surface_bounds.width - width, end_of_content,
+    plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
-    report.dst_addr_histogram.render(surface, bounds);
+    report.dst_addr_histogram.render(surface, right_bounds);
 
-    end_of_content += bounds.height * histogram_pad_factor_y;
+    end_of_content += max(left_bounds.height, right_bounds.height);
+
+    // text stats
+    vector<count_histogram::count_pair> left_list =
+        report.src_addr_histogram.parent_count_histogram.get_top_list();
+    vector<count_histogram::count_pair> right_list =
+        report.dst_addr_histogram.parent_count_histogram.get_top_list();
+
+    render_dual_histograms_top_n(left_list, right_list, left_bounds, right_bounds);
 #endif
 }
 
@@ -287,14 +299,52 @@ void one_page_report::render_pass::render_port_histograms()
 #ifdef CAIRO_PDF_AVAILABLE
     double width = surface_bounds.width / address_histogram_width_divisor;
 
-    plot::bounds_t bounds(0.0, end_of_content, width, address_histogram_height);
-    report.src_port_histogram.render(surface, bounds);
+    plot::bounds_t left_bounds(0.0, end_of_content, width,
+            address_histogram_height);
+    report.src_port_histogram.render(surface, left_bounds);
 
-    bounds = plot::bounds_t(surface_bounds.width - width, end_of_content,
+    plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
-    report.dst_port_histogram.render(surface, bounds);
+    report.dst_port_histogram.render(surface, right_bounds);
 
-    end_of_content += bounds.height * histogram_pad_factor_y;
+    end_of_content += max(left_bounds.height, right_bounds.height);
+
+    // text stats
+    vector<count_histogram::count_pair> left_list =
+        report.src_port_histogram.parent_count_histogram.get_top_list();
+    vector<count_histogram::count_pair> right_list =
+        report.dst_port_histogram.parent_count_histogram.get_top_list();
+
+    render_dual_histograms_top_n(left_list, right_list, left_bounds, right_bounds);
+#endif
+}
+
+void one_page_report::render_pass::render_dual_histograms_top_n(
+        const vector<count_histogram::count_pair> &left_list,
+        const vector<count_histogram::count_pair> &right_list,
+        const plot::bounds_t &left_hist_bounds,
+        const plot::bounds_t &right_hist_bounds)
+{
+#ifdef CAIRO_PDF_AVAILABLE
+    for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
+        cairo_text_extents_t left_extents, right_extents;
+        if(left_list.size() > ii) {
+            stringstream ss;
+            ss << ii + 1 << ". " << left_list.at(ii).first;
+            render_text(ss.str(), report.top_list_font_size, left_hist_bounds.x,
+                    left_extents);
+        }
+        if(right_list.size() > ii) {
+            stringstream ss;
+            ss << ii + 1 << ". " << right_list.at(ii).first;
+            render_text(ss.str(), report.top_list_font_size, right_hist_bounds.x,
+                    left_extents);
+        }
+        end_of_content += max(left_extents.height, right_extents.height) * 1.2;
+    }
+
+    end_of_content += max(left_hist_bounds.height, right_hist_bounds.height) *
+        (histogram_pad_factor_y - 1.0);
 #endif
 }
 

@@ -262,6 +262,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 
     double offset_unit = bounds.width / vars.num_sig_buckets;
     double bar_width = offset_unit / bar_space_factor;
+    double space_width = offset_unit - bar_width;
     int index = 0;
     for(vector<bucket_t>::iterator bucket =
 	    buckets.begin() + vars.first_index;
@@ -279,12 +280,12 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 				   ((double) bucket_sum)) * bar_height;
 
 	    double current_height = bounds.height - bar_height;
+            double bar_x = index * offset_unit + space_width;
 
 	    // HTTP (blue)
 	    cairo_set_source_rgb(cr, color_http.r, color_http.g,
 				 color_http.b);
-	    cairo_rectangle(cr, index * offset_unit, current_height,
-			    bar_width, http_height);
+	    cairo_rectangle(cr, bar_x, current_height, bar_width, http_height);
 	    cairo_fill(cr);
 
 	    current_height += http_height;
@@ -292,8 +293,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 	    // HTTPS (green)
 	    cairo_set_source_rgb(cr, color_https.r, color_https.g,
 				 color_https.b);
-	    cairo_rectangle(cr, index * offset_unit, current_height,
-			    bar_width, https_height);
+	    cairo_rectangle(cr, bar_x, current_height, bar_width, https_height);
 	    cairo_fill(cr);
 
 	    current_height += https_height;
@@ -301,8 +301,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 	    // other (yellow)
 	    cairo_set_source_rgb(cr, color_other.r, color_other.g,
 				 color_other.b);
-	    cairo_rectangle(cr, index * offset_unit, current_height,
-			    bar_width, other_height);
+	    cairo_rectangle(cr, bar_x, current_height, bar_width, other_height);
 	    cairo_fill(cr);
 
 	    // reset to black
