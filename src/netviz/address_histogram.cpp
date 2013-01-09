@@ -74,4 +74,9 @@ void address_histogram::quick_config(relationship_t relationship_,
     relationship = relationship_;
     parent_count_histogram.parent_plot.title = title_;
     parent_count_histogram.parent_plot.subtitle = subtitle_;
+    parent_count_histogram.parent_plot.title_on_bottom = true;
+    parent_count_histogram.parent_plot.pad_left_factor = 0.0;
+    parent_count_histogram.parent_plot.pad_right_factor = 0.0;
+    parent_count_histogram.parent_plot.x_label = "";
+    parent_count_histogram.parent_plot.y_label = "";
 }

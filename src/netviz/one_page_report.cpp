@@ -25,7 +25,7 @@ const std::vector<std::string> one_page_report::size_suffixes =
 // ratio constants
 const double one_page_report::page_margin_factor = 0.05;
 const double one_page_report::line_space_factor = 0.25;
-const double one_page_report::histogram_pad_factor_y = 1.2;
+const double one_page_report::histogram_pad_factor_y = 1.0;
 const double one_page_report::address_histogram_width_divisor = 2.5;
 // size constants
 const double one_page_report::bandwidth_histogram_height = 100.0;
@@ -44,12 +44,16 @@ one_page_report::one_page_report() :
     latest = (struct timeval) { 0 };
 
     bandwidth_histogram.parent.title = "TCP Packets Received";
+    bandwidth_histogram.parent.pad_left_factor = 0.2;
     bandwidth_histogram.parent.y_tick_font_size = 6.0;
     bandwidth_histogram.parent.x_tick_font_size = 6.0;
-    bandwidth_histogram.parent.legend_font_size = 5.0;
+    bandwidth_histogram.parent.x_axis_font_size = 8.0;
 
     pfall.parent.title = "";
     pfall.parent.subtitle = "";
+    pfall.parent.x_label = "";
+    pfall.parent.y_label = "";
+    pfall.parent.pad_left_factor = 0.2;
 
     dst_addr_histogram.quick_config(address_histogram::DESTINATION, "Top Destination Addresses", "");
     src_addr_histogram.quick_config(address_histogram::SOURCE, "Top Source Addresses", "");
@@ -211,7 +215,7 @@ void one_page_report::render_pass::render_header()
     render_text_line(formatted.str(), report.header_font_size,
             title_line_space);
     // trailing pad for entire header
-    end_of_content += title_line_space * 8;
+    end_of_content += title_line_space * 4;
 #endif
 }
 
@@ -330,17 +334,21 @@ void one_page_report::render_pass::render_dual_histograms_top_n(
         cairo_text_extents_t left_extents, right_extents;
         if(left_list.size() > ii) {
             stringstream ss;
-            ss << ii + 1 << ". " << left_list.at(ii).first;
+            count_histogram::count_pair pair = left_list.at(ii);
+            ss << ii + 1 << ". " << pair.first << " - " << pair.second <<
+                " (" << "%)";
             render_text(ss.str(), report.top_list_font_size, left_hist_bounds.x,
                     left_extents);
         }
         if(right_list.size() > ii) {
             stringstream ss;
-            ss << ii + 1 << ". " << right_list.at(ii).first;
+            count_histogram::count_pair pair = right_list.at(ii);
+            ss << ii + 1 << ". " << pair.first << " - " << pair.second <<
+                " (" << "%)";
             render_text(ss.str(), report.top_list_font_size, right_hist_bounds.x,
                     left_extents);
         }
-        end_of_content += max(left_extents.height, right_extents.height) * 1.2;
+        end_of_content += max(left_extents.height, right_extents.height) * 1.5;
     }
 
     end_of_content += max(left_hist_bounds.height, right_hist_bounds.height) *
