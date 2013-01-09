@@ -7,13 +7,15 @@ class plot {
 public:
     plot() :
         filename("graph"), title("graph of things"), subtitle("x vs y"),
-        width(161.803), height(100.000), title_font_size(8.0),
-        title_max_width_ratio(0.8), title_y_pad_factor(2.0),
-        subtitle_y_pad_factor(0.2), subtitle_font_size_factor(0.4),
-        axis_thickness_factor(0.002), tick_length_factor(0.0124),
-        tick_width_factor(0.002), x_tick_label_pad_factor(4.0),
-        y_tick_label_pad_factor(2.0), y_tick_font_size(3.0),
-        x_tick_font_size(3.0), pad_bottom_factor(0.08), pad_right_factor(0.148),
+        x_label("x axis"), y_label("y axis"), width(161.803), height(100.000),
+        title_on_bottom(false), title_font_size(8.0), x_axis_font_size(8.0),
+        y_axis_font_size(8.0), title_max_width_ratio(0.8),
+        title_y_pad_factor(2.0), subtitle_y_pad_factor(0.2),
+        subtitle_font_size_factor(0.4), axis_thickness_factor(0.002),
+        tick_length_factor(0.0124), tick_width_factor(0.002),
+        x_tick_label_pad_factor(4.0), y_tick_label_pad_factor(2.0),
+        y_tick_font_size(3.0), x_tick_font_size(3.0), pad_left_factor(0.148),
+        pad_top_factor(0.2), pad_bottom_factor(0.2), pad_right_factor(0.148),
         legend_chip_factor(1.2), legend_font_size(2.5) {}
 
     class rgb_t {
@@ -31,6 +33,14 @@ public:
         x_labels(), y_labels() {}
         std::vector<std::string> x_labels;
         std::vector<std::string> y_labels;
+    };
+
+    class labels_t {
+    public:
+        labels_t() :
+            x_label(), y_label() {}
+        std::string x_label;
+        std::string y_label;
     };
 
     class legend_entry_t {
@@ -58,10 +68,15 @@ public:
     std::string filename;
     std::string title;
     std::string subtitle;
+    std::string x_label;
+    std::string y_label;
     // width and height are in pt
     double width;
     double height;
+    bool title_on_bottom;
     double title_font_size;
+    double x_axis_font_size;
+    double y_axis_font_size;
     // Title text will be shrunk if needed such that it takes up no more
     // than this ratio of the image width
     double title_max_width_ratio;
@@ -83,6 +98,8 @@ public:
     double y_tick_font_size;
     double x_tick_font_size;
     // non-dynamic padding for the right and bottom of graph
+    double pad_left_factor;
+    double pad_top_factor;
     double pad_bottom_factor;
     double pad_right_factor;
     // legend

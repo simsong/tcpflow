@@ -18,7 +18,9 @@
 
 void count_histogram::increment(std::string key, uint64_t delta)
 {
+    count_sum += delta;
     counts[key] += delta;
+    top_list_dirty = true;
 }
 
 void count_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
@@ -32,7 +34,7 @@ void count_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
     parent_plot.render(cr, bounds, ticks, legend, content_bounds);
 
     //// fill borders rendered by plot class
-    render_bars(cr, content_bounds, build_port_list());
+    render_bars(cr, content_bounds, get_top_list());
 #endif
 }
 
@@ -52,6 +54,7 @@ void count_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 
     double offset_unit = bounds.width / count_list.size();
     double bar_width = offset_unit / bar_space_factor;
+    double space_width = offset_unit - bar_width;
     uint64_t greatest = count_list.at(0).second;
     int index = 0;
     for(vector<count_pair>::const_iterator count = count_list.begin();
@@ -59,7 +62,7 @@ void count_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 	double bar_height = (((double) count->second) / ((double) greatest)) * bounds.height;
 
 	if(bar_height > 0) {
-	    cairo_rectangle(cr, index * offset_unit, bounds.height - bar_height,
+	    cairo_rectangle(cr, index * offset_unit + space_width, bounds.height - bar_height,
 			    bar_width, bar_height);
 	    cairo_fill(cr);
 	}
@@ -70,15 +73,23 @@ void count_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 #endif
 }
 
-std::vector<count_histogram::count_pair> count_histogram::build_port_list()
+std::vector<count_histogram::count_pair> count_histogram::get_top_list()
 {
-    std::vector<count_pair> output(counts.begin(), counts.end());
+    if(top_list_dirty) {
+        build_top_list();
+    }
+    return top_list;
+}
 
-    std::sort(output.begin(), output.end(), count_comparator());
+void count_histogram::build_top_list()
+{
+    top_list = std::vector<count_pair>(counts.begin(), counts.end());
 
-    output.resize(max_bars);
+    std::sort(top_list.begin(), top_list.end(), count_comparator());
 
-    return output;
+    top_list.resize(max_bars);
+
+    top_list_dirty = false;
 }
 
 bool count_histogram::count_comparator::operator()(const count_pair &a,
@@ -91,4 +102,9 @@ bool count_histogram::count_comparator::operator()(const count_pair &a,
         return false;
     }
     return a.first > b.first;
+}
+
+uint64_t count_histogram::get_count_sum()
+{
+    return count_sum;
 }
