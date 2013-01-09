@@ -27,6 +27,7 @@
 
 #ifndef CAIRO_AVAILABLE
 #define cairo_t void			// won't be using cairo
+#define cairo_text_extents_t void			// won't be using cairo
 #endif
 
 #endif

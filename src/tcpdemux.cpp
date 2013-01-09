@@ -284,10 +284,15 @@ void tcpdemux::saved_flow_remove_oldest_if_necessary()
  */
 
 #pragma GCC diagnostic ignored "-Wcast-align"
+#include "iptree.h"
+iptree mytree;
 int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                            const u_char *tcp_data, uint32_t tcp_datalen,
                            const packet_info &pi)
 {
+    mytree.add(src);
+    //if(mytree.size()%1000==0) mytree.dump();
+
     if (tcp_datalen < sizeof(struct tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment!");
 	return 0;
@@ -471,6 +476,9 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
  *
  * Note: we currently don't know how to handle IP fragments. */
 #pragma GCC diagnostic ignored "-Wcast-align"
+
+
+
 int tcpdemux::process_ip4(const packet_info &pi)
 {
     /* make sure that the packet is at least as long as the min IP header */
@@ -523,9 +531,11 @@ int tcpdemux::process_ip4(const packet_info &pi)
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    return process_tcp(ipaddr(ip_header->ip_src.s_addr),ipaddr(ip_header->ip_dst.s_addr),AF_INET,
-                pi.ip_data + ip_header_len, ip_total_len - ip_header_len,
-                pi);
+    return process_tcp(ipaddr(ip_header->ip_src.s_addr),
+                       ipaddr(ip_header->ip_dst.s_addr),
+                       AF_INET,
+                       pi.ip_data + ip_header_len, ip_total_len - ip_header_len,
+                       pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
@@ -593,8 +603,12 @@ int tcpdemux::process_pkt(const packet_info &pi)
 {
     int r = 1;                          // not processed yet
     switch(pi.ip_version()){
-    case 4: r = process_ip4(pi); break;
-    case 6: r = process_ip6(pi); break;
+    case 4:
+        r = process_ip4(pi);
+        break;
+    case 6:
+        r = process_ip6(pi);
+        break;
     }
     if(r!=0){                           // packet not processed?
         /* Write the packet if we didn't process it */

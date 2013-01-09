@@ -32,15 +32,8 @@ const uint64_t time_histogram::span_lengths[] = {
     /* year */ 12L * 30L * 24L * 60L * 60L * 1000L * 1000L
 };
 
-const char * const time_histogram::unit_strings[] = {
-    "packets vs time",
-    "kilopackets vs time",
-    "megapackets vs time",
-    "gigapackets vs time",
-    "terapackets vs time",
-    "petapackets vs time",
-    "exapackets vs time",
-};
+const std::vector<std::string> time_histogram::x_axis_labels =
+        time_histogram::build_x_axis_labels();
 
 //
 // Helper functions
@@ -197,6 +190,13 @@ void time_histogram::choose_subtitle(const render_vars &vars)
 {
     // choose subtitle based on magnitude of units
     parent.subtitle = "";
+    // choose y axis label
+    parent.y_label = x_axis_labels.at(vars.unit_log_1000);
+    // chose x axis label
+    uint64_t duration = (bucket_width * (vars.last_index - vars.first_index)) / (1000 * 1000);
+    stringstream ss;
+    ss << duration << " seconds";
+    parent.x_label = ss.str();
 }
 
 plot::ticks_t time_histogram::build_tick_labels(const render_vars &vars)
@@ -221,22 +221,6 @@ plot::ticks_t time_histogram::build_tick_labels(const render_vars &vars)
 	formatted.str(string());
     }
 
-    // x ticks (localtime)
-
-    const time_t start_unix = (base_time +
-            (bucket_width * vars.first_index)) / (1000 * 1000);
-    const time_t stop_unix = (base_time +
-            (bucket_width * vars.last_index)) / (1000 * 1000);
-    struct tm start_time = *localtime(&start_unix);
-    struct tm stop_time = *localtime(&stop_unix);
-        
-    time_struct_to_string(start_time, formatted);
-    ticks.x_labels.push_back(formatted.str());
-    formatted.str(string());
-    time_struct_to_string(stop_time, formatted);
-    ticks.x_labels.push_back(formatted.str());
-    formatted.str(string());
-
     return ticks;
 }
 
@@ -244,9 +228,9 @@ plot::legend_t time_histogram::build_legend(const render_vars &vars)
 {
     plot::legend_t legend;
 
-    legend.push_back(plot::legend_entry_t(color_http, "HTTP"));
-    legend.push_back(plot::legend_entry_t(color_https, "HTTPS"));
-    legend.push_back(plot::legend_entry_t(color_other, "Other"));
+    //legend.push_back(plot::legend_entry_t(color_http, "HTTP"));
+    //legend.push_back(plot::legend_entry_t(color_https, "HTTPS"));
+    //legend.push_back(plot::legend_entry_t(color_other, "Other"));
 
     return legend;
 }
@@ -262,6 +246,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 
     double offset_unit = bounds.width / vars.num_sig_buckets;
     double bar_width = offset_unit / bar_space_factor;
+    double space_width = offset_unit - bar_width;
     int index = 0;
     for(vector<bucket_t>::iterator bucket =
 	    buckets.begin() + vars.first_index;
@@ -279,12 +264,12 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 				   ((double) bucket_sum)) * bar_height;
 
 	    double current_height = bounds.height - bar_height;
+            double bar_x = index * offset_unit + space_width;
 
 	    // HTTP (blue)
 	    cairo_set_source_rgb(cr, color_http.r, color_http.g,
 				 color_http.b);
-	    cairo_rectangle(cr, index * offset_unit, current_height,
-			    bar_width, http_height);
+	    cairo_rectangle(cr, bar_x, current_height, bar_width, http_height);
 	    cairo_fill(cr);
 
 	    current_height += http_height;
@@ -292,8 +277,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 	    // HTTPS (green)
 	    cairo_set_source_rgb(cr, color_https.r, color_https.g,
 				 color_https.b);
-	    cairo_rectangle(cr, index * offset_unit, current_height,
-			    bar_width, https_height);
+	    cairo_rectangle(cr, bar_x, current_height, bar_width, https_height);
 	    cairo_fill(cr);
 
 	    current_height += https_height;
@@ -301,8 +285,7 @@ void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
 	    // other (yellow)
 	    cairo_set_source_rgb(cr, color_other.r, color_other.g,
 				 color_other.b);
-	    cairo_rectangle(cr, index * offset_unit, current_height,
-			    bar_width, other_height);
+	    cairo_rectangle(cr, bar_x, current_height, bar_width, other_height);
 	    cairo_fill(cr);
 
 	    // reset to black
@@ -370,4 +353,19 @@ time_histogram &dyn_time_histogram::select_best_fit()
     }
     
     return *best;
+}
+
+std::vector<std::string> time_histogram::build_x_axis_labels()
+{
+    std::vector<std::string> output;
+
+    output.push_back("packets");
+    output.push_back("kilopackets");
+    output.push_back("megapackets");
+    output.push_back("gigapackets");
+    output.push_back("terapackets");
+    output.push_back("petapackets");
+    output.push_back("exapackets");
+
+    return output;
 }

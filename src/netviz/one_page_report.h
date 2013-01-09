@@ -15,6 +15,8 @@ public:
     std::string filename;
     plot::bounds_t bounds;
     double header_font_size;
+    double top_list_font_size;
+    unsigned int histogram_show_top_n_text;
 
     // a single render event: content moves down a bounded cairo surface as
     // indicated by end_of_content between render method invocations
@@ -27,11 +29,18 @@ public:
 
         void render_text_line(std::string text, double font_size,
                 double line_space);
+        void render_text(std::string text, double font_size, double x_offset,
+                cairo_text_extents_t &rendered_extents);
 
         void render_header();
         void render_bandwidth_histogram();
         void render_address_histograms();
         void render_port_histograms();
+        void render_dual_histograms_top_n(
+                const vector<count_histogram::count_pair> &left_list,
+                const vector<count_histogram::count_pair> &right_list,
+                const plot::bounds_t &left_hist_bounds,
+                const plot::bounds_t &right_hist_bounds);
         void render_map();
         void render_packetfall();
 

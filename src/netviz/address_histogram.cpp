@@ -25,10 +25,10 @@ void address_histogram::ingest_packet(const packet_info &pi)
     // IPv4?
     if(tcpip::ip4_from_bytes(pi.ip_data, pi.ip_datalen, ip4)) {
         // recording source addresses?
-        if(relationship == SENDER || relationship == SND_OR_RCV) {
+        if(relationship == SOURCE || relationship == SRC_OR_DST) {
             parent_count_histogram.increment(std::string(inet_ntoa(ip4.header->ip_src)), 1);
         }
-        if(relationship == RECEIVER || relationship == SND_OR_RCV) {
+        if(relationship == DESTINATION || relationship == SRC_OR_DST) {
             parent_count_histogram.increment(std::string(inet_ntoa(ip4.header->ip_dst)), 1);
         }
     }
@@ -37,7 +37,7 @@ void address_histogram::ingest_packet(const packet_info &pi)
         ss.str(std::string());
         ss << std::hex << std::setfill('0');
         // recording source addresses?
-        if(relationship == SENDER || relationship == SND_OR_RCV) {
+        if(relationship == SOURCE || relationship == SRC_OR_DST) {
             for(int ii = 0; ii < 8; ii++) {
                 ss << std::setw(4) << ip6.header->ip6_src.__u6_addr.__u6_addr8[ii];
                 if(ii < 7) {
@@ -49,7 +49,7 @@ void address_histogram::ingest_packet(const packet_info &pi)
             ss << std::hex << std::setfill('0');
         }
         // recording destination addresses?
-        if(relationship == RECEIVER || relationship == SND_OR_RCV) {
+        if(relationship == DESTINATION || relationship == SRC_OR_DST) {
             for(int ii = 0; ii < 8; ii++) {
                 ss << std::setw(4) << ip6.header->ip6_dst.__u6_addr.__u6_addr8[ii];
                 if(ii < 7) {
@@ -66,4 +66,17 @@ void address_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 #ifdef CAIRO_PDF_AVAILABLE
     parent_count_histogram.render(cr, bounds);
 #endif
+}
+
+void address_histogram::quick_config(relationship_t relationship_,
+        std::string title_, std::string subtitle_)
+{
+    relationship = relationship_;
+    parent_count_histogram.parent_plot.title = title_;
+    parent_count_histogram.parent_plot.subtitle = subtitle_;
+    parent_count_histogram.parent_plot.title_on_bottom = true;
+    parent_count_histogram.parent_plot.pad_left_factor = 0.0;
+    parent_count_histogram.parent_plot.pad_right_factor = 0.0;
+    parent_count_histogram.parent_plot.x_label = "";
+    parent_count_histogram.parent_plot.y_label = "";
 }

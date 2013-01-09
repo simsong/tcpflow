@@ -148,6 +148,9 @@ public:;
     }
 
     uint8_t addr[16];			// holds v4 or v16
+    bool bit(int i) const {             // get the ith bit; 0 is MSB
+        return (addr[i / 8]) & (1<<(7-i%8));
+    }
     inline bool operator ==(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))==0; };
     inline bool operator <=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))<=0; };
     inline bool operator > (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>0; };

@@ -22,12 +22,12 @@ void port_histogram::ingest_packet(const packet_info &pi)
         return;
     }
 
-    if(relationship == SENDER || relationship == SND_OR_RCV) {
+    if(relationship == SOURCE || relationship == SRC_OR_DST) {
         std::stringstream ss;
         ss << ntohs(tcp.header->th_sport);
         parent_count_histogram.increment(ss.str(), 1);
     }
-    if(relationship == RECEIVER || relationship == SND_OR_RCV) {
+    if(relationship == DESTINATION || relationship == SRC_OR_DST) {
         std::stringstream ss;
         ss << ntohs(tcp.header->th_dport);
         parent_count_histogram.increment(ss.str(), 1);
@@ -39,4 +39,17 @@ void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 #ifdef CAIRO_PDF_AVAILABLE
     parent_count_histogram.render(cr, bounds);
 #endif
+}
+
+void port_histogram::quick_config(relationship_t relationship_,
+        std::string title_, std::string subtitle_)
+{
+    relationship = relationship_;
+    parent_count_histogram.parent_plot.title = title_;
+    parent_count_histogram.parent_plot.subtitle = subtitle_;
+    parent_count_histogram.parent_plot.title_on_bottom = true;
+    parent_count_histogram.parent_plot.pad_left_factor = 0.0;
+    parent_count_histogram.parent_plot.pad_right_factor = 0.0;
+    parent_count_histogram.parent_plot.x_label = "";
+    parent_count_histogram.parent_plot.y_label = "";
 }
