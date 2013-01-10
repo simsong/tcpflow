@@ -10,6 +10,8 @@
 
 #include "tcpflow.h"
 
+#include <iomanip>
+
 static char *debug_prefix = NULL;
 extern int max_desired_fds;
 
@@ -30,6 +32,49 @@ std::vector<std::string> &split(const std::string &s, char delim, std::vector<st
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
     return split(s, delim, elems);
+}
+
+/*
+ * STD String sprintf wrapper for sane CPP formatting
+ */
+std::string ssprintf(const char *fmt,...)
+{
+    char buf[65536];
+    va_list ap;
+    va_start(ap,fmt);
+    vsnprintf(buf,sizeof(buf),fmt,ap);
+    va_end(ap);
+    return string(buf);
+}
+
+/*
+ * Insert readability commas into an integer without writing a custom locale facet
+ */
+std::string comma_number_string(int64_t input)
+{
+    std::vector<int16_t> tokens;
+    std::stringstream ss;
+    ss << std::setfill('0');
+    int sign = 1;
+
+    if(input < 0) {
+        sign = -1;
+        input *= -1;
+    }
+
+    while(input >= 1000) {
+        tokens.push_back(input % 1000);
+        input /= 1000;
+    }
+
+    ss << (input * sign);
+
+    for(std::vector<int16_t>::const_reverse_iterator it = tokens.rbegin();
+            it != tokens.rend(); it++) {
+        ss << "," << std::setw(3) << *it;
+    }
+
+    return ss.str();
 }
 
 
