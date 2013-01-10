@@ -118,29 +118,23 @@ void one_page_report::render(const std::string &outdir)
 void one_page_report::render_pass::render_header()
 {
 #ifdef CAIRO_PDF_AVAILABLE
-    std::stringstream formatted;
+    std::string formatted;
     // title
     double title_line_space = report.header_font_size * line_space_factor;
     //// version
     render_text_line(title_version, report.header_font_size,
             title_line_space);
     //// input
-    formatted.str(std::string());
-    formatted << "Input: " << report.source_identifier;
-    render_text_line(formatted.str(), report.header_font_size,
+    formatted = ssprintf("Input: %s", report.source_identifier.c_str());
+    render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// date generated
     time_t gen_unix = time(0);
     struct tm gen_time = *localtime(&gen_unix);
-    formatted.str(std::string());
-    formatted << "Generated: " << 
-        std::setfill('0') << setw(4) << (1900 + gen_time.tm_year) << "-" <<
-        std::setw(2) << (1 + gen_time.tm_mon) << "-" <<
-        std::setw(2) << gen_time.tm_mday << "T" <<
-        std::setw(2) << gen_time.tm_hour << ":" <<
-        std::setw(2) << gen_time.tm_min << ":" <<
-        std::setw(2) << gen_time.tm_sec;
-    render_text_line(formatted.str(), report.header_font_size,
+    formatted = ssprintf("Generated: %04d-%02d-%02d %02d:%02d:%02d",
+            1900 + gen_time.tm_year, 1 + gen_time.tm_mon, gen_time.tm_mday,
+            gen_time.tm_hour, gen_time.tm_min, gen_time.tm_sec);
+    render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// trailing pad
     end_of_content += title_line_space * 4;
@@ -148,34 +142,23 @@ void one_page_report::render_pass::render_header()
     //// date range
     struct tm start = *localtime(&report.earliest.tv_sec);
     struct tm stop = *localtime(&report.latest.tv_sec);
-    formatted.str(std::string());
-    formatted << "Date range: " <<
-        std::setfill('0') << setw(4) << (1900 + start.tm_year) << "-" <<
-        std::setw(2) << (1 + start.tm_mon) << "-" <<
-        std::setw(2) << start.tm_mday << "T" <<
-        std::setw(2) << start.tm_hour << ":" <<
-        std::setw(2) << start.tm_min << ":" <<
-        std::setw(2) << start.tm_sec <<
-        " to " <<
-        std::setfill('0') << setw(4) << (1900 + stop.tm_year) << "-" <<
-        std::setw(2) << (1 + stop.tm_mon) << "-" <<
-        std::setw(2) << stop.tm_mday << "T" <<
-        std::setw(2) << stop.tm_hour << ":" <<
-        std::setw(2) << stop.tm_min << ":" <<
-        std::setw(2) << stop.tm_sec;
-    render_text_line(formatted.str(), report.header_font_size,
+    formatted = ssprintf("Date range: %04d-%02d-%02d %02d:%02d:%02d to %04d-%02d-%02d %02d:%02d:%02d",
+            1900 + start.tm_year, 1 + start.tm_mon, start.tm_mday,
+            start.tm_hour, start.tm_min, start.tm_sec,
+            1900 + stop.tm_year, 1 + stop.tm_mon, stop.tm_mday,
+            stop.tm_hour, stop.tm_min, stop.tm_sec);
+    render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// packet count/size
     uint64_t size_log_1000 = (uint64_t) (log(report.byte_count) / log(1000));
     if(size_log_1000 >= size_suffixes.size()) {
         size_log_1000 = 0;
     }
-    formatted.str(std::string());
-    formatted << "Packets analyzed: " << report.packet_count << " (" <<
-        std::setprecision(2) << std::fixed <<
-        ((double) report.byte_count) / pow(1000.0, (double) size_log_1000) <<
-        " " << size_suffixes.at(size_log_1000) << ")";
-    render_text_line(formatted.str(), report.header_font_size,
+    formatted = ssprintf("Packets analyzed: %s (%.2f %s)",
+            comma_number_string(report.packet_count).c_str(),
+            ((double) report.byte_count) / pow(1000.0, (double) size_log_1000),
+            size_suffixes.at(size_log_1000).c_str());
+    render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// protocol breakdown
     uint64_t transport_total = 0;
@@ -184,35 +167,16 @@ void one_page_report::render_pass::render_header()
             ii != report.transport_counts.end(); ii++) {
         transport_total += ii->second;
     }
-  
-    // SLG - Although this is the C++ way to do formatting
-    // code is much simpler to view if you use sprintf(). That's what
-    // most people do.
 
-    formatted.str(std::string());
-    formatted << "Transports: " << "IPv4 " <<
-        std::setprecision(2) << std::fixed <<
-        ((double) report.transport_counts[ETHERTYPE_IP] /
-         (double) transport_total) * 100.0 <<
-        "% " <<
-        "IPv6 " <<
-        std::setprecision(2) << std::fixed <<
-        ((double) report.transport_counts[ETHERTYPE_IPV6] /
-         (double) transport_total) * 100.0 <<
-        "% " <<
-        "ARP " <<
-        std::setprecision(2) << std::fixed <<
-        ((double) report.transport_counts[ETHERTYPE_ARP] /
-         (double) transport_total) * 100.0 <<
-        "% " <<
-        "Other " <<
-        std::setprecision(2) << std::fixed <<
-        (1.0 - ((double) (report.transport_counts[ETHERTYPE_IP] +
-            report.transport_counts[ETHERTYPE_IPV6] +
-            report.transport_counts[ETHERTYPE_ARP]) /
-         (double) transport_total)) * 100.0 <<
-        "% ";
-    render_text_line(formatted.str(), report.header_font_size,
+    formatted = ssprintf("Transports: IPv4 %.2f%% IPv6 %.2f%% ARP %.2f%% Other %.2f%%",
+            ((double) report.transport_counts[ETHERTYPE_IP] / (double) transport_total) * 100.0,
+            ((double) report.transport_counts[ETHERTYPE_IPV6] / (double) transport_total) * 100.0,
+            ((double) report.transport_counts[ETHERTYPE_ARP] / (double) transport_total) * 100.0,
+            (1.0 - ((double) (report.transport_counts[ETHERTYPE_IP] +
+                              report.transport_counts[ETHERTYPE_IPV6] +
+                              report.transport_counts[ETHERTYPE_ARP]) /
+                    (double) transport_total)) * 100.0);
+    render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     // trailing pad for entire header
     end_of_content += title_line_space * 4;
@@ -323,6 +287,8 @@ void one_page_report::render_pass::render_port_histograms()
 #endif
 }
 
+// show the 'top 3' or so entries of a pair of histograms below the respective histograms
+// only called by functions that render a pair of histograms on the same line
 void one_page_report::render_pass::render_dual_histograms_top_n(
         const vector<count_histogram::count_pair> &left_list,
         const vector<count_histogram::count_pair> &right_list,
@@ -333,19 +299,17 @@ void one_page_report::render_pass::render_dual_histograms_top_n(
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
         if(left_list.size() > ii) {
-            stringstream ss;
             count_histogram::count_pair pair = left_list.at(ii);
-            ss << ii + 1 << ". " << pair.first << " - " << pair.second <<
-                " (" << "%)";
-            render_text(ss.str(), report.top_list_font_size, left_hist_bounds.x,
+            std::string str = ssprintf("%d. %s - %s (%%)", ii + 1, pair.first.c_str(),
+                    comma_number_string(pair.second).c_str());
+            render_text(str.c_str(), report.top_list_font_size, left_hist_bounds.x,
                     left_extents);
         }
         if(right_list.size() > ii) {
-            stringstream ss;
             count_histogram::count_pair pair = right_list.at(ii);
-            ss << ii + 1 << ". " << pair.first << " - " << pair.second <<
-                " (" << "%)";
-            render_text(ss.str(), report.top_list_font_size, right_hist_bounds.x,
+            std::string str = ssprintf("%d. %s - %s (%%)", ii + 1, pair.first.c_str(),
+                    comma_number_string(pair.second).c_str());
+            render_text(str.c_str(), report.top_list_font_size, right_hist_bounds.x,
                     left_extents);
         }
         end_of_content += max(left_extents.height, right_extents.height) * 1.5;
