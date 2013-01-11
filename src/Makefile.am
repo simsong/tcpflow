@@ -64,5 +64,13 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	$(NETVIZ) \
 	$(BE13_API) \
 	http-parser/http_parser.c \
+	http-parser/http_parser.h \
 	mime_map.cpp
 
+EXTRA_DIST =\
+	http-parser/AUTHORS \
+	http-parser/CONTRIBUTIONS \
+	http-parser/LICENSE-MIT \
+	http-parser/Makefile \
+	http-parser/README.md \
+	http-parser/http_parser.gyp 

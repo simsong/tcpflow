@@ -283,6 +283,7 @@ void tcpdemux::saved_flow_remove_oldest_if_necessary()
  * print the packet or store it.
  */
 
+std::string simsong("simsong");
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include "iptree.h"
 iptree mytree;
@@ -290,8 +291,18 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                            const u_char *tcp_data, uint32_t tcp_datalen,
                            const packet_info &pi)
 {
-    mytree.add(src);
-    //if(mytree.size()%1000==0) mytree.dump();
+    if(getenv("USER")==simsong){
+        mytree.add(src,family);
+        if(mytree.size()>4000){
+            printf("Got %d packets. Start deleting and see what happens...\n",mytree.size());
+            while(mytree.size()>400){
+                printf("size=%zd\n",mytree.size());
+                mytree.trim();
+            }
+            mytree.dump();
+            exit(0);
+        }
+    }
 
     if (tcp_datalen < sizeof(struct tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment!");
