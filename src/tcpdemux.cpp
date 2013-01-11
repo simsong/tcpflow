@@ -292,14 +292,14 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                            const packet_info &pi)
 {
     if(getenv("USER")==simsong){
-        mytree.add(src,family);
+        mytree.add(src.addr,family==AF_INET6 ? 16 : 4);
         if(mytree.size()>4000){
-            printf("Got %d packets. Start deleting and see what happens...\n",mytree.size());
+            printf("Got %zd packets. Start deleting and see what happens...\n",mytree.size());
             while(mytree.size()>400){
                 printf("size=%zd\n",mytree.size());
                 mytree.trim();
             }
-            mytree.dump();
+            std::cout << mytree;
             exit(0);
         }
     }

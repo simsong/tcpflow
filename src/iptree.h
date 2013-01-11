@@ -22,9 +22,17 @@ private:;
     };
     class node {
     private:
-        node(const iptree::node &):ptr0(0),ptr1(0),depth(),term(false),count(0){ throw not_impl();}
-        node &operator=(const iptree::node &that){ throw not_impl();}
+        /* Assignment is not implemented */
+        node &operator=(const iptree::node &that){
+            throw not_impl();
+        }
     public:
+        /* copy is a deep copy */
+        node(const iptree::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
+                                    ptr1(n.ptr1 ? new node(*n.ptr1) : 0),
+                                    depth(n.depth),
+                                    term(n.term),
+                                    count(n.count){ }
         node(int d):ptr0(0),ptr1(0),depth(d),term(false),count(0){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
@@ -47,26 +55,40 @@ private:;
     size_t     nodes;                  // how many do we have?
     size_t     maxnodes;                // how many will we tolerate?
     enum {maxnodes_default=10000};
-    iptree(const iptree &that):root(),nodes(),maxnodes(maxnodes_default){};
     iptree &operator=(const iptree &that){throw not_impl();}
     node *node_to_trim(node *ptr) const;
+    std::ostream & dump(std::ostream &os,int depth,uint32_t addr,const class node *ptr)const;
 public:
+    /* Service */
+    static std::string ipv4(uint32_t addr);
+    static bool bit(const uint8_t *addr,int i); // get the ith bit; 0 is the MSB
+    
+    /* copy is a deep copy */
+    iptree(const iptree &n):root(n.root ? new node(*n.root) : 0),
+                            nodes(n.nodes),
+                            maxnodes(n.maxnodes){};
+
     iptree():root(new node(0)),nodes(0),maxnodes(maxnodes_default){};
     size_t size(){return nodes;};
-    void add(const class ipaddr &ip,sa_family_t family);
-    void dump(int depth,uint32_t addr,const class node *ptr)const;
-    void dump() const{
-        std::cout << "nodes: " << nodes << "\n";
-        dump(0,0,root);
-        std::cout << "=====================\n";
-    };
-    void trim();
+    void add(const uint8_t *addr,size_t addrlen); // addrlen in bytes
+    std::ostream & dump(std::ostream &os) const;
+    int trim();                         // returns number trimmed, or 0
 };
 
+inline std::ostream & operator <<(std::ostream &os,const iptree &ipt) {
+    return ipt.dump(os);
+}
+
+bool iptree::bit(const uint8_t *addr,int i)            // get the ith bit; 0 is MSB
+{ 
+    return (addr[i / 8]) & (1<<(7-i%8));
+}
+
+
 /* Currently assumes IPv4 */
-void iptree::add(const class ipaddr &ip,sa_family_t family)
+void iptree::add(const uint8_t *addr,size_t addrlen)
 {
-    int maxdepth = family==AF_INET6 ? 128 : 32;
+    int maxdepth = addrlen * 8;         // in bits
     node *ptr = root;                  // start at the root
     for(int depth=0;depth<=maxdepth;depth++){
         ptr->count++;                  // increment this node
@@ -74,8 +96,7 @@ void iptree::add(const class ipaddr &ip,sa_family_t family)
             ptr->term = 1;
         }
         if(ptr->term) return;      // we found a terminal node. stop
-        bool bit = ip.bit(depth);
-        if(bit==0){
+        if(bit(addr,depth)==0){
             if(ptr->ptr0==0){
                 ptr->ptr0 = new node(depth);
                 nodes++;
@@ -92,7 +113,7 @@ void iptree::add(const class ipaddr &ip,sa_family_t family)
     assert(0);                          // should never happen
 }
 
-inline std::string ipv4(uint32_t addr) 
+    inline std::string iptree::ipv4(uint32_t addr) 
 {
     char buf[1024];
     snprintf(buf,sizeof(buf),"%d.%d.%d.%d",
@@ -118,19 +139,11 @@ iptree::node *iptree::node_to_trim(iptree::node *ptr) const
     /* If we are not terminal, both ptr0 and ptr1 can't be null */
     assert(ptr->ptr0!=0 || ptr->ptr1!=0);
 
-    /* this algorithm is symmetric for ptr0 and 1...*/
-    for(int i=0;i<2;i++){
-        node *a = (i==0) ? ptr->ptr0 : ptr->ptr1;
-        node *b = (i==0) ? ptr->ptr1 : ptr->ptr0;
-
-        /* If one branch is null and the other is not, return
-         * the other if it is terminal, otherwise return the other's node_to_trim().
-         */
-        if(a==0 && b!=0){
-            if(b->term) return ptr;
-            return node_to_trim(b);
-        }
-    }
+    /* If one branch is null and the other is not, return
+     * the other if it is terminal, otherwise return the other's node_to_trim().
+     */
+    if(ptr->ptr0==0 && ptr->ptr1) return (ptr->ptr1->term) ? ptr : node_to_trim(ptr->ptr1);
+    if(ptr->ptr1==0 && ptr->ptr0) return (ptr->ptr0->term) ? ptr : node_to_trim(ptr->ptr0);
 
     /* If we are here, then both must be non-null */
     assert(ptr->ptr0!=0 && ptr->ptr1!=0);
@@ -151,19 +164,20 @@ iptree::node *iptree::node_to_trim(iptree::node *ptr) const
     if(tnode0!=0 && tnode1==0) return tnode0;
     
     /* determine if it is better to trim tnode0 or tnode1 */
-    return (tnode0->count < tnode1->count) ? tnode0 : tnode1;
-
+    if (tnode0->count < tnode1->count) return tnode0;
+    if (tnode0->count > tnode1->count) return tnode1;
+    if (tnode0->depth > tnode1->count) return tnode0;
+    return tnode1;
 }
 
 
 /** Find the smallest element and term it.
  */
-void iptree::trim()
+int iptree::trim()
 {
     node *tdel = node_to_trim(root);    // node to trim
-    printf("root=%p tdel=%p\n",root,tdel);
-    if(tdel==0) return;                 // nothing can be trimmed
-    if(tdel==root) assert(tdel->ptr0!=0 || tdel->ptr1!=0);
+    if(tdel==0) return 0;                 // nothing can be trimmed
+    if(tdel==root) assert(tdel->ptr0!=0 || tdel->ptr1!=0); // double-che
 
     tdel->term = true;
 
@@ -178,15 +192,25 @@ void iptree::trim()
         tdel->ptr1=0;
         nodes--;
     }
-    return;
+    return 1;
 }
 
-void iptree::dump(int depth,uint32_t addr,const node *ptr ) const
+std::ostream& iptree::dump(std::ostream &os) const
 {
-    if(ptr==0) return;
-    if(ptr->term) std::cout << ptr << " is " << ipv4(addr) << "/" << depth << "   count=" << ptr->count << "\n";
-    if(ptr->ptr0) dump(depth+1,addr,ptr->ptr0);
-    if(ptr->ptr1) dump(depth+1,(addr | (1<<(31-depth))),ptr->ptr1);
+    os << "nodes: " << nodes << "\n";
+    dump(os,0,0,root);
+    os << "=====================\n";
+    return os;
+}
+
+    /* Currently assumes ipv4 */
+std::ostream&  iptree::dump(std::ostream& os,int depth,uint32_t addr,const node *ptr ) const
+{
+    if(ptr==0) return os;
+    if(ptr->term) os << ptr << " is " << ipv4(addr) << "/" << depth << "   count=" << ptr->count << "\n";
+    if(ptr->ptr0) dump(os,depth+1,addr,ptr->ptr0);
+    if(ptr->ptr1) dump(os,depth+1,(addr | (1<<(31-depth))),ptr->ptr1);
+    return os;
 }
 
 #endif
