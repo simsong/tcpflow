@@ -52,11 +52,12 @@ private:;
         uint64_t count;                 // this and children
     };
     class node *root;                   //
+    enum {root_depth=0};                // depth of the root node
     size_t     nodes;                  // how many do we have?
     size_t     maxnodes;                // how many will we tolerate?
     enum {maxnodes_default=10000};
     iptree &operator=(const iptree &that){throw not_impl();}
-    node *node_to_trim(node *ptr) const;
+    node *node_to_trim(int *tdepth,node *ptr,size_t ptr_depth) const;
 public:
     class addr_elem {
     public:
@@ -160,7 +161,7 @@ inline std::string iptree::ipv4(const uint8_t *a)
  * the lowest count 
  */
  
-inline iptree::node *iptree::node_to_trim(iptree::node *ptr) const 
+inline iptree::node *iptree::node_to_trim(int *tdepth,iptree::node *ptr,size_t ptr_depth) const 
 {
     if(ptr->term) return 0;           // can't trim a terminal node, only its parent
 
@@ -170,32 +171,39 @@ inline iptree::node *iptree::node_to_trim(iptree::node *ptr) const
     /* If one branch is null and the other is not, return
      * the other if it is terminal, otherwise return the other's node_to_trim().
      */
-    if(ptr->ptr0==0 && ptr->ptr1) return (ptr->ptr1->term) ? ptr : node_to_trim(ptr->ptr1);
-    if(ptr->ptr1==0 && ptr->ptr0) return (ptr->ptr0->term) ? ptr : node_to_trim(ptr->ptr0);
+    if(ptr->ptr0==0 && ptr->ptr1){
+        if(ptr->ptr1->term) {*tdepth=ptr_depth;return ptr;}
+        return node_to_trim(tdepth,ptr->ptr1,ptr_depth+1);
+    }
+    if(ptr->ptr1==0 && ptr->ptr0){
+        if(ptr->ptr0->term) {*tdepth=ptr_depth;return ptr;}
+        return node_to_trim(tdepth,ptr->ptr0,ptr_depth+1);
+    }
 
     /* If we are here, then both must be non-null */
     assert(ptr->ptr0!=0 && ptr->ptr1!=0);
 
     /* If both are terminal, then we are the one to trim */
-    if(ptr->ptr0->term && ptr->ptr1->term) return ptr;
+    if(ptr->ptr0->term && ptr->ptr1->term) {*tdepth=ptr_depth;return ptr;}
 
     /* If one is terminal and the other isn't, return the trim of the one that isn't */
-    if(ptr->ptr0->term==0 && ptr->ptr1->term!=0) return node_to_trim(ptr->ptr0);
-    if(ptr->ptr1->term==0 && ptr->ptr0->term!=0) return node_to_trim(ptr->ptr1);
+    if(ptr->ptr0->term==0 && ptr->ptr1->term!=0) return node_to_trim(tdepth,ptr->ptr0,ptr_depth+1);
+    if(ptr->ptr1->term==0 && ptr->ptr0->term!=0) return node_to_trim(tdepth,ptr->ptr1,ptr_depth+1);
 
     /* Both are not leafs, so check them both and return the better*/
-    node *tnode0 = node_to_trim(ptr->ptr0);
-    node *tnode1 = node_to_trim(ptr->ptr1);
+    int tnode0_depth=0,tnode1_depth=0;
+    node *tnode0 = node_to_trim(&tnode0_depth,ptr->ptr0,ptr_depth+1);
+    node *tnode1 = node_to_trim(&tnode1_depth,ptr->ptr1,ptr_depth+1);
 
     if(tnode0==0 && tnode1==0) return 0;
-    if(tnode0==0 && tnode1!=0) return tnode1;
-    if(tnode0!=0 && tnode1==0) return tnode0;
+    if(tnode0==0 && tnode1!=0) {*tdepth=tnode1_depth;return tnode1;}
+    if(tnode0!=0 && tnode1==0) {*tdepth=tnode0_depth;return tnode0;}
     
     /* determine if it is better to trim tnode0 or tnode1 */
-    if (tnode0->count < tnode1->count) return tnode0;
-    if (tnode0->count > tnode1->count) return tnode1;
-    if (tnode0->depth > tnode1->count) return tnode0;
-    return tnode1;
+    if (tnode0->count < tnode1->count) {*tdepth=tnode0_depth;return tnode0;}
+    if (tnode0->count > tnode1->count) {*tdepth=tnode1_depth;return tnode1;}
+    if (tnode0->depth > tnode1->count) {*tdepth=tnode0_depth;return tnode0;}
+    {*tdepth=tnode1_depth;return tnode1;}
 }
 
 
@@ -203,9 +211,12 @@ inline iptree::node *iptree::node_to_trim(iptree::node *ptr) const
  */
 inline int iptree::trim()
 {
-    node *tdel = node_to_trim(root);    // node to trim
+    int tdepth=0;
+    node *tdel = node_to_trim(&tdepth,root,root_depth);    // node to trim
     if(tdel==0) return 0;                 // nothing can be trimmed
     if(tdel==root) assert(tdel->ptr0!=0 || tdel->ptr1!=0); // double-che
+    printf("tdel->depth=%d tdepth=%d\n",tdel->depth,tdepth);
+    assert(tdel->depth == tdepth);                         // for testing
 
     tdel->term = true;
 
