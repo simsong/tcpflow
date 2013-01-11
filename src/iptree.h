@@ -57,11 +57,28 @@ private:;
     enum {maxnodes_default=10000};
     iptree &operator=(const iptree &that){throw not_impl();}
     node *node_to_trim(node *ptr) const;
-    std::ostream & dump(std::ostream &os,int depth,uint32_t addr,const class node *ptr)const;
 public:
+    class addr_elem {
+    public:
+        addr_elem(const uint8_t *addr_,uint8_t depth_,int64_t count_):addr(),depth(depth_),count(count_){
+            memcpy((void *)addr,addr_,sizeof(addr));
+        }
+        addr_elem &operator=(const addr_elem &n){
+            memcpy((void *)this->addr,n.addr,sizeof(this->addr));
+            this->count = n.count;
+            this->depth = n.depth;
+            return *this;
+        }
+        ~addr_elem(){}
+        const uint8_t addr[16];         // maximum size address
+        uint8_t depth;                  // in bits; /depth
+        int64_t count;
+    };
+
     /* Service */
-    static std::string ipv4(uint32_t addr);
-    static bool bit(const uint8_t *addr,int i); // get the ith bit; 0 is the MSB
+    static std::string ipv4(const uint8_t *addr);
+    static bool bit(const uint8_t *addr,size_t i); // get the ith bit; 0 is the MSB
+    static void setbit(uint8_t *addr,size_t i); // setst the ith bit to 1
     
     /* copy is a deep copy */
     iptree(const iptree &n):root(n.root ? new node(*n.root) : 0),
@@ -71,26 +88,41 @@ public:
     iptree():root(new node(0)),nodes(0),maxnodes(maxnodes_default){};
     size_t size(){return nodes;};
     void add(const uint8_t *addr,size_t addrlen); // addrlen in bytes
+    int trim();                 // returns number trimmed, or 0
     std::ostream & dump(std::ostream &os) const;
-    int trim();                         // returns number trimmed, or 0
+
+    void get_histogram(int depth,const uint8_t *addr,const class node *ptr,vector<addr_elem> &histogram)const;
+    void get_histogram(vector<addr_elem> &histogram) const; // adds the histogram to the passed in vector
 };
 
 inline std::ostream & operator <<(std::ostream &os,const iptree &ipt) {
     return ipt.dump(os);
 }
 
-bool iptree::bit(const uint8_t *addr,int i)            // get the ith bit; 0 is MSB
+inline bool iptree::bit(const uint8_t *addr,size_t i) // get the ith bit; 0 is MSB
 { 
     return (addr[i / 8]) & (1<<(7-i%8));
 }
 
+void iptree::setbit(uint8_t *addr,size_t i) // sets the bit to 1
+{ 
+    addr[i / 8] |= (1<<(7-i%8));
+}
+
 
 /* Currently assumes IPv4 */
-void iptree::add(const uint8_t *addr,size_t addrlen)
+inline void iptree::add(const uint8_t *addr,size_t addrlen)
 {
+    /* trim the tree if it is too big */
+    if(nodes>=maxnodes){
+        while(nodes > maxnodes * 9 / 10){ // trim 10% of the nodes
+            if(trim()==0) break;          // can't trim anymore
+        }
+    }
+
     int maxdepth = addrlen * 8;         // in bits
     node *ptr = root;                  // start at the root
-    for(int depth=0;depth<=maxdepth;depth++){
+    for(int depth=1;depth<=maxdepth;depth++){
         ptr->count++;                  // increment this node
         if(depth==maxdepth){          // this is the bottom
             ptr->term = 1;
@@ -113,14 +145,10 @@ void iptree::add(const uint8_t *addr,size_t addrlen)
     assert(0);                          // should never happen
 }
 
-    inline std::string iptree::ipv4(uint32_t addr) 
+inline std::string iptree::ipv4(const uint8_t *a) 
 {
     char buf[1024];
-    snprintf(buf,sizeof(buf),"%d.%d.%d.%d",
-             (addr & 0xff000000) >>24,
-             (addr & 0x00ff0000) >> 16,
-             (addr & 0x0000ff00) >> 8,
-             (addr & 0x000000ff));
+    snprintf(buf,sizeof(buf),"%d.%d.%d.%d",a[0],a[1],a[2],a[3]);
     return std::string(buf);
 }
 
@@ -132,7 +160,7 @@ void iptree::add(const uint8_t *addr,size_t addrlen)
  * the lowest count 
  */
  
-iptree::node *iptree::node_to_trim(iptree::node *ptr) const 
+inline iptree::node *iptree::node_to_trim(iptree::node *ptr) const 
 {
     if(ptr->term) return 0;           // can't trim a terminal node, only its parent
 
@@ -173,7 +201,7 @@ iptree::node *iptree::node_to_trim(iptree::node *ptr) const
 
 /** Find the smallest element and term it.
  */
-int iptree::trim()
+inline int iptree::trim()
 {
     node *tdel = node_to_trim(root);    // node to trim
     if(tdel==0) return 0;                 // nothing can be trimmed
@@ -195,21 +223,43 @@ int iptree::trim()
     return 1;
 }
 
-std::ostream& iptree::dump(std::ostream &os) const
+inline void iptree::get_histogram(int depth,const uint8_t *addr,const node *ptr,vector<addr_elem> &histogram) const
 {
-    os << "nodes: " << nodes << "\n";
-    dump(os,0,0,root);
-    os << "=====================\n";
-    return os;
+    //printf("ptr->depth=%d  depth=%d\n",ptr->depth,depth);
+    assert(ptr->depth==depth);
+    if(ptr->term){
+        histogram.push_back(addr_elem(addr,depth,ptr->count));
+        return;
+    }
+    if(depth>128) return;               // can't go deeper than this now
+
+    /* create address with 0 and 1 added */
+    uint8_t addr0[16];
+    uint8_t addr1[16];
+
+    memset(addr0,0,sizeof(addr0)); memcpy(addr0,addr,(depth+7)/8);
+    memset(addr1,0,sizeof(addr1)); memcpy(addr1,addr,(depth+7)/8); setbit(addr1,depth);
+
+    if(ptr->ptr0) get_histogram(depth+1,addr0,ptr->ptr0,histogram);
+    if(ptr->ptr1) get_histogram(depth+1,addr1,ptr->ptr1,histogram);
 }
 
     /* Currently assumes ipv4 */
-std::ostream&  iptree::dump(std::ostream& os,int depth,uint32_t addr,const node *ptr ) const
+inline void iptree::get_histogram(vector<addr_elem> &histogram) const
 {
-    if(ptr==0) return os;
-    if(ptr->term) os << ptr << " is " << ipv4(addr) << "/" << depth << "   count=" << ptr->count << "\n";
-    if(ptr->ptr0) dump(os,depth+1,addr,ptr->ptr0);
-    if(ptr->ptr1) dump(os,depth+1,(addr | (1<<(31-depth))),ptr->ptr1);
+    uint8_t addr[16];
+    memset(addr,0,sizeof(addr));
+    get_histogram(0,addr,root,histogram);
+}
+
+inline std::ostream& iptree::dump(std::ostream &os) const
+{
+    vector<addr_elem> histogram;
+    get_histogram(histogram);
+    os << "nodes: " << nodes << "  histogram size: " << histogram.size() << "\n";
+    for(vector<addr_elem>::const_iterator it=histogram.begin();it!=histogram.end();it++){
+        os << ipv4((*it).addr) << "/" << (int)((*it).depth) << "  count=" << (*it).count << "\n";
+    }
     return os;
 }
 

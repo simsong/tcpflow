@@ -293,9 +293,10 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 {
     if(getenv("USER")==simsong){
         mytree.add(src.addr,family==AF_INET6 ? 16 : 4);
+        mytree.add(dst.addr,family==AF_INET6 ? 16 : 4);
         if(mytree.size()>4000){
             printf("Got %zd packets. Start deleting and see what happens...\n",mytree.size());
-            while(mytree.size()>400){
+            while(0 || mytree.size()>400){
                 printf("size=%zd\n",mytree.size());
                 mytree.trim();
             }
