@@ -15,7 +15,7 @@ public:
     } span_t;
 
     static const uint64_t span_lengths[];
-    static const std::vector<std::string> x_axis_labels;
+    static const std::vector<std::string> y_axis_labels;
 
     class config_t {
     public:
@@ -93,7 +93,7 @@ public:
     plot::legend_t build_legend(const render_vars &vars);
     void render_bars(cairo_t *cr, const plot::bounds_t &bounds,
             render_vars &vars);
-    static std::vector<std::string> build_x_axis_labels();
+    static std::vector<std::string> build_y_axis_labels();
 };
 
 class dyn_time_histogram {

@@ -32,8 +32,8 @@ const uint64_t time_histogram::span_lengths[] = {
     /* year */ 12L * 30L * 24L * 60L * 60L * 1000L * 1000L
 };
 
-const std::vector<std::string> time_histogram::x_axis_labels =
-        time_histogram::build_x_axis_labels();
+const std::vector<std::string> time_histogram::y_axis_labels =
+        time_histogram::build_y_axis_labels();
 
 //
 // Helper functions
@@ -191,7 +191,7 @@ void time_histogram::choose_subtitle(const render_vars &vars)
     // choose subtitle based on magnitude of units
     parent.subtitle = "";
     // choose y axis label
-    parent.y_label = x_axis_labels.at(vars.unit_log_1000);
+    parent.y_label = y_axis_labels.at(vars.unit_log_1000);
     // chose x axis label
     uint64_t duration = (bucket_width * (vars.last_index - vars.first_index)) / (1000 * 1000);
     stringstream ss;
@@ -355,7 +355,7 @@ time_histogram &dyn_time_histogram::select_best_fit()
     return *best;
 }
 
-std::vector<std::string> time_histogram::build_x_axis_labels()
+std::vector<std::string> time_histogram::build_y_axis_labels()
 {
     std::vector<std::string> output;
 
