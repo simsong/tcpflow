@@ -25,6 +25,12 @@ void count_histogram::increment(std::string key, uint64_t delta)
 
 void count_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
+    render(cr, bounds, get_top_list());
+}
+
+void count_histogram::render(cairo_t *cr, const plot::bounds_t &bounds,
+        const std::vector<count_pair> &bars)
+{
 #ifdef CAIRO_PDF_AVAILABLE
     plot::ticks_t ticks;
     plot::legend_t legend;
@@ -34,7 +40,7 @@ void count_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
     parent_plot.render(cr, bounds, ticks, legend, content_bounds);
 
     //// fill borders rendered by plot class
-    render_bars(cr, content_bounds, get_top_list());
+    render_bars(cr, content_bounds, bars);
 #endif
 }
 
@@ -79,6 +85,12 @@ std::vector<count_histogram::count_pair> count_histogram::get_top_list()
         build_top_list();
     }
     return top_list;
+}
+
+void count_histogram::set_top_list(std::vector<count_histogram::count_pair> new_list)
+{
+    top_list_dirty = false;
+    top_list = new_list;
 }
 
 void count_histogram::build_top_list()

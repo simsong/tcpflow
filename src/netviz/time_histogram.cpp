@@ -41,7 +41,7 @@ const std::vector<time_histogram::time_unit> time_histogram::time_units =
  * callback which handles each packet.
  */
 
-void time_histogram::ingest_packet(const packet_info &pi)
+void time_histogram::ingest_packet(const packet_info &pi, const struct tcp_seg *optional_tcp)
 {
     uint64_t time = pi.ts.tv_usec + pi.ts.tv_sec * 1000000L; // microseconds
     // if we haven't received any data yet, we need to set the base time
@@ -65,12 +65,12 @@ void time_histogram::ingest_packet(const packet_info &pi)
 
     bucket_t *target_bucket = &buckets.at(target_index);
 
-    struct tcp_seg tcp_segment;
-    if(!tcpip::tcp_from_ip_bytes(pi.ip_data, pi.ip_datalen, tcp_segment)) {
+    // bail if no TCP segment was given (should there be another bucket value for this?)
+    if(!optional_tcp) {
         return;
     }
 
-    uint16_t port = ntohs(tcp_segment.header->th_sport);
+    uint16_t port = ntohs(optional_tcp->header->th_sport);
 
     switch(port) {
     case PORT_HTTP:
@@ -304,11 +304,11 @@ dyn_time_histogram::dyn_time_histogram() :
     }
 }
 
-void dyn_time_histogram::ingest_packet(const packet_info &pi)
+void dyn_time_histogram::ingest_packet(const packet_info &pi, const struct tcp_seg *optional_tcp)
 {
     for(vector<time_histogram>::iterator histogram = histograms.begin();
             histogram != histograms.end(); histogram++) {
-        histogram->ingest_packet(pi);
+        histogram->ingest_packet(pi, optional_tcp);
     }
 }
 

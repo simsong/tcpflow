@@ -13,6 +13,7 @@
 #include "tcpip.h"
 
 #include <iomanip>
+#include <algorithm>
 
 #include "address_histogram.h"
 
@@ -66,6 +67,52 @@ void address_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 #ifdef CAIRO_PDF_AVAILABLE
     parent_count_histogram.render(cr, bounds);
 #endif
+}
+
+void address_histogram::render_iptree(cairo_t *cr, const plot::bounds_t &bounds, const iptree &tree)
+{
+    // convert iptree to suitable vector for count histogram
+    std::vector<iptree::addr_elem> addresses;
+
+    tree.get_histogram(addresses);
+
+    std::sort(addresses.begin(), addresses.end(), iptree_node_comparator());
+
+    std::vector<count_histogram::count_pair> bars;
+
+    std::vector<iptree::addr_elem>::const_iterator it = addresses.begin();
+    int ii = 0;
+    while(ii < parent_count_histogram.max_bars && it != addresses.end()) {
+        bars.push_back(count_histogram::count_pair(it->to_dotted_quad(), it->count));
+        ii++;
+        it++;
+    }
+
+    bars.resize(parent_count_histogram.max_bars);
+
+    parent_count_histogram.set_top_list(bars);
+
+    render(cr, bounds);
+}
+
+bool address_histogram::iptree_node_comparator::operator()(const iptree::addr_elem &a,
+        const iptree::addr_elem &b)
+{
+    if(a.count > b.count) {
+        return true;
+    }
+    else if(a.count < b.count) {
+        return false;
+    }
+    for(size_t ii = 0; ii < sizeof(a.addr); ii++) {
+        if(a.addr[ii] > b.addr[ii]) {
+            return true;
+        }
+        else if(a.addr[ii] < b.addr[ii]) {
+            return false;
+        }
+    }
+    return false;
 }
 
 void address_histogram::quick_config(relationship_t relationship_,

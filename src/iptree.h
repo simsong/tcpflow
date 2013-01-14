@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
+#include <iomanip>
 
 class iptree {
 private:;
@@ -70,6 +71,21 @@ public:
             this->depth = n.depth;
             return *this;
         }
+        std::string to_dotted_quad() const {
+            std::stringstream ss;
+            for(int ii = 0; ii < 4; ii++) {
+                uint8_t significant_this_octet = (uint8_t) max(min(depth - ii * 8, 8), 0);
+                uint8_t mask = 0xFF << (8 - significant_this_octet);
+                ss << (addr[ii] & mask);
+                if(ii < 3) {
+                    ss << ".";
+                }
+            }
+            if(depth < 31) {
+                ss << "/" << (int) depth;
+            }
+            return ss.str();
+        }
         ~addr_elem(){}
         const uint8_t addr[16];         // maximum size address
         uint8_t depth;                  // in bits; /depth
@@ -105,7 +121,7 @@ inline bool iptree::bit(const uint8_t *addr,size_t i) // get the ith bit; 0 is M
     return (addr[i / 8]) & (1<<(7-i%8));
 }
 
-void iptree::setbit(uint8_t *addr,size_t i) // sets the bit to 1
+inline void iptree::setbit(uint8_t *addr,size_t i) // sets the bit to 1
 { 
     addr[i / 8] |= (1<<(7-i%8));
 }

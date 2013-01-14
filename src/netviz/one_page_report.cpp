@@ -11,6 +11,7 @@
 #include "config.h"
 #include "tcpflow.h"
 #include "render.h"
+#include "tcpip.h"
 
 #include <ctime>
 #include <iomanip>
@@ -38,7 +39,7 @@ one_page_report::one_page_report() :
     packet_count(0), byte_count(0), earliest(), latest(),
     transport_counts(), bandwidth_histogram(), src_addr_histogram(),
     dst_addr_histogram(), src_port_histogram(), dst_port_histogram(),
-    pfall()
+    pfall(), src_tree(), dst_tree()
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
@@ -74,11 +75,56 @@ void one_page_report::ingest_packet(const packet_info &pi)
     byte_count += pi.pcap_hdr->caplen;
     transport_counts[pi.ether_type()]++; // should we handle VLANs?
 
-    bandwidth_histogram.ingest_packet(pi);
-    src_addr_histogram.ingest_packet(pi);
-    dst_addr_histogram.ingest_packet(pi);
-    src_port_histogram.ingest_packet(pi);
-    dst_port_histogram.ingest_packet(pi);
+    // extract IP and TCP (UDP?) headers
+    struct ip4_dgram ip4;
+    bool has_ip4_dgram = false;
+    struct ip6_dgram ip6;
+    bool has_ip6_dgram = false;
+    const uint8_t *ip_payload = 0;
+    size_t ip_payload_len = 0;
+    struct tcp_seg tcp;
+    struct tcp_seg *optional_tcp = 0;  // for functions that can take a null struct
+    bool has_tcp_seg = false;
+
+    // IPv4?
+    if(tcpip::ip4_from_bytes(pi.ip_data, pi.ip_datalen, ip4)) {
+        has_ip4_dgram = true;
+        ip_payload = ip4.payload;
+        ip_payload_len = ip4.payload_len;
+    }
+    // IPv6?
+    else if(tcpip::ip6_from_bytes(pi.ip_data, pi.ip_datalen, ip6)) {
+        has_ip6_dgram = true;
+        ip_payload = ip6.payload;
+        ip_payload_len = ip6.payload_len;
+    }
+    else {
+        // TODO handle non-IP packets
+    }
+
+    // TCP?
+    if(tcpip::tcp_from_bytes(ip_payload, ip_payload_len, tcp)) {
+        has_tcp_seg = true;
+        optional_tcp = &tcp;
+    }
+
+    // pass relevant data structures to children
+    // don't give packets to address histograms, they will use the IP trees
+    if(has_ip6_dgram) {
+        src_tree.add(ip6.header->ip6_src.__u6_addr.__u6_addr8,
+                sizeof(ip6.header->ip6_src.__u6_addr.__u6_addr8));
+        dst_tree.add(ip6.header->ip6_dst.__u6_addr.__u6_addr8,
+                sizeof(ip6.header->ip6_dst.__u6_addr.__u6_addr8));
+    }
+    else if(has_ip4_dgram) {
+        src_tree.add((uint8_t *) &ip4.header->ip_src.s_addr, sizeof(ip4.header->ip_src.s_addr));
+        dst_tree.add((uint8_t *) &ip4.header->ip_dst.s_addr, sizeof(ip4.header->ip_dst.s_addr));
+    }
+    bandwidth_histogram.ingest_packet(pi, optional_tcp);
+    if(has_tcp_seg) {
+        src_port_histogram.ingest_packet(tcp);
+        dst_port_histogram.ingest_packet(tcp);
+    }
     pfall.ingest_packet(pi);
 }
 
@@ -244,11 +290,11 @@ void one_page_report::render_pass::render_address_histograms()
 
     plot::bounds_t left_bounds(0.0, end_of_content, width,
             address_histogram_height);
-    report.src_addr_histogram.render(surface, left_bounds);
+    report.src_addr_histogram.render_iptree(surface, left_bounds, report.src_tree);
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
-    report.dst_addr_histogram.render(surface, right_bounds);
+    report.dst_addr_histogram.render_iptree(surface, right_bounds, report.dst_tree);
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 

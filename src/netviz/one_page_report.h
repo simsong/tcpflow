@@ -8,6 +8,7 @@
 #include "port_histogram.h"
 #include "packetfall.h"
 #include "render.h"
+#include "iptree.h"
 
 class one_page_report {
 public:
@@ -81,6 +82,8 @@ private:
     port_histogram src_port_histogram;
     port_histogram dst_port_histogram;
     packetfall pfall;
+    iptree src_tree;
+    iptree dst_tree;
 
     static std::vector<std::string> build_size_suffixes();
 };
