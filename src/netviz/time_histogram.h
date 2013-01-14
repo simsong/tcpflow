@@ -14,13 +14,25 @@ public:
         MINUTE = 0, HOUR, DAY, WEEK, MONTH, YEAR
     } span_t;
 
-    static const uint64_t span_lengths[];
-    static const std::vector<std::string> y_axis_labels;
-
-    class config_t {
+    // trivial classes are used instead of std::pair for clarity of members
+    class si_prefix {
     public:
-        // generic graph parent config
+        si_prefix(std::string prefix_, uint64_t magnitude_) :
+            prefix(prefix_), magnitude(magnitude_) {}
+        std::string prefix;
+        uint64_t magnitude;
     };
+    class time_unit {
+    public:
+        time_unit(std::string name_, uint64_t seconds_) :
+            name(name_), seconds(seconds_) {}
+        std::string name;
+        uint64_t seconds;
+    };
+
+    static const uint64_t span_lengths[];
+    static const std::vector<si_prefix> si_prefixes;
+    static const std::vector<time_unit> time_units;
 
     class bucket_t {
     public:
@@ -84,8 +96,6 @@ public:
         int num_sig_buckets;
         uint64_t unit_log_1000;
     };
-    static void time_struct_to_string(const struct tm & time_struct,
-            std::stringstream &ss);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render(const std::string &outdir);
     void choose_subtitle(const render_vars &vars);
@@ -93,7 +103,8 @@ public:
     plot::legend_t build_legend(const render_vars &vars);
     void render_bars(cairo_t *cr, const plot::bounds_t &bounds,
             render_vars &vars);
-    static std::vector<std::string> build_y_axis_labels();
+    static std::vector<si_prefix> build_si_prefixes();
+    static std::vector<time_unit> build_time_units();
 };
 
 class dyn_time_histogram {

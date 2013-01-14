@@ -32,25 +32,10 @@ const uint64_t time_histogram::span_lengths[] = {
     /* year */ 12L * 30L * 24L * 60L * 60L * 1000L * 1000L
 };
 
-const std::vector<std::string> time_histogram::y_axis_labels =
-        time_histogram::build_y_axis_labels();
-
-//
-// Helper functions
-//
-
-void time_histogram::time_struct_to_string(const struct tm &time_struct,
-        stringstream &ss)
-{
-    ss << setfill('0');
-    ss << setw(4) << (1900 + time_struct.tm_year) << "-";
-    ss << setw(2) << (1 + time_struct.tm_mon) << "-";
-    ss << setw(2) << time_struct.tm_mday << " ";
-    ss << setw(2) << time_struct.tm_hour << ":";
-    ss << setw(2) << time_struct.tm_min << ":";
-    ss << setw(2) << time_struct.tm_sec;
-}
-#pragma GCC diagnostic warning "-Wcast-align"
+const std::vector<time_histogram::si_prefix> time_histogram::si_prefixes =
+        time_histogram::build_si_prefixes();
+const std::vector<time_histogram::time_unit> time_histogram::time_units =
+        time_histogram::build_time_units();
 
 /**
  * callback which handles each packet.
@@ -188,37 +173,46 @@ void time_histogram::render_vars::prep(const time_histogram &graph)
 
 void time_histogram::choose_subtitle(const render_vars &vars)
 {
-    // choose subtitle based on magnitude of units
     parent.subtitle = "";
     // choose y axis label
-    parent.y_label = y_axis_labels.at(vars.unit_log_1000);
-    // chose x axis label
-    uint64_t duration = (bucket_width * (vars.last_index - vars.first_index)) / (1000 * 1000);
-    stringstream ss;
-    ss << duration << " seconds";
-    parent.x_label = ss.str();
+    parent.y_label = "packets";
+    // choose x axis label
+    uint64_t bar_interval = bucket_width / (1000 * 1000);
+    if(bar_interval < 1) {
+        parent.x_label = "";
+    }
+    else {
+        for(vector<time_unit>::const_iterator it = time_units.begin();
+                it != time_units.end(); it++) {
+            
+            if(it + 1 == time_units.end() || bar_interval <= (it+1)->seconds) {
+                parent.x_label = ssprintf("%d %s intervals", bar_interval / it->seconds, it->name.c_str());
+                break;
+            }
+
+        }
+    }
 }
 
 plot::ticks_t time_histogram::build_tick_labels(const render_vars &vars)
 {
     plot::ticks_t ticks;
-    stringstream formatted;
 
     // y ticks (packet count)
 
     // scale raw bucket totals
 
-    double y_scale_range = vars.greatest_bucket_sum /
-	pow(1000.0, (double) vars.unit_log_1000);
+    si_prefix unit = si_prefixes.at(vars.unit_log_1000);
+    double y_scale_range = vars.greatest_bucket_sum / (double) unit.magnitude;
     double y_scale_interval = y_scale_range / (y_tick_count - 1);
 
     for(int ii = 0; ii < y_tick_count; ii++) {
-	formatted << setprecision(2) << fixed;
-	formatted << ((y_tick_count - (ii + 1)) * y_scale_interval);
+        double raw_value = (y_tick_count - (ii + 1)) * y_scale_interval;
+        uint64_t value = (uint64_t) floor(raw_value + 0.5);
 
-	ticks.y_labels.push_back(formatted.str());
+        std::string label = ssprintf("%d%s", value, unit.prefix.c_str());
 
-	formatted.str(string());
+	ticks.y_labels.push_back(label);
     }
 
     return ticks;
@@ -355,17 +349,32 @@ time_histogram &dyn_time_histogram::select_best_fit()
     return *best;
 }
 
-std::vector<std::string> time_histogram::build_y_axis_labels()
+std::vector<time_histogram::si_prefix> time_histogram::build_si_prefixes()
 {
-    std::vector<std::string> output;
+    std::vector<si_prefix> output;
 
-    output.push_back("packets");
-    output.push_back("kilopackets");
-    output.push_back("megapackets");
-    output.push_back("gigapackets");
-    output.push_back("terapackets");
-    output.push_back("petapackets");
-    output.push_back("exapackets");
+    output.push_back(si_prefix("", 1L));
+    output.push_back(si_prefix("K", 1000L));
+    output.push_back(si_prefix("M", 1000L * 1000L));
+    output.push_back(si_prefix("G", 1000L * 1000L * 1000L));
+    output.push_back(si_prefix("T", 1000L * 1000L * 1000L * 1000L));
+    output.push_back(si_prefix("P", 1000L * 1000L * 1000L * 1000L * 1000L));
+    output.push_back(si_prefix("E", 1000L * 1000L * 1000L * 1000L * 1000L * 1000L));
+
+    return output;
+}
+
+std::vector<time_histogram::time_unit> time_histogram::build_time_units()
+{
+    std::vector<time_unit> output;
+
+    output.push_back(time_unit("second", 1L));
+    output.push_back(time_unit("minute", 60L));
+    output.push_back(time_unit("hour", 60L * 60L));
+    output.push_back(time_unit("day", 60L * 60L * 24L));
+    output.push_back(time_unit("week", 60L * 60L * 24L * 7L));
+    output.push_back(time_unit("month", 60L * 60L * 24L * 30L));
+    output.push_back(time_unit("year", 60L * 60L * 24L * 365L));
 
     return output;
 }
