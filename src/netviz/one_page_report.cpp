@@ -291,10 +291,12 @@ void one_page_report::render_pass::render_address_histograms()
     plot::bounds_t left_bounds(0.0, end_of_content, width,
             address_histogram_height);
     report.src_addr_histogram.render_iptree(surface, left_bounds, report.src_tree);
+    uint64_t left_sum = report.src_addr_histogram.parent_count_histogram.get_count_sum();
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
     report.dst_addr_histogram.render_iptree(surface, right_bounds, report.dst_tree);
+    uint64_t right_sum = report.dst_addr_histogram.parent_count_histogram.get_count_sum();
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 
@@ -304,7 +306,8 @@ void one_page_report::render_pass::render_address_histograms()
     vector<count_histogram::count_pair> right_list =
         report.dst_addr_histogram.parent_count_histogram.get_top_list();
 
-    render_dual_histograms_top_n(left_list, right_list, left_bounds, right_bounds);
+    render_dual_histograms_top_n(left_list, right_list, left_sum, right_sum,
+            left_bounds, right_bounds);
 #endif
 }
 
@@ -316,10 +319,12 @@ void one_page_report::render_pass::render_port_histograms()
     plot::bounds_t left_bounds(0.0, end_of_content, width,
             address_histogram_height);
     report.src_port_histogram.render(surface, left_bounds);
+    uint64_t left_sum = report.src_port_histogram.parent_count_histogram.get_count_sum();
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
     report.dst_port_histogram.render(surface, right_bounds);
+    uint64_t right_sum = report.dst_port_histogram.parent_count_histogram.get_count_sum();
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 
@@ -329,7 +334,8 @@ void one_page_report::render_pass::render_port_histograms()
     vector<count_histogram::count_pair> right_list =
         report.dst_port_histogram.parent_count_histogram.get_top_list();
 
-    render_dual_histograms_top_n(left_list, right_list, left_bounds, right_bounds);
+    render_dual_histograms_top_n(left_list, right_list, left_sum, right_sum,
+            left_bounds, right_bounds);
 #endif
 }
 
@@ -338,26 +344,44 @@ void one_page_report::render_pass::render_port_histograms()
 void one_page_report::render_pass::render_dual_histograms_top_n(
         const vector<count_histogram::count_pair> &left_list,
         const vector<count_histogram::count_pair> &right_list,
+        const uint64_t left_sum, const uint64_t right_sum,
         const plot::bounds_t &left_hist_bounds,
         const plot::bounds_t &right_hist_bounds)
 {
 #ifdef CAIRO_PDF_AVAILABLE
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
+
         if(left_list.size() > ii) {
             count_histogram::count_pair pair = left_list.at(ii);
-            std::string str = ssprintf("%d. %s - %s (%%)", ii + 1, pair.first.c_str(),
-                    comma_number_string(pair.second).c_str());
+            uint8_t percentage = 0;
+
+            if(left_sum > 0) {
+                percentage = (uint8_t) (((double) pair.second / (double) left_sum) * 100.0);
+            }
+
+            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, pair.first.c_str(),
+                    comma_number_string(pair.second).c_str(), percentage);
+
             render_text(str.c_str(), report.top_list_font_size, left_hist_bounds.x,
                     left_extents);
         }
+
         if(right_list.size() > ii) {
             count_histogram::count_pair pair = right_list.at(ii);
-            std::string str = ssprintf("%d. %s - %s (%%)", ii + 1, pair.first.c_str(),
-                    comma_number_string(pair.second).c_str());
+            uint8_t percentage = 0;
+
+            if(right_sum > 0) {
+                percentage = (uint8_t) (((double) pair.second / (double) right_sum) * 100.0);
+            }
+
+            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, pair.first.c_str(),
+                    comma_number_string(pair.second).c_str(), percentage);
+
             render_text(str.c_str(), report.top_list_font_size, right_hist_bounds.x,
                     left_extents);
         }
+
         end_of_content += max(left_extents.height, right_extents.height) * 1.5;
     }
 
