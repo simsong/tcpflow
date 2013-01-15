@@ -14,14 +14,8 @@
 
 #include "port_histogram.h"
 
-void port_histogram::ingest_packet(const packet_info &pi)
+void port_histogram::ingest_packet(const struct tcp_seg &tcp)
 {
-    struct tcp_seg tcp;
-
-    if(!tcpip::tcp_from_ip_bytes(pi.ip_data, pi.ip_datalen, tcp)) {
-        return;
-    }
-
     if(relationship == SOURCE || relationship == SRC_OR_DST) {
         std::stringstream ss;
         ss << ntohs(tcp.header->th_sport);

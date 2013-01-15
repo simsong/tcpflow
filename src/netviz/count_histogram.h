@@ -15,8 +15,10 @@ public:
 
     void increment(std::string key, uint64_t delta);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
+    void render(cairo_t *cr, const plot::bounds_t &bounds, const std::vector<count_pair> &bars);
     void render_bars(cairo_t *cr, const plot::bounds_t &bounds, const std::vector<count_pair> &bars);
     std::vector<count_pair> get_top_list();
+    void set_top_list(std::vector<count_pair>);
     uint64_t get_count_sum();
 
     plot parent_plot;

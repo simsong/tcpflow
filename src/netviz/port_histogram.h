@@ -14,7 +14,7 @@ public:
     port_histogram() :
         parent_count_histogram(), relationship(SRC_OR_DST) {}
 
-    void ingest_packet(const packet_info &pi);
+    void ingest_packet(const struct tcp_seg &tcp);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void quick_config(relationship_t relationship_, std::string title_,
             std::string subtitle_);
