@@ -31,6 +31,8 @@ const double one_page_report::address_histogram_width_divisor = 2.5;
 // size constants
 const double one_page_report::bandwidth_histogram_height = 100.0;
 const double one_page_report::address_histogram_height = 100.0;
+// color constants
+const plot::rgb_t default_color(134.0 / 255.0, 134.0 / 255.0, 134.0 / 255.0);
 
 one_page_report::one_page_report() : 
     source_identifier(), filename("report.pdf"),
@@ -39,7 +41,7 @@ one_page_report::one_page_report() :
     packet_count(0), byte_count(0), earliest(), latest(),
     transport_counts(), bandwidth_histogram(), src_addr_histogram(),
     dst_addr_histogram(), src_port_histogram(), dst_port_histogram(),
-    pfall(), src_tree(), dst_tree()
+    pfall(), src_tree(), dst_tree(), port_aliases(), port_color_map()
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
@@ -56,10 +58,18 @@ one_page_report::one_page_report() :
     pfall.parent.y_label = "";
     pfall.parent.pad_left_factor = 0.2;
 
-    dst_addr_histogram.quick_config(address_histogram::DESTINATION, "Top Destination Addresses", "");
-    src_addr_histogram.quick_config(address_histogram::SOURCE, "Top Source Addresses", "");
-    dst_port_histogram.quick_config(port_histogram::DESTINATION, "Top Destination Ports", "");
-    src_port_histogram.quick_config(port_histogram::SOURCE, "Top Source Ports", "");
+    dst_addr_histogram.quick_config("Top Destination Addresses");
+    src_addr_histogram.quick_config("Top Source Addresses");
+    dst_port_histogram.quick_config(port_histogram::DESTINATION, "Top Destination Ports");
+    src_port_histogram.quick_config(port_histogram::SOURCE, "Top Source Ports");
+
+    // build null alias map to avoid requiring special handling for unmapped ports
+    for(int ii = 0; ii <= 65535; ii++) {
+        port_aliases[ii] = ii;
+    }
+
+    port_color_map[PORT_HTTP] = plot::rgb_t(0.05, 0.33, 0.65);
+    port_color_map[PORT_HTTPS] = plot::rgb_t(0.00, 0.75, 0.20);
 }
 
 void one_page_report::ingest_packet(const packet_info &pi)
@@ -122,8 +132,8 @@ void one_page_report::ingest_packet(const packet_info &pi)
     }
     bandwidth_histogram.ingest_packet(pi, optional_tcp);
     if(has_tcp_seg) {
-        src_port_histogram.ingest_packet(tcp);
-        dst_port_histogram.ingest_packet(tcp);
+        src_port_histogram.ingest_segment(tcp);
+        dst_port_histogram.ingest_segment(tcp);
     }
     pfall.ingest_packet(pi);
 }
@@ -285,109 +295,128 @@ void one_page_report::render_pass::render_map()
 void one_page_report::render_pass::render_address_histograms()
 {
 #ifdef CAIRO_PDF_AVAILABLE
+    report.src_addr_histogram.from_iptree(report.src_tree);
+    report.dst_addr_histogram.from_iptree(report.dst_tree);
     // histograms
+    std::vector<iptree::addr_elem> top_src_addrs;
+    std::vector<iptree::addr_elem> top_dst_addrs;
+    uint64_t total_datagrams = report.src_addr_histogram.get_ingest_count();
+
+    report.src_addr_histogram.get_top_addrs(top_src_addrs);
+    report.dst_addr_histogram.get_top_addrs(top_dst_addrs);
+
     double width = surface_bounds.width / address_histogram_width_divisor;
 
     plot::bounds_t left_bounds(0.0, end_of_content, width,
             address_histogram_height);
-    report.src_addr_histogram.from_iptree(report.src_tree);
     report.src_addr_histogram.render(surface, left_bounds);
-    uint64_t left_sum = report.src_addr_histogram.parent_count_histogram.get_count_sum();
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
-    report.dst_addr_histogram.from_iptree(report.dst_tree);
     report.dst_addr_histogram.render(surface, right_bounds);
-    uint64_t right_sum = report.dst_addr_histogram.parent_count_histogram.get_count_sum();
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 
     // text stats
-    vector<count_histogram::count_pair> left_list =
-        report.src_addr_histogram.parent_count_histogram.get_top_list();
-    vector<count_histogram::count_pair> right_list =
-        report.dst_addr_histogram.parent_count_histogram.get_top_list();
+    for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
+        cairo_text_extents_t left_extents, right_extents;
 
-    render_dual_histograms_top_n(left_list, right_list, left_sum, right_sum,
-            left_bounds, right_bounds);
+        if(top_src_addrs.size() > ii) {
+            iptree::addr_elem addr = top_src_addrs.at(ii);
+            uint8_t percentage = 0;
+
+            percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
+
+            std::stringstream addr_format;
+            addr_format << addr;
+
+            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, addr_format.str().c_str(),
+                    comma_number_string(addr.count).c_str(), percentage);
+
+            render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
+                    left_extents);
+        }
+
+        if(top_dst_addrs.size() > ii) {
+            iptree::addr_elem addr = top_dst_addrs.at(ii);
+            uint8_t percentage = 0;
+
+            percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
+
+            std::stringstream addr_format;
+            addr_format << addr;
+
+            std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, addr_format.str().c_str(),
+                    comma_number_string(addr.count).c_str(), percentage);
+
+            render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
+                    right_extents);
+        }
+
+        end_of_content += max(left_extents.height, right_extents.height) * 1.5;
+    }
+
+    end_of_content += max(left_bounds.height, right_bounds.height) *
+        (histogram_pad_factor_y - 1.0);
 #endif
 }
 
 void one_page_report::render_pass::render_port_histograms()
 {
 #ifdef CAIRO_PDF_AVAILABLE
+    std::vector<port_histogram::port_count> top_src_ports;
+    std::vector<port_histogram::port_count> top_dst_ports;
+    uint64_t total_segments = report.src_port_histogram.get_ingest_count();
+
+    report.src_port_histogram.get_top_ports(top_src_ports);
+    report.dst_port_histogram.get_top_ports(top_dst_ports);
+
     double width = surface_bounds.width / address_histogram_width_divisor;
 
     plot::bounds_t left_bounds(0.0, end_of_content, width,
             address_histogram_height);
     report.src_port_histogram.render(surface, left_bounds);
-    uint64_t left_sum = report.src_port_histogram.parent_count_histogram.get_count_sum();
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
     report.dst_port_histogram.render(surface, right_bounds);
-    uint64_t right_sum = report.dst_port_histogram.parent_count_histogram.get_count_sum();
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 
     // text stats
-    vector<count_histogram::count_pair> left_list =
-        report.src_port_histogram.parent_count_histogram.get_top_list();
-    vector<count_histogram::count_pair> right_list =
-        report.dst_port_histogram.parent_count_histogram.get_top_list();
-
-    render_dual_histograms_top_n(left_list, right_list, left_sum, right_sum,
-            left_bounds, right_bounds);
-#endif
-}
-
-// show the 'top 3' or so entries of a pair of histograms below the respective histograms
-// only called by functions that render a pair of histograms on the same line
-void one_page_report::render_pass::render_dual_histograms_top_n(
-        const vector<count_histogram::count_pair> &left_list,
-        const vector<count_histogram::count_pair> &right_list,
-        const uint64_t left_sum, const uint64_t right_sum,
-        const plot::bounds_t &left_hist_bounds,
-        const plot::bounds_t &right_hist_bounds)
-{
-#ifdef CAIRO_PDF_AVAILABLE
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
-        if(left_list.size() > ii) {
-            count_histogram::count_pair pair = left_list.at(ii);
+        if(top_src_ports.size() > ii) {
+            port_histogram::port_count port = top_src_ports.at(ii);
             uint8_t percentage = 0;
 
-            if(left_sum > 0) {
-                percentage = (uint8_t) (((double) pair.second / (double) left_sum) * 100.0);
-            }
+            percentage = (uint8_t) (((double) port.count / (double) total_segments) * 100.0);
 
-            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, pair.first.c_str(),
-                    comma_number_string(pair.second).c_str(), percentage);
+            std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, port.port,
+                    comma_number_string(port.count).c_str(), percentage);
 
-            render_text(str.c_str(), report.top_list_font_size, left_hist_bounds.x,
+            render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
                     left_extents);
         }
 
-        if(right_list.size() > ii) {
-            count_histogram::count_pair pair = right_list.at(ii);
+        if(top_dst_ports.size() > ii) {
+            port_histogram::port_count port = top_dst_ports.at(ii);
             uint8_t percentage = 0;
 
-            if(right_sum > 0) {
-                percentage = (uint8_t) (((double) pair.second / (double) right_sum) * 100.0);
-            }
+            percentage = (uint8_t) (((double) port.count / (double) total_segments) * 100.0);
 
-            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, pair.first.c_str(),
-                    comma_number_string(pair.second).c_str(), percentage);
+            std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, port.port,
+                    comma_number_string(port.count).c_str(), percentage);
 
-            render_text(str.c_str(), report.top_list_font_size, right_hist_bounds.x,
-                    left_extents);
+            render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
+                    right_extents);
         }
 
         end_of_content += max(left_extents.height, right_extents.height) * 1.5;
     }
 
-    end_of_content += max(left_hist_bounds.height, right_hist_bounds.height) *
+    end_of_content += max(left_bounds.height, right_bounds.height) *
         (histogram_pad_factor_y - 1.0);
 #endif
 }

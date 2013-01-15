@@ -94,6 +94,9 @@ public:
             addr(),depth(depth_),count(count_){
             memcpy((void *)addr,addr_,sizeof(addr));
         }
+        addr_elem() : addr(), depth(0), count(0) {
+            memset((void *) addr, 0x00, sizeof(addr));
+        }
         addr_elem &operator=(const addr_elem &n){
             memcpy((void *)this->addr,n.addr,sizeof(this->addr));
             this->count = n.count;
