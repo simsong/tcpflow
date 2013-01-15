@@ -100,21 +100,6 @@ public:
             this->depth = n.depth;
             return *this;
         }
-        std::string to_dotted_quad() const {
-            std::stringstream ss;
-            for(int ii = 0; ii < 4; ii++) {
-                uint8_t significant_this_octet = (uint8_t) max(min(depth - ii * 8, 8), 0);
-                uint8_t mask = 0xFF << (8 - significant_this_octet);
-                ss << (addr[ii] & mask);
-                if(ii < 3) {
-                    ss << ".";
-                }
-            }
-            if(depth < 31) {
-                ss << "/" << (int) depth;
-            }
-            return ss.str();
-        }
         ~addr_elem(){}
         const uint8_t addr[16];         // maximum size address
         uint8_t depth;                  // in bits; /depth
@@ -132,7 +117,8 @@ public:
                             maxnodes(n.maxnodes){};
 
     iptree():root(new node()),nodes(0),maxnodes(maxnodes_default){};
-    size_t size(){return nodes;};
+    size_t size() const {return nodes;};
+    uint64_t sum() const {return root->count;};
     void add(const uint8_t *addr,size_t addrlen); // addrlen in bytes
     int trim();                 // returns number trimmed, or 0
     std::ostream & dump(std::ostream &os) const;
@@ -140,6 +126,14 @@ public:
     void get_histogram(int depth,const uint8_t *addr,const class node *ptr,vector<addr_elem> &histogram)const;
     void get_histogram(vector<addr_elem> &histogram) const; // adds the histogram to the passed in vector
 };
+
+inline std::ostream & operator <<(std::ostream &os, const iptree::addr_elem &elem) {
+    os << iptree::ipv4(elem.addr);
+    if(elem.depth < 31) {
+        os << "/" << (int) (elem.depth);
+    }
+    return os;
+}
 
 inline std::ostream & operator <<(std::ostream &os,const iptree &ipt) {
     return ipt.dump(os);

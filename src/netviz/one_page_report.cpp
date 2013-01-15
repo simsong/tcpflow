@@ -290,12 +290,14 @@ void one_page_report::render_pass::render_address_histograms()
 
     plot::bounds_t left_bounds(0.0, end_of_content, width,
             address_histogram_height);
-    report.src_addr_histogram.render_iptree(surface, left_bounds, report.src_tree);
+    report.src_addr_histogram.from_iptree(report.src_tree);
+    report.src_addr_histogram.render(surface, left_bounds);
     uint64_t left_sum = report.src_addr_histogram.parent_count_histogram.get_count_sum();
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
-    report.dst_addr_histogram.render_iptree(surface, right_bounds, report.dst_tree);
+    report.dst_addr_histogram.from_iptree(report.dst_tree);
+    report.dst_addr_histogram.render(surface, right_bounds);
     uint64_t right_sum = report.dst_addr_histogram.parent_count_histogram.get_count_sum();
 
     end_of_content += max(left_bounds.height, right_bounds.height);
