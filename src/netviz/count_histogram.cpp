@@ -116,6 +116,11 @@ bool count_histogram::count_comparator::operator()(const count_pair &a,
     return a.first > b.first;
 }
 
+void count_histogram::set_count_sum(uint64_t input)
+{
+    count_sum = input;
+}
+
 uint64_t count_histogram::get_count_sum()
 {
     return count_sum;

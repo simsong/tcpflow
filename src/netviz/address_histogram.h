@@ -18,7 +18,7 @@ public:
 
     void ingest_packet(const packet_info &pi);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
-    void render_iptree(cairo_t *cr, const plot::bounds_t &bounds, const iptree &tree);
+    void from_iptree(const iptree &tree);
     void quick_config(relationship_t relationship_, std::string title_,
             std::string subtitle_);
 

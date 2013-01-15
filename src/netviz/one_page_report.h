@@ -40,6 +40,7 @@ public:
         void render_dual_histograms_top_n(
                 const vector<count_histogram::count_pair> &left_list,
                 const vector<count_histogram::count_pair> &right_list,
+                const uint64_t left_sum, const uint64_t right_sum,
                 const plot::bounds_t &left_hist_bounds,
                 const plot::bounds_t &right_hist_bounds);
         void render_map();

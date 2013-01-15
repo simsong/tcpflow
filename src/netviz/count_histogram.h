@@ -20,6 +20,7 @@ public:
     std::vector<count_pair> get_top_list();
     void set_top_list(std::vector<count_pair>);
     uint64_t get_count_sum();
+    void set_count_sum(uint64_t);
 
     plot parent_plot;
     double bar_space_factor;

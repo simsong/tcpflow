@@ -69,7 +69,7 @@ void address_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 #endif
 }
 
-void address_histogram::render_iptree(cairo_t *cr, const plot::bounds_t &bounds, const iptree &tree)
+void address_histogram::from_iptree(const iptree &tree)
 {
     // convert iptree to suitable vector for count histogram
     std::vector<iptree::addr_elem> addresses;
@@ -83,7 +83,9 @@ void address_histogram::render_iptree(cairo_t *cr, const plot::bounds_t &bounds,
     std::vector<iptree::addr_elem>::const_iterator it = addresses.begin();
     int ii = 0;
     while(ii < parent_count_histogram.max_bars && it != addresses.end()) {
-        bars.push_back(count_histogram::count_pair(it->to_dotted_quad(), it->count));
+        stringstream address;
+        address << (*it);
+        bars.push_back(count_histogram::count_pair(address.str(), it->count));
         ii++;
         it++;
     }
@@ -91,8 +93,7 @@ void address_histogram::render_iptree(cairo_t *cr, const plot::bounds_t &bounds,
     bars.resize(parent_count_histogram.max_bars);
 
     parent_count_histogram.set_top_list(bars);
-
-    render(cr, bounds);
+    parent_count_histogram.set_count_sum(tree.sum());
 }
 
 bool address_histogram::iptree_node_comparator::operator()(const iptree::addr_elem &a,
