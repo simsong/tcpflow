@@ -13,8 +13,11 @@
 #include "tcpip.h"
 #include "tcpdemux.h"
 #include "bulk_extractor_i.h"
+#include "iptree.h"
 #include <string>
 #include <vector>
+
+int iphtest=0;
 
 be_config_t be_config; // system configuration
 
@@ -497,6 +500,8 @@ int main(int argc, char *argv[])
     demux.fs = &fs;
 
     datalink_tdelta = atoi(be_config["tdelta"].c_str()); // specify the time delta
+    iphtest         = atoi(be_config["iphtest"].c_str()); // get iphtesting
+
     if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 
     if(rfiles.size()==0 && Rfiles.size()==0){
@@ -548,5 +553,11 @@ int main(int argc, char *argv[])
 	xreport->close();
 	delete xreport;                 
     }
+
+    if(iphtest==1){
+        extern iptree mytree;
+        std::cout << mytree;
+    }
+
     exit(0);                            // return(0) causes crash on Windows
 }

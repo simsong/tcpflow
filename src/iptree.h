@@ -15,7 +15,8 @@
 #include <assert.h>
 #include <iostream>
 
-class iptree {
+
+/* template <class Type> */ class iptree {
 private:;
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
@@ -30,10 +31,10 @@ private:;
         /* copy is a deep copy */
         node(const iptree::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
                                     ptr1(n.ptr1 ? new node(*n.ptr1) : 0),
-                                    depth(n.depth),
                                     term(n.term),
-                                    count(n.count){ }
-        node(int d):ptr0(0),ptr1(0),depth(d),term(false),count(0){ }
+                                    count(n.count),
+                                    tcount(n.tcount) { }
+        node():ptr0(0),ptr1(0),term(false),count(0),tcount(0){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
             if(ptr0){
@@ -45,11 +46,37 @@ private:;
                 ptr1 = 0;
             }
         };
+        void trim(class iptree &tree){                    // trim this node
+            assert(tcount==0);            // we should have no children yet
+            term = true;
+
+            /* Sum each of the children into the node and then delete them */
+            if(ptr0){
+                tcount += ptr0->tcount;
+                assert(ptr0->term);
+                assert(ptr0->ptr0==0);
+                assert(ptr0->ptr1==0);
+                delete ptr0;
+                ptr0=0;
+                tree.nodes--;
+            }
+            if(ptr1){
+                tcount += ptr1->tcount;
+                assert(ptr1->term);
+                assert(ptr1->ptr0==0);
+                assert(ptr1->ptr1==0);
+                delete ptr1;
+                ptr1=0;
+                tree.nodes--;
+            }
+            // at this point, tcount==count, right?
+            assert(tcount==count);
+        }
         class node *ptr0;               // 0 bit next
         class node *ptr1;               // 1 bit next
-        uint8_t  depth;                 // not strictly needed, but makes things easier
         bool  term;                    // terminal node
         uint64_t count;                 // this and children
+        uint64_t tcount;                 // this node
     };
     class node *root;                   //
     enum {root_depth=0};                // depth of the root node
@@ -59,9 +86,11 @@ private:;
     iptree &operator=(const iptree &that){throw not_impl();}
     node *node_to_trim(int *tdepth,node *ptr,size_t ptr_depth) const;
 public:
+    /* Returned in the histogram */
     class addr_elem {
     public:
-        addr_elem(const uint8_t *addr_,uint8_t depth_,int64_t count_):addr(),depth(depth_),count(count_){
+        addr_elem(const uint8_t *addr_,uint8_t depth_,int64_t count_):
+            addr(),depth(depth_),count(count_){
             memcpy((void *)addr,addr_,sizeof(addr));
         }
         addr_elem &operator=(const addr_elem &n){
@@ -86,7 +115,7 @@ public:
                             nodes(n.nodes),
                             maxnodes(n.maxnodes){};
 
-    iptree():root(new node(0)),nodes(0),maxnodes(maxnodes_default){};
+    iptree():root(new node()),nodes(0),maxnodes(maxnodes_default){};
     size_t size(){return nodes;};
     void add(const uint8_t *addr,size_t addrlen); // addrlen in bytes
     int trim();                 // returns number trimmed, or 0
@@ -121,23 +150,31 @@ inline void iptree::add(const uint8_t *addr,size_t addrlen)
         }
     }
 
-    int maxdepth = addrlen * 8;         // in bits
-    node *ptr = root;                  // start at the root
-    for(int depth=1;depth<=maxdepth;depth++){
-        ptr->count++;                  // increment this node
-        if(depth==maxdepth){          // this is the bottom
+    u_int maxdepth = addrlen * 8;         // in bits
+    node *ptr = root;                   // start at the root
+    for(u_int depth=0;depth<=maxdepth;depth++){
+        ptr->count++;               // increment this node
+        if(depth==maxdepth){        // reached bottom
             ptr->term = 1;
         }
-        if(ptr->term) return;      // we found a terminal node. stop
+        if(ptr->term){                  // if this is a terminal node
+            ptr->tcount++;              // increase terminal count
+            assert(ptr->ptr0==0);
+            assert(ptr->ptr1==0);
+            return;                     // we found a terminal node. stop
+        }
+        /* Not a terminal node, so go down a level based on the next bit,
+         * extending if necessary.
+         */
         if(bit(addr,depth)==0){
             if(ptr->ptr0==0){
-                ptr->ptr0 = new node(depth);
+                ptr->ptr0 = new node();
                 nodes++;
             }
             ptr = ptr->ptr0;
         } else {
             if(ptr->ptr1==0){
-                ptr->ptr1 = new node(depth); 
+                ptr->ptr1 = new node(); 
                 nodes++;
             }
             ptr = ptr->ptr1;
@@ -168,8 +205,8 @@ inline iptree::node *iptree::node_to_trim(int *tdepth,iptree::node *ptr,size_t p
     /* If we are not terminal, both ptr0 and ptr1 can't be null */
     assert(ptr->ptr0!=0 || ptr->ptr1!=0);
 
-    /* If one branch is null and the other is not, return
-     * the other if it is terminal, otherwise return the other's node_to_trim().
+    /* If one branch is null and the other is not...
+     * Return this node if the other is terminal, otherwise return that node's node_to_trim().
      */
     if(ptr->ptr0==0 && ptr->ptr1){
         if(ptr->ptr1->term) {*tdepth=ptr_depth;return ptr;}
@@ -183,10 +220,12 @@ inline iptree::node *iptree::node_to_trim(int *tdepth,iptree::node *ptr,size_t p
     /* If we are here, then both must be non-null */
     assert(ptr->ptr0!=0 && ptr->ptr1!=0);
 
-    /* If both are terminal, then we are the one to trim */
+    /* If both children are terminal, this is the node to trim */
     if(ptr->ptr0->term && ptr->ptr1->term) {*tdepth=ptr_depth;return ptr;}
 
-    /* If one is terminal and the other isn't, return the trim of the one that isn't */
+    /* If one is terminal and the other isn't, this node can't be trimmed.
+     * Return the trim of the one that isn't
+     */
     if(ptr->ptr0->term==0 && ptr->ptr1->term!=0) return node_to_trim(tdepth,ptr->ptr0,ptr_depth+1);
     if(ptr->ptr1->term==0 && ptr->ptr0->term!=0) return node_to_trim(tdepth,ptr->ptr1,ptr_depth+1);
 
@@ -195,17 +234,20 @@ inline iptree::node *iptree::node_to_trim(int *tdepth,iptree::node *ptr,size_t p
     node *tnode0 = node_to_trim(&tnode0_depth,ptr->ptr0,ptr_depth+1);
     node *tnode1 = node_to_trim(&tnode1_depth,ptr->ptr1,ptr_depth+1);
 
-    if(tnode0==0 && tnode1==0) return 0;
-    if(tnode0==0 && tnode1!=0) {*tdepth=tnode1_depth;return tnode1;}
-    if(tnode0!=0 && tnode1==0) {*tdepth=tnode0_depth;return tnode0;}
+    if(tnode0==0 && tnode1==0) return 0; // can't trim either
+    if(tnode0==0 && tnode1!=0) {*tdepth=tnode1_depth;return tnode1;} // can't trim 0, return 1
+    if(tnode0!=0 && tnode1==0) {*tdepth=tnode0_depth;return tnode0;} // can't trim 1, return 0
     
-    /* determine if it is better to trim tnode0 or tnode1 */
-    if (tnode0->count < tnode1->count) {*tdepth=tnode0_depth;return tnode0;}
-    if (tnode0->count > tnode1->count) {*tdepth=tnode1_depth;return tnode1;}
-    if (tnode0->depth > tnode1->count) {*tdepth=tnode0_depth;return tnode0;}
-    {*tdepth=tnode1_depth;return tnode1;}
+    /* Term the node with the lower count or, if they are the same, the node with the higher depth */
+    if ((tnode0->count < tnode1->count) ||
+        ((tnode0->count==tnode1->count) && (tnode0_depth > tnode1_depth))){
+        *tdepth=tnode0_depth;
+        return tnode0;
+    } else {
+        *tdepth=tnode1_depth;
+        return tnode1;
+    }
 }
-
 
 /** Find the smallest element and term it.
  */
@@ -214,32 +256,28 @@ inline int iptree::trim()
     int tdepth=0;
     node *tdel = node_to_trim(&tdepth,root,root_depth);    // node to trim
     if(tdel==0) return 0;                 // nothing can be trimmed
-    if(tdel==root) assert(tdel->ptr0!=0 || tdel->ptr1!=0); // double-che
-    printf("tdel->depth=%d tdepth=%d\n",tdel->depth,tdepth);
-    assert(tdel->depth == tdepth);                         // for testing
 
-    tdel->term = true;
+    // Make sure that the tree is consistent
+    //assert(tdel->depth == tdepth);        // for testing
 
-    /* make sure that it's children are gone */
-    if(tdel->ptr0){
-        delete tdel->ptr0;
-        tdel->ptr0=0;
-        nodes--;
-    }
-    if(tdel->ptr1){
-        delete tdel->ptr1;
-        tdel->ptr1=0;
-        nodes--;
-    }
+    // Make sure that the nodes below the node being trimmed are terminal
+    //assert(tdel->ptr0==0 || tdel->ptr0->term);
+    //assert(tdel->ptr1==0 || tdel->ptr1->term);
+
+    // Trim the node's children
+    tdel->trim(*this);                       // trim this node
     return 1;
 }
 
-inline void iptree::get_histogram(int depth,const uint8_t *addr,const node *ptr,vector<addr_elem> &histogram) const
+/* The histogram that is reported are only the terminal nodes. */
+
+inline void iptree::get_histogram(int depth,const uint8_t *addr,
+                                  const node *ptr,vector<addr_elem> &histogram) const
 {
     //printf("ptr->depth=%d  depth=%d\n",ptr->depth,depth);
-    assert(ptr->depth==depth);
+    //assert(ptr->depth==depth);
     if(ptr->term){
-        histogram.push_back(addr_elem(addr,depth,ptr->count));
+        histogram.push_back(addr_elem(addr,depth,ptr->tcount));
         return;
     }
     if(depth>128) return;               // can't go deeper than this now

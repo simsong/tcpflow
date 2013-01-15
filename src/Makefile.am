@@ -74,3 +74,10 @@ EXTRA_DIST =\
 	http-parser/Makefile \
 	http-parser/README.md \
 	http-parser/http_parser.gyp 
+
+testiph: tcpflow
+	echo Testing the IP histogram
+	/bin/rm -rf iptest out.txt
+	./tcpflow -o iptest -S iphtest=1 -r /corp/nps/packets/2008-nitroba/nitroba.pcap >out.txt
+	diff ../tests/iphtest1-results.txt out.txt 
+	echo iptree appears okay.

@@ -23,6 +23,7 @@
 #include <tr1/unordered_set>
 #include <queue>
 
+
 /**
  * the tcp demultiplixer
  * This is a singleton class; we only need a single demultiplexer.
@@ -142,4 +143,5 @@ public:
     int  process_pkt(const packet_info &pi);
 };
 
+extern int iphtest;                     // for testing
 #endif

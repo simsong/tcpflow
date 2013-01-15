@@ -9,5 +9,5 @@ then
   git submodule update
 fi
 aclocal
-autoreconf
 automake --add-missing
+autoconf

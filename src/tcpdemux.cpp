@@ -283,7 +283,6 @@ void tcpdemux::saved_flow_remove_oldest_if_necessary()
  * print the packet or store it.
  */
 
-std::string simsong("simsong");
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include "iptree.h"
 iptree mytree;
@@ -291,13 +290,11 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                            const u_char *tcp_data, uint32_t tcp_datalen,
                            const packet_info &pi)
 {
-    if(getenv("USER")==simsong){
-        mytree.add(src.addr,family==AF_INET6 ? 16 : 4);
+    if(iphtest==1){                     // mode 1 testing - when the tree gets 4000, drop it to 400
+        mytree.add(src.addr,family==AF_INET6 ? 16 : 4 );
         mytree.add(dst.addr,family==AF_INET6 ? 16 : 4);
         if(mytree.size()>4000){
-            printf("Got %zd packets. Start deleting and see what happens...\n",mytree.size());
-            while(0 || mytree.size()>400){
-                printf("size=%zd\n",mytree.size());
+            while(0 || mytree.size()>4000000){
                 mytree.trim();
             }
             std::cout << mytree;
