@@ -4,6 +4,8 @@
 #include "render.h"
 #include "plot.h"
 
+class one_page_report;
+
 class port_histogram {
 public:
     typedef enum {
@@ -29,8 +31,8 @@ public:
         port_counts(), segments_ingested() {}
 
     void ingest_segment(const struct tcp_seg &tcp);
-    void render(cairo_t *cr, const plot::bounds_t &bounds);
-    void render_bars(cairo_t *cr, const plot::bounds_t &bounds);
+    void render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
+    void render_bars(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
     void get_top_ports(std::vector<port_count> &top_ports);
     void quick_config(const relationship_t &relationship_, const std::string &title_);
     uint64_t get_ingest_count();

@@ -11,6 +11,7 @@
 #include "config.h"
 #include "tcpflow.h"
 #include "tcpip.h"
+#include "one_page_report.h"
 
 #include "port_histogram.h"
 
@@ -38,7 +39,7 @@ void port_histogram::ingest_segment(const struct tcp_seg &tcp)
     }
 }
 
-void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
+void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
 {
 #ifdef CAIRO_PDF_AVAILABLE
     plot::ticks_t ticks;
@@ -49,11 +50,11 @@ void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
     parent.render(cr, bounds, ticks, legend, content_bounds);
 
     //// fill borders rendered by plot class
-    render_bars(cr, content_bounds);
+    render_bars(cr, content_bounds, report);
 #endif
 }
 
-void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds)
+void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
 {
     std::vector<port_count> top_ports;
     get_top_ports(top_ports);
@@ -81,6 +82,9 @@ void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds)
 	double bar_height = (((double) it->count) / ((double) greatest)) * bounds.height;
 
 	if(bar_height > 0) {
+            plot::rgb_t bar_color = report.port_color(it->port);
+            cairo_set_source_rgb(cr, bar_color.r, bar_color.g, bar_color.b);
+
 	    cairo_rectangle(cr, index * offset_unit + space_width, bounds.height - bar_height,
 			    bar_width, bar_height);
 	    cairo_fill(cr);

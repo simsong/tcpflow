@@ -50,6 +50,7 @@ public:
 
     void ingest_packet(const packet_info &pi);
     void render(const std::string &outdir);
+    plot::rgb_t port_color(uint16_t port) const;
 
     // string constants
     static const std::string title_version;

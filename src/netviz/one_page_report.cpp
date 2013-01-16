@@ -32,7 +32,7 @@ const double one_page_report::address_histogram_width_divisor = 2.5;
 const double one_page_report::bandwidth_histogram_height = 100.0;
 const double one_page_report::address_histogram_height = 100.0;
 // color constants
-const plot::rgb_t default_color(134.0 / 255.0, 134.0 / 255.0, 134.0 / 255.0);
+const plot::rgb_t one_page_report::default_color(134.0 / 255.0, 134.0 / 255.0, 134.0 / 255.0);
 
 one_page_report::one_page_report() : 
     source_identifier(), filename("report.pdf"),
@@ -169,6 +169,23 @@ void one_page_report::render(const std::string &outdir)
     cairo_destroy (cr);
     cairo_surface_destroy(surface);
 #endif
+}
+
+plot::rgb_t one_page_report::port_color(uint16_t port) const
+{
+    uint16_t true_port = port;
+    std::map<uint16_t, uint16_t>::const_iterator port_it = port_aliases.find(port);
+    if(port_it != port_aliases.end()) {
+        true_port = port_it->second;
+    }
+
+    plot::rgb_t color = default_color;
+    std::map<uint16_t, plot::rgb_t>::const_iterator color_it = port_color_map.find(true_port);
+    if(color_it != port_color_map.end()) {
+        color = color_it->second;
+    }
+
+    return color;
 }
 
 void one_page_report::render_pass::render_header()
@@ -375,11 +392,11 @@ void one_page_report::render_pass::render_port_histograms()
 
     plot::bounds_t left_bounds(0.0, end_of_content, width,
             address_histogram_height);
-    report.src_port_histogram.render(surface, left_bounds);
+    report.src_port_histogram.render(surface, left_bounds, report);
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
-    report.dst_port_histogram.render(surface, right_bounds);
+    report.dst_port_histogram.render(surface, right_bounds, report);
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 
