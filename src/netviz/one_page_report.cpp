@@ -344,10 +344,7 @@ void one_page_report::render_pass::render_address_histograms()
 
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
-            std::stringstream addr_format;
-            addr_format << addr;
-
-            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, addr_format.str().c_str(),
+            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, addr.str().c_str(),
                     comma_number_string(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
@@ -360,10 +357,7 @@ void one_page_report::render_pass::render_address_histograms()
 
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
-            std::stringstream addr_format;
-            addr_format << addr;
-
-            std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, addr_format.str().c_str(),
+            std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, addr.str().c_str(),
                     comma_number_string(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
