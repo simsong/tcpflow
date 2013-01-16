@@ -3,7 +3,8 @@
 
 #include "render.h"
 #include "plot.h"
-#include "count_histogram.h"
+
+class one_page_report;
 
 class port_histogram {
 public:
@@ -11,16 +12,39 @@ public:
         SOURCE = 0, DESTINATION, SRC_OR_DST
     } relationship_t;
 
+    class port_count {
+    public:
+        port_count() : port(0), count(0) {}
+        port_count(uint16_t port_, uint64_t count_) :
+            port(port_), count(count_) {}
+        uint16_t port;
+        uint64_t count;
+    };
+
+    class descending_counts {
+    public:
+        bool operator()(const port_count &a, const port_count &b);
+    };
+
     port_histogram() :
-        parent_count_histogram(), relationship(SRC_OR_DST) {}
+        parent(), relationship(SRC_OR_DST), bar_space_factor(1.2), bar_count(10),
+        port_counts(), segments_ingested() {}
 
-    void ingest_packet(const struct tcp_seg &tcp);
-    void render(cairo_t *cr, const plot::bounds_t &bounds);
-    void quick_config(relationship_t relationship_, std::string title_,
-            std::string subtitle_);
+    void ingest_segment(const struct tcp_seg &tcp);
+    void render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
+    void render_bars(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
+    void get_top_ports(std::vector<port_count> &top_ports);
+    void quick_config(const relationship_t &relationship_, const std::string &title_);
+    uint64_t get_ingest_count();
 
-    count_histogram parent_count_histogram;
+    plot parent;
     relationship_t relationship;
+    double bar_space_factor;
+    int bar_count;
+
+private:
+    std::map<uint16_t, uint64_t> port_counts;
+    uint64_t segments_ingested;
 };
 
 #endif
