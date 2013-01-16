@@ -78,8 +78,8 @@ EXTRA_DIST =\
 testiph: tcpflow
 	echo Testing the IP histogram
 	for i in 100 1000 10000 ; \
-		/bin/rm -f test-$i out-$i.txt ; \
-		do ./tcpflow -o test1 -S iphtest=1 -S iphtrim=$i -r /corp/nps/packets/2008-nitroba/nitroba.pcap > iphtest-nitroba-$i.txt ; \
+		do /bin/rm -f test-$$i out-$$i.txt ; \
+		./tcpflow -o test1 -S iphtest=1 -S iphtrim=$$i -r /corp/nps/packets/2008-nitroba/nitroba.pcap > iphtest-nitroba-$$i.txt ; \
 		done
 	diff ../tests/iphtest-nitroba-100.txt iphtest-nitroba-100.txt 
 	diff ../tests/iphtest-nitroba-1000.txt iphtest-nitroba-1000.txt 
