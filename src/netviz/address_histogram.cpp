@@ -123,7 +123,7 @@ bool address_histogram::iptree_node_comparator::operator()(const iptree::addr_el
     return false;
 }
 
-void address_histogram::quick_config(std::string title_)
+void address_histogram::quick_config(const std::string &title_)
 {
     parent.title = title_;
     parent.subtitle = "";

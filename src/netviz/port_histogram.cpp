@@ -106,8 +106,8 @@ void port_histogram::get_top_ports(std::vector<port_count> &top_ports)
     top_ports.resize(bar_count);
 }
 
-void port_histogram::quick_config(relationship_t relationship_,
-        std::string title_)
+void port_histogram::quick_config(const relationship_t &relationship_,
+        const std::string &title_)
 {
     relationship = relationship_;
     parent.title = title_;

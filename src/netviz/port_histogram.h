@@ -32,7 +32,7 @@ public:
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render_bars(cairo_t *cr, const plot::bounds_t &bounds);
     void get_top_ports(std::vector<port_count> &top_ports);
-    void quick_config(relationship_t relationship_, std::string title_);
+    void quick_config(const relationship_t &relationship_, const std::string &title_);
     uint64_t get_ingest_count();
 
     plot parent;

@@ -17,7 +17,7 @@ public:
     void from_iptree(const iptree &tree);
     void get_top_addrs(std::vector<iptree::addr_elem> &addr_list);
     uint64_t get_ingest_count();
-    void quick_config(std::string title_);
+    void quick_config(const std::string &title_);
 
     class iptree_node_comparator {
     public:
