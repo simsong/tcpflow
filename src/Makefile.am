@@ -77,7 +77,11 @@ EXTRA_DIST =\
 
 testiph: tcpflow
 	echo Testing the IP histogram
-	/bin/rm -rf iptest out.txt
-	./tcpflow -o iptest -S iphtest=1 -r /corp/nps/packets/2008-nitroba/nitroba.pcap >out.txt
-	diff ../tests/iphtest1-results.txt out.txt 
+	for i in 100 1000 10000 ; \
+		/bin/rm -f test-$i out-$i.txt ; \
+		do ./tcpflow -o test1 -S iphtest=1 -S iphtrim=$i -r /corp/nps/packets/2008-nitroba/nitroba.pcap > iphtest-nitroba-$i.txt ; \
+		done
+	diff ../tests/iphtest-nitroba-100.txt iphtest-nitroba-100.txt 
+	diff ../tests/iphtest-nitroba-1000.txt iphtest-nitroba-1000.txt 
+	diff ../tests/iphtest-nitroba-10000.txt iphtest-nitroba-10000.txt 
 	echo iptree appears okay.

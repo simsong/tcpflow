@@ -83,9 +83,7 @@ void address_histogram::from_iptree(const iptree &tree)
     std::vector<iptree::addr_elem>::const_iterator it = addresses.begin();
     int ii = 0;
     while(ii < parent_count_histogram.max_bars && it != addresses.end()) {
-        stringstream address;
-        address << (*it);
-        bars.push_back(count_histogram::count_pair(address.str(), it->count));
+        bars.push_back(count_histogram::count_pair((*it).str(), it->count));
         ii++;
         it++;
     }

@@ -18,6 +18,7 @@
 #include <vector>
 
 int iphtest=0;
+size_t iphtrim=0;
 
 be_config_t be_config; // system configuration
 
@@ -501,6 +502,7 @@ int main(int argc, char *argv[])
 
     datalink_tdelta = atoi(be_config["tdelta"].c_str()); // specify the time delta
     iphtest         = atoi(be_config["iphtest"].c_str()); // get iphtesting
+    iphtrim     = atoi(be_config["iphtrim"].c_str()); // get iphtrim
 
     if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 
@@ -556,7 +558,13 @@ int main(int argc, char *argv[])
 
     if(iphtest==1){
         extern iptree mytree;
+        std::cout << "trim before: " << mytree.size() << "\n";
+        while(mytree.size()>iphtrim){
+            mytree.trim();
+        }
+        std::cout << "trim after: " << mytree.size() << "\n";
         std::cout << mytree;
+        exit(0);
     }
 
     exit(0);                            // return(0) causes crash on Windows
