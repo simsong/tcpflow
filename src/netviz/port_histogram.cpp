@@ -40,6 +40,8 @@ void port_histogram::ingest_segment(const struct tcp_seg &tcp)
     if(relationship == DESTINATION || relationship == SRC_OR_DST) {
         port_counts[ntohs(tcp.header->th_dport)]++;
     }
+
+    segments_ingested++;
 }
 
 void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
