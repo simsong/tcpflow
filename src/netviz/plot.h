@@ -20,7 +20,7 @@ public:
 
     class rgb_t {
     public:
-        rgb_t() : r(-1.0), g(-1.0), b(-1.0) {}
+        rgb_t() : r(0.0), g(0.0), b(0.0) {}
         rgb_t(const double r_, const double g_, const double b_) :
         r(r_), g(g_), b(b_) {}
         double r;

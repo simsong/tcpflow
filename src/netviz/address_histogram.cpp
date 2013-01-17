@@ -44,7 +44,7 @@ void address_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds)
     cairo_get_matrix(cr, &original_matrix);
     cairo_translate(cr, bounds.x, bounds.y);
 
-    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+    cairo_set_source_rgb(cr, bar_color.r, bar_color.g, bar_color.b);
 
     double offset_unit = bounds.width / top_addrs.size();
     double bar_width = offset_unit / bar_space_factor;
@@ -123,8 +123,9 @@ bool address_histogram::iptree_node_comparator::operator()(const iptree::addr_el
     return false;
 }
 
-void address_histogram::quick_config(const std::string &title_)
+void address_histogram::quick_config(const std::string &title_, const plot::rgb_t &bar_color_)
 {
+    bar_color = bar_color_;
     parent.title = title_;
     parent.subtitle = "";
     parent.title_on_bottom = true;

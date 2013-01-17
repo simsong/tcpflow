@@ -101,10 +101,10 @@ void time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 	return;
     }
 
-    choose_subtitle(vars);
+    build_axis_labels(vars);
 
     plot::ticks_t ticks = build_tick_labels(vars);
-    plot::legend_t legend = build_legend(vars);
+    plot::legend_t legend;
     plot::bounds_t content_bounds(0.0, 0.0, bounds.width,
             bounds.height);
 
@@ -171,7 +171,7 @@ void time_histogram::render_vars::prep(const time_histogram &graph)
     unit_log_1000 = (uint64_t) (log(greatest_bucket_sum) / log(1000));
 }
 
-void time_histogram::choose_subtitle(const render_vars &vars)
+void time_histogram::build_axis_labels(const render_vars &vars)
 {
     parent.subtitle = "";
     // choose y axis label
@@ -216,17 +216,6 @@ plot::ticks_t time_histogram::build_tick_labels(const render_vars &vars)
     }
 
     return ticks;
-}
-
-plot::legend_t time_histogram::build_legend(const render_vars &vars)
-{
-    plot::legend_t legend;
-
-    //legend.push_back(plot::legend_entry_t(color_http, "HTTP"));
-    //legend.push_back(plot::legend_entry_t(color_https, "HTTPS"));
-    //legend.push_back(plot::legend_entry_t(color_other, "Other"));
-
-    return legend;
 }
 
 void time_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds,
@@ -301,6 +290,17 @@ dyn_time_histogram::dyn_time_histogram() :
 {
     for(int ii = time_histogram::MINUTE; ii <= time_histogram::YEAR; ii++) {
 	histograms.push_back(time_histogram((time_histogram::span_t) ii));
+    }
+}
+
+void dyn_time_histogram::colorize(const plot::rgb_t &color_http_, const plot::rgb_t &color_https_,
+        const plot::rgb_t &color_other_)
+{
+    for(vector<time_histogram>::iterator histogram = histograms.begin();
+            histogram != histograms.end(); histogram++) {
+        histogram->color_http = color_http_;
+        histogram->color_https = color_https_;
+        histogram->color_other = color_other_;
     }
 }
 

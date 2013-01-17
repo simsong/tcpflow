@@ -9,7 +9,7 @@
 class address_histogram {
 public:
     address_histogram() :
-        parent(), bar_space_factor(1.2), bar_count(10),
+        parent(), bar_space_factor(1.2), bar_count(10), bar_color(0.0, 0.0, 0.0),
         top_addrs(), datagrams_ingested() {}
 
     void render(cairo_t *cr, const plot::bounds_t &bounds);
@@ -17,7 +17,7 @@ public:
     void from_iptree(const iptree &tree);
     void get_top_addrs(std::vector<iptree::addr_elem> &addr_list);
     uint64_t get_ingest_count();
-    void quick_config(const std::string &title_);
+    void quick_config(const std::string &title_, const plot::rgb_t &bar_color_);
 
     class iptree_node_comparator {
     public:
@@ -27,6 +27,7 @@ public:
     plot parent;
     double bar_space_factor;
     int bar_count;
+    plot::rgb_t bar_color;
 
 private:
     std::vector<iptree::addr_elem> top_addrs;

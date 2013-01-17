@@ -31,6 +31,8 @@ bool port_histogram::descending_counts::operator()(const port_count &a,
 
 void port_histogram::ingest_segment(const struct tcp_seg &tcp)
 {
+    top_ports_dirty = true;
+
     if(relationship == SOURCE || relationship == SRC_OR_DST) {
         port_counts[ntohs(tcp.header->th_sport)]++;
     }
@@ -98,16 +100,25 @@ void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds, cons
 
 void port_histogram::get_top_ports(std::vector<port_count> &top_ports)
 {
-    top_ports.clear();
+    if(top_ports_dirty) {
+        top_ports.clear();
 
-    for(std::map<uint16_t, uint64_t>::const_iterator it = port_counts.begin();
-            it != port_counts.end(); it++) {
-        top_ports.push_back(port_count(it->first, it->second));
+        for(std::map<uint16_t, uint64_t>::const_iterator it = port_counts.begin();
+                it != port_counts.end(); it++) {
+            top_ports.push_back(port_count(it->first, it->second));
+        }
+
+        std::sort(top_ports.begin(), top_ports.end(), descending_counts());
+
+        top_ports.resize(bar_count);
+
+        top_ports_cache = top_ports;
+
+        top_ports_dirty = false;
     }
-
-    std::sort(top_ports.begin(), top_ports.end(), descending_counts());
-
-    top_ports.resize(bar_count);
+    else {
+        top_ports = top_ports_cache;
+    }
 }
 
 void port_histogram::quick_config(const relationship_t &relationship_,

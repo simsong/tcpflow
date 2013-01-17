@@ -98,9 +98,8 @@ public:
     };
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render(const std::string &outdir);
-    void choose_subtitle(const render_vars &vars);
+    void build_axis_labels(const render_vars &vars);
     plot::ticks_t build_tick_labels(const render_vars &vars);
-    plot::legend_t build_legend(const render_vars &vars);
     void render_bars(cairo_t *cr, const plot::bounds_t &bounds,
             render_vars &vars);
     static std::vector<si_prefix> build_si_prefixes();
@@ -110,6 +109,8 @@ public:
 class dyn_time_histogram {
 public:
     dyn_time_histogram();
+    void colorize(const plot::rgb_t &color_http_, const plot::rgb_t &color_https_,
+            const plot::rgb_t &color_other_);
     void ingest_packet(const packet_info &pi, const struct tcp_seg *optional_tcp);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render(const std::string &outdir);

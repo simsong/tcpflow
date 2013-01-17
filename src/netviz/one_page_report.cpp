@@ -32,7 +32,7 @@ const double one_page_report::address_histogram_width_divisor = 2.5;
 const double one_page_report::bandwidth_histogram_height = 100.0;
 const double one_page_report::address_histogram_height = 100.0;
 // color constants
-const plot::rgb_t one_page_report::default_color(134.0 / 255.0, 134.0 / 255.0, 134.0 / 255.0);
+const plot::rgb_t one_page_report::default_color(0.67, 0.67, 0.67);
 
 one_page_report::one_page_report() : 
     source_identifier(), filename("report.pdf"),
@@ -46,11 +46,16 @@ one_page_report::one_page_report() :
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
 
+    port_color_map[PORT_HTTP] = plot::rgb_t(0.07, 0.44, 0.87);
+    port_color_map[PORT_HTTPS] = plot::rgb_t(0.25, 0.79, 0.40);
+
     bandwidth_histogram.parent.title = "TCP Packets Received";
     bandwidth_histogram.parent.pad_left_factor = 0.2;
     bandwidth_histogram.parent.y_tick_font_size = 6.0;
     bandwidth_histogram.parent.x_tick_font_size = 6.0;
     bandwidth_histogram.parent.x_axis_font_size = 8.0;
+    bandwidth_histogram.colorize(port_color_map[PORT_HTTP], port_color_map[PORT_HTTPS],
+            default_color);
 
     pfall.parent.title = "";
     pfall.parent.subtitle = "";
@@ -58,8 +63,8 @@ one_page_report::one_page_report() :
     pfall.parent.y_label = "";
     pfall.parent.pad_left_factor = 0.2;
 
-    dst_addr_histogram.quick_config("Top Destination Addresses");
-    src_addr_histogram.quick_config("Top Source Addresses");
+    dst_addr_histogram.quick_config("Top Destination Addresses", default_color);
+    src_addr_histogram.quick_config("Top Source Addresses", default_color);
     dst_port_histogram.quick_config(port_histogram::DESTINATION, "Top Destination Ports");
     src_port_histogram.quick_config(port_histogram::SOURCE, "Top Source Ports");
 
@@ -67,9 +72,6 @@ one_page_report::one_page_report() :
     for(int ii = 0; ii <= 65535; ii++) {
         port_aliases[ii] = ii;
     }
-
-    port_color_map[PORT_HTTP] = plot::rgb_t(0.05, 0.33, 0.65);
-    port_color_map[PORT_HTTPS] = plot::rgb_t(0.00, 0.75, 0.20);
 }
 
 void one_page_report::ingest_packet(const packet_info &pi)
