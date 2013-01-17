@@ -3,6 +3,8 @@
 
 #include "render.h"
 
+#include <math.h>
+
 class plot {
 public:
     plot() :
@@ -26,6 +28,7 @@ public:
         double r;
         double g;
         double b;
+        static const double epsilon = 1.0 / 256.0;
     };
 
     class ticks_t {
@@ -111,5 +114,12 @@ public:
             const ticks_t &ticks, const legend_t &legend,
             bounds_t &content_bounds);
 };
+
+inline bool operator==(const plot::rgb_t &a, const plot::rgb_t &b)
+{
+    return fabs(a.r - b.r) < plot::rgb_t::epsilon &&
+        fabs(a.g - b.g) < plot::rgb_t::epsilon &&
+        fabs(a.b - b.b) < plot::rgb_t::epsilon;
+}
 
 #endif

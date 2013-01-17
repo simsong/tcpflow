@@ -30,7 +30,8 @@ const double one_page_report::histogram_pad_factor_y = 1.0;
 const double one_page_report::address_histogram_width_divisor = 2.5;
 // size constants
 const double one_page_report::bandwidth_histogram_height = 100.0;
-const double one_page_report::address_histogram_height = 100.0;
+const double one_page_report::address_histogram_height = 125.0;
+const double one_page_report::port_histogram_height = 100.0;
 // color constants
 const plot::rgb_t one_page_report::default_color(0.67, 0.67, 0.67);
 
@@ -387,11 +388,11 @@ void one_page_report::render_pass::render_port_histograms()
     double width = surface_bounds.width / address_histogram_width_divisor;
 
     plot::bounds_t left_bounds(0.0, end_of_content, width,
-            address_histogram_height);
+            port_histogram_height);
     report.src_port_histogram.render(surface, left_bounds, report);
 
     plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
-            width, address_histogram_height);
+            width, port_histogram_height);
     report.dst_port_histogram.render(surface, right_bounds, report);
 
     end_of_content += max(left_bounds.height, right_bounds.height);

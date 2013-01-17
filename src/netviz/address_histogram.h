@@ -10,6 +10,7 @@ class address_histogram {
 public:
     address_histogram() :
         parent(), bar_space_factor(1.2), bar_count(10), bar_color(0.0, 0.0, 0.0),
+        bar_label_font_size(8.0),
         top_addrs(), datagrams_ingested() {}
 
     void render(cairo_t *cr, const plot::bounds_t &bounds);
@@ -28,6 +29,7 @@ public:
     double bar_space_factor;
     int bar_count;
     plot::rgb_t bar_color;
+    double bar_label_font_size;
 
 private:
     std::vector<iptree::addr_elem> top_addrs;

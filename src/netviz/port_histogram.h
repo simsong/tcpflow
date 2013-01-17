@@ -28,6 +28,7 @@ public:
 
     port_histogram() :
         parent(), relationship(SRC_OR_DST), bar_space_factor(1.2), bar_count(10),
+        bar_label_font_size(8.0),
         port_counts(), segments_ingested(), top_ports_cache(), top_ports_dirty(true) {}
 
     void ingest_segment(const struct tcp_seg &tcp);
@@ -41,6 +42,7 @@ public:
     relationship_t relationship;
     double bar_space_factor;
     int bar_count;
+    double bar_label_font_size;
 
 private:
     std::map<uint16_t, uint64_t> port_counts;

@@ -63,6 +63,7 @@ public:
     // size constants
     static const double bandwidth_histogram_height;
     static const double address_histogram_height;
+    static const double port_histogram_height;
     // color constants
     static const plot::rgb_t default_color;
 
