@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <iostream>
 #include <iomanip>
+#include <arpa/inet.h>
 
 
 template <typename T> class iptreet {
@@ -28,11 +29,17 @@ private:;
             throw not_impl();
         }
     public:
+        class node *ptr0;               // 0 bit next
+        class node *ptr1;               // 1 bit next
+        bool  term;                     // terminal node; ptr0==0 && ptr1==0 && count>0
+    private:
+        uint64_t tsum;                // this node and children
+    public:
         /* copy is a deep copy */
         node(const iptreet::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
-                                    ptr1(n.ptr1 ? new node(*n.ptr1) : 0),
-                                    term(n.term),
-                                    tsum(n.tsum) { }
+                                     ptr1(n.ptr1 ? new node(*n.ptr1) : 0),
+                                     term(n.term),
+                                     tsum(n.tsum) { }
         node():ptr0(0),ptr1(0),term(false),tsum(0){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
@@ -40,12 +47,7 @@ private:;
             if(ptr1){ delete ptr1; ptr1 = 0; }
         };
         int trim(class iptreet &tree){                    // trim this node
-            //assert(tcount==0);            // we should have no children yet
             term = true;
-
-            //if(ptr0 && ptr1) tcount = ptr0->tcount + ptr1->tcount;
-            //if(ptr0 && !ptr1) tcount = ptr0->tcount;
-            //if(!ptr0 && ptr1) tcount = ptr1->tcount;
 
             /* Now delete those that we counted out */
             if(ptr0){
@@ -60,8 +62,6 @@ private:;
                 ptr1=0;
                 tree.nodes--;
             }
-            // at this point, tcount==count, right?
-            //assert(tcount==count);
             return 1;
         }
         /**
@@ -88,13 +88,13 @@ private:;
             // case 5 - the better node of each child's best node.
             int ptr0_best_depth = my_depth;
             const node *ptr0_best = ptr0->best_to_trim(&ptr0_best_depth,my_depth+1);
-            assert(ptr0_best!=0);       // it can't
+            assert(ptr0_best!=0);       // There must be a best node!
 
             int ptr1_best_depth = my_depth;
             const node *ptr1_best = ptr1->best_to_trim(&ptr1_best_depth,my_depth+1);
-            assert(ptr1_best!=0);       // it can't
+            assert(ptr1_best!=0);       // There must be a best node!
 
-            // The best_to_trim of two children is the one with a lower sum.
+            // The better to trim of two children is the one with a lower sum.
             if(ptr0_best->sum() < ptr1_best->sum()) {*best_depth=ptr0_best_depth;return ptr0_best;}
             if(ptr1_best->sum() < ptr0_best->sum()) {*best_depth=ptr1_best_depth;return ptr1_best;}
             
@@ -103,14 +103,9 @@ private:;
             *best_depth = ptr1_best_depth;
             return ptr1_best;
         }
-        uint64_t sum() const {
-            return tsum;
-        }
+        uint64_t sum() const { return tsum; }
+        void inc() { ++tsum;}           // increment
 
-        class node *ptr0;               // 0 bit next
-        class node *ptr1;               // 1 bit next
-        bool  term;                     // terminal node; ptr0==0 && ptr1==0 && count>0
-        uint64_t tsum;                // this node and children
     };
     class node *root;                   //
     enum {root_depth=0};                // depth of the root node
@@ -134,7 +129,7 @@ public:
             return *this;
         }
         ~addr_elem(){}
-        const uint8_t addr[16];         // maximum size address
+        const uint8_t addr[16];         // maximum size address; v4 addresses have addr[4..15]=0
         uint8_t depth;                  // in bits; /depth
         int64_t count;
         static std::string itos(int n){
@@ -142,8 +137,18 @@ public:
             snprintf(buf,sizeof(buf),"%d",n);
             return std::string(buf);
         }
+        bool is4() const {                    // returns true if addr[4..15]==0
+            for(u_int i=4;i<sizeof(addr);i++){
+                if(addr[i]!=0) return false;
+            }
+            return true;
+        }
         std::string str() const {              // return a string
-            return ipv4(addr) + (depth<32 ? (std::string("/") + itos(depth)) : "");
+            if(is4()){
+                return ipv4(addr) + (depth<32 ? (std::string("/") + itos(depth)) : "");
+            } else {
+                return ipv6(addr) + (depth<128 ? (std::string("/") + itos(depth)) : "");
+            }
         }
     };
 
@@ -152,6 +157,10 @@ public:
         char buf[1024];
         snprintf(buf,sizeof(buf),"%d.%d.%d.%d",a[0],a[1],a[2],a[3]);
         return std::string(buf);
+    }
+    static std::string ipv6(const uint8_t *a){ 
+        char buf[128];
+        return std::string(inet_ntop(AF_INET6,a,buf,sizeof(buf)));
     }
     /* get the ith bit; 0 is the MSB */
     static bool bit(const uint8_t *addr,size_t i){
@@ -171,12 +180,13 @@ public:
     iptreet():root(new node()),nodes(0),maxnodes(maxnodes_default){};
     size_t size() const {return nodes;};
 
-    /* add a node (implementation below */
+    /* add a node; implementation below */
     void add(const uint8_t *addr,size_t addrlen); 
 
     /* trim the tree, starting at the root. Find the node to trim and then trim it.
-    * node that best_to_trim() returns a const pointer. But we want to modify it then.
-    */
+     * node that best_to_trim() returns a const pointer. But we want to modify it, so we
+     * do a const_cast (which is completely fine).
+     */
     int trim(){
         if(root->term) return 0;        // terminal nodes can't be trimmed
         int tdepth=0;
@@ -221,7 +231,7 @@ template <typename T> void iptreet<T>::add(const uint8_t *addr,size_t addrlen)
     u_int maxdepth = addrlen * 8;         // in bits
     node *ptr = root;                   // start at the root
     for(u_int depth=0;depth<=maxdepth;depth++){
-        ptr->tsum++;               // increment this node (and all of its ancestors)
+        ptr->inc();  // increment this node (and all of its ancestors)
         if(depth==maxdepth){        // reached bottom
             ptr->term = 1;
         }
@@ -258,7 +268,7 @@ template <typename T> void iptreet<T>::get_histogram(int depth,const uint8_t *ad
                                   const node *ptr,vector<addr_elem> &histogram) const
 {
     if(ptr->term){
-        histogram.push_back(addr_elem(addr,depth,ptr->tsum));
+        histogram.push_back(addr_elem(addr,depth,ptr->sum()));
         return;
     }
     if(depth>128) return;               // can't go deeper than this now

@@ -231,7 +231,6 @@ typedef size_t socklen_t;
 #include <iostream>
 
 #include "be13_api/bulk_extractor_i.h"
-//#include "tcpdemux.h"
   
 /***************************** Macros *************************************/
 
