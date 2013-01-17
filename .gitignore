@@ -90,3 +90,7 @@ src/a.out
 tests/out
 tests/packet1.pcap
 config.h.in
+src/iphtest-nitroba-100.txt
+src/iphtest-nitroba-1000.txt
+src/iphtest-nitroba-10000.txt
+test-driver
