@@ -15,6 +15,7 @@
 
 #include "tcpflow.h"
 #include "tcpip.h"
+#include "tcpdemux.h"
 
 #include <assert.h>
 #include <iostream>
@@ -153,11 +154,12 @@ std::string flow::new_filename(int *fd,int flags,int mode)
     for(uint32_t connection_count=0;;connection_count++){
         std::string nfn = filename(connection_count);
         if(nfn.find('/')!=std::string::npos) mkdirs_for_path(nfn.c_str());
-        int nfd = open(nfn.c_str(),flags,mode);
+        int nfd = tcpdemux::getInstance()->retrying_open(nfn,flags,mode);
         if(nfd>=0){
             *fd = nfd;
             return nfn;
         }
+        if(errno!=EEXIST) die("Cannot open: %s",nfn.c_str());
     }
     return std::string("<<CANNOT CREATE FILE>>");               // error; no file
 }
