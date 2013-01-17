@@ -3,7 +3,6 @@
 
 #include "plot.h"
 #include "time_histogram.h"
-#include "count_histogram.h"
 #include "address_histogram.h"
 #include "port_histogram.h"
 #include "packetfall.h"
@@ -37,12 +36,6 @@ public:
         void render_bandwidth_histogram();
         void render_address_histograms();
         void render_port_histograms();
-        void render_dual_histograms_top_n(
-                const vector<count_histogram::count_pair> &left_list,
-                const vector<count_histogram::count_pair> &right_list,
-                const uint64_t left_sum, const uint64_t right_sum,
-                const plot::bounds_t &left_hist_bounds,
-                const plot::bounds_t &right_hist_bounds);
         void render_map();
         void render_packetfall();
 
@@ -57,6 +50,7 @@ public:
 
     void ingest_packet(const packet_info &pi);
     void render(const std::string &outdir);
+    plot::rgb_t port_color(uint16_t port) const;
 
     // string constants
     static const std::string title_version;
@@ -69,6 +63,8 @@ public:
     // size constants
     static const double bandwidth_histogram_height;
     static const double address_histogram_height;
+    // color constants
+    static const plot::rgb_t default_color;
 
 private:
 
@@ -85,6 +81,8 @@ private:
     packetfall pfall;
     iptree src_tree;
     iptree dst_tree;
+    std::map<uint16_t, uint16_t> port_aliases;
+    std::map<uint16_t, plot::rgb_t> port_color_map;
 
     static std::vector<std::string> build_size_suffixes();
 };

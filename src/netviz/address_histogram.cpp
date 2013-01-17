@@ -1,6 +1,6 @@
 /**
  * address_histogram.cpp: 
- * Show packets received vs port
+ * Show packets received vs addr
  *
  * This source file is public domain, as it is not based on the original tcpflow.
  *
@@ -17,58 +17,59 @@
 
 #include "address_histogram.h"
 
-void address_histogram::ingest_packet(const packet_info &pi)
-{
-    struct ip4_dgram ip4;
-    struct ip6_dgram ip6;
-    std::stringstream ss;
-
-    // IPv4?
-    if(tcpip::ip4_from_bytes(pi.ip_data, pi.ip_datalen, ip4)) {
-        // recording source addresses?
-        if(relationship == SOURCE || relationship == SRC_OR_DST) {
-            parent_count_histogram.increment(std::string(inet_ntoa(ip4.header->ip_src)), 1);
-        }
-        if(relationship == DESTINATION || relationship == SRC_OR_DST) {
-            parent_count_histogram.increment(std::string(inet_ntoa(ip4.header->ip_dst)), 1);
-        }
-    }
-    // IPv6?
-    else if(tcpip::ip6_from_bytes(pi.ip_data, pi.ip_datalen, ip6)) {
-        ss.str(std::string());
-        ss << std::hex << std::setfill('0');
-        // recording source addresses?
-        if(relationship == SOURCE || relationship == SRC_OR_DST) {
-            for(int ii = 0; ii < 8; ii++) {
-                ss << std::setw(4) << ip6.header->ip6_src.__u6_addr.__u6_addr8[ii];
-                if(ii < 7) {
-                    ss << ":";
-                }
-            }
-            parent_count_histogram.increment(ss.str(), 1);
-            ss.str(std::string());
-            ss << std::hex << std::setfill('0');
-        }
-        // recording destination addresses?
-        if(relationship == DESTINATION || relationship == SRC_OR_DST) {
-            for(int ii = 0; ii < 8; ii++) {
-                ss << std::setw(4) << ip6.header->ip6_dst.__u6_addr.__u6_addr8[ii];
-                if(ii < 7) {
-                    ss << ":";
-                }
-            }
-            parent_count_histogram.increment(ss.str(), 1);
-        }
-    }
-}
-
 void address_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
 #ifdef CAIRO_PDF_AVAILABLE
-    parent_count_histogram.render(cr, bounds);
+    plot::ticks_t ticks;
+    plot::legend_t legend;
+    plot::bounds_t content_bounds(0.0, 0.0, bounds.width,
+            bounds.height);
+    //// have the plot class do labeling, axes, legend etc
+    parent.render(cr, bounds, ticks, legend, content_bounds);
+
+    //// fill borders rendered by plot class
+    render_bars(cr, content_bounds);
 #endif
 }
 
+void address_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds)
+{
+    if(top_addrs.size() < 1 || top_addrs.at(0).count == 0) {
+        return;
+    }
+
+#ifdef CAIRO_PDF_AVAILABLE
+    cairo_matrix_t original_matrix;
+
+    cairo_get_matrix(cr, &original_matrix);
+    cairo_translate(cr, bounds.x, bounds.y);
+
+    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+
+    double offset_unit = bounds.width / top_addrs.size();
+    double bar_width = offset_unit / bar_space_factor;
+    double space_width = offset_unit - bar_width;
+    uint64_t greatest = top_addrs.at(0).count;
+    int index = 0;
+
+    for(vector<iptree::addr_elem>::const_iterator it = top_addrs.begin();
+            it != top_addrs.end(); it++) {
+	double bar_height = (((double) it->count) / ((double) greatest)) * bounds.height;
+
+	if(bar_height > 0) {
+	    cairo_rectangle(cr, index * offset_unit + space_width, bounds.height - bar_height,
+			    bar_width, bar_height);
+	    cairo_fill(cr);
+	}
+	index++;
+    }
+
+    cairo_set_matrix(cr, &original_matrix);
+#endif
+}
+
+// derive histogram from iptree.  This is called by one_page_report just before
+// rendering rather than receiving datagrams one-by-one as they arrive
 void address_histogram::from_iptree(const iptree &tree)
 {
     // convert iptree to suitable vector for count histogram
@@ -78,20 +79,28 @@ void address_histogram::from_iptree(const iptree &tree)
 
     std::sort(addresses.begin(), addresses.end(), iptree_node_comparator());
 
-    std::vector<count_histogram::count_pair> bars;
+    top_addrs.clear();
+    top_addrs.resize(bar_count);
 
     std::vector<iptree::addr_elem>::const_iterator it = addresses.begin();
     int ii = 0;
-    while(ii < parent_count_histogram.max_bars && it != addresses.end()) {
-        bars.push_back(count_histogram::count_pair((*it).str(), it->count));
+    while(ii < bar_count && it != addresses.end()) {
+        top_addrs.at(ii) = *it;
         ii++;
         it++;
     }
 
-    bars.resize(parent_count_histogram.max_bars);
+    datagrams_ingested = tree.sum();
+}
 
-    parent_count_histogram.set_top_list(bars);
-    parent_count_histogram.set_count_sum(tree.sum());
+void address_histogram::get_top_addrs(std::vector<iptree::addr_elem> &addr_list)
+{
+    addr_list = top_addrs;
+}
+
+uint64_t address_histogram::get_ingest_count()
+{
+    return datagrams_ingested;
 }
 
 bool address_histogram::iptree_node_comparator::operator()(const iptree::addr_elem &a,
@@ -114,15 +123,13 @@ bool address_histogram::iptree_node_comparator::operator()(const iptree::addr_el
     return false;
 }
 
-void address_histogram::quick_config(relationship_t relationship_,
-        std::string title_, std::string subtitle_)
+void address_histogram::quick_config(const std::string &title_)
 {
-    relationship = relationship_;
-    parent_count_histogram.parent_plot.title = title_;
-    parent_count_histogram.parent_plot.subtitle = subtitle_;
-    parent_count_histogram.parent_plot.title_on_bottom = true;
-    parent_count_histogram.parent_plot.pad_left_factor = 0.0;
-    parent_count_histogram.parent_plot.pad_right_factor = 0.0;
-    parent_count_histogram.parent_plot.x_label = "";
-    parent_count_histogram.parent_plot.y_label = "";
+    parent.title = title_;
+    parent.subtitle = "";
+    parent.title_on_bottom = true;
+    parent.pad_left_factor = 0.0;
+    parent.pad_right_factor = 0.0;
+    parent.x_label = "";
+    parent.y_label = "";
 }

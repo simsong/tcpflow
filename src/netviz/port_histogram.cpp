@@ -11,39 +11,119 @@
 #include "config.h"
 #include "tcpflow.h"
 #include "tcpip.h"
+#include "one_page_report.h"
 
 #include "port_histogram.h"
 
-void port_histogram::ingest_packet(const struct tcp_seg &tcp)
+#include <algorithm>
+
+bool port_histogram::descending_counts::operator()(const port_count &a,
+        const port_count &b)
+{
+    if(a.count > b.count) {
+        return true;
+    }
+    if(a.count < b.count) {
+        return false;
+    }
+    return a.port < b.port;
+}
+
+void port_histogram::ingest_segment(const struct tcp_seg &tcp)
 {
     if(relationship == SOURCE || relationship == SRC_OR_DST) {
-        std::stringstream ss;
-        ss << ntohs(tcp.header->th_sport);
-        parent_count_histogram.increment(ss.str(), 1);
+        port_counts[ntohs(tcp.header->th_sport)]++;
     }
     if(relationship == DESTINATION || relationship == SRC_OR_DST) {
-        std::stringstream ss;
-        ss << ntohs(tcp.header->th_dport);
-        parent_count_histogram.increment(ss.str(), 1);
+        port_counts[ntohs(tcp.header->th_dport)]++;
     }
 }
 
-void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
+void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
 {
 #ifdef CAIRO_PDF_AVAILABLE
-    parent_count_histogram.render(cr, bounds);
+    plot::ticks_t ticks;
+    plot::legend_t legend;
+    plot::bounds_t content_bounds(0.0, 0.0, bounds.width,
+            bounds.height);
+    //// have the plot class do labeling, axes, legend etc
+    parent.render(cr, bounds, ticks, legend, content_bounds);
+
+    //// fill borders rendered by plot class
+    render_bars(cr, content_bounds, report);
 #endif
 }
 
-void port_histogram::quick_config(relationship_t relationship_,
-        std::string title_, std::string subtitle_)
+void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
+{
+    std::vector<port_count> top_ports;
+    get_top_ports(top_ports);
+
+    if(top_ports.size() < 1 || top_ports.at(0).count == 0) {
+        return;
+    }
+
+#ifdef CAIRO_PDF_AVAILABLE
+    cairo_matrix_t original_matrix;
+
+    cairo_get_matrix(cr, &original_matrix);
+    cairo_translate(cr, bounds.x, bounds.y);
+
+    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+
+    double offset_unit = bounds.width / top_ports.size();
+    double bar_width = offset_unit / bar_space_factor;
+    double space_width = offset_unit - bar_width;
+    uint64_t greatest = top_ports.at(0).count;
+    int index = 0;
+
+    for(vector<port_count>::const_iterator it = top_ports.begin();
+            it != top_ports.end(); it++) {
+	double bar_height = (((double) it->count) / ((double) greatest)) * bounds.height;
+
+	if(bar_height > 0) {
+            plot::rgb_t bar_color = report.port_color(it->port);
+            cairo_set_source_rgb(cr, bar_color.r, bar_color.g, bar_color.b);
+
+	    cairo_rectangle(cr, index * offset_unit + space_width, bounds.height - bar_height,
+			    bar_width, bar_height);
+	    cairo_fill(cr);
+	}
+	index++;
+    }
+
+    cairo_set_matrix(cr, &original_matrix);
+#endif
+}
+
+void port_histogram::get_top_ports(std::vector<port_count> &top_ports)
+{
+    top_ports.clear();
+
+    for(std::map<uint16_t, uint64_t>::const_iterator it = port_counts.begin();
+            it != port_counts.end(); it++) {
+        top_ports.push_back(port_count(it->first, it->second));
+    }
+
+    std::sort(top_ports.begin(), top_ports.end(), descending_counts());
+
+    top_ports.resize(bar_count);
+}
+
+void port_histogram::quick_config(const relationship_t &relationship_,
+        const std::string &title_)
 {
     relationship = relationship_;
-    parent_count_histogram.parent_plot.title = title_;
-    parent_count_histogram.parent_plot.subtitle = subtitle_;
-    parent_count_histogram.parent_plot.title_on_bottom = true;
-    parent_count_histogram.parent_plot.pad_left_factor = 0.0;
-    parent_count_histogram.parent_plot.pad_right_factor = 0.0;
-    parent_count_histogram.parent_plot.x_label = "";
-    parent_count_histogram.parent_plot.y_label = "";
+    parent.title = title_;
+    parent.subtitle = "";
+    parent.title_on_bottom = true;
+    parent.pad_left_factor = 0.0;
+    parent.pad_right_factor = 0.0;
+    parent.x_label = "";
+    parent.y_label = "";
+}
+
+uint64_t port_histogram::get_ingest_count()
+{
+    return segments_ingested;
 }
