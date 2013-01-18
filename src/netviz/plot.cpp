@@ -92,18 +92,75 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     cairo_text_extents_t axis_label_extents;
     cairo_set_font_size(cr, y_axis_font_size);
     cairo_text_extents(cr, y_label.c_str(), &axis_label_extents);
-    cairo_move_to(cr, 0.0 + axis_label_extents.height,
-        pad_top + ((content_bounds.height - axis_label_extents.width) / 2.0) +
-            axis_label_extents.width);
+    double y_label_x = 0.0 + axis_label_extents.height;
+    double y_label_centering_pad = ((content_bounds.height - axis_label_extents.width) / 2.0);
+    double y_label_y = pad_top + y_label_centering_pad + axis_label_extents.width;
+    cairo_move_to(cr, y_label_x, y_label_y);
     cairo_rotate(cr, -M_PI / 2.0);
     cairo_show_text(cr, y_label.c_str());
     cairo_set_matrix(cr, &unrotated_matrix);
+    // add y axis decoration
+    // TODO not implemented for brevity
 
     cairo_set_font_size(cr, x_axis_font_size);
     cairo_text_extents(cr, x_label.c_str(), &axis_label_extents);
-    cairo_move_to(cr, pad_left + ((content_bounds.width - axis_label_extents.width) / 2.0),
-            bounds.height);
+    double x_label_centering_pad = (content_bounds.width - axis_label_extents.width) / 2.0;
+    double x_label_x = pad_left + x_label_centering_pad;
+    double x_label_y = bounds.height;
+    cairo_move_to(cr, x_label_x, x_label_y);
     cairo_show_text(cr, x_label.c_str());
+
+    // add x axis decoration
+    if(x_axis_decoration == AXIS_SPAN_ARROW || x_axis_decoration == AXIS_SPAN_STOP) {
+        double angle = span_arrow_angle;
+        double line_width = x_axis_font_size * text_line_base_width;
+        double tip_length = line_width * 10.0;
+        if(x_axis_decoration == AXIS_SPAN_STOP) {
+            angle = span_stop_angle;
+            tip_length = line_width * 5.0;
+        }
+        double gap = line_width * 10.0;
+        double x = x_label_x - gap;
+        double y = x_label_y - axis_label_extents.height / 3.0;
+        double pr_x, pr_y; // previous x and y positions
+        // left of label
+        cairo_move_to(cr, x, y);
+        pr_x = x;
+        pr_y = y;
+        x = pr_x - (x_label_centering_pad - gap);
+        y = pr_y;
+        cairo_line_to(cr, x, y);
+        pr_x = x;
+        pr_y = y;
+        x = pr_x + tip_length * sin(angle + M_PI / 2.0);
+        y = pr_y + tip_length * cos(angle + M_PI / 2.0);
+        cairo_line_to(cr, x, y);
+        cairo_move_to(cr, pr_x, pr_y);
+        x = pr_x + tip_length * sin(-angle + M_PI / 2.0);
+        y = pr_y + tip_length * cos(-angle + M_PI / 2.0);
+        cairo_line_to(cr, x, y);
+        // right of label
+        x = x_label_x + axis_label_extents.width + gap;
+        y = x_label_y - axis_label_extents.height / 3.0;
+        cairo_move_to(cr, x, y);
+        pr_x = x;
+        pr_y = y;
+        x = pr_x + (x_label_centering_pad - gap);
+        y = pr_y;
+        cairo_line_to(cr, x, y);
+        pr_x = x;
+        pr_y = y;
+        x = pr_x + tip_length * sin(angle - M_PI / 2.0);
+        y = pr_y - tip_length * cos(angle - M_PI / 2.0);
+        cairo_line_to(cr, x, y);
+        cairo_move_to(cr, pr_x, pr_y);
+        x = pr_x + tip_length * sin(-angle - M_PI / 2.0);
+        y = pr_y - tip_length * cos(-angle - M_PI / 2.0);
+        cairo_line_to(cr, x, y);
+        cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+        cairo_set_line_width(cr, line_width);
+        cairo_stroke(cr);
+    }
 
     // render ticks
 

@@ -29,7 +29,7 @@ public:
     port_histogram() :
         parent(), relationship(SRC_OR_DST), bar_space_factor(1.2), bar_count(10),
         bar_label_font_size(8.0),
-        port_counts(), segments_ingested(), top_ports_cache(), top_ports_dirty(true) {}
+        port_counts(), data_bytes_ingested(), top_ports_cache(), top_ports_dirty(true) {}
 
     void ingest_segment(const struct tcp_seg &tcp);
     void render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
@@ -46,7 +46,7 @@ public:
 
 private:
     std::map<uint16_t, uint64_t> port_counts;
-    uint64_t segments_ingested;
+    uint64_t data_bytes_ingested;
     std::vector<port_count> top_ports_cache;
     bool top_ports_dirty;
 };
