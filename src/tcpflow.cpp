@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
 
     bool force_binary_output = false;
     bool opt_all = false;
-    char *device = NULL;
+    const char *device = "<default>";
     const char *lockname = 0;
     int need_usage = 0;
     std::string reportfilename;
@@ -558,12 +558,17 @@ int main(int argc, char *argv[])
 
     if(iphtest==1){
         extern iptree mytree;
+        extern ip2tree my2tree;
         std::cout << "trim before: " << mytree.size() << "\n";
         while(mytree.size()>iphtrim){
             mytree.trim();
         }
         std::cout << "trim after: " << mytree.size() << "\n";
         std::cout << mytree;
+        std::cout << "\n";
+        std::cout << "my2tree:\n";
+        std::cout << my2tree;
+        std::cout << "\n";
         exit(0);
     }
 

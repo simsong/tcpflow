@@ -286,6 +286,8 @@ void tcpdemux::saved_flow_remove_oldest_if_necessary()
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include "iptree.h"
 iptree mytree;
+ip2tree my2tree;
+
 int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                            const u_char *tcp_data, uint32_t tcp_datalen,
                            const packet_info &pi)
@@ -293,6 +295,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     if(iphtest==1){                     // mode 1 testing - when the tree gets 4000, drop it to 400
         mytree.add(src.addr,family==AF_INET6 ? 16 : 4 );
         mytree.add(dst.addr,family==AF_INET6 ? 16 : 4);
+        my2tree.add_pair(src.addr,dst.addr,family==AF_INET6 ? 16 : 4);
     }
 
     if (tcp_datalen < sizeof(struct tcphdr)) {

@@ -6,6 +6,8 @@
  *
  */
 
+/* TODO - cache the last 4 lookups */
+
 #ifndef IPTREE_H
 #define IPTREE_H
 
@@ -17,7 +19,9 @@
 #include <arpa/inet.h>
 
 
-template <typename T> class iptreet {
+/* addrbytes is the number of bytes in the address */
+
+template <typename T,size_t ADDRBYTES> class iptreet {
 private:;
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
@@ -73,7 +77,6 @@ private:;
          * case 5 - the better node of each child's best node.
          */
         const node *best_to_trim(int *best_depth,int my_depth) const {
-            //printf("%p: best_to_trim(my_depth=%d) ptr0=%p  ptr1=%p  sum=%qd term=%d\n",this,my_depth,ptr0,ptr1,sum(),term);
             assert(term()==0);
             if (ptr0 && !ptr1 && ptr0->term()) {*best_depth=my_depth;return this;} // case 2
             if (ptr1 && !ptr0 && ptr1->term()) {*best_depth=my_depth;return this;} // case 2
@@ -108,13 +111,36 @@ private:;
     };
     class node *root;                   //
     enum {root_depth=0};                // depth of the root node
-    size_t     nodes;                  // how many do we have?
-    size_t     maxnodes;                // how many will we tolerate?
     enum {maxnodes_default=10000};
     iptreet &operator=(const iptreet &that){throw not_impl();}
+protected:
+    size_t     nodes;                  // how many do we have?
+    size_t     maxnodes;                // how many will we tolerate?
 
 public:
     /* Returned in the histogram */
+
+    // returns true if addr[4..15]==0
+    static std::string itos(int n){
+        char buf[64];
+        snprintf(buf,sizeof(buf),"%d",n);
+        return std::string(buf);
+    }
+    static bool isipv4(const uint8_t *addr,size_t addrlen) { 
+        if(addrlen==4) return true;
+        for(u_int i=4;i<addrlen;i++){
+            if(addr[i]!=0) return false;
+        }
+        return true;
+    }
+    static std::string ipstr(const uint8_t *addr,size_t addrlen,size_t depth){
+        if(isipv4(addr,addrlen)){
+            return ipv4(addr) + (depth<32 ? (std::string("/") + itos(depth)) : "");
+        } else {
+            return ipv6(addr) + (depth<128 ? (std::string("/") + itos(depth)) : "");
+        }
+    }
+
     class addr_elem {
     public:
         addr_elem(const uint8_t *addr_,uint8_t depth_,int64_t count_):
@@ -130,31 +156,16 @@ public:
             this->depth = n.depth;
             return *this;
         }
-        ~addr_elem(){}
-        const uint8_t addr[16];         // maximum size address; v4 addresses have addr[4..15]=0
+        virtual ~addr_elem(){}
+        const uint8_t addr[ADDRBYTES];         // maximum size address; v4 addresses have addr[4..15]=0
         uint8_t depth;                  // in bits; /depth
         int64_t count;
-        static std::string itos(int n){
-            char buf[64];
-            snprintf(buf,sizeof(buf),"%d",n);
-            return std::string(buf);
-        }
-        bool is4() const {                    // returns true if addr[4..15]==0
-            for(u_int i=4;i<sizeof(addr);i++){
-                if(addr[i]!=0) return false;
-            }
-            return true;
-        }
-        std::string str() const {              // return a string
-            if(is4()){
-                return ipv4(addr) + (depth<32 ? (std::string("/") + itos(depth)) : "");
-            } else {
-                return ipv6(addr) + (depth<128 ? (std::string("/") + itos(depth)) : "");
-            }
-        }
+        
+        bool is4() const { return isipv4(addr,ADDRBYTES);};
+        std::string str() const { return ipstr(addr,ADDRBYTES,depth); }
     };
 
-    /* Service */
+    /* static service routines for displaying ipv4 and ipv6 addresses  */
     static std::string ipv4(const uint8_t *a){
         char buf[1024];
         snprintf(buf,sizeof(buf),"%d.%d.%d.%d",a[0],a[1],a[2],a[3]);
@@ -173,17 +184,13 @@ public:
         addr[i / 8] |= (1<<(7-i%8));
     }
     
+    virtual ~iptreet(){}                // required per compiler warnings
     /* copy is a deep copy */
     iptreet(const iptreet &n):root(n.root ? new node(*n.root) : 0),
-                              nodes(n.nodes),
-                              maxnodes(n.maxnodes){};
+                              nodes(n.nodes),maxnodes(n.maxnodes){};
 
-    /* empty tree */
+    /* create an empty tree */
     iptreet():root(new node()),nodes(0),maxnodes(maxnodes_default){};
-    size_t size() const {return nodes;};
-
-    /* add a node; implementation below */
-    void add(const uint8_t *addr,size_t addrlen); 
 
     /* trim the tree, starting at the root. Find the node to trim and then trim it.
      * node that best_to_trim() returns a const pointer. But we want to modify it, so we
@@ -196,14 +203,53 @@ public:
         return tnode ? tnode->trim(*this) : 0;
     }
 
-    /* sum the tree, starting at the root */
+    /* Simple implementation to trim the table to 90% of limit if at limit. Subclass to change behavior. */
+    void trim_if_greater(size_t limit){
+        if(nodes>=maxnodes){
+            while(nodes > maxnodes * 9 / 10){ 
+                if(trim()==0) break;         
+            }
+        }
+    }
+
+    /* add a node; implementation below */
+    void add(const uint8_t *addr,size_t addrlen); 
+
+    /* size the tree; the number of nodes */
+    size_t size() const {return nodes;};
+
+    /* sum the tree; the total number of adds that have been performed */
     uint64_t sum() const {return root->sum();};
 
+    /* get a histogram of the tree, and starting at a particular node 
+     * The histogram that is reported are only the terminal nodes.
+     */
     typedef vector<addr_elem> histogram_t;
-    void get_histogram(int depth,const uint8_t *addr,const class node *ptr,histogram_t  &histogram)const;
+    void get_histogram(int depth,const uint8_t *addr,const class node *ptr,histogram_t  &histogram) const{
+        if(ptr->term()){
+            histogram.push_back(addr_elem(addr,depth,ptr->sum()));
+            return;
+        }
+        if(depth>128) return;               // can't go deeper than this now
+        
+        /* create address with 0 and 1 added */
+        uint8_t addr0[ADDRBYTES];
+        uint8_t addr1[ADDRBYTES];
+        
+        memset(addr0,0,sizeof(addr0)); memcpy(addr0,addr,(depth+7)/8);
+        memset(addr1,0,sizeof(addr1)); memcpy(addr1,addr,(depth+7)/8); setbit(addr1,depth);
+        
+        if(ptr->ptr0) get_histogram(depth+1,addr0,ptr->ptr0,histogram);
+        if(ptr->ptr1) get_histogram(depth+1,addr1,ptr->ptr1,histogram);
+    }
+        
+    void get_histogram(histogram_t &histogram) const { // adds the histogram to the passed in vector
+        uint8_t addr[ADDRBYTES];
+        memset(addr,0,sizeof(addr));
+        get_histogram(0,addr,root,histogram);
+    }
 
-    void get_histogram(histogram_t &histogram) const; // adds the histogram to the passed in vector
-
+    /* dump the tree; largely for debugging */
     std::ostream & dump(std::ostream &os) const {
         histogram_t histogram;
         get_histogram(histogram);
@@ -215,28 +261,20 @@ public:
     }
 };
 
-template <typename T> std::ostream & operator <<(std::ostream &os,const iptreet<T> &ipt) {
-    return ipt.dump(os);
-}
 
-
-/* Currently assumes IPv4 */
-template <typename T> void iptreet<T>::add(const uint8_t *addr,size_t addrlen)
+/* add a node.
+ */ 
+template <typename T,size_t ADDRBYTES> void iptreet<T,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen)
 {
-    /* trim the tree if it is too big */
-    if(nodes>=maxnodes){
-        while(nodes > maxnodes * 9 / 10){ // trim 10% of the nodes
-            if(trim()==0) break;          // can't trim anymore
-        }
-    }
+    trim_if_greater(maxnodes);
+    if(addrlen > ADDRBYTES) addrlen=ADDRBYTES;
 
     u_int maxdepth = addrlen * 8;         // in bits
     node *ptr = root;                   // start at the root
     for(u_int depth=0;depth<=maxdepth;depth++){
-        ptr->inc();  // increment this node (and all of its ancestors)
+        ptr->inc();                // increment this node (and all of its descendants 
         if(depth==maxdepth){        // reached bottom
-            assert(ptr->ptr0==0);
-            assert(ptr->ptr1==0);
+            assert((ptr->ptr0==0) && (ptr->ptr1==0));
             return;                 // we are a terminal node; return
         }
         /* Not a terminal node, so go down a level based on the next bit,
@@ -260,36 +298,64 @@ template <typename T> void iptreet<T>::add(const uint8_t *addr,size_t addrlen)
 }
 
 
-/* The histogram that is reported are only the terminal nodes. */
-
-template <typename T> void iptreet<T>::get_histogram(int depth,const uint8_t *addr,
-                                  const node *ptr,vector<addr_elem> &histogram) const
-{
-    if(ptr->term()){
-        histogram.push_back(addr_elem(addr,depth,ptr->sum()));
-        return;
+/* a structure for a pair of IP addresses */
+class ip2tree:public iptreet<uint64_t,32> {
+public:
+    /* de-interleave a pair of addresses */
+    static void un_pair(uint8_t *addr1,uint8_t *addr2,size_t addr12len,size_t *depth1,size_t *depth2,const uint8_t *addr,size_t addrlen,size_t depth){
+        for(size_t i=0;i<addrlen*8/2;i++){
+            if(iptreet<uint64_t,32>::bit(addr,i*2))   iptreet<uint64_t,32>::setbit(addr1,i);
+            if(iptreet<uint64_t,32>::bit(addr,i*2+1)) iptreet<uint64_t,32>::setbit(addr2,i);
+        }
+        *depth1 = (depth+1)/2;
+        *depth2 = (depth)/2;
     }
-    if(depth>128) return;               // can't go deeper than this now
 
-    /* create address with 0 and 1 added */
-    uint8_t addr0[16];
-    uint8_t addr1[16];
+    ip2tree(){}
+    virtual ~ip2tree(){};
+    /* str requires more work */
+    static std::string ip2str(const uint8_t *addr,size_t addrlen,size_t depth){
+        uint8_t addr1[16];memset(addr1,0,sizeof(addr1));
+        uint8_t addr2[16];memset(addr2,0,sizeof(addr2));
+        size_t depth1=0,depth2=0;
+        ip2tree::un_pair(addr1,addr2,sizeof(addr1),&depth1,&depth2,addr,addrlen,depth);
+        return ipstr(addr1,sizeof(addr1),depth1) + " " + ipstr(addr2,sizeof(addr2),depth2);
+    }
 
-    memset(addr0,0,sizeof(addr0)); memcpy(addr0,addr,(depth+7)/8);
-    memset(addr1,0,sizeof(addr1)); memcpy(addr1,addr,(depth+7)/8); setbit(addr1,depth);
+    /* 2tree needs its own dump because a different ipstr is called */
+    std::ostream & dump(std::ostream &os) const {
+        histogram_t histogram;
+        get_histogram(histogram);
+        os << "nodes: " << nodes << "  histogram size: " << histogram.size() << "\n";
+        for(size_t i=0;i<histogram.size();i++){
+            const addr_elem &a = histogram.at(i);
+            os << ip2str(a.addr,sizeof(a.addr),a.depth) << "  count=" << histogram.at(i).count << "\n";
+        }
+        return os;
+    }
 
-    if(ptr->ptr0) get_histogram(depth+1,addr0,ptr->ptr0,histogram);
-    if(ptr->ptr1) get_histogram(depth+1,addr1,ptr->ptr1,histogram);
+    /* Add a pair of addresses by interleaving them */
+    void add_pair(const uint8_t *addr1,const uint8_t *addr2,size_t addrlen){
+        uint8_t addr[32];
+        memset(addr,0,sizeof(addr));
+        /* Interleave on the bit by bit level */
+        for(size_t i=0;i<addrlen*8;i++){
+            if(iptreet<uint64_t,32>::bit(addr1,i)) iptreet<uint64_t,32>::setbit(addr,i*2);
+            if(iptreet<uint64_t,32>::bit(addr2,i)) iptreet<uint64_t,32>::setbit(addr,i*2+1);
+        }
+        add(addr,addrlen*2); /* Add it */
+    }
+
+};
+
+typedef iptreet<uint64_t,16> iptree;       // simple tree for counting; reimplement so val is tcount
+template <typename T,size_t ADDRBYTES> std::ostream & operator <<(std::ostream &os,const iptreet<T,ADDRBYTES> &ipt) {
+    return ipt.dump(os);
 }
 
-    /* Currently assumes ipv4 */
-template <typename T>  void iptreet<T>::get_histogram(vector<addr_elem> &histogram) const
-{
-    uint8_t addr[16];
-    memset(addr,0,sizeof(addr));
-    get_histogram(0,addr,root,histogram);
+inline std::ostream & operator <<(std::ostream &os,const ip2tree &ipt) {
+    return ipt.dump(os);
 }
 
-typedef iptreet<uint64_t> iptree;
 
 #endif
