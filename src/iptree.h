@@ -31,33 +31,32 @@ private:;
     public:
         class node *ptr0;               // 0 bit next
         class node *ptr1;               // 1 bit next
-        bool  term;                     // terminal node; ptr0==0 && ptr1==0 && count>0
     private:
         uint64_t tsum;                // this node and children
     public:
         /* copy is a deep copy */
         node(const iptreet::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
                                      ptr1(n.ptr1 ? new node(*n.ptr1) : 0),
-                                     term(n.term),
                                      tsum(n.tsum) { }
-        node():ptr0(0),ptr1(0),term(false),tsum(0){ }
+        node():ptr0(0),ptr1(0),tsum(0){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
             if(ptr0){ delete ptr0; ptr0 = 0; }
             if(ptr1){ delete ptr1; ptr1 = 0; }
         };
+        bool term() const {             // a node with no ptrs and a sum>0 is a terminal node
+            return ptr0==0 && ptr1==0 && tsum>0;
+        }
         int trim(class iptreet &tree){                    // trim this node
-            term = true;
-
             /* Now delete those that we counted out */
             if(ptr0){
-                assert(ptr0->term); assert(ptr0->ptr0==0); assert(ptr0->ptr1==0);
+                assert(ptr0->term()); assert(ptr0->ptr0==0); assert(ptr0->ptr1==0);
                 delete ptr0;
                 ptr0=0;
                 tree.nodes--;
             }
             if(ptr1){
-                assert(ptr1->term); assert(ptr1->ptr0==0); assert(ptr1->ptr1==0);
+                assert(ptr1->term()); assert(ptr1->ptr0==0); assert(ptr1->ptr1==0);
                 delete ptr1;
                 ptr1=0;
                 tree.nodes--;
@@ -75,15 +74,15 @@ private:;
          */
         const node *best_to_trim(int *best_depth,int my_depth) const {
             //printf("%p: best_to_trim(my_depth=%d) ptr0=%p  ptr1=%p  sum=%qd term=%d\n",this,my_depth,ptr0,ptr1,sum(),term);
-            assert(term==0);
-            if (ptr0 && !ptr1 && ptr0->term) {*best_depth=my_depth;return this;} // case 2
-            if (ptr1 && !ptr0 && ptr1->term) {*best_depth=my_depth;return this;} // case 2
-            if (ptr0 && ptr0->term && ptr1 && ptr1->term) {*best_depth=my_depth;return this;} // case 2
+            assert(term()==0);
+            if (ptr0 && !ptr1 && ptr0->term()) {*best_depth=my_depth;return this;} // case 2
+            if (ptr1 && !ptr0 && ptr1->term()) {*best_depth=my_depth;return this;} // case 2
+            if (ptr0 && ptr0->term() && ptr1 && ptr1->term()) {*best_depth=my_depth;return this;} // case 2
             if (ptr0 && !ptr1) return ptr0->best_to_trim(best_depth,my_depth+1); // case 3
             if (ptr1 && !ptr0) return ptr1->best_to_trim(best_depth,my_depth+1); // case 3
 
-            if (ptr0->term && !ptr1->term) return ptr1->best_to_trim(best_depth,my_depth+1); // case 4
-            if (ptr1->term && !ptr0->term) return ptr0->best_to_trim(best_depth,my_depth+1); // case 4
+            if (ptr0->term() && !ptr1->term()) return ptr1->best_to_trim(best_depth,my_depth+1); // case 4
+            if (ptr1->term() && !ptr0->term()) return ptr0->best_to_trim(best_depth,my_depth+1); // case 4
 
             // case 5 - the better node of each child's best node.
             int ptr0_best_depth = my_depth;
@@ -191,7 +190,7 @@ public:
      * do a const_cast (which is completely fine).
      */
     int trim(){
-        if(root->term) return 0;        // terminal nodes can't be trimmed
+        if(root->term()) return 0;        // terminal nodes can't be trimmed
         int tdepth=0;
         node *tnode = const_cast<node *>(root->best_to_trim(&tdepth,root_depth));
         return tnode ? tnode->trim(*this) : 0;
@@ -236,13 +235,9 @@ template <typename T> void iptreet<T>::add(const uint8_t *addr,size_t addrlen)
     for(u_int depth=0;depth<=maxdepth;depth++){
         ptr->inc();  // increment this node (and all of its ancestors)
         if(depth==maxdepth){        // reached bottom
-            ptr->term = 1;
-        }
-        if(ptr->term){                  // if this is a terminal node
-            //ptr->tcount++;              // increase terminal count
             assert(ptr->ptr0==0);
             assert(ptr->ptr1==0);
-            return;                     // we found a terminal node. stop
+            return;                 // we are a terminal node; return
         }
         /* Not a terminal node, so go down a level based on the next bit,
          * extending if necessary.
@@ -270,7 +265,7 @@ template <typename T> void iptreet<T>::add(const uint8_t *addr,size_t addrlen)
 template <typename T> void iptreet<T>::get_histogram(int depth,const uint8_t *addr,
                                   const node *ptr,vector<addr_elem> &histogram) const
 {
-    if(ptr->term){
+    if(ptr->term()){
         histogram.push_back(addr_elem(addr,depth,ptr->sum()));
         return;
     }
