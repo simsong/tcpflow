@@ -52,6 +52,8 @@ public:
     void render(const std::string &outdir);
     plot::rgb_t port_color(uint16_t port) const;
 
+    static std::string pretty_byte_total(uint64_t byte_count);
+
     // string constants
     static const std::string title_version;
     static const std::vector<std::string> size_suffixes;

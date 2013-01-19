@@ -18,7 +18,12 @@ public:
         x_tick_label_pad_factor(4.0), y_tick_label_pad_factor(2.0),
         y_tick_font_size(3.0), x_tick_font_size(3.0), pad_left_factor(0.148),
         pad_top_factor(0.2), pad_bottom_factor(0.2), pad_right_factor(0.148),
-        legend_chip_factor(1.2), legend_font_size(2.5) {}
+        legend_chip_factor(1.2), legend_font_size(2.5),
+        x_axis_decoration(AXIS_NO_DECO), y_axis_decoration(AXIS_NO_DECO) {}
+
+    typedef enum {
+        AXIS_NO_DECO = 0, AXIS_SPAN_ARROW, AXIS_SPAN_STOP
+    } axis_decoration_t;
 
     class rgb_t {
     public:
@@ -109,10 +114,18 @@ public:
     // legend
     double legend_chip_factor;
     double legend_font_size;
+    // axis decoration
+    axis_decoration_t x_axis_decoration;
+    axis_decoration_t y_axis_decoration;
 
     void render(cairo_t *cr, const bounds_t &bounds,
             const ticks_t &ticks, const legend_t &legend,
             bounds_t &content_bounds);
+
+    // constants
+    static const double text_line_base_width = 0.05;
+    static const double span_arrow_angle = M_PI / 4.0;
+    static const double span_stop_angle = M_PI / 2.0;
 };
 
 inline bool operator==(const plot::rgb_t &a, const plot::rgb_t &b)

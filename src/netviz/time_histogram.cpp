@@ -178,19 +178,93 @@ void time_histogram::build_axis_labels(const render_vars &vars)
     parent.y_label = "packets";
     // choose x axis label
     uint64_t bar_interval = bucket_width / (1000 * 1000);
+    uint64_t duration = bar_interval * vars.num_sig_buckets;
     if(bar_interval < 1) {
         parent.x_label = "";
     }
     else {
+        // how long does each bar represent?
+        std::string interval_name;
+        uint64_t interval_value = 0;
         for(vector<time_unit>::const_iterator it = time_units.begin();
                 it != time_units.end(); it++) {
             
             if(it + 1 == time_units.end() || bar_interval <= (it+1)->seconds) {
-                parent.x_label = ssprintf("%d %s intervals", bar_interval / it->seconds, it->name.c_str());
+                interval_name = it->name;
+                interval_value = bar_interval / it->seconds;
                 break;
             }
 
         }
+
+        // how long does is the total capture?
+        // the total time is represented by the two (or one) coursest appropriate units
+        // example:
+        //     5 hours, 10 minutes
+        //     58 seconds
+        // but never:
+        //     5 hours. 10 minutes, 30 seconds
+
+        // break the duration down into its constituent parts
+        std::vector<uint64_t> duration_values;
+        std::vector<std::string> duration_names;
+        int remainder = duration;
+        for(vector<time_unit>::const_reverse_iterator it = time_units.rbegin();
+                it != time_units.rend(); it++) {
+
+            duration_values.push_back(remainder / it->seconds);
+            duration_names.push_back(it->name);
+            remainder %= it->seconds;
+        }
+
+        int print_count = 0;
+        // find how many buckets are worth printing (for comma insertion)
+        for(vector<uint64_t>::const_iterator it = duration_values.begin();
+                it != duration_values.end(); it++) {
+            if(*it > 0) {
+                print_count++;
+            }
+            // if we've seen a nonzero bucket, and now a zero bucket, abort because skipping
+            // a unit is weird (2 months, 1 second)
+            else if(print_count > 0) {
+                break;
+            }
+        }
+
+        std::stringstream ss;
+
+        // work back through the values and print the two coursest nonzero
+        print_count = min(print_count, 2);
+        int printed = 0;
+        for(size_t ii = 0; ii < time_units.size(); ii++) {
+            std::string name = duration_names.at(ii);
+            uint64_t value = duration_values.at(ii);
+
+            // skip over insignificant units
+            if(value == 0 && printed == 0) {
+                continue;
+            }
+            printed++;
+
+            // don't actually print intermediate zero values (no 3 hours, 0 minutes, 30 seconds)
+            if(value > 0) {
+                ss << value << " " << name;
+            }
+            if(value > 1) {
+                ss << "s";
+            }
+            if(printed < print_count) {
+                ss << ", ";
+            }
+
+            if(printed == print_count) {
+                break;
+            }
+        }
+
+        ss << " (" << interval_value << " " << interval_name << " intervals)";
+
+        parent.x_label = ss.str();
     }
 }
 

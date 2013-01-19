@@ -35,13 +35,13 @@ void port_histogram::ingest_segment(const struct tcp_seg &tcp)
     top_ports_dirty = true;
 
     if(relationship == SOURCE || relationship == SRC_OR_DST) {
-        port_counts[ntohs(tcp.header->th_sport)]++;
+        port_counts[ntohs(tcp.header->th_sport)] += tcp.body_len;
     }
     if(relationship == DESTINATION || relationship == SRC_OR_DST) {
-        port_counts[ntohs(tcp.header->th_dport)]++;
+        port_counts[ntohs(tcp.header->th_dport)] += tcp.body_len;
     }
 
-    segments_ingested++;
+    data_bytes_ingested += tcp.body_len;
 }
 
 void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
@@ -164,5 +164,5 @@ void port_histogram::quick_config(const relationship_t &relationship_,
 
 uint64_t port_histogram::get_ingest_count()
 {
-    return segments_ingested;
+    return data_bytes_ingested;
 }

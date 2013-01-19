@@ -55,6 +55,7 @@ one_page_report::one_page_report() :
     bandwidth_histogram.parent.y_tick_font_size = 6.0;
     bandwidth_histogram.parent.x_tick_font_size = 6.0;
     bandwidth_histogram.parent.x_axis_font_size = 8.0;
+    bandwidth_histogram.parent.x_axis_decoration = plot::AXIS_SPAN_ARROW;
     bandwidth_histogram.colorize(port_color_map[PORT_HTTP], port_color_map[PORT_HTTPS],
             default_color);
 
@@ -191,6 +192,17 @@ plot::rgb_t one_page_report::port_color(uint16_t port) const
     return color;
 }
 
+std::string one_page_report::pretty_byte_total(uint64_t byte_count)
+{
+    //// packet count/size
+    uint64_t size_log_1000 = (uint64_t) (log(byte_count) / log(1000));
+    if(size_log_1000 >= size_suffixes.size()) {
+        size_log_1000 = 0;
+    }
+    return ssprintf("%.2f %s", (double) byte_count / pow(1000.0, (double) size_log_1000),
+            size_suffixes.at(size_log_1000).c_str());
+}
+
 void one_page_report::render_pass::render_header()
 {
 #ifdef CAIRO_PDF_AVAILABLE
@@ -218,7 +230,7 @@ void one_page_report::render_pass::render_header()
     //// date range
     struct tm start = *localtime(&report.earliest.tv_sec);
     struct tm stop = *localtime(&report.latest.tv_sec);
-    formatted = ssprintf("Date range: %04d-%02d-%02d %02d:%02d:%02d to %04d-%02d-%02d %02d:%02d:%02d",
+    formatted = ssprintf("Date range: %04d-%02d-%02d %02d:%02d:%02d -- %04d-%02d-%02d %02d:%02d:%02d",
             1900 + start.tm_year, 1 + start.tm_mon, start.tm_mday,
             start.tm_hour, start.tm_min, start.tm_sec,
             1900 + stop.tm_year, 1 + stop.tm_mon, stop.tm_mday,
@@ -226,14 +238,9 @@ void one_page_report::render_pass::render_header()
     render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// packet count/size
-    uint64_t size_log_1000 = (uint64_t) (log(report.byte_count) / log(1000));
-    if(size_log_1000 >= size_suffixes.size()) {
-        size_log_1000 = 0;
-    }
-    formatted = ssprintf("Packets analyzed: %s (%.2f %s)",
+    formatted = ssprintf("Packets analyzed: %s (%s)",
             comma_number_string(report.packet_count).c_str(),
-            ((double) report.byte_count) / pow(1000.0, (double) size_log_1000),
-            size_suffixes.at(size_log_1000).c_str());
+            pretty_byte_total(report.byte_count).c_str());
     render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// protocol breakdown
@@ -408,7 +415,7 @@ void one_page_report::render_pass::render_port_histograms()
             percentage = (uint8_t) (((double) port.count / (double) total_segments) * 100.0);
 
             std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, port.port,
-                    comma_number_string(port.count).c_str(), percentage);
+                    pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
                     left_extents);
@@ -421,7 +428,7 @@ void one_page_report::render_pass::render_port_histograms()
             percentage = (uint8_t) (((double) port.count / (double) total_segments) * 100.0);
 
             std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, port.port,
-                    comma_number_string(port.count).c_str(), percentage);
+                    pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
                     right_extents);
