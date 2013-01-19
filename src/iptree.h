@@ -36,7 +36,7 @@ private:;
         class node *ptr0;               // 0 bit next
         class node *ptr1;               // 1 bit next
     private:
-        uint64_t tsum;                // this node and children
+        uint64_t    tsum;               // this node and children
     public:
         /* copy is a deep copy */
         node(const iptreet::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
@@ -106,7 +106,7 @@ private:;
             return ptr1_best;
         }
         uint64_t sum() const { return tsum; }
-        void inc() { ++tsum;}           // increment
+        void inc(uint64_t val) { tsum+=val;}           // increment
 
     };
     class node *root;                   //
@@ -212,8 +212,10 @@ public:
         }
     }
 
+
     /* add a node; implementation below */
-    void add(const uint8_t *addr,size_t addrlen); 
+    void add(const uint8_t *addr,size_t addrlen,uint64_t val); 
+    void add(const uint8_t *addr,size_t addrlen){ add(addr,addrlen,1); }
 
     /* size the tree; the number of nodes */
     size_t size() const {return nodes;};
@@ -264,7 +266,7 @@ public:
 
 /* add a node.
  */ 
-template <typename T,size_t ADDRBYTES> void iptreet<T,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen)
+template <typename T,size_t ADDRBYTES> void iptreet<T,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,uint64_t val)
 {
     trim_if_greater(maxnodes);
     if(addrlen > ADDRBYTES) addrlen=ADDRBYTES;
@@ -272,7 +274,7 @@ template <typename T,size_t ADDRBYTES> void iptreet<T,ADDRBYTES>::add(const uint
     u_int maxdepth = addrlen * 8;         // in bits
     node *ptr = root;                   // start at the root
     for(u_int depth=0;depth<=maxdepth;depth++){
-        ptr->inc();                // increment this node (and all of its descendants 
+        ptr->inc(val);                // increment this node (and all of its descendants 
         if(depth==maxdepth){        // reached bottom
             assert((ptr->ptr0==0) && (ptr->ptr1==0));
             return;                 // we are a terminal node; return
