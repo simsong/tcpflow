@@ -6,7 +6,7 @@
  *
  */
 
-/* TODO - cache the last 4 lookups */
+/* TODO - cache addresses to nodes to avoid running the tree. */
 
 #ifndef IPTREE_H
 #define IPTREE_H
