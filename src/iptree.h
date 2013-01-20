@@ -21,7 +21,7 @@
 
 /* addrbytes is the number of bytes in the address */
 
-template <typename T,size_t ADDRBYTES> class iptreet {
+template <typename TYPE,size_t ADDRBYTES> class iptreet {
 private:;
     class not_impl: public std::exception {
 	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
@@ -36,31 +36,35 @@ private:;
         class node *ptr0;               // 0 bit next
         class node *ptr1;               // 1 bit next
     private:
-        uint64_t    tsum;               // this node and children
+        TYPE    tsum;               // this node and children
     public:
         /* copy is a deep copy */
         node(const iptreet::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
                                      ptr1(n.ptr1 ? new node(*n.ptr1) : 0),
                                      tsum(n.tsum) { }
-        node():ptr0(0),ptr1(0),tsum(0){ }
+        node():ptr0(0),ptr1(0),tsum(){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
             if(ptr0){ delete ptr0; ptr0 = 0; }
             if(ptr1){ delete ptr1; ptr1 = 0; }
         };
-        bool term() const {             // a node with no ptrs and a sum>0 is a terminal node
-            return ptr0==0 && ptr1==0 && tsum>0;
+        // a node is terminal if:
+        bool term() const {             
+            if(tsum>0 && ptr0==0 && ptr1==0) return true;
+            return false;
         }
         int trim(class iptreet &tree){                    // trim this node
             /* Now delete those that we counted out */
             if(ptr0){
                 assert(ptr0->term()); assert(ptr0->ptr0==0); assert(ptr0->ptr1==0);
+                tsum += ptr0->tsum;
                 delete ptr0;
                 ptr0=0;
                 tree.nodes--;
             }
             if(ptr1){
                 assert(ptr1->term()); assert(ptr1->ptr0==0); assert(ptr1->ptr1==0);
+                tsum += ptr1->tsum;
                 delete ptr1;
                 ptr1=0;
                 tree.nodes--;
@@ -97,24 +101,31 @@ private:;
             assert(ptr1_best!=0);       // There must be a best node!
 
             // The better to trim of two children is the one with a lower sum.
-            if(ptr0_best->sum() < ptr1_best->sum()) {*best_depth=ptr0_best_depth;return ptr0_best;}
-            if(ptr1_best->sum() < ptr0_best->sum()) {*best_depth=ptr1_best_depth;return ptr1_best;}
+            TYPE ptr0_best_sum = ptr0_best->sum();
+            TYPE ptr1_best_sum = ptr1_best->sum();
+            if(ptr0_best_sum < ptr1_best_sum) {*best_depth=ptr0_best_depth;return ptr0_best;}
+            if(ptr1_best_sum < ptr0_best_sum) {*best_depth=ptr1_best_depth;return ptr1_best;}
             
             // If they are equal, it's the one that's deeper
             if(ptr0_best_depth > ptr1_best_depth) {*best_depth=ptr0_best_depth;return ptr0_best;}
             *best_depth = ptr1_best_depth;
             return ptr1_best;
         }
-        uint64_t sum() const { return tsum; }
-        void inc(uint64_t val) { tsum+=val;}           // increment
+        TYPE sum() const {
+            TYPE s = tsum;
+            if(ptr0) s+=ptr0->sum();
+            if(ptr1) s+=ptr1->sum();
+            return s;
+        }
+        void inc(TYPE val) { tsum+=val;}           // increment
 
-    };
-    class node *root;                   //
-    enum {root_depth=0};                // depth of the root node
-    enum {maxnodes_default=10000};
+    }; /* end of node class */
+    class node *root;                  
+    enum {root_depth=0,
+          maxnodes_default=10000};
     iptreet &operator=(const iptreet &that){throw not_impl();}
 protected:
-    size_t     nodes;                  // how many do we have?
+    size_t     nodes;                   // nodes in tree
     size_t     maxnodes;                // how many will we tolerate?
 
 public:
@@ -135,7 +146,7 @@ public:
     }
     static std::string ipstr(const uint8_t *addr,size_t addrlen,size_t depth){
         if(isipv4(addr,addrlen)){
-            return ipv4(addr) + (depth<32 ? (std::string("/") + itos(depth)) : "");
+            return ipv4(addr) + (depth<32  ? (std::string("/") + itos(depth)) : "");
         } else {
             return ipv6(addr) + (depth<128 ? (std::string("/") + itos(depth)) : "");
         }
@@ -158,8 +169,8 @@ public:
         }
         virtual ~addr_elem(){}
         const uint8_t addr[ADDRBYTES];         // maximum size address; v4 addresses have addr[4..15]=0
-        uint8_t depth;                  // in bits; /depth
-        int64_t count;
+        uint8_t depth;                         // in bits; /depth
+        TYPE count;
         
         bool is4() const { return isipv4(addr,ADDRBYTES);};
         std::string str() const { return ipstr(addr,ADDRBYTES,depth); }
@@ -214,14 +225,13 @@ public:
 
 
     /* add a node; implementation below */
-    void add(const uint8_t *addr,size_t addrlen,uint64_t val); 
-    void add(const uint8_t *addr,size_t addrlen){ add(addr,addrlen,1); }
+    void add(const uint8_t *addr,size_t addrlen,TYPE val); 
 
     /* size the tree; the number of nodes */
     size_t size() const {return nodes;};
 
     /* sum the tree; the total number of adds that have been performed */
-    uint64_t sum() const {return root->sum();};
+    TYPE sum() const {return root->sum();};
 
     /* get a histogram of the tree, and starting at a particular node 
      * The histogram that is reported are only the terminal nodes.
@@ -266,7 +276,8 @@ public:
 
 /* add a node.
  */ 
-template <typename T,size_t ADDRBYTES> void iptreet<T,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,uint64_t val)
+template <typename TYPE,size_t ADDRBYTES>
+void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
 {
     trim_if_greater(maxnodes);
     if(addrlen > ADDRBYTES) addrlen=ADDRBYTES;
@@ -274,9 +285,10 @@ template <typename T,size_t ADDRBYTES> void iptreet<T,ADDRBYTES>::add(const uint
     u_int maxdepth = addrlen * 8;         // in bits
     node *ptr = root;                   // start at the root
     for(u_int depth=0;depth<=maxdepth;depth++){
-        ptr->inc(val);                // increment this node (and all of its descendants 
+        //ptr->inc(val);                // increment this node (and all of its descendants 
         if(depth==maxdepth){        // reached bottom
             assert((ptr->ptr0==0) && (ptr->ptr1==0));
+            ptr->inc(val);                // increment this node (and all of its descendants 
             return;                 // we are a terminal node; return
         }
         /* Not a terminal node, so go down a level based on the next bit,
@@ -337,7 +349,7 @@ public:
     }
 
     /* Add a pair of addresses by interleaving them */
-    void add_pair(const uint8_t *addr1,const uint8_t *addr2,size_t addrlen){
+    void add_pair(const uint8_t *addr1,const uint8_t *addr2,size_t addrlen,uint64_t val){
         uint8_t addr[32];
         memset(addr,0,sizeof(addr));
         /* Interleave on the bit by bit level */
@@ -345,7 +357,7 @@ public:
             if(iptreet<uint64_t,32>::bit(addr1,i)) iptreet<uint64_t,32>::setbit(addr,i*2);
             if(iptreet<uint64_t,32>::bit(addr2,i)) iptreet<uint64_t,32>::setbit(addr,i*2+1);
         }
-        add(addr,addrlen*2); /* Add it */
+        add(addr,addrlen*2,val); /* Add it */
     }
 
 };

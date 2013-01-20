@@ -293,9 +293,9 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                            const packet_info &pi)
 {
     if(iphtest==1){                     // mode 1 testing - when the tree gets 4000, drop it to 400
-        mytree.add(src.addr,family==AF_INET6 ? 16 : 4 );
-        mytree.add(dst.addr,family==AF_INET6 ? 16 : 4);
-        my2tree.add_pair(src.addr,dst.addr,family==AF_INET6 ? 16 : 4);
+        mytree.add(src.addr,family==AF_INET6 ? 16 : 4,1 );
+        mytree.add(dst.addr,family==AF_INET6 ? 16 : 4,1);
+        my2tree.add_pair(src.addr,dst.addr,family==AF_INET6 ? 16 : 4,1);
     }
 
     if (tcp_datalen < sizeof(struct tcphdr)) {

@@ -126,13 +126,13 @@ void one_page_report::ingest_packet(const packet_info &pi)
     // don't give packets to address histograms, they will use the IP trees
     if(has_ip6_dgram) {
         src_tree.add(ip6.header->ip6_src.__u6_addr.__u6_addr8,
-                sizeof(ip6.header->ip6_src.__u6_addr.__u6_addr8));
+                     sizeof(ip6.header->ip6_src.__u6_addr.__u6_addr8),1);
         dst_tree.add(ip6.header->ip6_dst.__u6_addr.__u6_addr8,
-                sizeof(ip6.header->ip6_dst.__u6_addr.__u6_addr8));
+                     sizeof(ip6.header->ip6_dst.__u6_addr.__u6_addr8),1);
     }
     else if(has_ip4_dgram) {
-        src_tree.add((uint8_t *) &ip4.header->ip_src.s_addr, sizeof(ip4.header->ip_src.s_addr));
-        dst_tree.add((uint8_t *) &ip4.header->ip_dst.s_addr, sizeof(ip4.header->ip_dst.s_addr));
+        src_tree.add((uint8_t *) &ip4.header->ip_src.s_addr, sizeof(ip4.header->ip_src.s_addr),1);
+        dst_tree.add((uint8_t *) &ip4.header->ip_dst.s_addr, sizeof(ip4.header->ip_dst.s_addr),1);
     }
     bandwidth_histogram.ingest_packet(pi, optional_tcp);
     if(has_tcp_seg) {
