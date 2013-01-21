@@ -129,28 +129,93 @@ protected:
     size_t     maxnodes;                // how many will we tolerate?
 
 public:
-    /* Returned in the histogram */
 
-    // returns true if addr[4..15]==0
-    static std::string itos(int n){
-        char buf[64];
-        snprintf(buf,sizeof(buf),"%d",n);
-        return std::string(buf);
+
+    /****************************************************************
+     *** service routines
+     ****************************************************************/
+
+    /* get the ith bit; 0 is the MSB */
+    static bool bit(const uint8_t *addr,size_t i){
+        return (addr[i / 8]) & (1<<(7-i&7));
     }
-    static bool isipv4(const uint8_t *addr,size_t addrlen) { 
-        if(addrlen==4) return true;
-        for(u_int i=4;i<addrlen;i++){
-            if(addr[i]!=0) return false;
+    /* set the ith bit to 1 */
+    static void setbit(uint8_t *addr,size_t i){
+        addr[i / 8] |= (1<<(7-i&7));
+    }
+    
+    virtual ~iptreet(){}                // required per compiler warnings
+    /* copy is a deep copy */
+    iptreet(const iptreet &n):root(n.root ? new node(*n.root) : 0),
+                              nodes(n.nodes),maxnodes(n.maxnodes),cache(),cachenext(){};
+
+    /* create an empty tree */
+    iptreet():root(new node()),nodes(0),maxnodes(maxnodes_default),cache(),cachenext(){};
+
+    /* size the tree; the number of nodes */
+    size_t size() const {return nodes;};
+
+    /* sum the tree; the total number of adds that have been performed */
+    TYPE sum() const {return root->sum();};
+
+    /* add a node; implementation below */
+    void add(const uint8_t *addr,size_t addrlen,TYPE val); 
+
+    /****************************************************************
+     *** cache
+     ****************************************************************/
+    class ncache {
+    public:
+        ncache():addr(),ptr(){};
+        const uint8_t addr[ADDRBYTES];
+        node *ptr;                      // 0 means cache entry is not in use
+    };
+    enum {ncache_size=8};
+    typedef std::vector<ncache> cache_t;
+    cache_t cache;
+    size_t cachenext;                   // which cache element to evict next
+
+    void cache_remove(const node *p){
+        for(size_t i=0;i<cache.size();i++){
+            if(cache[i].ptr==p){
+                cache[i].ptr = 0;
+                return;
+            }
         }
-        return true;
     }
-    static std::string ipstr(const uint8_t *addr,size_t addrlen,size_t depth){
-        if(isipv4(addr,addrlen)){
-            return ipv4(addr) + (depth<32  ? (std::string("/") + itos(depth)) : "");
-        } else {
-            return ipv6(addr) + (depth<128 ? (std::string("/") + itos(depth)) : "");
+
+    /****************************************************************
+     *** trimming
+     ****************************************************************/
+
+    /* trim the tree, starting at the root. Find the node to trim and then trim it.
+     * node that best_to_trim() returns a const pointer. But we want to modify it, so we
+     * do a const_cast (which is completely fine).
+     */
+    int trim(){
+        if(root->term()) return 0;        // terminal nodes can't be trimmed
+        int tdepth=0;
+        node *tnode = const_cast<node *>(root->best_to_trim(&tdepth,root_depth));
+        /* remove tnode from the cache if it is present */
+        if(tnode){
+            cache_remove(tnode);
+            return tnode->trim(*this);
+        }
+        return 0;
+    }
+
+    /* Simple implementation to trim the table to 90% of limit if at limit. Subclass to change behavior. */
+    void trim_if_greater(size_t limit){
+        if(nodes>=maxnodes){
+            while(nodes > maxnodes * 9 / 10){ 
+                if(trim()==0) break;         
+            }
         }
     }
+
+    /****************************************************************
+     *** historam support
+     ****************************************************************/
 
     class addr_elem {
     public:
@@ -175,63 +240,6 @@ public:
         bool is4() const { return isipv4(addr,ADDRBYTES);};
         std::string str() const { return ipstr(addr,ADDRBYTES,depth); }
     };
-
-    /* static service routines for displaying ipv4 and ipv6 addresses  */
-    static std::string ipv4(const uint8_t *a){
-        char buf[1024];
-        snprintf(buf,sizeof(buf),"%d.%d.%d.%d",a[0],a[1],a[2],a[3]);
-        return std::string(buf);
-    }
-    static std::string ipv6(const uint8_t *a){ 
-        char buf[128];
-        return std::string(inet_ntop(AF_INET6,a,buf,sizeof(buf)));
-    }
-    /* get the ith bit; 0 is the MSB */
-    static bool bit(const uint8_t *addr,size_t i){
-        return (addr[i / 8]) & (1<<(7-i%8));
-    }
-    /* set the ith bit to 1 */
-    static void setbit(uint8_t *addr,size_t i){
-        addr[i / 8] |= (1<<(7-i%8));
-    }
-    
-    virtual ~iptreet(){}                // required per compiler warnings
-    /* copy is a deep copy */
-    iptreet(const iptreet &n):root(n.root ? new node(*n.root) : 0),
-                              nodes(n.nodes),maxnodes(n.maxnodes){};
-
-    /* create an empty tree */
-    iptreet():root(new node()),nodes(0),maxnodes(maxnodes_default){};
-
-    /* trim the tree, starting at the root. Find the node to trim and then trim it.
-     * node that best_to_trim() returns a const pointer. But we want to modify it, so we
-     * do a const_cast (which is completely fine).
-     */
-    int trim(){
-        if(root->term()) return 0;        // terminal nodes can't be trimmed
-        int tdepth=0;
-        node *tnode = const_cast<node *>(root->best_to_trim(&tdepth,root_depth));
-        return tnode ? tnode->trim(*this) : 0;
-    }
-
-    /* Simple implementation to trim the table to 90% of limit if at limit. Subclass to change behavior. */
-    void trim_if_greater(size_t limit){
-        if(nodes>=maxnodes){
-            while(nodes > maxnodes * 9 / 10){ 
-                if(trim()==0) break;         
-            }
-        }
-    }
-
-
-    /* add a node; implementation below */
-    void add(const uint8_t *addr,size_t addrlen,TYPE val); 
-
-    /* size the tree; the number of nodes */
-    size_t size() const {return nodes;};
-
-    /* sum the tree; the total number of adds that have been performed */
-    TYPE sum() const {return root->sum();};
 
     /* get a histogram of the tree, and starting at a particular node 
      * The histogram that is reported are only the terminal nodes.
@@ -261,6 +269,41 @@ public:
         get_histogram(0,addr,root,histogram);
     }
 
+    /****************************************************************
+     *** output routines
+     ****************************************************************/
+
+    // returns true if addr[4..15]==0
+    static std::string itos(int n){
+        char buf[64];
+        snprintf(buf,sizeof(buf),"%d",n);
+        return std::string(buf);
+    }
+    static bool isipv4(const uint8_t *addr,size_t addrlen) { 
+        if(addrlen==4) return true;
+        for(u_int i=4;i<addrlen;i++){
+            if(addr[i]!=0) return false;
+        }
+        return true;
+    }
+    static std::string ipstr(const uint8_t *addr,size_t addrlen,size_t depth){
+        if(isipv4(addr,addrlen)){
+            return ipv4(addr) + (depth<32  ? (std::string("/") + itos(depth)) : "");
+        } else {
+            return ipv6(addr) + (depth<128 ? (std::string("/") + itos(depth)) : "");
+        }
+    }
+
+    /* static service routines for displaying ipv4 and ipv6 addresses  */
+    static std::string ipv4(const uint8_t *a){
+        char buf[1024];
+        snprintf(buf,sizeof(buf),"%d.%d.%d.%d",a[0],a[1],a[2],a[3]);
+        return std::string(buf);
+    }
+    static std::string ipv6(const uint8_t *a){ 
+        char buf[128];
+        return std::string(inet_ntop(AF_INET6,a,buf,sizeof(buf)));
+    }
     /* dump the tree; largely for debugging */
     std::ostream & dump(std::ostream &os) const {
         histogram_t histogram;
