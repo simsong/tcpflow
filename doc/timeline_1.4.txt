@@ -1,14 +1,39 @@
 Timeline for 1.4 ship:
 
 
-- mfs - Document the refactored class hiearchy for one-page-report.
-      - Abstract class represents each rectangular region of report & gets packets
-      - Specialized classes for:
-        - time histogram (not templated initially) 
-        - time histogram data element
-        - iptree (templated at the moment)
-        - port histogram
+- mfs + Document the refactored class hiearchy for one-page-report.
       - slg will look at before mfs begins refactoring
+
+- plot becomes abstract
+  - pure virtual destructor (protected constructor too?)
+  - concrete render(cairo_t, bounds_t)
+  - pure virtual render_data(cairo_t, bounds_t)
+    - This is called by render, which will calculate the bounds within the
+      axes, labels etc.
+    - sublcasses need only override render_data, plot() owns the space given
+      to it
+- time_histogram split into time_histogram and time_histogram_plot
+  - time_histogram_plot is a concrete subclass of plot
+    - contains pointer to const time_histogram and probably not too much else
+  - time_histogram replaces dyn_time_histogram
+    - time_histogram now contains a vector of maps and a const pointer to
+      the best fit histogram (best fit map) which starts as the most granular
+      histogram and is updated as histograms are dropped for overflow
+    - implement [], size() directly on time_histogram to hide implementation
+      and selection
+- port_histogram and address_histogram are similarly split
+- histogram_bar class is added
+  - map (or fixed bucket uints?) values to counts
+  - render(cairo_t, bounds_t, color_map) will fill region with a proportional
+    bar by counts
+- with a flexible enough histogram_bar class, time_histogram_plot,
+  port_histogram_plot, and address_histogram_plot can be merged into
+  templated histogram_plot concrete subclass of plot if desired
+- packet intestion logic is moved to one_page_report; histograms are simply
+  data structures
+  - could create ingester class instead too
+
+
 
 
 Features needed:
