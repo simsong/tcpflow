@@ -1,0 +1,93 @@
+Timeline for 1.4 ship:
+
+
+- mfs - Document the refactored class hiearchy for one-page-report.
+      - Abstract class represents each rectangular region of report & gets packets
+      - Specialized classes for:
+        - time histogram (not templated initially) 
+        - time histogram data element
+        - iptree (templated at the moment)
+        - port histogram
+      - slg will look at before mfs begins refactoring
+
+
+Features needed:
+================
+- Packet Grid
+- Documentation (NPS Report)
+
+
+What we are not doing:
+======================
+- Traffic Map
+- Language identification
+- Keyword extraction & clustering
+- Passive DNS
+
+
+Test Plan:
+==========
+- Performance testing
+
+Packaging:
+----------
+- Put relevant boost headers in boost subdirectory
+
+Compile testing:
+----------------
+Make sure that it compiles on these platforms:
+- FC17
+- Ubuntu
+- OS10.6, 10.8
+- cygwin
+- mingw
+- Centos 5.8
+- Centos 6.0
+- SUSE
+
+
+Reliability testing:
+--------------------
+Test for crashing with all scanners on with specific data sets:
+- no packets
+- Lincoln Labs ID98 
+   - One day
+   - All of the packets concatenated together
+- Lincoln Labs ID99 (All of the packets concatenated together)
+   - One day
+   - All of the packets concatenated together
+- One day from ID98 & One day from ID99
+- M57 Patents
+  - One day
+  - All packets concatenated together
+- NGDC 2012 
+  - All packets concatenated together
+
+- Cada?
+
+Correctness testing:
+--------------------
+Create a file of all MD5s of all TCP streams. Sort the file. Use "diff"
+
+Data Sets for comparison:
+- ID98 one day
+- M57 one day
+
+Compare results of:
+- tcpflow 1.4 with tcpflow 1.0
+- Question: Can Suricata provide the MD5 of tcp streams?
+
+
+
+Packaging:
+----------
+- .tar.gz file distributed on digitalcorpora.
+- windows executables on digitalcorpora
+- downloadable tag from github
+
+
+Announcements:
+-------------
+
+
+
