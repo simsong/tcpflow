@@ -137,11 +137,11 @@ public:
 
     /* get the ith bit; 0 is the MSB */
     static bool bit(const uint8_t *addr,size_t i){
-        return (addr[i / 8]) & (1<<(7-i&7));
+        return (addr[i / 8]) & (1<<((7-i)&7));
     }
     /* set the ith bit to 1 */
     static void setbit(uint8_t *addr,size_t i){
-        addr[i / 8] |= (1<<(7-i&7));
+        addr[i / 8] |= (1<<((7-i)&7));
     }
     
     virtual ~iptreet(){}                // required per compiler warnings
