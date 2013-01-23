@@ -8,6 +8,9 @@ then
   git submodule init
   git submodule update
 fi
-aclocal
-automake --add-missing
-autoconf
+/bin/rm -rf aclocal.m4
+autoheader -f
+aclocal -I m4
+autoconf -f
+automake --add-missing --copy
+
