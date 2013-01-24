@@ -65,12 +65,20 @@ bool opt_no_promisc = false;		// true if we should not use promiscious mode
  *** USAGE
  ****************************************************************/
 
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION VERSION
+#endif
+
+#ifndef PACKAGE_NAME
+#define PACKAGE_NAME PACAKGE
+#endif
+
 static int usage_count = 0;
 static void usage()
 {
     switch(++usage_count){
     case 1:
-        std::cout << PACKAGE << " version " << VERSION << "\n\n";
+        std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
         std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
         std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-w file] [-o outdir] [-X xmlfile]\n";
         std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
@@ -394,7 +402,7 @@ int main(int argc, char *argv[])
 	case 's': demux.opt.strip_nonprint = 1;
 	    DEBUG(10) ("converting non-printable characters to '.'"); break;
 	case 'T': flow::filename_template = optarg;break;
-	case 'V': std::cout << PACKAGE << " " << PACKAGE_VERSION << "\n"; exit (1);
+	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
 	case 'x': scanners_disable(optarg);break;
@@ -492,7 +500,7 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    DEBUG(10) ("%s version %s ", PACKAGE, VERSION);
+    DEBUG(10) ("%s version %s ", PACKAGE_NAME, PACKAGE_VERSION);
 
     feature_file_names_t feature_file_names;
     enable_feature_recorders(feature_file_names);

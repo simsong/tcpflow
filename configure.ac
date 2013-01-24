@@ -231,7 +231,7 @@ AC_LANG_PUSH(C++)
   AC_CHECK_HEADERS([boost/icl/interval.hpp boost/icl/interval_map.hpp boost/icl/interval_set.hpp],,have_interval=no)
   if test "${have_interval}" != yes ; then
     AC_MSG_ERROR([tcpflow now requires boost interval_map and interval_set. 
-    Please install boost.])
+    Please install boost-devel.])
   fi
 AC_LANG_POP()    
 
