@@ -19,29 +19,6 @@ typedef uint32_t in_addr_t;
 typedef unsigned short int sa_family_t;
 #endif
 
-/*
- * IPv6 header structure
- */
-struct private_in6_addr {		// our own private ipv6 definition
-    union {
-	uint8_t   __u6_addr8[16];
-	uint16_t  __u6_addr16[8];
-	uint32_t  __u6_addr32[4];
-    } __u6_addr;                    /* 128-bit IP6 address */
-};
-struct private_ip6_hdr {
-    union {
-	struct ip6_hdrctl {
-	    uint32_t ip6_un1_flow;	/* 20 bits of flow-ID */
-	    uint16_t ip6_un1_plen;	/* payload length */
-	    uint8_t  ip6_un1_nxt;	/* next header */
-	    uint8_t  ip6_un1_hlim;	/* hop limit */
-	} ip6_un1;
-	uint8_t ip6_un2_vfc;	/* 4 bits version, top 4 bits class */
-    } ip6_ctlun;
-    struct private_in6_addr ip6_src;	/* source address */
-    struct private_in6_addr ip6_dst;	/* destination address */
-} __attribute__((__packed__));
 
 #ifndef HAVE_TCP_SEQ
 #ifdef WIN32
@@ -106,25 +83,6 @@ struct tcphdr {
     uint16_t th_urp;		/* urgent pointer */
 };
 #endif
-// convenience structs for entire PDU of TCP/IP protocols
-/*
- * TCP segment
- */
-struct tcp_seg {
-    const struct tcphdr *header;
-    const uint8_t *body;
-    uint32_t body_len;
-};
-struct ip4_dgram {
-    const struct ip *header;
-    const uint8_t *payload;
-    uint32_t payload_len;
-};
-struct ip6_dgram {
-    const struct private_ip6_hdr *header;
-    const uint8_t *payload;
-    uint32_t payload_len;
-};
 
 /**
  * ipaddress class.
