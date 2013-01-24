@@ -47,14 +47,13 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
     }
 
     if(sp.phase==scanner_params::startup){
+#ifdef CAIRO_PDF_AVAILABLE
 	sp.info->name  = "netviz";
 	sp.info->flags = scanner_info::SCANNER_DISABLED;
 	sp.info->author= "Mike Shick";
 	sp.info->packet_user = 0;
-#ifdef CAIRO_PDF_AVAILABLE
 	sp.info->packet_cb = th_process_packet;
 	th_startup();
-#else
 	sp.info->packet_cb = 0;
 #endif	
     }
