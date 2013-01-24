@@ -20,7 +20,7 @@
 #include "one_page_report.h"
 
 // string constants
-const std::string one_page_report::title_version = PACKAGE " " VERSION;
+const std::string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
 const std::vector<std::string> one_page_report::size_suffixes =
         one_page_report::build_size_suffixes();
 // ratio constants
