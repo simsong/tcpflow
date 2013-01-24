@@ -9,6 +9,8 @@
  */
 
 #include "config.h"
+
+#ifdef CAIRO_PDF_AVAILABLE
 #include "tcpflow.h"
 #include "render.h"
 #include "tcpip.h"
@@ -20,7 +22,7 @@
 #include "one_page_report.h"
 
 // string constants
-const std::string one_page_report::title_version = PACKAGE " " VERSION;
+const std::string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
 const std::vector<std::string> one_page_report::size_suffixes =
         one_page_report::build_size_suffixes();
 // ratio constants
@@ -144,7 +146,6 @@ void one_page_report::ingest_packet(const packet_info &pi)
 
 void one_page_report::render(const std::string &outdir)
 {
-#ifdef CAIRO_PDF_AVAILABLE
     cairo_t *cr;
     cairo_surface_t *surface;
     std::string fname = outdir + "/" + filename;
@@ -172,7 +173,6 @@ void one_page_report::render(const std::string &outdir)
     // cleanup
     cairo_destroy (cr);
     cairo_surface_destroy(surface);
-#endif
 }
 
 plot::rgb_t one_page_report::port_color(uint16_t port) const
@@ -205,7 +205,6 @@ std::string one_page_report::pretty_byte_total(uint64_t byte_count)
 
 void one_page_report::render_pass::render_header()
 {
-#ifdef CAIRO_PDF_AVAILABLE
     std::string formatted;
     // title
     double title_line_space = report.header_font_size * line_space_factor;
@@ -263,65 +262,53 @@ void one_page_report::render_pass::render_header()
             title_line_space);
     // trailing pad for entire header
     end_of_content += title_line_space * 4;
-#endif
 }
 
 void one_page_report::render_pass::render_text(std::string text,
         double font_size, double x_offset,
         cairo_text_extents_t &rendered_extents)
 {
-#ifdef CAIRO_PDF_AVAILABLE
     cairo_set_font_size(surface, font_size);
     cairo_set_source_rgb(surface, 0.0, 0.0, 0.0);
     cairo_text_extents(surface, text.c_str(), &rendered_extents);
     cairo_move_to(surface, x_offset, end_of_content + rendered_extents.height);
     cairo_show_text(surface, text.c_str());
-#endif
 }
 
 void one_page_report::render_pass::render_text_line(std::string text,
         double font_size, double line_space)
 {
-#ifdef CAIRO_PDF_AVAILABLE
     cairo_text_extents_t extents;
     render_text(text, font_size, 0.0, extents);
     end_of_content += extents.height + line_space;
-#endif
 }
 
 void one_page_report::render_pass::render_bandwidth_histogram()
 {
-#ifdef CAIRO_PDF_AVAILABLE
     plot::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
             bandwidth_histogram_height);
 
     report.bandwidth_histogram.render(surface, bounds);
 
     end_of_content += bounds.height * histogram_pad_factor_y;
-#endif
 }
 
 void one_page_report::render_pass::render_packetfall()
 {
-#ifdef CAIRO_PDF_AVAILABLE
     plot::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
             bandwidth_histogram_height);
 
     report.pfall.render(surface, bounds);
 
     end_of_content += bounds.height * histogram_pad_factor_y;
-#endif
 }
 
 void one_page_report::render_pass::render_map()
 {
-#ifdef CAIRO_PDF_AVAILABLE
-#endif
 }
 
 void one_page_report::render_pass::render_address_histograms()
 {
-#ifdef CAIRO_PDF_AVAILABLE
     report.src_addr_histogram.from_iptree(report.src_tree);
     report.dst_addr_histogram.from_iptree(report.dst_tree);
     // histograms
@@ -379,12 +366,10 @@ void one_page_report::render_pass::render_address_histograms()
 
     end_of_content += max(left_bounds.height, right_bounds.height) *
         (histogram_pad_factor_y - 1.0);
-#endif
 }
 
 void one_page_report::render_pass::render_port_histograms()
 {
-#ifdef CAIRO_PDF_AVAILABLE
     std::vector<port_histogram::port_count> top_src_ports;
     std::vector<port_histogram::port_count> top_dst_ports;
     uint64_t total_segments = report.src_port_histogram.get_ingest_count();
@@ -439,7 +424,6 @@ void one_page_report::render_pass::render_port_histograms()
 
     end_of_content += max(left_bounds.height, right_bounds.height) *
         (histogram_pad_factor_y - 1.0);
-#endif
 }
 
 /* SLG - Should the prefixes be in a structure where the structure encodes both the
@@ -461,3 +445,4 @@ std::vector<std::string> one_page_report::build_size_suffixes()
     v.push_back("EB");
     return v;
 }
+#endif

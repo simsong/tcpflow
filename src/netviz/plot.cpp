@@ -9,16 +9,16 @@
  */
 
 #include "config.h"
+
+#ifdef CAIRO_PDF_AVAILABLE
 #include "tcpflow.h"
 
 #include <math.h>
-
 #include "plot.h"
 
 void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
         const plot::ticks_t &ticks, const plot::legend_t &legend,
         bounds_t &content_bounds) {
-#ifdef CAIRO_PDF_AVAILABLE
     cairo_matrix_t original_matrix;
     cairo_get_matrix(cr, &original_matrix);
 
@@ -283,6 +283,6 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     content_bounds.x += axis_width;
     content_bounds.width -= axis_width;
     content_bounds.height -= axis_width;
-#endif
 }
+#endif
 

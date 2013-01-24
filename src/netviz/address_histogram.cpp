@@ -9,6 +9,8 @@
  */
 
 #include "config.h"
+
+#ifdef CAIRO_PDF_AVAILABLE
 #include "tcpflow.h"
 #include "tcpip.h"
 
@@ -20,7 +22,6 @@
 
 void address_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
-#ifdef CAIRO_PDF_AVAILABLE
     plot::ticks_t ticks;
     plot::legend_t legend;
     plot::bounds_t content_bounds(0.0, 0.0, bounds.width,
@@ -30,7 +31,6 @@ void address_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 
     //// fill borders rendered by plot class
     render_bars(cr, content_bounds);
-#endif
 }
 
 void address_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds)
@@ -39,7 +39,6 @@ void address_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds)
         return;
     }
 
-#ifdef CAIRO_PDF_AVAILABLE
     cairo_matrix_t original_matrix;
 
     cairo_get_matrix(cr, &original_matrix);
@@ -93,7 +92,6 @@ void address_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds)
     }
 
     cairo_set_matrix(cr, &original_matrix);
-#endif
 }
 
 // derive histogram from iptree.  This is called by one_page_report just before
@@ -163,3 +161,4 @@ void address_histogram::quick_config(const std::string &title_, const plot::rgb_
     parent.x_label = "";
     parent.y_label = "";
 }
+#endif

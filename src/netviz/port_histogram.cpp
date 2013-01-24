@@ -9,6 +9,8 @@
  */
 
 #include "config.h"
+
+#ifdef CAIRO_PDF_AVAILABLE
 #include "tcpflow.h"
 #include "tcpip.h"
 #include "one_page_report.h"
@@ -46,7 +48,6 @@ void port_histogram::ingest_segment(const struct tcp_seg &tcp)
 
 void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
 {
-#ifdef CAIRO_PDF_AVAILABLE
     plot::ticks_t ticks;
     plot::legend_t legend;
     plot::bounds_t content_bounds(0.0, 0.0, bounds.width,
@@ -56,7 +57,6 @@ void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds, const one
 
     //// fill borders rendered by plot class
     render_bars(cr, content_bounds, report);
-#endif
 }
 
 void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
@@ -68,7 +68,6 @@ void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds, cons
         return;
     }
 
-#ifdef CAIRO_PDF_AVAILABLE
     cairo_matrix_t original_matrix;
 
     cairo_get_matrix(cr, &original_matrix);
@@ -123,7 +122,6 @@ void port_histogram::render_bars(cairo_t *cr, const plot::bounds_t &bounds, cons
     }
 
     cairo_set_matrix(cr, &original_matrix);
-#endif
 }
 
 void port_histogram::get_top_ports(std::vector<port_count> &top_ports)
@@ -166,3 +164,4 @@ uint64_t port_histogram::get_ingest_count()
 {
     return data_bytes_ingested;
 }
+#endif
