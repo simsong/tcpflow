@@ -29,12 +29,14 @@
 
 int32_t datalink_tdelta = 0;
 
+
 /**
  * shift the time value, in line with what the user requested...
+ * previously this returned a structure on the stack, but that
+ * created an optimization problem with gcc 4.7.2
  */
-inline timeval tvshift(const struct timeval &tv_)
+inline const timeval &tvshift(struct timeval &tv,const struct timeval &tv_)
 {
-    struct timeval tv;
     tv.tv_sec  = tv_.tv_sec + datalink_tdelta;
     tv.tv_usec = tv_.tv_usec;
     return tv;
@@ -70,7 +72,8 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 #endif
-    packet_info pi(DLT_NULL,h,p,tvshift(h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
+    struct timeval tv;
+    packet_info pi(DLT_NULL,h,p,tvshift(tv,h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
     process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -85,7 +88,8 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	DEBUG(6) ("warning: only captured %d bytes of %d byte raw frame",
 		  h->caplen, h->len);
     }
-    packet_info pi(DLT_RAW,h,p,tvshift(h->ts),p, h->caplen);
+    struct timeval tv;
+    packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
     process_packet_info(pi);
 }
 #endif
@@ -124,7 +128,8 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* Create a packet_info structure with ip data and data length  */
-    packet_info pi(DLT_IEEE802,h,p,tvshift(h->ts),ether_data, caplen - sizeof(struct ether_header));
+    struct timeval tv;
+    packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),ether_data, caplen - sizeof(struct ether_header));
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
@@ -176,7 +181,8 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    packet_info pi(DLT_PPP,h,p,tvshift(h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
+    struct timeval tv;
+    packet_info pi(DLT_PPP,h,p,tvshift(tv,h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
     process_packet_info(pi);
 }
 
@@ -197,7 +203,8 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
 	return;
     }
   
-    packet_info pi(DLT_LINUX_SLL,h,p,tvshift(h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
+    struct timeval tv;
+    packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
     process_packet_info(pi);
 }
 #endif
