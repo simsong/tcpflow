@@ -14,6 +14,21 @@
 
 #include "config.h"
 
+/* Older versions of autoconf define PACKAGE and VERSION.
+ * Newer versions define PACKAGE_VERSION and PACKAGE_NAME.
+ * We now use the new variables; allow the old ones.
+ */
+
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION VERSION
+#endif
+
+#ifndef PACKAGE_NAME
+#define PACKAGE_NAME PACAKGE
+#endif
+
+
+
 /* If we are running on Windows, including the Windows-specific
  * include files first and disable pthread support.
  */
@@ -278,5 +293,14 @@ extern "C" scanner_t scan_md5;
 extern "C" scanner_t scan_http;
 extern "C" scanner_t scan_tcpdemux;
 extern "C" scanner_t scan_netviz;
+
+/* extra << functions */
+inline std::ostream & operator <<(std::ostream &os,const struct timeval &tv)
+{
+    os << "sec: " << tv.tv_sec << " usec: " << tv.tv_usec;
+    return os;
+}
+
+
 
 #endif /* __TCPFLOW_H__ */

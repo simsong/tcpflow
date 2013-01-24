@@ -65,14 +65,6 @@ bool opt_no_promisc = false;		// true if we should not use promiscious mode
  *** USAGE
  ****************************************************************/
 
-#ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION VERSION
-#endif
-
-#ifndef PACKAGE_NAME
-#define PACKAGE_NAME PACAKGE
-#endif
-
 static int usage_count = 0;
 static void usage()
 {
