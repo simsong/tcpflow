@@ -1,8 +1,23 @@
 #ifndef PLOT_H
 #define PLOT_H
 
-#include "render.h"
+#include "config.h"
 
+#ifdef HAVE_LIBCAIRO
+
+#ifdef HAVE_CAIRO_H
+#include <cairo.h>
+#elif defined HAVE_CAIRO_CAIRO_H
+#include <cairo/cairo.h>
+#endif
+#ifdef HAVE_CAIRO_PDF_H
+#include <cairo-pdf.h>
+#elif defined HAVE_CAIRO_CAIRO_PDF_H
+#include <cairo/cairo-pdf.h>
+#endif
+
+#include <vector>
+#include <string>
 #include <math.h>
 
 class plot {
@@ -135,4 +150,5 @@ inline bool operator==(const plot::rgb_t &a, const plot::rgb_t &b)
         fabs(a.b - b.b) < plot::rgb_t::epsilon;
 }
 
+#endif
 #endif

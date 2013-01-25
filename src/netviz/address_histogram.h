@@ -1,7 +1,6 @@
 #ifndef ADDRESSHISTOGRAM_H
 #define ADDRESSHISTOGRAM_H
 
-#include "render.h"
 #include "plot.h"
 
 #include "iptree.h"

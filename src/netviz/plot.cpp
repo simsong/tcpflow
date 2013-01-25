@@ -10,11 +10,11 @@
 
 #include "config.h"
 
-#ifdef CAIRO_PDF_AVAILABLE
+#include "plot.h"
+#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
 #include <math.h>
-#include "plot.h"
 
 void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
         const plot::ticks_t &ticks, const plot::legend_t &legend,

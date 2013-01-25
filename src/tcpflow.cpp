@@ -103,7 +103,7 @@ static void usage()
         std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
         info_scanners(false,scanners_builtin,'E','x');
         std::cout << "\n";
-#ifndef CAIRO_PDF_AVAILABLE
+#ifndef HAVE_LIBCAIRO
 	std::cout << "Rendering not available because Cairo was not installed.\n\n";
 #endif
         std::cout << "expression: tcpdump-like filtering expression\n";
