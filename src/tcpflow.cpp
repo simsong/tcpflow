@@ -71,15 +71,12 @@ static void usage()
     switch(++usage_count){
     case 1:
         std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
-        std::cout << "usage: " << progname << " [-achpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
+        std::cout << "usage: " << progname << " [-aBcCDhpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
         std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-w file] [-o outdir] [-X xmlfile]\n";
         std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
         std::cout << "   -a: do ALL post-processing.\n";
-        std::cout << "   -b: max number of bytes per flow to save\n";
-        std::cout << "   -B: force binary output to console, even with -c or -C\n";
-        std::cout << "   -c: console print only (don't create files)\n";
-        std::cout << "   -C: console print only, but without the display of source/dest header\n";
-        std::cout << "   -d: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
+        std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
+        std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
         std::cout << "   -e: output each flow in alternating colors\n";
         std::cout << "   -f: maximum number of file descriptors to use\n";
         std::cout << "   -h: print this help message (-hh for more help)\n";
@@ -89,7 +86,6 @@ static void usage()
         std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
         std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
         std::cout << "   -w file: write packets not processed to file\n";
-        std::cout << "   -s: strip non-printable characters (change to '.')\n";
         std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
         std::cout << "   -v: verbose operation equivalent to -d 10\n";
         std::cout << "   -V: print version number and exit\n";
@@ -102,7 +98,15 @@ static void usage()
                   << flow::filename_template << ")\n";
         std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
         info_scanners(false,scanners_builtin,'E','x');
+
+        std::cout << "Console output options:\n";
+        std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
+        std::cout << "   -c: console print only (don't create files)\n";
+        std::cout << "   -C: console print only, but without the display of source/dest header\n";
+        std::cout << "   -s: strip non-printable characters (change to '.')\n";
+        std::cout << "   -D: output in hex (useful to combine with -c or -C)\n";
         std::cout << "\n";
+
 #ifndef CAIRO_PDF_AVAILABLE
 	std::cout << "Rendering not available because Cairo was not installed.\n\n";
 #endif
@@ -304,7 +308,7 @@ int main(int argc, char *argv[])
     }
 
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:eE:F:f:Hhi:L:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:L:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -325,16 +329,15 @@ int main(int argc, char *argv[])
 	    }
 	    break;
 	case 'B':
-	    force_binary_output = true; DEBUG(10) ("force binary output");
+            force_binary_output = true;
+	    demux.opt.output_strip_nonprint  = false;	DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'C':
-	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
+	    demux.opt.console_output  = true;	DEBUG(10) ("printing packets to console only");
 	    demux.opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
-	    demux.opt.strip_nonprint = 1;	DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'c':
 	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
-	    demux.opt.strip_nonprint = 1;	DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'd':
 	    if ((debug = atoi(optarg)) < 0) {
@@ -342,6 +345,10 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
 	    }
 	    break;
+        case 'D':
+            demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
+	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
+            break;
 	case 'e':
 	    demux.opt.use_color  = 1;
 	    DEBUG(10) ("using colors");
@@ -394,8 +401,9 @@ int main(int argc, char *argv[])
 		continue;
 	    }
 
-	case 's': demux.opt.strip_nonprint = 1;
-	    DEBUG(10) ("converting non-printable characters to '.'"); break;
+	case 's':
+            demux.opt.output_strip_nonprint = 1; DEBUG(10) ("converting non-printable characters to '.'");
+            break;
 	case 'T': flow::filename_template = optarg;break;
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
@@ -459,9 +467,7 @@ int main(int argc, char *argv[])
 #endif	
     }
 
-    if(force_binary_output){
-	demux.opt.strip_nonprint = false;
-    }
+    if(force_binary_output) demux.opt.output_strip_nonprint = false;
 
     /* make sure outdir is a directory. If it isn't, try to make it.*/
     if(stat(demux.outdir.c_str(),&sbuf)==0){

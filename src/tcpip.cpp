@@ -210,7 +210,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     if (demux.opt.suppress_header == 0) printf("%s: ", flow_pathname.c_str());
 
     size_t written = 0;
-    if(demux.opt.strip_nonprint){
+    if(demux.opt.output_strip_nonprint){
 	for(const u_char *cc = data;cc<data+length;cc++){
 	    if(isprint(*cc) || (*cc=='\n') || (*cc=='\r')){
 		written += fputc(*cc,stdout);
