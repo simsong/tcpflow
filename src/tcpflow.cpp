@@ -106,8 +106,7 @@ static void usage()
         std::cout << "   -s: strip non-printable characters (change to '.')\n";
         std::cout << "   -D: output in hex (useful to combine with -c or -C)\n";
         std::cout << "\n";
-
-#ifndef CAIRO_PDF_AVAILABLE
+#ifndef HAVE_LIBCAIRO
 	std::cout << "Rendering not available because Cairo was not installed.\n\n";
 #endif
         std::cout << "expression: tcpdump-like filtering expression\n";

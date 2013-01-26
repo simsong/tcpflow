@@ -1,7 +1,6 @@
 #ifndef PORTHISTOGRAM_H
 #define PORTHISTOGRAM_H
 
-#include "render.h"
 #include "plot.h"
 
 class one_page_report;

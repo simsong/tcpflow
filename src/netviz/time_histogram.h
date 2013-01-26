@@ -1,7 +1,6 @@
 #ifndef TIMEHISTOGRAM_H
 #define TIMEHISTOGRAM_H
 
-#include "render.h"
 #include "plot.h"
 
 /**

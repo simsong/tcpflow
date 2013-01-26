@@ -8,14 +8,15 @@
 
 #include "bulk_extractor_i.h"
 
-#ifdef CAIRO_PDF_AVAILABLE
+#include "netviz/plot.h"
+#ifdef HAVE_LIBCAIRO
 #include "netviz/one_page_report.h"
 #include "netviz/time_histogram.h"
 one_page_report *th_one_page=0;
 #endif
 
 
-#ifdef CAIRO_PDF_AVAILABLE
+#ifdef HAVE_LIBCAIRO
 static void th_startup()
 {
     if(th_one_page==0) th_one_page = new one_page_report();
@@ -47,14 +48,13 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
     }
 
     if(sp.phase==scanner_params::startup){
-#ifdef CAIRO_PDF_AVAILABLE
+#ifdef HAVE_LIBCAIRO
 	sp.info->name  = "netviz";
 	sp.info->flags = scanner_info::SCANNER_DISABLED;
 	sp.info->author= "Mike Shick";
 	sp.info->packet_user = 0;
 	sp.info->packet_cb = th_process_packet;
 	th_startup();
-	sp.info->packet_cb = 0;
 #endif	
     }
 
@@ -63,7 +63,7 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
     }
 
     if(sp.phase==scanner_params::shutdown){
-#ifdef CAIRO_PDF_AVAILABLE
+#ifdef HAVE_LIBCAIRO
 	th_shutdown(sp);
 #endif
     }

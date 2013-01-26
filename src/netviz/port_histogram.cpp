@@ -10,7 +10,8 @@
 
 #include "config.h"
 
-#ifdef CAIRO_PDF_AVAILABLE
+#include "plot.h"
+#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 #include "tcpip.h"
 #include "one_page_report.h"

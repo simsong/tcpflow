@@ -6,7 +6,6 @@
 #include "address_histogram.h"
 #include "port_histogram.h"
 #include "packetfall.h"
-#include "render.h"
 #include "iptree.h"
 
 class one_page_report {
