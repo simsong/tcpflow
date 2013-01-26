@@ -72,7 +72,7 @@ public:
                   post_processing(false),gzip_decompress(true),
                   max_bytes_per_flow(),
                   max_desired_fds(),max_flows(0),suppress_header(0),
-                  output_strip_nonprint(true),use_color(0),max_seek(MAX_SEEK){
+                  output_strip_nonprint(true),output_hex(false),use_color(0),max_seek(MAX_SEEK){
         }
         bool    console_output;
         bool    store_output;   // do we output?
@@ -84,6 +84,7 @@ public:
         uint32_t max_flows;
         bool    suppress_header;
         bool    output_strip_nonprint;
+        bool    output_hex;
         bool    use_color;
         int32_t max_seek;               // signed becuase we compare with abs()
     };
