@@ -4,8 +4,26 @@ TCPFLOW 1.3
 By Simson L. Garfinkel <simsong@acm.org>
 originally by Jeremy Elson <jelson@circlemud.org>
 
-
 Downloads directory: http://www.digitalcorpora.org/downloads/tcpflow/
+
+
+Compiling
+---------
+To compile for Linux
+
+Download the sources with git, run bootstrap.sh, configure and make:
+
+    git clone --recursive https://github.com/simsong/tcpflow.git
+    cd tcpflow
+    sh bootstrap.sh
+    ./configure
+
+To Compile for Windows with mingw on Fedora Core:
+
+
+Be sure that mingw is installed, then 
+
+
 
 
 Introduction

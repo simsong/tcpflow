@@ -230,8 +230,12 @@ AC_LANG_PUSH(C++)
   have_interval=yes
   AC_CHECK_HEADERS([boost/icl/interval.hpp boost/icl/interval_map.hpp boost/icl/interval_set.hpp],,have_interval=no)
   if test "${have_interval}" != yes ; then
-    AC_MSG_ERROR([tcpflow now requires boost interval_map and interval_set. 
-    Please install boost-devel.])
+    AC_MSG_WARN([tcpflow now requires boost interval_map and interval_set.])
+    if test x"$mingw" = x"yes" ; then 
+      AC_MSG_ERROR([Please install mingw32-boost and mingw64-boost])
+    else
+      AC_MSG_ERROR([Please install boost-devel.])
+    fi
   fi
 AC_LANG_POP()    
 
