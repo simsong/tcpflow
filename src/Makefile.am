@@ -14,6 +14,7 @@ BE13_API = \
 	be13_api/feature_recorder_set.h \
 	be13_api/md5.c \
 	be13_api/md5.h \
+	be13_api/net_ethernet.h \
 	be13_api/pcap_fake.h \
 	be13_api/pcap_fake.cpp \
 	be13_api/plugin.cpp\
@@ -32,7 +33,9 @@ BE13_API = \
 	be13_api/xml.cpp \
 	be13_api/xml.h \
 	be13_api/unicode_escape.h \
-	be13_api/unicode_escape.cpp 
+	be13_api/unicode_escape.cpp \
+	be13_api/utils.h \
+	be13_api/utils.cpp
 
 NETVIZ = \
 	netviz/plot.cpp \

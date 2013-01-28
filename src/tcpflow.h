@@ -27,38 +27,33 @@
 #define PACKAGE_NAME PACAKGE
 #endif
 
-
-
-/* If we are running on Windows, including the Windows-specific
- * include files first and disable pthread support.
- */
+/****************************************************************
+ *** Windows/mingw compatability seciton.
+ ***
+ *** If we are compiling for Windows, including the Windows-specific
+ *** include files first and disable pthread support.
+ ***/
 #ifdef WIN32
-#  include <winsock2.h>
+#  include <winsock2.h>			// please include winsock2.h before windows.h
 #  include <windows.h>
 #  include <windowsx.h>
-#undef HAVE_PTHREAD_H
-#undef HAVE_SEMAPHORE_H
-#undef HAVE_PTHREAD
-#undef HAVE_INET_NTOP		/* it's not there. Really. */
+#  undef HAVE_PTHREAD_H
+#  undef HAVE_SEMAPHORE_H
+#  undef HAVE_PTHREAD
+#  undef HAVE_INET_NTOP		/* it's not there. Really. */
+#  undef HAVE_EXTERN_PROGNAME	// don't work properly on mingw
+#  define MKDIR(a,b) mkdir(a)    // MKDIR only takes 1 argument on windows
 
+/* Defines not present in Microsoft Windows stack */
 
-#  define MKDIR(a,b) mkdir(a)  // MKDIR only takes 1 argument on windows
 #else
-#  define MKDIR(a,b) mkdir(a,b)		// MKDIR takes 2 arguments on Posix
+/*** Unix-specific elements for windows compatibility section ***/
+#  define MKDIR(a,b) mkdir(a,b) // MKDIR takes 2 arguments on Posix
 #endif
 
-#include <cstdio>         /* required per C++ standard - use the C++ versions*/
-#include <cstdlib>
-#include <cctype>
-#include <cstdarg>
-#include <cerrno>
-
-#include <fcntl.h>
-#include <assert.h>
-
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
+/***
+ *** end of windows compatibility section
+ ****************************************************************/
 
 /* If we are including inttypes.h, mmake sure __STDC_FORMAT_MACROS is defined */
 #ifndef __STDC_FORMAT_MACROS
@@ -72,6 +67,20 @@
 
 #ifndef __USE_BSD
 #define __USE_BSD
+#endif
+
+#include <cstdio>         /* required per C++ standard - use the C++ versions*/
+#include <cstdlib>
+#include <cctype>
+#include <cstdarg>
+#include <cerrno>
+#include <iostream>
+
+#include <fcntl.h>
+#include <assert.h>
+
+#ifndef O_BINARY
+#define O_BINARY 0
 #endif
 
 // These are the required include files; they better be present
@@ -201,14 +210,6 @@
 #define MAX_IPv6_STR_LEN 256
 #endif
 
-#ifndef HAVE_BCOPY
-#define bcopy(src,dst,len) memcpy(dst,src,len)
-#endif
-
-#ifndef HAVE_BZERO
-#define bzero(dst,len)     memset(dst,0,len)
-#endif
-
 #ifndef HAVE_SOCKLEN_T
 typedef size_t socklen_t;
 #endif
@@ -231,19 +232,12 @@ typedef size_t socklen_t;
 #define s6_addr32		__u6_addr.__u6_addr32
 
 
-#ifdef _WIN32
-/* For some reason this doesn't work properly with mingw */
-#undef HAVE_EXTERN_PROGNAME
-#endif
-
 /**************************** Constants ***********************************/
 
 #define DEFAULT_DEBUG_LEVEL 1
 #define MAX_FD_GUESS        64
 #define NUM_RESERVED_FDS    10    /* number of FDs to set aside; allows files to be opened as necessary */
 #define SNAPLEN             65536 /* largest possible MTU we'll see */
-
-#include <iostream>
 
 #include "be13_api/bulk_extractor_i.h"
   
@@ -254,8 +248,6 @@ extern int debug;
 #endif
 
 #define DEBUG(message_level) if (debug >= message_level) debug_real
-#define IS_SET(vector, flag) ((vector) & (flag))
-#define SET_BIT(vector, flag) ((vector) |= (flag))
 
 
 /************************* Function prototypes ****************************/
@@ -265,6 +257,10 @@ extern int32_t datalink_tdelta;                                   // time delta 
 pcap_handler find_handler(int datalink_type, const char *device); // callback for pcap
 
 /* tcpflow.cpp - CLI */
+#ifndef HAVE_INET_NTOP
+const char *inet_ntop(int af, const void *src,char *dst, socklen_t size);
+#endif
+
 extern const char *progname;
 void terminate(int sig) __attribute__ ((__noreturn__));
 

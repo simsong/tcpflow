@@ -4,6 +4,7 @@
  * Maintains a count of all IP addresses seen, with limits on the
  * maximum amount of memory.
  *
+ * #include this file after config.h (or whatever you are calling it)
  */
 
 /* TODO - cache addresses to nodes to avoid running the tree. */
@@ -16,8 +17,10 @@
 #include <assert.h>
 #include <iostream>
 #include <iomanip>
-#include <arpa/inet.h>
 
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
 
 /* addrbytes is the number of bytes in the address */
 

@@ -111,7 +111,7 @@ void mkdirs_for_path(std::string path)
     for(std::vector<std::string>::const_iterator it=parts.begin();it!=parts.end();it++){
         if(made_dirs.find(mpath)==made_dirs.end()){
             if(mpath.size()){
-                int r = mkdir(mpath.c_str(),0777);
+                int r = MKDIR(mpath.c_str(),0777);
                 if(r<0 && errno!=EEXIST){
                     perror(mpath.c_str());
                     exit(1);

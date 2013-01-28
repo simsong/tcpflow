@@ -1,3 +1,11 @@
+2013-01-27  Simson Garfinkel  <simsong@FC17>
+
+	* src/tcpdemux.cpp (close_all_fd): now calls close_file(false), to preven openflows from being modified while it is being iterated.
+
+	* src/tcpflow.h: removed SET_BIT as it wasn't being used
+
+	* configure.ac: removed bcopy & bzero
+
 2013-01-26  Simson Garfinkel  <simsong@npsair.local>
 
 2013-01-08  Simson Garfinkel  <simsong@mncrnpsedu.local>

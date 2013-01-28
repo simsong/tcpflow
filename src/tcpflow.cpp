@@ -17,6 +17,12 @@
 #include <string>
 #include <vector>
 
+/* bring in inet_ntop if it is not present */
+#define ETH_ALEN 6
+#ifndef HAVE_INET_NTOP
+#include "inet_ntop.c"
+#endif
+
 int iphtest=0;
 size_t iphtrim=0;
 

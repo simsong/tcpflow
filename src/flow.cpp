@@ -21,11 +21,6 @@
 #include <iostream>
 #include <sstream>
 
-#define ETH_ALEN 6
-#ifndef HAVE_INET_NTOP
-#include "inet_ntop.c"
-#endif
-
 std::string flow::filename_template("%A.%a-%B.%b%V%v%C%c");
 std::string flow::outdir(".");
 

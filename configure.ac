@@ -4,7 +4,7 @@
 # See http://autotoolset.sourceforge.net/tutorial.html 
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
-AC_INIT(TCPFLOW, 1.4.0_a1, bugs@afflib.org)
+AC_INIT(TCPFLOW, 1.4.0_a2, bugs@afflib.org)
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
 AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
@@ -44,12 +44,12 @@ case $host in
      ;;
 
   *-*-mingw32*)   
-     LIBS="-lws2_32 -lgdi32 $LIBS"  # previously had -liberty 
+     LIBS="-lpsapi -lws2_32 -lgdi32 $LIBS"  
      CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -DHAVE_STRUCT_TIMESPEC $CPPFLAGS"
+     CFLAGS="$CFLAGS --static"
      CXXFLAGS="$CXXFLAGS -Wno-format "  # compiler mingw-4.3.0 is broken on I64u formats
      CFLAGS="$CFLAGS --static -static-libgcc -static-libstdc++"
      CXXFLAGS="$CXXFLAGS --static -static-libgcc -static-libstdc++"
-     LDFLAGS="$LDFLAGS" # allows exiv2 to throw an exception that's caught elsewhere
      mingw="yes"
      ;;		 		     
 esac
@@ -164,11 +164,23 @@ done
 unset option
 AC_LANG_POP()    
 
-
+#
 # ZLIB is required for decompressing
-#  Not you cannot put comments in the AC_MSG_ERROR for some reason
+#  Note you cannot put comments in the AC_MSG_ERROR for some reason
 AC_CHECK_LIB([z],[uncompress],, AC_MSG_WARN([zlib libraries not installed; try installing zlib-dev zlib-devel zlib1g-dev or libz-dev]))
 AC_CHECK_HEADERS([zlib.h])
+
+################################################################
+## regex support
+## there are several options
+## tre is better than regex
+AC_CHECK_HEADER([lightgrep/api.h])
+AC_CHECK_LIB([lightgrep], [lg_create_pattern])
+AC_CHECK_HEADERS([regex.h tre/tre.h])
+AC_CHECK_LIB([regex],[regcomp])
+AC_CHECK_LIB([tre],[tre_regcomp])
+AC_CHECK_FUNCS([regcomp tre_regcomp tre_version])
+
 
 ################################################################
 # Bulk_extractor plugin support
@@ -392,7 +404,7 @@ AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 #endif
 ]])
  
-AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap futimes futimens bcopy bzero])
+AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap futimes futimens ])
 AC_CHECK_TYPES([socklen_t], [], [], 
 [[
 #ifdef HAVE_SYS_TYPES_H

@@ -51,10 +51,12 @@ tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
  */
 void tcpdemux::close_all_fd()
 {
-    for(tcpset::iterator it = open_flows.begin();it!=open_flows.end();it++){
+    tcpset open_flows_copy(open_flows);	// make a copy because we're going to modify it
+
+    for(tcpset::const_iterator it = open_flows_copy.begin();it!=open_flows_copy.end();it++){
 	(*it)->close_file();
     }
-    open_flows.clear();
+    assert(open_flows.size()==0);	// we've closed them all
 }
 
 
@@ -283,6 +285,8 @@ void tcpdemux::saved_flow_remove_oldest_if_necessary()
  * print the packet or store it.
  */
 
+#define IS_SET(vector, flag) ((vector) & (flag))
+
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include "iptree.h"
 iptree mytree;
@@ -349,7 +353,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                     if(buf){
                         lseek(fd,offset,SEEK_SET);
                         ssize_t r = read(fd,buf,tcp_datalen);
-                        data_match = (r==tcp_datalen) && memcmp(buf,tcp_data,tcp_datalen)==0;
+                        data_match = (r==(ssize_t)tcp_datalen) && memcmp(buf,tcp_data,tcp_datalen)==0;
                         free(buf);
                     }
                     close(fd);

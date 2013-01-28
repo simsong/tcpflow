@@ -1,88 +1,17 @@
 #ifndef TCPIP_H
 #define TCPIP_H
 
-#ifdef WIN32
-/* Defines not present in Microsoft Windows stack */
-typedef uint8_t u_int8_t ;
-typedef uint16_t u_int16_t ;
-#define ETH_ALEN 6			// ethernet address len
-#include "net_ethernet.h"
-#endif
-
 /** On windows, there is no in_addr_t; this is from
  * /usr/include/netinet/in.h
  */
 #ifndef HAVE_NETINET_IN_H
 typedef uint32_t in_addr_t;
 #endif
+
 #ifndef HAVE_SA_FAMILY_T
 typedef unsigned short int sa_family_t;
 #endif
 
-
-#ifndef HAVE_TCP_SEQ
-#ifdef WIN32
-#define __LITTLE_ENDIAN 1234
-#define __BIG_ENDIAN 4321
-#define __BYTE_ORDER __LITTLE_ENDIAN
-#endif
-
-/*
- * Structure of an internet header, naked of options.
- */
-struct ip {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-    uint8_t ip_hl:4;		/* header length */
-    uint8_t ip_v:4;		/* version */
-#endif
-#if __BYTE_ORDER == __BIG_ENDIAN
-    uint8_t ip_v:4;		/* version */
-    uint8_t ip_hl:4;		/* header length */
-#endif
-    uint8_t ip_tos;			/* type of service */
-    uint16_t ip_len;			/* total length */
-    uint16_t ip_id;			/* identification */
-    uint16_t ip_off;			/* fragment offset field */
-#define	IP_RF 0x8000			/* reserved fragment flag */
-#define	IP_DF 0x4000			/* dont fragment flag */
-#define	IP_MF 0x2000			/* more fragments flag */
-#define	IP_OFFMASK 0x1fff		/* mask for fragmenting bits */
-    uint8_t ip_ttl;			/* time to live */
-    uint8_t ip_p;			/* protocol */
-    uint16_t ip_sum;			/* checksum */
-    struct in_addr ip_src, ip_dst;	/* source and dest address */
-} __attribute__ ((__packed__));
-
-typedef	uint32_t tcp_seq;
-/*
- * TCP header.
- * Per RFC 793, September, 1981.
- */
-struct tcphdr {
-    uint16_t th_sport;		/* source port */
-    uint16_t th_dport;		/* destination port */
-    tcp_seq th_seq;		/* sequence number */
-    tcp_seq th_ack;		/* acknowledgement number */
-#  if __BYTE_ORDER == __LITTLE_ENDIAN
-    uint8_t th_x2:4;		/* (unused) */
-    uint8_t th_off:4;		/* data offset */
-#  endif
-#  if __BYTE_ORDER == __BIG_ENDIAN
-    uint8_t th_off:4;		/* data offset */
-    uint8_t th_x2:4;		/* (unused) */
-#  endif
-    uint8_t th_flags;
-#  define TH_FIN	0x01
-#  define TH_SYN	0x02
-#  define TH_RST	0x04
-#  define TH_PUSH	0x08
-#  define TH_ACK	0x10
-#  define TH_URG	0x20
-    uint16_t th_win;		/* window */
-    uint16_t th_sum;		/* checksum */
-    uint16_t th_urp;		/* urgent pointer */
-};
-#endif
 
 /**
  * ipaddress class.

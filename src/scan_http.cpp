@@ -6,13 +6,6 @@
  */
 
 #include "config.h"
-#include "bulk_extractor_i.h"
-
-#include <iostream>
-#include <algorithm>
-#include <map>
-#include <sys/types.h>
-#include <iomanip>
 
 #include "tcpflow.h"
 #include "tcpip.h"
@@ -36,6 +29,12 @@
 #endif
 
 #define MIN_HTTP_BUFSIZE 80             // don't bother parsing smaller than this
+
+#include <sys/types.h>
+#include <iostream>
+#include <algorithm>
+#include <map>
+#include <iomanip>
 
 
 /* define a callback object for sharing state between scan_http() and its callbacks
