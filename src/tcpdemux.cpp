@@ -555,6 +555,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
  */
 
 /* These might be defined from an include file, so undef them to be sure */
+#if 0
 #undef ip6_vfc
 #undef ip6_flow
 #undef ip6_plen	
@@ -568,6 +569,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
 #define ip6_nxt		ip6_ctlun.ip6_un1.ip6_un1_nxt
 #define ip6_hlim	ip6_ctlun.ip6_un1.ip6_un1_hlim
 #define ip6_hops	ip6_ctlun.ip6_un1.ip6_un1_hlim
+#endif
 
 int tcpdemux::process_ip6(const be13::packet_info &pi)
 {
@@ -581,12 +583,12 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
     u_int16_t ip_payload_len;
 
     /* for now we're only looking for TCP; throw away everything else */
-    if (ip_header->ip6_nxt != IPPROTO_TCP) {
-	DEBUG(50) ("got non-TCP frame -- IP proto %d", ip_header->ip6_nxt);
+    if (ip_header->ip6_ctlun.ip6_un1.ip6_un1_nxt != IPPROTO_TCP) {
+	DEBUG(50) ("got non-TCP frame -- IP proto %d", ip_header->ip6_ctlun.ip6_un1.ip6_un1_nxt);
 	return 1;
     }
 
-    ip_payload_len = ntohs(ip_header->ip6_plen);
+    ip_payload_len = ntohs(ip_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
 
     /* make sure there's some data */
     if (ip_payload_len == 0) {
@@ -596,7 +598,11 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
 
     /* do TCP processing */
 
-    return process_tcp(ipaddr(ip_header->ip6_src.s6_addr), ipaddr(ip_header->ip6_dst.s6_addr),AF_INET6,
+/*SLG */
+    ipaddr src(ip_header->ip6_src.__u6_addr.__u6_addr8);
+    ipaddr dst(ip_header->ip6_dst.__u6_addr.__u6_addr8);
+    
+    return process_tcp(src, dst ,AF_INET6,
                        pi.ip_data + sizeof(struct be13::private_ip6_hdr),ip_payload_len,pi);
 }
 

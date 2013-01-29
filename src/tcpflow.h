@@ -35,9 +35,9 @@
  *** include files first and disable pthread support.
  ***/
 #ifdef WIN32
-#  include <winsock2.h>			// please include winsock2.h before windows.h
-#  include <windows.h>
-#  include <windowsx.h>
+//#  include <winsock2.h>			// please include winsock2.h before windows.h
+//#  include <windows.h>
+//#  include <windowsx.h>
 #  undef HAVE_PTHREAD_H
 #  undef HAVE_SEMAPHORE_H
 #  undef HAVE_PTHREAD
@@ -139,9 +139,6 @@
 
 /* We have given up on keeping track of this all and are just including our own definitions. */
 
-//#ifdef HAVE_NETINET_IN_H
-//# include <netinet/in.h>
-//#endif
 
 //#ifdef HAVE_NETINET_IN_SYSTM_H
 //# include <netinet/in_systm.h>
