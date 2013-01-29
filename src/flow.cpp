@@ -17,7 +17,9 @@
 #include "tcpip.h"
 #include "tcpdemux.h"
 
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>                  // inet_ntop
+#endif
 
 #include <assert.h>
 #include <iostream>

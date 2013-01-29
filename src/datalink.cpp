@@ -15,7 +15,7 @@
  */
 
 #include "tcpflow.h"
-#include "be13_api/net_ethernet.h"
+//#include "be13_api/net_ethernet.h"
 
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
  * order 32 bit integer that specifies the family, e.g. AF_INET.
@@ -108,7 +108,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     /* Variables to support VLAN */
     const u_short *ether_type = &eth_header->ether_type; /* where the ether type is located */
-    const u_char *ether_data = p+sizeof(struct ether_header); /* where the data is located */
+    const u_char *ether_data = p+sizeof(struct be13::ether_header); /* where the data is located */
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte ether frame",
@@ -130,7 +130,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     /* Create a packet_info structure with ip data and data length  */
     struct timeval tv;
-    be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),ether_data, caplen - sizeof(struct ether_header));
+    be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),ether_data, caplen - sizeof(struct be13::ether_header));
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:

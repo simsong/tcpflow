@@ -580,7 +580,6 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
     }
 
     const struct be13::private_ip6_hdr *ip_header = (struct be13::private_ip6_hdr *) pi.ip_data;
-    u_int16_t ip_payload_len;
 
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip6_ctlun.ip6_un1.ip6_un1_nxt != IPPROTO_TCP) {
@@ -588,7 +587,7 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
 	return 1;
     }
 
-    ip_payload_len = ntohs(ip_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
+    uint16_t ip_payload_len = ntohs(ip_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
 
     /* make sure there's some data */
     if (ip_payload_len == 0) {
