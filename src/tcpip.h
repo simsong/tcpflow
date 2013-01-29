@@ -172,7 +172,7 @@ class tcp_header_t {
 public:
 #pragma GCC diagnostic ignored "-Wcast-align"
     tcp_header_t(const u_char *data):
-	tcp_header((struct tcphdr *)data){};
+	tcp_header((struct be13::tcphdr *)data){};
 #pragma GCC diagnostic warning "-Wcast-align"
     tcp_header_t(const tcp_header_t &b):
 	tcp_header(b.tcp_header){}
@@ -182,11 +182,11 @@ public:
     }
 
     virtual ~tcp_header_t(){}
-    struct tcphdr *tcp_header;
+    struct be13::tcphdr *tcp_header;
     size_t tcp_header_len(){ return tcp_header->th_off * 4; }
     uint16_t sport() {return ntohs(tcp_header->th_sport);}
     uint16_t dport() {return ntohs(tcp_header->th_dport);}
-    tcp_seq  seq()   {return ntohl(tcp_header->th_seq);}
+    be13::tcp_seq  seq()   {return ntohl(tcp_header->th_seq);}
     bool th_fin()    {return tcp_header->th_flags & TH_FIN;}
     bool th_ack()    {return tcp_header->th_flags & TH_ACK;}
     bool th_syn()    {return tcp_header->th_flags & TH_SYN;}
@@ -251,7 +251,7 @@ private:
     /*** End Effective C++ error suppression */
 
 public:;
-    tcpip(class tcpdemux &demux_,const flow &flow_,tcp_seq isn_);    /* constructor in tcpip.cpp */
+    tcpip(class tcpdemux &demux_,const flow &flow_,be13::tcp_seq isn_);    /* constructor in tcpip.cpp */
     virtual ~tcpip();			// destructor
 
     class tcpdemux &demux;		// our demultiplexer
@@ -259,8 +259,8 @@ public:;
     /* State information for the flow being reconstructed */
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
-    tcp_seq	isn;			// Flow's initial sequence number
-    tcp_seq	nsn;			// fd - expected next sequence number 
+    be13::tcp_seq	isn;			// Flow's initial sequence number
+    be13::tcp_seq	nsn;			// fd - expected next sequence number 
     uint32_t	syn_count;		// number of SYNs seen
     uint32_t    fin_count;              // number of FINs received
     uint32_t    fin_size;               // length of stream as determined when fin is sent
@@ -289,10 +289,10 @@ public:;
     void dump_xml(class xml *xmlreport,const std::string &xmladd);
 
     /* Helper methods; these probably want to be moved to packet_info() */
-    static bool tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp);
-    static bool tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp);
-    static bool ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip4_dgram &ip);
-    static bool ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip6_dgram &ip);
+    static bool tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::tcp_seg &tcp);
+    static bool tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct be13::tcp_seg &tcp);
+    static bool ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::ip4_dgram &ip);
+    static bool ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::ip6_dgram &ip);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
@@ -314,7 +314,7 @@ public:
                            isn(tcp->isn) {}
                            
     std::string saved_filename;        // where the flow was saved
-    tcp_seq     isn;                    // the flow's ISN
+    be13::tcp_seq     isn;                    // the flow's ISN
 };
 
 

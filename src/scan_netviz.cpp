@@ -22,7 +22,7 @@ static void th_startup()
     if(th_one_page==0) th_one_page = new one_page_report();
 }
 
-static void th_process_packet(void *user,const packet_info &pi)
+static void th_process_packet(void *user,const be13::packet_info &pi)
 {
     th_one_page->ingest_packet(pi);
 }

@@ -78,7 +78,7 @@ one_page_report::one_page_report() :
     }
 }
 
-void one_page_report::ingest_packet(const packet_info &pi)
+void one_page_report::ingest_packet(const be13::packet_info &pi)
 {
     if(earliest.tv_sec == 0) {
         earliest = pi.ts;
@@ -92,14 +92,14 @@ void one_page_report::ingest_packet(const packet_info &pi)
     transport_counts[pi.ether_type()]++; // should we handle VLANs?
 
     // extract IP and TCP (UDP?) headers
-    struct ip4_dgram ip4;
-    bool has_ip4_dgram = false;
-    struct ip6_dgram ip6;
-    bool has_ip6_dgram = false;
-    const uint8_t *ip_payload = 0;
+    struct be13::ip4_dgram ip4;
+    bool   has_ip4_dgram = false;
+    struct be13::ip6_dgram ip6;
+    bool   has_ip6_dgram = false;
+    const  uint8_t *ip_payload = 0;
     size_t ip_payload_len = 0;
-    struct tcp_seg tcp;
-    struct tcp_seg *optional_tcp = 0;  // for functions that can take a null struct
+    struct be13::tcp_seg tcp;
+    struct be13::tcp_seg *optional_tcp = 0;  // for functions that can take a null struct
     bool has_tcp_seg = false;
 
     // IPv4?

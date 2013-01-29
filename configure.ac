@@ -185,7 +185,7 @@ AC_CHECK_FUNCS([regcomp tre_regcomp tre_version])
 ################################################################
 # Bulk_extractor plugin support
 AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h tsk3/libtsk3.h unistd.h sys/stat.h])
-AC_CHECK_FUNCS([isxdigit])
+AC_CHECK_FUNCS([isxdigit ishexnumber])
 
 ################################################################
 # DFXML support
@@ -445,37 +445,37 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 ]]
 )
 
-AC_CHECK_TYPES([tcp_seq], [], [], 
-[[
-/* from sysdep.h */
-#include <stdio.h>
-#include <stdlib.h>
-
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-
-#ifndef __FAVOR_BSD
-#define __FAVOR_BSD
-#endif
-
-#ifndef __USE_BSD
-#define __USE_BSD
-#endif
-
-#ifdef HAVE_ARPA_INET_H
-#include <arpa/inet.h>
-#endif
-
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-
-#ifdef HAVE_NETINET_TCP_H
-#include <netinet/tcp.h>
-#endif
-]]
-)
+### AC_CHECK_TYPES([tcp_seq], [], [], 
+### [[
+### /* from sysdep.h */
+### #include <stdio.h>
+### #include <stdlib.h>
+### 
+### #ifdef HAVE_UNISTD_H
+### # include <unistd.h>
+### #endif
+### 
+### #ifndef __FAVOR_BSD
+### #define __FAVOR_BSD
+### #endif
+### 
+### #ifndef __USE_BSD
+### #define __USE_BSD
+### #endif
+### 
+### #ifdef HAVE_ARPA_INET_H
+### #include <arpa/inet.h>
+### #endif
+### 
+### #ifdef HAVE_SYS_SOCKET_H
+### #include <sys/socket.h>
+### #endif
+### 
+### #ifdef HAVE_NETINET_TCP_H
+### #include <netinet/tcp.h>
+### #endif
+### ]]
+### )
 
 ############## drop optimization flags if requested ################
 

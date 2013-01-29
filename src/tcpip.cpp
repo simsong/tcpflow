@@ -10,7 +10,6 @@
 #include "tcpflow.h"
 #include "tcpip.h"
 #include "tcpdemux.h"
-#include "bulk_extractor_i.h"
 
 #include <iostream>
 #include <sstream>
@@ -22,7 +21,7 @@
  * Creating a new object creates a new passive TCP/IP decoder.
  * It will *NOT* append to a flow that is already on the disk or in memory.
  */
-tcpip::tcpip(tcpdemux &demux_,const flow &flow_,tcp_seq isn_):
+tcpip::tcpip(tcpdemux &demux_,const flow &flow_,be13::tcp_seq isn_):
     demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),
     syn_count(0),fin_count(0),fin_size(0),pos(0),
     flow_pathname(),fd(-1),file_created(false),
@@ -410,14 +409,14 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 /*
  * byte-parsing helper functions
  */
-bool tcpip::tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp)
+bool tcpip::tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::tcp_seg &tcp)
 {
     // bytes must be longer than the minimal TCP header
-    if(len < sizeof(struct tcphdr)) {
+    if(len < sizeof(struct be13::tcphdr)) {
         return false;
     }
 
-    tcp.header = (struct tcphdr *) bytes;
+    tcp.header = (struct be13::tcphdr *) bytes;
     // TODO sanity check - possibly checksum based?
 
     // check for TCP body
@@ -434,10 +433,10 @@ bool tcpip::tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_
     return true;
 }
 
-bool tcpip::tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct tcp_seg &tcp)
+bool tcpip::tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct be13::tcp_seg &tcp)
 {
-    struct ip4_dgram ip4;
-    struct ip6_dgram ip6;
+    struct be13::ip4_dgram ip4;
+    struct be13::ip6_dgram ip6;
     uint64_t tcp_len = 0;
     const uint8_t *tcp_bytes;
 
@@ -462,14 +461,14 @@ bool tcpip::tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct t
     return tcp_from_bytes(tcp_bytes, tcp_len, tcp);
 }
 
-bool tcpip::ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip4_dgram &ip)
+bool tcpip::ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::ip4_dgram &ip)
 {
     // bytes must be longer than the minimal IPv4 header
-    if(len < sizeof(struct ip)) {
+    if(len < sizeof(struct be13::ip4)) {
         return false;
     }
 
-    ip.header = (struct ip *) bytes;
+    ip.header = (struct be13::ip4 *) bytes;
 
     if(ip.header->ip_v != 4) {
         return false;
@@ -489,23 +488,23 @@ bool tcpip::ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip4_
     return true;
 }
 
-bool tcpip::ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct ip6_dgram &ip)
+bool tcpip::ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::ip6_dgram &ip)
 {
     // bytes must be longer than the minimal IPv4 header
-    if(len < sizeof(private_ip6_hdr)) {
+    if(len < sizeof(be13::private_ip6_hdr)) {
         return false;
     }
 
     // check for expected IP version
-    const struct ip *ip_header = (struct ip *) bytes;
+    const struct be13::ip4 *ip_header = (struct be13::ip4 *) bytes;
     if(ip_header->ip_v != 6) {
         return false;
     }
 
-    ip.header = (struct private_ip6_hdr *) bytes;
+    ip.header = (struct be13::private_ip6_hdr *) bytes;
 
     // TODO account for nested headers?
-    uint64_t header_len = sizeof(private_ip6_hdr);
+    uint64_t header_len = sizeof(be13::private_ip6_hdr);
 
     if(len > header_len) {
         ip.payload = bytes + header_len;

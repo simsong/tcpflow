@@ -12,6 +12,7 @@
 #ifndef TCPFLOW_H
 #define TCPFLOW_H
 
+
 #include "config.h"
 
 /* Older versions of autoconf define PACKAGE and VERSION.
@@ -91,6 +92,7 @@
 # include <sys/cdefs.h>
 #endif
 
+
 #ifdef HAVE_STRING_H
 # include <string.h>
 #endif
@@ -102,6 +104,7 @@
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
+
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
@@ -134,45 +137,48 @@
 # include <net/if.h>
 #endif
 
-#ifdef HAVE_NETINET_IN_H
-# include <netinet/in.h>
-#endif
+/* We have given up on keeping track of this all and are just including our own definitions. */
 
-#ifdef HAVE_NETINET_IN_SYSTM_H
-# include <netinet/in_systm.h>
-#endif
+//#ifdef HAVE_NETINET_IN_H
+//# include <netinet/in.h>
+//#endif
 
-#ifdef HAVE_NETINET_IP6_H
-#include <netinet/ip6.h>		
-#endif
+//#ifdef HAVE_NETINET_IN_SYSTM_H
+//# include <netinet/in_systm.h>
+//#endif
 
-#ifdef HAVE_NETINET_IP_VAR_H
-# include <netinet/ip_var.h>		// FREEBSD
-#endif
+//#ifdef HAVE_NETINET_IP6_H
+//#include <netinet/ip6.h>		
+//#endif
 
-#ifdef HAVE_NETINET_IF_ETHER_H
-# include <netinet/if_ether.h>
-#endif
+//#ifdef HAVE_NETINET_IP_VAR_H
+//# include <netinet/ip_var.h>		// FREEBSD
+//#endif
 
-#ifdef HAVE_NETINET_TCP_H
-# include <netinet/tcp.h>
-#endif
+//#ifdef HAVE_NETINET_IF_ETHER_H
+//# include <netinet/if_ether.h>
+//#endif
 
-#ifdef HAVE_NETINET_TCPIP_H
-# include <netinet/tcpip.h>		// FREEBSD
-#endif
+//#ifdef HAVE_NETINET_TCP_H
+//# include <netinet/tcp.h>
+//#endif
 
-#ifdef HAVE_ARPA_INET_H
-# include <arpa/inet.h>
-#endif
+//#ifdef HAVE_NETINET_TCPIP_H
+//# include <netinet/tcpip.h>		// FREEBSD
+//#endif
 
-/*
- * Oracle Enterprise Linux is missing the definition for
- * ETHERTYPE_VLAN
- */
-#ifndef ETHERTYPE_VLAN
-# define ETHERTYPE_VLAN 0x8100
-#endif
+//#ifdef HAVE_ARPA_INET_H
+//# include <arpa/inet.h>
+//#endif
+
+
+///*
+// * Oracle Enterprise Linux is missing the definition for
+// * ETHERTYPE_VLAN
+// */
+//#ifndef ETHERTYPE_VLAN
+//# define ETHERTYPE_VLAN 0x8100
+//#endif
 
 #ifdef HAVE_SIGNAL_H
 # include <signal.h>
@@ -238,6 +244,7 @@ typedef size_t socklen_t;
 #define MAX_FD_GUESS        64
 #define NUM_RESERVED_FDS    10    /* number of FDs to set aside; allows files to be opened as necessary */
 #define SNAPLEN             65536 /* largest possible MTU we'll see */
+
 
 #include "be13_api/bulk_extractor_i.h"
   

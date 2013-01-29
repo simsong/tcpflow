@@ -47,7 +47,7 @@ public:
 
     one_page_report();
 
-    void ingest_packet(const packet_info &pi);
+    void ingest_packet(const be13::packet_info &pi);
     void render(const std::string &outdir);
     plot::rgb_t port_color(uint16_t port) const;
 

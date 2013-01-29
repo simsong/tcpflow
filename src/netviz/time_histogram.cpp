@@ -45,7 +45,7 @@ const std::vector<time_histogram::time_unit> time_histogram::time_units =
  * callback which handles each packet.
  */
 
-void time_histogram::ingest_packet(const packet_info &pi, const struct tcp_seg *optional_tcp)
+void time_histogram::ingest_packet(const be13::packet_info &pi, const struct be13::tcp_seg *optional_tcp)
 {
     uint64_t time = pi.ts.tv_usec + pi.ts.tv_sec * 1000000L; // microseconds
     // if we haven't received any data yet, we need to set the base time
@@ -376,7 +376,7 @@ void dyn_time_histogram::colorize(const plot::rgb_t &color_http_, const plot::rg
     }
 }
 
-void dyn_time_histogram::ingest_packet(const packet_info &pi, const struct tcp_seg *optional_tcp)
+void dyn_time_histogram::ingest_packet(const be13::packet_info &pi, const struct be13::tcp_seg *optional_tcp)
 {
     for(vector<time_histogram>::iterator histogram = histograms.begin();
             histogram != histograms.end(); histogram++) {

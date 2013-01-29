@@ -33,7 +33,7 @@ bool port_histogram::descending_counts::operator()(const port_count &a,
     return a.port < b.port;
 }
 
-void port_histogram::ingest_segment(const struct tcp_seg &tcp)
+void port_histogram::ingest_segment(const struct be13::tcp_seg &tcp)
 {
     top_ports_dirty = true;
 

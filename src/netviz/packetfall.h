@@ -12,7 +12,7 @@ public:
     packetfall() :
         parent() {};
 
-    void ingest_packet(const packet_info &pi);
+    void ingest_packet(const be13::packet_info &pi);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
 
     plot parent;

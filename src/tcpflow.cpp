@@ -304,10 +304,10 @@ int main(int argc, char *argv[])
     init_debug(argv);
 
     /* Make sure that the system was compiled properly */
-    if(sizeof(struct ip)!=20 || sizeof(struct tcphdr)!=20){
+    if(sizeof(struct be13::ip4)!=20 || sizeof(struct be13::tcphdr)!=20){
 	fprintf(stderr,"COMPILE ERROR.\n");
-	fprintf(stderr,"  sizeof(struct ip)=%d; should be 20.\n", (int)sizeof(struct ip));
-	fprintf(stderr,"  sizeof(struct tcphdr)=%d; should be 20.\n", (int)sizeof(struct tcphdr));
+	fprintf(stderr,"  sizeof(struct ip)=%d; should be 20.\n", (int)sizeof(struct be13::ip4));
+	fprintf(stderr,"  sizeof(struct tcphdr)=%d; should be 20.\n", (int)sizeof(struct be13::tcphdr));
 	fprintf(stderr,"CANNOT CONTINUE\n");
 	exit(1);
     }

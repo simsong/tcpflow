@@ -16,7 +16,7 @@
 
 #include "packetfall.h"
 
-void packetfall::ingest_packet(const packet_info &pi)
+void packetfall::ingest_packet(const be13::packet_info &pi)
 {
 }
 

@@ -123,7 +123,7 @@ public:
     int   retrying_open(const std::string &filename,int oflag,int mask);
 
     /* the flow database holds in-process tcpip connections */
-    tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,tcp_seq isn, const timeval &ts);
+    tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,be13::tcp_seq isn, const timeval &ts);
     tcpip *find_tcpip(const flow_addr &flow);
 
     /* saved flows are completed flows that we remember in case straggling packets
@@ -138,10 +138,10 @@ public:
      */
     int  process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                      const u_char *tcp_data, uint32_t tcp_length,
-                     const packet_info &pi);
-    int  process_ip4(const packet_info &pi);
-    int  process_ip6(const packet_info &pi);
-    int  process_pkt(const packet_info &pi);
+                     const be13::packet_info &pi);
+    int  process_ip4(const be13::packet_info &pi);
+    int  process_ip6(const be13::packet_info &pi);
+    int  process_pkt(const be13::packet_info &pi);
 };
 
 extern int iphtest;                     // for testing

@@ -115,7 +115,7 @@ tcpip *tcpdemux::find_tcpip(const flow_addr &flow)
  * since it doesn't need to shuffle entire structures.
  */
 
-tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,tcp_seq isn,const timeval &ts)
+tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,be13::tcp_seq isn,const timeval &ts)
 {
     /* create space for the new state */
     flow flow(flowa,vlan,ts,ts,flow_counter++);
@@ -294,7 +294,7 @@ ip2tree my2tree;
 
 int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                            const u_char *tcp_data, uint32_t tcp_datalen,
-                           const packet_info &pi)
+                          const be13::packet_info &pi)
 {
     if(iphtest==1){                     // mode 1 testing - when the tree gets 4000, drop it to 400
         mytree.add(src.addr,family==AF_INET6 ? 16 : 4,1 );
@@ -302,12 +302,12 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
         my2tree.add_pair(src.addr,dst.addr,family==AF_INET6 ? 16 : 4,1);
     }
 
-    if (tcp_datalen < sizeof(struct tcphdr)) {
+    if (tcp_datalen < sizeof(struct be13::tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment!");
 	return 0;
     }
 
-    struct tcphdr *tcp_header = (struct tcphdr *) tcp_data;
+    struct be13::tcphdr *tcp_header = (struct be13::tcphdr *) tcp_data;
 
     /* calculate the total length of the TCP header including options */
     u_int tcp_header_len = tcp_header->th_off * 4;
@@ -315,7 +315,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     /* fill in the flow_addr structure with info that identifies this flow */
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),ntohs(tcp_header->th_dport),family);
 
-    tcp_seq seq  = ntohl(tcp_header->th_seq);
+    be13::tcp_seq seq  = ntohl(tcp_header->th_seq);
     bool syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
     bool ack_set = IS_SET(tcp_header->th_flags, TH_ACK);
     bool fin_set = IS_SET(tcp_header->th_flags, TH_FIN);
@@ -404,7 +404,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 	/* Create a new connection.
 	 * delta will be 0, because it's a new connection!
 	 */
-	tcp_seq isn = syn_set ? seq : seq-1;
+        be13::tcp_seq isn = syn_set ? seq : seq-1;
 	tcp = create_tcpip(this_flow, pi.vlan(), isn, pi.ts);
     }
 
@@ -488,15 +488,15 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 
 
 
-int tcpdemux::process_ip4(const packet_info &pi)
+int tcpdemux::process_ip4(const be13::packet_info &pi)
 {
     /* make sure that the packet is at least as long as the min IP header */
-    if (pi.ip_datalen < sizeof(struct ip)) {
+    if (pi.ip_datalen < sizeof(struct be13::ip4)) {
 	DEBUG(6) ("received truncated IP datagram!");
 	return 0;
     }
 
-    const struct ip *ip_header = (struct ip *) pi.ip_data;
+    const struct be13::ip4 *ip_header = (struct be13::ip4 *) pi.ip_data;
     u_int ip_header_len;
     u_int ip_total_len;
 
@@ -569,15 +569,15 @@ int tcpdemux::process_ip4(const packet_info &pi)
 #define ip6_hlim	ip6_ctlun.ip6_un1.ip6_un1_hlim
 #define ip6_hops	ip6_ctlun.ip6_un1.ip6_un1_hlim
 
-int tcpdemux::process_ip6(const packet_info &pi)
+int tcpdemux::process_ip6(const be13::packet_info &pi)
 {
     /* make sure that the packet is at least as long as the IPv6 header */
-    if (pi.ip_datalen < sizeof(struct private_ip6_hdr)) {
+    if (pi.ip_datalen < sizeof(struct be13::private_ip6_hdr)) {
 	DEBUG(6) ("received truncated IPv6 datagram!");
 	return 1;
     }
 
-    const struct private_ip6_hdr *ip_header = (struct private_ip6_hdr *) pi.ip_data;
+    const struct be13::private_ip6_hdr *ip_header = (struct be13::private_ip6_hdr *) pi.ip_data;
     u_int16_t ip_payload_len;
 
     /* for now we're only looking for TCP; throw away everything else */
@@ -597,7 +597,7 @@ int tcpdemux::process_ip6(const packet_info &pi)
     /* do TCP processing */
 
     return process_tcp(ipaddr(ip_header->ip6_src.s6_addr), ipaddr(ip_header->ip6_dst.s6_addr),AF_INET6,
-                       pi.ip_data + sizeof(struct private_ip6_hdr),ip_payload_len,pi);
+                       pi.ip_data + sizeof(struct be13::private_ip6_hdr),ip_payload_len,pi);
 }
 
 
@@ -608,7 +608,7 @@ int tcpdemux::process_ip6(const packet_info &pi)
  */
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-int tcpdemux::process_pkt(const packet_info &pi)
+int tcpdemux::process_pkt(const be13::packet_info &pi)
 {
     int r = 1;                          // not processed yet
     switch(pi.ip_version()){

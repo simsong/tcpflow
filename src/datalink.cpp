@@ -15,6 +15,7 @@
  */
 
 #include "tcpflow.h"
+#include "be13_api/net_ethernet.h"
 
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
  * order 32 bit integer that specifies the family, e.g. AF_INET.
@@ -73,7 +74,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 #endif
     struct timeval tv;
-    packet_info pi(DLT_NULL,h,p,tvshift(tv,h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
+    be13::packet_info pi(DLT_NULL,h,p,tvshift(tv,h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
     process_packet_info(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -89,7 +90,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		  h->caplen, h->len);
     }
     struct timeval tv;
-    packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
+    be13::packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
     process_packet_info(pi);
 }
 #endif
@@ -103,7 +104,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
     u_int length = h->len;
-    struct ether_header *eth_header = (struct ether_header *) p;
+    struct be13::ether_header *eth_header = (struct be13::ether_header *) p;
 
     /* Variables to support VLAN */
     const u_short *ether_type = &eth_header->ether_type; /* where the ether type is located */
@@ -122,14 +123,14 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	caplen     -= 4;
     }
   
-    if (caplen < sizeof(struct ether_header)) {
+    if (caplen < sizeof(struct be13::ether_header)) {
 	DEBUG(6) ("warning: received incomplete ethernet frame");
 	return;
     }
 
     /* Create a packet_info structure with ip data and data length  */
     struct timeval tv;
-    packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),ether_data, caplen - sizeof(struct ether_header));
+    be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),ether_data, caplen - sizeof(struct ether_header));
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
@@ -182,7 +183,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     struct timeval tv;
-    packet_info pi(DLT_PPP,h,p,tvshift(tv,h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
+    be13::packet_info pi(DLT_PPP,h,p,tvshift(tv,h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
     process_packet_info(pi);
 }
 
@@ -204,7 +205,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
     }
   
     struct timeval tv;
-    packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
+    be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
     process_packet_info(pi);
 }
 #endif

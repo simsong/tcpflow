@@ -81,7 +81,7 @@ public:
     plot::rgb_t color_https;
     plot::rgb_t color_other;
 
-    void ingest_packet(const packet_info &pi, const struct tcp_seg *optional_tcp);
+    void ingest_packet(const be13::packet_info &pi, const struct be13::tcp_seg *optional_tcp);
 
     class render_vars {
     public:
@@ -110,7 +110,7 @@ public:
     dyn_time_histogram();
     void colorize(const plot::rgb_t &color_http_, const plot::rgb_t &color_https_,
             const plot::rgb_t &color_other_);
-    void ingest_packet(const packet_info &pi, const struct tcp_seg *optional_tcp);
+    void ingest_packet(const be13::packet_info &pi, const struct be13::tcp_seg *optional_tcp);
     void render(cairo_t *cr, const plot::bounds_t &bounds);
     void render(const std::string &outdir);
     time_histogram &select_best_fit();
