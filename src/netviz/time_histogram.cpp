@@ -325,17 +325,6 @@ void dyn_time_histogram::colorize(const plot::rgb_t &color_http_, const plot::rg
     }
 }
 
-<<<<<<< HEAD
-void dyn_time_histogram::ingest_packet(const be13::packet_info &pi, const struct be13::tcp_seg *optional_tcp)
-{
-    for(vector<time_histogram>::iterator histogram = histograms.begin();
-            histogram != histograms.end(); histogram++) {
-        histogram->ingest_packet(pi, optional_tcp);
-    }
-}
-
-=======
->>>>>>> working
 void dyn_time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
     time_histogram best_fit = select_best_fit();

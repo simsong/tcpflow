@@ -30,7 +30,6 @@ public:
         bar_label_font_size(8.0),
         port_counts(), data_bytes_ingested(), top_ports_cache(), top_ports_dirty(true) {}
 
-    void ingest_segment(const struct be13::tcp_seg &tcp);
     void render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
     void render_bars(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
     void get_top_ports(std::vector<port_count> &top_ports);

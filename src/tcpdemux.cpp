@@ -540,8 +540,8 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    return process_tcp(ipaddr(ip_header->ip_src.s_addr),
-                       ipaddr(ip_header->ip_dst.s_addr),
+    return process_tcp(ipaddr(ip_header->ip_src.addr),
+                       ipaddr(ip_header->ip_dst.addr),
                        AF_INET,
                        pi.ip_data + ip_header_len, ip_total_len - ip_header_len,
                        pi);
@@ -574,12 +574,12 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
 int tcpdemux::process_ip6(const be13::packet_info &pi)
 {
     /* make sure that the packet is at least as long as the IPv6 header */
-    if (pi.ip_datalen < sizeof(struct be13::private_ip6_hdr)) {
+    if (pi.ip_datalen < sizeof(struct be13::ip6_hdr)) {
 	DEBUG(6) ("received truncated IPv6 datagram!");
 	return 1;
     }
 
-    const struct be13::private_ip6_hdr *ip_header = (struct be13::private_ip6_hdr *) pi.ip_data;
+    const struct be13::ip6_hdr *ip_header = (struct be13::ip6_hdr *) pi.ip_data;
 
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip6_ctlun.ip6_un1.ip6_un1_nxt != IPPROTO_TCP) {
@@ -602,7 +602,7 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
     ipaddr dst(ip_header->ip6_dst.__u6_addr.__u6_addr8);
     
     return process_tcp(src, dst ,AF_INET6,
-                       pi.ip_data + sizeof(struct be13::private_ip6_hdr),ip_payload_len,pi);
+                       pi.ip_data + sizeof(struct be13::ip6_hdr),ip_payload_len,pi);
 }
 
 
