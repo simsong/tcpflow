@@ -91,57 +91,6 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     byte_count += pi.pcap_hdr->caplen;
     transport_counts[pi.ether_type()]++; // should we handle VLANs?
 
-    // extract IP and TCP (UDP?) headers
-    struct be13::ip4_dgram ip4;
-    bool   has_ip4_dgram = false;
-    struct be13::ip6_dgram ip6;
-    bool   has_ip6_dgram = false;
-    const  uint8_t *ip_payload = 0;
-    size_t ip_payload_len = 0;
-    struct be13::tcp_seg tcp;
-    struct be13::tcp_seg *optional_tcp = 0;  // for functions that can take a null struct
-    bool has_tcp_seg = false;
-
-    // IPv4?
-    if(tcpip::ip4_from_bytes(pi.ip_data, pi.ip_datalen, ip4)) {
-        has_ip4_dgram = true;
-        ip_payload = ip4.payload;
-        ip_payload_len = ip4.payload_len;
-    }
-    // IPv6?
-    else if(tcpip::ip6_from_bytes(pi.ip_data, pi.ip_datalen, ip6)) {
-        has_ip6_dgram = true;
-        ip_payload = ip6.payload;
-        ip_payload_len = ip6.payload_len;
-    }
-    else {
-        // TODO handle non-IP packets
-    }
-
-    // TCP?
-    if(tcpip::tcp_from_bytes(ip_payload, ip_payload_len, tcp)) {
-        has_tcp_seg = true;
-        optional_tcp = &tcp;
-    }
-
-    // pass relevant data structures to children
-    // don't give packets to address histograms, they will use the IP trees
-    if(has_ip6_dgram) {
-        src_tree.add(ip6.header->ip6_src.__u6_addr.__u6_addr8,
-                     sizeof(ip6.header->ip6_src.__u6_addr.__u6_addr8),1);
-        dst_tree.add(ip6.header->ip6_dst.__u6_addr.__u6_addr8,
-                     sizeof(ip6.header->ip6_dst.__u6_addr.__u6_addr8),1);
-    }
-    else if(has_ip4_dgram) {
-        src_tree.add((uint8_t *) &ip4.header->ip_src.s_addr, sizeof(ip4.header->ip_src.s_addr),1);
-        dst_tree.add((uint8_t *) &ip4.header->ip_dst.s_addr, sizeof(ip4.header->ip_dst.s_addr),1);
-    }
-    bandwidth_histogram.ingest_packet(pi, optional_tcp);
-    if(has_tcp_seg) {
-        src_port_histogram.ingest_segment(tcp);
-        dst_port_histogram.ingest_segment(tcp);
-    }
-    pfall.ingest_packet(pi);
 }
 
 void one_page_report::render(const std::string &outdir)

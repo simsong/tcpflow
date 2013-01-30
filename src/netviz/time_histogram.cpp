@@ -41,58 +41,7 @@ const std::vector<time_histogram::si_prefix> time_histogram::si_prefixes =
 const std::vector<time_histogram::time_unit> time_histogram::time_units =
         time_histogram::build_time_units();
 
-/**
- * callback which handles each packet.
- */
-
-void time_histogram::ingest_packet(const be13::packet_info &pi, const struct be13::tcp_seg *optional_tcp)
-{
-    uint64_t time = pi.ts.tv_usec + pi.ts.tv_sec * 1000000L; // microseconds
-    // if we haven't received any data yet, we need to set the base time
-    if(!received_data) {
-	uint64_t first_bucket = (uint64_t) ((double) bucket_count *
-                first_bucket_factor);
-	base_time = time - (bucket_width * first_bucket);
-	received_data = true;
-    }
-
-    int target_index = (time - base_time) / bucket_width;
-
-    if(target_index < 0) {
-	underflow_count++;
-	return;
-    }
-    if(target_index >= bucket_count) {
-	overflow_count++;
-	return;
-    }
-
-    bucket_t *target_bucket = &buckets.at(target_index);
-
-    // bail if no TCP segment was given (should there be another bucket value for this?)
-    if(!optional_tcp) {
-        return;
-    }
-
-    uint16_t port = ntohs(optional_tcp->header->th_sport);
-
-    switch(port) {
-    case PORT_HTTP:
-    case PORT_HTTP_ALT_0:
-    case PORT_HTTP_ALT_1:
-    case PORT_HTTP_ALT_2:
-    case PORT_HTTP_ALT_3:
-    case PORT_HTTP_ALT_4:
-    case PORT_HTTP_ALT_5:
-	target_bucket->http++;
-	break;
-    case PORT_HTTPS:
-	target_bucket->https++;
-	break;
-    default:
-	target_bucket->other++;
-    }
-}
+// TODO insertion function
 
 void time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
@@ -376,6 +325,7 @@ void dyn_time_histogram::colorize(const plot::rgb_t &color_http_, const plot::rg
     }
 }
 
+<<<<<<< HEAD
 void dyn_time_histogram::ingest_packet(const be13::packet_info &pi, const struct be13::tcp_seg *optional_tcp)
 {
     for(vector<time_histogram>::iterator histogram = histograms.begin();
@@ -384,6 +334,8 @@ void dyn_time_histogram::ingest_packet(const be13::packet_info &pi, const struct
     }
 }
 
+=======
+>>>>>>> working
 void dyn_time_histogram::render(cairo_t *cr, const plot::bounds_t &bounds)
 {
     time_histogram best_fit = select_best_fit();

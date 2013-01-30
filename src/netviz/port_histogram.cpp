@@ -33,20 +33,6 @@ bool port_histogram::descending_counts::operator()(const port_count &a,
     return a.port < b.port;
 }
 
-void port_histogram::ingest_segment(const struct be13::tcp_seg &tcp)
-{
-    top_ports_dirty = true;
-
-    if(relationship == SOURCE || relationship == SRC_OR_DST) {
-        port_counts[ntohs(tcp.header->th_sport)] += tcp.body_len;
-    }
-    if(relationship == DESTINATION || relationship == SRC_OR_DST) {
-        port_counts[ntohs(tcp.header->th_dport)] += tcp.body_len;
-    }
-
-    data_bytes_ingested += tcp.body_len;
-}
-
 void port_histogram::render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report)
 {
     plot::ticks_t ticks;

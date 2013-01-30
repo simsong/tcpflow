@@ -287,12 +287,6 @@ public:;
     uint32_t seen_bytes();
     void dump_seen();
     void dump_xml(class xml *xmlreport,const std::string &xmladd);
-
-    /* Helper methods; these probably want to be moved to packet_info() */
-    static bool tcp_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::tcp_seg &tcp);
-    static bool tcp_from_ip_bytes(const uint8_t *bytes, const uint64_t len, struct be13::tcp_seg &tcp);
-    static bool ip4_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::ip4_dgram &ip);
-    static bool ip6_from_bytes(const uint8_t *bytes, const uint64_t len, struct be13::ip6_dgram &ip);
 };
 
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
