@@ -1,11 +1,11 @@
-#ifndef PACKETFALL_H
-#define PACKETFALL_H
+#ifndef NET_MAP_H
+#define NET_MAP_H
 
 #include "plot_view.h"
 
-class packetfall {
+class net_map {
 public:
-    packetfall() {}
+    net_map() {}
 
     void ingest_packet(const be13::packet_info &pi);
     void render(cairo_t *cr, const plot_view::bounds_t &bounds);

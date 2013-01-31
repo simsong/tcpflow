@@ -1,13 +1,13 @@
 Timeline for 1.4 ship:
 
 
-- mfs + Document the refactored class hiearchy for one-page-report.
-      - slg will look at before mfs begins refactoring
++ mfs + Document the refactored class hiearchy for one-page-report.
+      + slg will look at before mfs begins refactoring
 
-- plot becomes abstract
-  - pure virtual destructor (protected constructor too?)
-  - concrete render(cairo_t, bounds_t)
-  - pure virtual render_data(cairo_t, bounds_t)
++ plot becomes abstract
+  + pure virtual destructor (protected constructor too?)
+  + concrete render(cairo_t, bounds_t)
+  + pure virtual render_data(cairo_t, bounds_t)
     - This is called by render, which will calculate the bounds within the
       axes, labels etc.
     - sublcasses need only override render_data, plot() owns the space given

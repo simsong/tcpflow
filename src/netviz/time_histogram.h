@@ -1,120 +1,75 @@
-#ifndef TIMEHISTOGRAM_H
-#define TIMEHISTOGRAM_H
-
-#include "plot.h"
+#ifndef TIME_HISTOGRAM_H
+#define TIME_HISTOGRAM_H
 
 /**
  * interface for the timehistogram class
  */
 
+#include "tcpflow.h"
+
+#include <map>
+
 class time_histogram {
 public:
+    time_histogram();
+
     typedef enum {
         MINUTE = 0, HOUR, DAY, WEEK, MONTH, YEAR
     } span_t;
+    typedef uint64_t count_t;
+    typedef uint16_t port_t;
+    typedef uint32_t timescale_off_t;
 
-    // trivial classes are used instead of std::pair for clarity of members
-    class si_prefix {
+    // a bucket counts packets received in a given timeframe, organized by TCP port
+    class bucket {
     public:
-        si_prefix(std::string prefix_, uint64_t magnitude_) :
-            prefix(prefix_), magnitude(magnitude_) {}
-        std::string prefix;
-        uint64_t magnitude;
+        bucket() : counts(), sum() {}
+
+        std::map<port_t, count_t> counts;
+        count_t sum;
+
+        void increment(port_t port, count_t delta);
     };
-    class time_unit {
+    class histogram_map {
     public:
-        time_unit(std::string name_, uint64_t seconds_) :
-            name(name_), seconds(seconds_) {}
-        std::string name;
-        uint64_t seconds;
-    };
+        histogram_map(uint64_t time_span_) :
+            buckets(), bucket_width(time_span_ / bucket_count), base_time(0),
+            time_span(time_span_), sum(0), greatest_bucket_sum(0) {}
 
-    static const uint64_t span_lengths[];
-    static const std::vector<si_prefix> si_prefixes;
-    static const std::vector<time_unit> time_units;
-
-    class bucket_t {
-    public:
-        uint64_t http;
-        uint64_t https;
-        uint64_t other;
-    };
-
-    time_histogram(span_t span_) :
-        parent(), span(span_), x_tick_count(2), y_tick_count(5),
-        bar_space_factor(1.2), bucket_count(600), first_bucket_factor(0.1),
-        length(span_lengths[span]),
-        bucket_width(length / bucket_count), underflow_count(0),
-        overflow_count(0), buckets(bucket_count),
-        base_time(0), received_data(false),
-        color_http(0.05, 0.33, 0.65), color_https(0.00, 0.75, 0.20),
-        color_other(1.00, 0.77, 0.00)   { }
-
-    //// render configuration
-    plot parent;
-    span_t span;
-    int x_tick_count;
-    int y_tick_count;
-    double bar_space_factor;
-    int bucket_count;
-    // multiplied by the length of the bucket vector to find the first
-    // bucket to insert into
-    double first_bucket_factor;
-
-    // total number of microseconds this histogram covers
-    uint64_t length;
-    // number of microseconds each bucket represents
-    uint64_t bucket_width;
-    // number of packets that occurred before the span of this histogram
-    uint64_t underflow_count;
-    // number of packets that occurred after the span of this histogram
-    uint64_t overflow_count;
-    // packet counts
-    vector<bucket_t> buckets;
-    // the earliest time this histogram represents (unknown until first
-    // packet received)
-    uint64_t base_time;
-    // have we received that first packet? (beats having to examine buckets)
-    bool received_data;
-
-    plot::rgb_t color_http;
-    plot::rgb_t color_https;
-    plot::rgb_t color_other;
-
-    class render_vars {
-    public:
-        render_vars() :
-            first_index(-1), last_index(-1), greatest_bucket_sum(0),
-            num_sig_buckets(0), unit_log_1000(0) {}
-        void prep(const time_histogram &graph);
-        int first_index;
-        int last_index;
+        std::map<timescale_off_t, bucket> buckets;
+        uint64_t bucket_width;
+        uint64_t base_time;
+        uint64_t time_span;
+        count_t sum;
         uint64_t greatest_bucket_sum;
-        int num_sig_buckets;
-        uint64_t unit_log_1000;
+
+        // returns true if the insertion resulted in over/underflow
+        bool insert(const struct timeval &ts, const port_t port);
     };
-    void render(cairo_t *cr, const plot::bounds_t &bounds);
-    void render(const std::string &outdir);
-    void build_axis_labels(const render_vars &vars);
-    plot::ticks_t build_tick_labels(const render_vars &vars);
-    void render_bars(cairo_t *cr, const plot::bounds_t &bounds,
-            render_vars &vars);
-    static std::vector<si_prefix> build_si_prefixes();
-    static std::vector<time_unit> build_time_units();
-};
 
-class dyn_time_histogram {
-public:
-    dyn_time_histogram();
-    void colorize(const plot::rgb_t &color_http_, const plot::rgb_t &color_https_,
-            const plot::rgb_t &color_other_);
-    void render(cairo_t *cr, const plot::bounds_t &bounds);
-    void render(const std::string &outdir);
-    time_histogram &select_best_fit();
+    static const timescale_off_t bucket_count;
+    static const float underflow_pad_factor;
+    static const std::vector<uint64_t> span_lengths; // in microseconds
 
-    plot parent;
-    // children
-    std::vector<time_histogram> histograms;
+    void insert(const struct timeval &ts, const port_t port);
+    uint64_t usec_per_bucket() const;
+    count_t packet_count() const;
+    time_t start_date() const;
+    time_t end_date() const;
+    uint64_t tallest_bar() const;
+    size_t size() const;
+    size_t non_sparse_size() const;
+    std::map<timescale_off_t, bucket>::const_iterator begin() const;
+    std::map<timescale_off_t, bucket>::const_iterator end() const;
+    std::map<timescale_off_t, bucket>::const_reverse_iterator rbegin() const;
+    std::map<timescale_off_t, bucket>::const_reverse_iterator rend() const;
+    static std::vector<uint64_t> build_span_lengths();
+
+private:
+    std::vector<histogram_map> histograms;
+    uint32_t best_fit_index;
+    struct timeval earliest_ts, latest_ts;
+    count_t sum;
 };
 
 #endif

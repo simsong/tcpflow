@@ -10,7 +10,7 @@
 
 #include "config.h"
 
-#include "plot.h"
+#include "plot_view.h"
 #ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 #include "tcpip.h"
@@ -21,9 +21,11 @@
 
 #include "one_page_report.h"
 
+using namespace std;
+
 // string constants
-const std::string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
-const std::vector<std::string> one_page_report::size_suffixes =
+const string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
+const vector<string> one_page_report::size_suffixes =
         one_page_report::build_size_suffixes();
 // ratio constants
 const double one_page_report::page_margin_factor = 0.05;
@@ -31,46 +33,26 @@ const double one_page_report::line_space_factor = 0.25;
 const double one_page_report::histogram_pad_factor_y = 1.0;
 const double one_page_report::address_histogram_width_divisor = 2.5;
 // size constants
-const double one_page_report::bandwidth_histogram_height = 100.0;
+const double one_page_report::packet_histogram_height = 100.0;
 const double one_page_report::address_histogram_height = 125.0;
 const double one_page_report::port_histogram_height = 100.0;
 // color constants
-const plot::rgb_t one_page_report::default_color(0.67, 0.67, 0.67);
+const plot_view::rgb_t one_page_report::default_color(0.67, 0.67, 0.67);
 
 one_page_report::one_page_report() : 
     source_identifier(), filename("report.pdf"),
     bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
     top_list_font_size(8.0), histogram_show_top_n_text(3),
     packet_count(0), byte_count(0), earliest(), latest(),
-    transport_counts(), bandwidth_histogram(), src_addr_histogram(),
-    dst_addr_histogram(), src_port_histogram(), dst_port_histogram(),
-    pfall(), src_tree(), dst_tree(), port_aliases(), port_color_map()
+    transport_counts(), packet_histogram(), src_port_histogram(),
+    dst_port_histogram(), pfall(), netmap(), src_tree(), dst_tree(),
+    port_aliases(), port_color_map()
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
 
-    port_color_map[PORT_HTTP] = plot::rgb_t(0.07, 0.44, 0.87);
-    port_color_map[PORT_HTTPS] = plot::rgb_t(0.25, 0.79, 0.40);
-
-    bandwidth_histogram.parent.title = "TCP Packets Received";
-    bandwidth_histogram.parent.pad_left_factor = 0.2;
-    bandwidth_histogram.parent.y_tick_font_size = 6.0;
-    bandwidth_histogram.parent.x_tick_font_size = 6.0;
-    bandwidth_histogram.parent.x_axis_font_size = 8.0;
-    bandwidth_histogram.parent.x_axis_decoration = plot::AXIS_SPAN_ARROW;
-    bandwidth_histogram.colorize(port_color_map[PORT_HTTP], port_color_map[PORT_HTTPS],
-            default_color);
-
-    pfall.parent.title = "";
-    pfall.parent.subtitle = "";
-    pfall.parent.x_label = "";
-    pfall.parent.y_label = "";
-    pfall.parent.pad_left_factor = 0.2;
-
-    dst_addr_histogram.quick_config("Top Destination Addresses", default_color);
-    src_addr_histogram.quick_config("Top Source Addresses", default_color);
-    dst_port_histogram.quick_config(port_histogram::DESTINATION, "Top Destination Ports");
-    src_port_histogram.quick_config(port_histogram::SOURCE, "Top Source Ports");
+    port_color_map[PORT_HTTP] = plot_view::rgb_t(0.07, 0.44, 0.87);
+    port_color_map[PORT_HTTPS] = plot_view::rgb_t(0.25, 0.79, 0.40);
 
     // build null alias map to avoid requiring special handling for unmapped ports
     for(int ii = 0; ii <= 65535; ii++) {
@@ -91,13 +73,59 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     byte_count += pi.pcap_hdr->caplen;
     transport_counts[pi.ether_type()]++; // should we handle VLANs?
 
+    // break out TCP/IP info and feed child views
+
+    // feed IP-only views
+    uint8_t ip_ver = 0;
+    if(pi.is_ip4()) {
+        ip_ver = 4;
+
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip4_src_off, 4, pi.ip_datalen);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip4_dst_off, 4, pi.ip_datalen);
+    }
+    else if(pi.is_ip6()) {
+        ip_ver = 6;
+
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip6_src_off, 16, pi.ip_datalen);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip6_dst_off, 16, pi.ip_datalen);
+    }
+    else {
+        return;
+    }
+
+
+    // feed TCP views
+    uint16_t tcp_src = 0, tcp_dst = 0;
+
+    switch(ip_ver) {
+        case 4:
+            if(!pi.is_ip4_tcp()) {
+                return;
+            }
+            tcp_src = pi.get_ip4_tcp_sport();
+            tcp_dst = pi.get_ip4_tcp_dport();
+            break;
+        case 6:
+            if(!pi.is_ip6_tcp()) {
+                return;
+            }
+            tcp_src = pi.get_ip6_tcp_sport();
+            tcp_dst = pi.get_ip6_tcp_dport();
+            break;
+        default:
+            return;
+    }
+
+    packet_histogram.insert(pi.ts, tcp_src);
+    src_port_histogram.increment(tcp_src, pi.ip_datalen);
+    dst_port_histogram.increment(tcp_dst, pi.ip_datalen);
 }
 
-void one_page_report::render(const std::string &outdir)
+void one_page_report::render(const string &outdir)
 {
     cairo_t *cr;
     cairo_surface_t *surface;
-    std::string fname = outdir + "/" + filename;
+    string fname = outdir + "/" + filename;
 
     surface = cairo_pdf_surface_create(fname.c_str(),
 				 bounds.width,
@@ -105,7 +133,7 @@ void one_page_report::render(const std::string &outdir)
     cr = cairo_create(surface);
 
     double pad_size = bounds.width * page_margin_factor;
-    plot::bounds_t pad_bounds(bounds.x + pad_size,
+    plot_view::bounds_t pad_bounds(bounds.x + pad_size,
             bounds.y + pad_size, bounds.width - pad_size * 2,
             bounds.height - pad_size * 2);
     cairo_translate(cr, pad_bounds.x, pad_bounds.y);
@@ -113,35 +141,48 @@ void one_page_report::render(const std::string &outdir)
     render_pass pass(*this, cr, pad_bounds);
 
     pass.render_header();
-    pass.render_bandwidth_histogram();
+    
+    // time histogram
+    time_histogram_view th_view(packet_histogram, port_color_map, default_color);
+    th_view.title = "TCP Packets Received";
+    th_view.pad_left_factor = 0.2;
+    th_view.y_tick_font_size = 6.0;
+    th_view.x_tick_font_size = 6.0;
+    th_view.x_axis_font_size = 8.0;
+    th_view.x_axis_decoration = plot_view::AXIS_SPAN_ARROW;
+    pass.render(th_view);
+
+    if(getenv("DEBUG")) {
     pass.render_map();
+
     pass.render_packetfall();
-    pass.render_address_histograms();
-    pass.render_port_histograms();
+    }
+
+    // address histograms
+    // histograms are built from iptree here
+    address_histogram src_addr_histogram(src_tree);
+    address_histogram dst_addr_histogram(dst_tree);
+    address_histogram_view src_ah_view(src_addr_histogram);
+    src_ah_view.title = "Top Source Addresses";
+    src_ah_view.bar_color = default_color;
+    address_histogram_view dst_ah_view(dst_addr_histogram);
+    dst_ah_view.title = "Top Destination Addresses";
+    dst_ah_view.bar_color = default_color;
+    pass.render(src_ah_view, dst_ah_view);
+
+    // address histograms
+    port_histogram_view sp_view(src_port_histogram, port_color_map, default_color);
+    port_histogram_view dp_view(dst_port_histogram, port_color_map, default_color);
+    sp_view.title = "Top Source Ports";
+    dp_view.title = "Top Destination Ports";
+    pass.render(sp_view, dp_view);
 
     // cleanup
     cairo_destroy (cr);
     cairo_surface_destroy(surface);
 }
 
-plot::rgb_t one_page_report::port_color(uint16_t port) const
-{
-    uint16_t true_port = port;
-    std::map<uint16_t, uint16_t>::const_iterator port_it = port_aliases.find(port);
-    if(port_it != port_aliases.end()) {
-        true_port = port_it->second;
-    }
-
-    plot::rgb_t color = default_color;
-    std::map<uint16_t, plot::rgb_t>::const_iterator color_it = port_color_map.find(true_port);
-    if(color_it != port_color_map.end()) {
-        color = color_it->second;
-    }
-
-    return color;
-}
-
-std::string one_page_report::pretty_byte_total(uint64_t byte_count)
+string one_page_report::pretty_byte_total(uint64_t byte_count)
 {
     //// packet count/size
     uint64_t size_log_1000 = (uint64_t) (log(byte_count) / log(1000));
@@ -154,7 +195,7 @@ std::string one_page_report::pretty_byte_total(uint64_t byte_count)
 
 void one_page_report::render_pass::render_header()
 {
-    std::string formatted;
+    string formatted;
     // title
     double title_line_space = report.header_font_size * line_space_factor;
     //// version
@@ -186,14 +227,14 @@ void one_page_report::render_pass::render_header()
     render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// packet count/size
-    formatted = ssprintf("Packets analyzed: %s (%s)",
+    formatted = ssprintf("Packets analyzed: %s (%sB)",
             comma_number_string(report.packet_count).c_str(),
             pretty_byte_total(report.byte_count).c_str());
     render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// protocol breakdown
     uint64_t transport_total = 0;
-    for(std::map<uint32_t, uint64_t>::const_iterator ii =
+    for(map<uint32_t, uint64_t>::const_iterator ii =
                 report.transport_counts.begin();
             ii != report.transport_counts.end(); ii++) {
         transport_total += ii->second;
@@ -213,7 +254,7 @@ void one_page_report::render_pass::render_header()
     end_of_content += title_line_space * 4;
 }
 
-void one_page_report::render_pass::render_text(std::string text,
+void one_page_report::render_pass::render_text(string text,
         double font_size, double x_offset,
         cairo_text_extents_t &rendered_extents)
 {
@@ -224,7 +265,7 @@ void one_page_report::render_pass::render_text(std::string text,
     cairo_show_text(surface, text.c_str());
 }
 
-void one_page_report::render_pass::render_text_line(std::string text,
+void one_page_report::render_pass::render_text_line(string text,
         double font_size, double line_space)
 {
     cairo_text_extents_t extents;
@@ -232,20 +273,20 @@ void one_page_report::render_pass::render_text_line(std::string text,
     end_of_content += extents.height + line_space;
 }
 
-void one_page_report::render_pass::render_bandwidth_histogram()
+void one_page_report::render_pass::render(time_histogram_view &view)
 {
-    plot::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
-            bandwidth_histogram_height);
+    plot_view::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
+            packet_histogram_height);
 
-    report.bandwidth_histogram.render(surface, bounds);
+    view.render(surface, bounds);
 
     end_of_content += bounds.height * histogram_pad_factor_y;
 }
 
 void one_page_report::render_pass::render_packetfall()
 {
-    plot::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
-            bandwidth_histogram_height);
+    plot_view::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
+            packet_histogram_height);
 
     report.pfall.render(surface, bounds);
 
@@ -254,29 +295,27 @@ void one_page_report::render_pass::render_packetfall()
 
 void one_page_report::render_pass::render_map()
 {
+    plot_view::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
+            packet_histogram_height);
+
+    report.netmap.render(surface, bounds);
+
+    end_of_content += bounds.height * histogram_pad_factor_y;
 }
 
-void one_page_report::render_pass::render_address_histograms()
+void one_page_report::render_pass::render(address_histogram_view &left, address_histogram_view &right)
 {
-    report.src_addr_histogram.from_iptree(report.src_tree);
-    report.dst_addr_histogram.from_iptree(report.dst_tree);
-    // histograms
-    std::vector<iptree::addr_elem> top_src_addrs;
-    std::vector<iptree::addr_elem> top_dst_addrs;
-    uint64_t total_datagrams = report.src_addr_histogram.get_ingest_count();
-
-    report.src_addr_histogram.get_top_addrs(top_src_addrs);
-    report.dst_addr_histogram.get_top_addrs(top_dst_addrs);
-
     double width = surface_bounds.width / address_histogram_width_divisor;
+    const address_histogram &left_data = left.get_data();
+    const address_histogram &right_data = right.get_data();
+    uint64_t total_datagrams = left_data.ingest_count();
 
-    plot::bounds_t left_bounds(0.0, end_of_content, width,
-            address_histogram_height);
-    report.src_addr_histogram.render(surface, left_bounds);
+    plot_view::bounds_t left_bounds(0.0, end_of_content, width, address_histogram_height);
+    left.render(surface, left_bounds);
 
-    plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
+    plot_view::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, address_histogram_height);
-    report.dst_addr_histogram.render(surface, right_bounds);
+    right.render(surface, right_bounds);
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 
@@ -284,27 +323,27 @@ void one_page_report::render_pass::render_address_histograms()
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
-        if(top_src_addrs.size() > ii) {
-            iptree::addr_elem addr = top_src_addrs.at(ii);
+        if(left_data.size() > ii) {
+            const iptree::addr_elem &addr = left_data.at(ii);
             uint8_t percentage = 0;
 
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
-            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, addr.str().c_str(),
-                    comma_number_string(addr.count).c_str(), percentage);
+            string str = ssprintf("%d. %s - %sB (%d%%)", ii + 1, addr.str().c_str(),
+                    pretty_byte_total(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
                     left_extents);
         }
 
-        if(top_dst_addrs.size() > ii) {
-            iptree::addr_elem addr = top_dst_addrs.at(ii);
+        if(right_data.size() > ii) {
+            const iptree::addr_elem &addr = right_data.at(ii);
             uint8_t percentage = 0;
 
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
-            std::string str = ssprintf("%d. %s - %s (%d%%)", ii + 1, addr.str().c_str(),
-                    comma_number_string(addr.count).c_str(), percentage);
+            string str = ssprintf("%d. %s - %sB (%d%%)", ii + 1, addr.str().c_str(),
+                    pretty_byte_total(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
                     right_extents);
@@ -317,24 +356,21 @@ void one_page_report::render_pass::render_address_histograms()
         (histogram_pad_factor_y - 1.0);
 }
 
-void one_page_report::render_pass::render_port_histograms()
+void one_page_report::render_pass::render(port_histogram_view &left, port_histogram_view &right)
 {
-    std::vector<port_histogram::port_count> top_src_ports;
-    std::vector<port_histogram::port_count> top_dst_ports;
-    uint64_t total_segments = report.src_port_histogram.get_ingest_count();
+    port_histogram &left_data = left.get_data();
+    port_histogram &right_data = right.get_data();
 
-    report.src_port_histogram.get_top_ports(top_src_ports);
-    report.dst_port_histogram.get_top_ports(top_dst_ports);
+    uint64_t total_bytes = left_data.ingest_count();
 
     double width = surface_bounds.width / address_histogram_width_divisor;
 
-    plot::bounds_t left_bounds(0.0, end_of_content, width,
-            port_histogram_height);
-    report.src_port_histogram.render(surface, left_bounds, report);
+    plot_view::bounds_t left_bounds(0.0, end_of_content, width, port_histogram_height);
+    left.render(surface, left_bounds);
 
-    plot::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
+    plot_view::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
             width, port_histogram_height);
-    report.dst_port_histogram.render(surface, right_bounds, report);
+    right.render(surface, right_bounds);
 
     end_of_content += max(left_bounds.height, right_bounds.height);
 
@@ -342,26 +378,26 @@ void one_page_report::render_pass::render_port_histograms()
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
-        if(top_src_ports.size() > ii) {
-            port_histogram::port_count port = top_src_ports.at(ii);
+        if(left_data.size() > ii) {
+            port_histogram::port_count port = left_data.at(ii);
             uint8_t percentage = 0;
 
-            percentage = (uint8_t) (((double) port.count / (double) total_segments) * 100.0);
+            percentage = (uint8_t) (((double) port.count / (double) total_bytes) * 100.0);
 
-            std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, port.port,
+            string str = ssprintf("%d. %d - %sB (%d%%)", ii + 1, port.port,
                     pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
                     left_extents);
         }
 
-        if(top_dst_ports.size() > ii) {
-            port_histogram::port_count port = top_dst_ports.at(ii);
+        if(right_data.size() > ii) {
+            port_histogram::port_count port = right_data.at(ii);
             uint8_t percentage = 0;
 
-            percentage = (uint8_t) (((double) port.count / (double) total_segments) * 100.0);
+            percentage = (uint8_t) (((double) port.count / (double) total_bytes) * 100.0);
 
-            std::string str = ssprintf("%d. %d - %s (%d%%)", ii + 1, port.port,
+            string str = ssprintf("%d. %d - %sB (%d%%)", ii + 1, port.port,
                     pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
@@ -375,23 +411,17 @@ void one_page_report::render_pass::render_port_histograms()
         (histogram_pad_factor_y - 1.0);
 }
 
-/* SLG - Should the prefixes be in a structure where the structure encodes both the
-   prefix and its multiplier? It seems that the position encodes the multiplier here,
-   but I would like to see that explicit. ALso the prefixes are "", "K", "M", etc,
-   the B is really not a prefix...
-*/
-   
-   
-std::vector<std::string> one_page_report::build_size_suffixes()
+
+vector<string> one_page_report::build_size_suffixes()
 {
-    std::vector<std::string> v;
-    v.push_back("B");
-    v.push_back("KB");
-    v.push_back("MB");
-    v.push_back("GB");
-    v.push_back("TB");
-    v.push_back("PB");
-    v.push_back("EB");
+    vector<string> v;
+    v.push_back("");
+    v.push_back("K");
+    v.push_back("M");
+    v.push_back("G");
+    v.push_back("T");
+    v.push_back("P");
+    v.push_back("E");
     return v;
 }
 #endif

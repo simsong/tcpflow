@@ -1,5 +1,5 @@
 /**
- * plot.cpp: 
+ * plot_view.cpp: 
  * Render titles, axes, and legends for various plots
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -10,15 +10,13 @@
 
 #include "config.h"
 
-#include "plot.h"
+#include "plot_view.h"
 #ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
 #include <math.h>
 
-void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
-        const plot::ticks_t &ticks, const plot::legend_t &legend,
-        bounds_t &content_bounds) {
+void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
     cairo_matrix_t original_matrix;
     cairo_get_matrix(cr, &original_matrix);
 
@@ -32,7 +30,9 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     double pad_bottom = height * pad_bottom_factor;
     double pad_right = width * pad_right_factor;
 
-    // compute bounds for calling class to render content into
+    // compute bounds for subclasses to render content into
+    bounds_t content_bounds;
+
     content_bounds.x = bounds.x + pad_left;
     content_bounds.y = bounds.y + pad_top;
     content_bounds.width = bounds.width - pad_right - pad_left;
@@ -176,16 +176,16 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     cairo_translate(cr, 0, pad_top);
 
     double y_height = bounds.height - pad_bottom - pad_top;
-    double y_tick_spacing = y_height / (double) (ticks.y_labels.size() - 1);
-    for(size_t ii = 0; ii < ticks.y_labels.size(); ii++) {
+    double y_tick_spacing = y_height / (double) (y_tick_labels.size() - 1);
+    for(size_t ii = 0; ii < y_tick_labels.size(); ii++) {
         cairo_text_extents_t label_extents;
         double yy = (((double) ii) * y_tick_spacing);
 
-        cairo_text_extents(cr, ticks.y_labels.at(ii).c_str(),
+        cairo_text_extents(cr, y_tick_labels.at(ii).c_str(),
                &label_extents);
         cairo_move_to(cr, (pad_left - tick_length - label_extents.width),
           yy + (label_extents.height / 2));
-        cairo_show_text(cr, ticks.y_labels.at(ii).c_str());
+        cairo_show_text(cr, y_tick_labels.at(ii).c_str());
 
         // tick mark
         cairo_rectangle(cr, pad_left - tick_length, yy - (tick_width / 2),
@@ -203,13 +203,13 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     cairo_translate(cr, pad_left, bounds.height - pad_bottom);
 
     double x_width = bounds.width - (pad_right + pad_left);
-    double x_tick_spacing = x_width / (ticks.x_labels.size() - 1);
+    double x_tick_spacing = x_width / (x_tick_labels.size() - 1);
 
-    for(size_t ii = 0; ii < ticks.x_labels.size(); ii++) {
+    for(size_t ii = 0; ii < x_tick_labels.size(); ii++) {
         cairo_text_extents_t label_extents;
         double xx = ii * x_tick_spacing;
 
-        const char *label = ticks.x_labels.at(ii).c_str();
+        const char *label = x_tick_labels.at(ii).c_str();
 
         cairo_text_extents(cr, label, &label_extents);
         double pad = ((label_extents.height * x_tick_label_pad_factor) -
@@ -283,6 +283,10 @@ void plot::render(cairo_t *cr, const plot::bounds_t &bounds,
     content_bounds.x += axis_width;
     content_bounds.width -= axis_width;
     content_bounds.height -= axis_width;
+
+    // render data!
+
+    render_data(cr, content_bounds);
 }
 #endif
 

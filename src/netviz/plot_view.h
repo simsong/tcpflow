@@ -1,5 +1,5 @@
-#ifndef PLOT_H
-#define PLOT_H
+#ifndef PLOT_VIEW_H
+#define PLOT_VIEW_H
 
 #include "config.h"
 
@@ -20,18 +20,18 @@
 #include <string>
 #include <math.h>
 
-class plot {
+class plot_view {
 public:
-    plot() :
-        filename("graph"), title("graph of things"), subtitle("x vs y"),
-        x_label("x axis"), y_label("y axis"), width(161.803), height(100.000),
-        title_on_bottom(false), title_font_size(8.0), x_axis_font_size(8.0),
-        y_axis_font_size(8.0), title_max_width_ratio(0.8),
-        title_y_pad_factor(2.0), subtitle_y_pad_factor(0.2),
+    plot_view() :
+        title("graph of things"), subtitle("x vs y"),
+        x_label("x axis"), y_label("y axis"), x_tick_labels(), y_tick_labels(),
+        legend(), width(161.803), height(100.000), title_on_bottom(false),
+        title_font_size(8.0), x_axis_font_size(8.0), y_axis_font_size(8.0),
+        title_max_width_ratio(0.8), title_y_pad_factor(2.0), subtitle_y_pad_factor(0.2),
         subtitle_font_size_factor(0.4), axis_thickness_factor(0.002),
         tick_length_factor(0.0124), tick_width_factor(0.002),
         x_tick_label_pad_factor(4.0), y_tick_label_pad_factor(2.0),
-        y_tick_font_size(3.0), x_tick_font_size(3.0), pad_left_factor(0.148),
+        x_tick_font_size(3.0), y_tick_font_size(3.0), pad_left_factor(0.148),
         pad_top_factor(0.2), pad_bottom_factor(0.2), pad_right_factor(0.148),
         legend_chip_factor(1.2), legend_font_size(2.5),
         x_axis_decoration(AXIS_NO_DECO), y_axis_decoration(AXIS_NO_DECO) {}
@@ -51,22 +51,6 @@ public:
         static const double epsilon = 1.0 / 256.0;
     };
 
-    class ticks_t {
-    public:
-        ticks_t() :
-        x_labels(), y_labels() {}
-        std::vector<std::string> x_labels;
-        std::vector<std::string> y_labels;
-    };
-
-    class labels_t {
-    public:
-        labels_t() :
-            x_label(), y_label() {}
-        std::string x_label;
-        std::string y_label;
-    };
-
     class legend_entry_t {
     public:
         legend_entry_t(const rgb_t color_, const std::string label_) :
@@ -74,7 +58,6 @@ public:
         rgb_t color;
         std::string label;
     };
-    typedef std::vector<legend_entry_t> legend_t;
 
     class bounds_t {
     public:
@@ -89,18 +72,15 @@ public:
         double height;
     };
 
-    std::string filename;
-    std::string title;
-    std::string subtitle;
-    std::string x_label;
-    std::string y_label;
+    std::string title, subtitle;
+    std::string x_label, y_label;
+    std::vector<std::string> x_tick_labels, y_tick_labels;
+    std::vector<legend_entry_t> legend;
     // width and height are in pt
-    double width;
-    double height;
+    double width, height;
     bool title_on_bottom;
     double title_font_size;
-    double x_axis_font_size;
-    double y_axis_font_size;
+    double x_axis_font_size, y_axis_font_size;
     // Title text will be shrunk if needed such that it takes up no more
     // than this ratio of the image width
     double title_max_width_ratio;
@@ -114,28 +94,23 @@ public:
     // axis scale
     double axis_thickness_factor;
     // size of scale ticks, in pt
-    double tick_length_factor;
-    double tick_width_factor;
+    double tick_length_factor, tick_width_factor;
     // multiple of label dummy text length to allocate for spacing
-    double x_tick_label_pad_factor;
-    double y_tick_label_pad_factor;
-    double y_tick_font_size;
-    double x_tick_font_size;
+    double x_tick_label_pad_factor, y_tick_label_pad_factor;
+    double x_tick_font_size, y_tick_font_size;
     // non-dynamic padding for the right and bottom of graph
-    double pad_left_factor;
-    double pad_top_factor;
-    double pad_bottom_factor;
-    double pad_right_factor;
+    double pad_left_factor, pad_top_factor, pad_bottom_factor, pad_right_factor;
     // legend
     double legend_chip_factor;
     double legend_font_size;
     // axis decoration
-    axis_decoration_t x_axis_decoration;
-    axis_decoration_t y_axis_decoration;
+    axis_decoration_t x_axis_decoration, y_axis_decoration;
 
-    void render(cairo_t *cr, const bounds_t &bounds,
-            const ticks_t &ticks, const legend_t &legend,
-            bounds_t &content_bounds);
+    virtual ~plot_view() = 0;
+    // render everything common to all plots (everything but the data)
+    void render(cairo_t *cr, const bounds_t &bounds);
+    // called by render(); subclass-specific data rendering
+    virtual void render_data(cairo_t *cr, const bounds_t &bounds) = 0;
 
     // constants
     static const double text_line_base_width = 0.05;
@@ -143,11 +118,13 @@ public:
     static const double span_stop_angle = M_PI / 2.0;
 };
 
-inline bool operator==(const plot::rgb_t &a, const plot::rgb_t &b)
+inline plot_view::~plot_view() {}
+
+inline bool operator==(const plot_view::rgb_t &a, const plot_view::rgb_t &b)
 {
-    return fabs(a.r - b.r) < plot::rgb_t::epsilon &&
-        fabs(a.g - b.g) < plot::rgb_t::epsilon &&
-        fabs(a.b - b.b) < plot::rgb_t::epsilon;
+    return fabs(a.r - b.r) < plot_view::rgb_t::epsilon &&
+        fabs(a.g - b.g) < plot_view::rgb_t::epsilon &&
+        fabs(a.b - b.b) < plot_view::rgb_t::epsilon;
 }
 
 #endif

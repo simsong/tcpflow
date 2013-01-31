@@ -1,18 +1,22 @@
 #ifndef ONE_PAGE_REPORT_H
 #define ONE_PAGE_REPORT_H
 
-#include "plot.h"
+#include "plot_view.h"
 #include "time_histogram.h"
+#include "time_histogram_view.h"
 #include "address_histogram.h"
+#include "address_histogram_view.h"
 #include "port_histogram.h"
+#include "port_histogram_view.h"
 #include "packetfall.h"
+#include "net_map.h"
 #include "iptree.h"
 
 class one_page_report {
 public:
     std::string source_identifier;
     std::string filename;
-    plot::bounds_t bounds;
+    plot_view::bounds_t bounds;
     double header_font_size;
     double top_list_font_size;
     unsigned int histogram_show_top_n_text;
@@ -22,7 +26,7 @@ public:
     class render_pass {
     public:
         render_pass(one_page_report &report_, cairo_t *surface_,
-                const plot::bounds_t &bounds_) :
+                const plot_view::bounds_t &bounds_) :
             report(report_), surface(surface_), surface_bounds(bounds_),
             end_of_content(0.0) {}
 
@@ -32,15 +36,15 @@ public:
                 cairo_text_extents_t &rendered_extents);
 
         void render_header();
-        void render_bandwidth_histogram();
-        void render_address_histograms();
-        void render_port_histograms();
+        void render(time_histogram_view &view);
+        void render(address_histogram_view &left, address_histogram_view &right);
+        void render(port_histogram_view &left, port_histogram_view &right);
         void render_map();
         void render_packetfall();
 
         one_page_report &report;
         cairo_t *surface;
-        plot::bounds_t surface_bounds;
+        plot_view::bounds_t surface_bounds;
         double end_of_content;
     };
     friend class render_pass;
@@ -49,7 +53,7 @@ public:
 
     void ingest_packet(const be13::packet_info &pi);
     void render(const std::string &outdir);
-    plot::rgb_t port_color(uint16_t port) const;
+    plot_view::rgb_t port_color(uint16_t port) const;
 
     static std::string pretty_byte_total(uint64_t byte_count);
 
@@ -62,11 +66,11 @@ public:
     static const double histogram_pad_factor_y;
     static const double address_histogram_width_divisor;
     // size constants
-    static const double bandwidth_histogram_height;
+    static const double packet_histogram_height;
     static const double address_histogram_height;
     static const double port_histogram_height;
     // color constants
-    static const plot::rgb_t default_color;
+    static const plot_view::rgb_t default_color;
 
 private:
 
@@ -75,16 +79,15 @@ private:
     struct timeval earliest;
     struct timeval latest;
     std::map<uint32_t, uint64_t> transport_counts;
-    dyn_time_histogram bandwidth_histogram;
-    address_histogram src_addr_histogram;
-    address_histogram dst_addr_histogram;
+    time_histogram packet_histogram;
     port_histogram src_port_histogram;
     port_histogram dst_port_histogram;
     packetfall pfall;
+    net_map netmap;
     iptree src_tree;
     iptree dst_tree;
     std::map<uint16_t, uint16_t> port_aliases;
-    std::map<uint16_t, plot::rgb_t> port_color_map;
+    std::map<uint16_t, plot_view::rgb_t> port_color_map;
 
     static std::vector<std::string> build_size_suffixes();
 };

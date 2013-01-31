@@ -1,6 +1,6 @@
 /**
- * packetfall.cpp: 
- * Show packets received vs port
+ * net_map.cpp: 
+ * Show map of network traffic by host
  *
  * This source file is public domain, as it is not based on the original tcpflow.
  *
@@ -13,20 +13,20 @@
 #ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
-#include "packetfall.h"
+#include "net_map.h"
 
-void packetfall::ingest_packet(const be13::packet_info &pi)
+void net_map::ingest_packet(const be13::packet_info &pi)
 {
 }
 
-void packetfall::render(cairo_t *cr, const plot_view::bounds_t &bounds)
+void net_map::render(cairo_t *cr, const plot_view::bounds_t &bounds)
 {
     cairo_set_source_rgb(cr, 0.67, 0.67, 0.67);
     cairo_rectangle(cr, bounds.x, bounds.y, bounds.width, bounds.height);
     cairo_fill(cr);
 
     double font_size = 16.0;
-    string label = "pretty packetfall";
+    string label = "pretty map";
     cairo_text_extents_t extents;
 
     cairo_set_font_size(cr, font_size);

@@ -1,0 +1,38 @@
+#ifndef ADDRESS_HISTOGRAM_VIEW_H
+#define ADDRESS_HISTOGRAM_VIEW_H
+
+#include "config.h"
+#ifdef HAVE_LIBCAIRO
+
+#include "plot_view.h"
+#include "address_histogram.h"
+
+class address_histogram_view : public plot_view {
+public:
+    address_histogram_view(const address_histogram &histogram_);
+
+    class bucket_view {
+    public:
+        bucket_view(const iptree::addr_elem &bucket_,
+                const rgb_t &color_) :
+            bucket(bucket_), color(color_) {}
+
+        const iptree::addr_elem &bucket;
+        const rgb_t &color;
+
+        static const double label_font_size;
+
+        void render(cairo_t *cr, const bounds_t &bounds);
+    };
+
+    const address_histogram &histogram;
+    rgb_t bar_color;
+
+    static const double bar_space_factor;
+
+    void render_data(cairo_t *cr, const bounds_t &bounds);
+    const address_histogram &get_data() const;
+};
+
+#endif
+#endif

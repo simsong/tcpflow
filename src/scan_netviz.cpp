@@ -8,10 +8,8 @@
 
 #include "bulk_extractor_i.h"
 
-#include "netviz/plot.h"
 #ifdef HAVE_LIBCAIRO
 #include "netviz/one_page_report.h"
-#include "netviz/time_histogram.h"
 one_page_report *th_one_page=0;
 #endif
 

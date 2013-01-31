@@ -1,15 +1,10 @@
-#ifndef PORTHISTOGRAM_H
-#define PORTHISTOGRAM_H
-
-#include "plot.h"
-
-class one_page_report;
+#ifndef PORT_HISTOGRAM_H
+#define PORT_HISTOGRAM_H
 
 class port_histogram {
 public:
-    typedef enum {
-        SOURCE = 0, DESTINATION, SRC_OR_DST
-    } relationship_t;
+    port_histogram() :
+        port_counts(), data_bytes_ingested(0), buckets(), buckets_dirty(true) {}
 
     class port_count {
     public:
@@ -19,34 +14,31 @@ public:
         uint16_t port;
         uint64_t count;
     };
+    typedef uint16_t port_t;
 
     class descending_counts {
     public:
         bool operator()(const port_count &a, const port_count &b);
     };
 
-    port_histogram() :
-        parent(), relationship(SRC_OR_DST), bar_space_factor(1.2), bar_count(10),
-        bar_label_font_size(8.0),
-        port_counts(), data_bytes_ingested(), top_ports_cache(), top_ports_dirty(true) {}
+    void increment(uint16_t port, uint64_t delta);
+    const port_count &at(size_t index);
+    size_t size() const;
+    uint64_t ingest_count() const;
+    std::vector<port_count>::const_iterator begin();
+    std::vector<port_count>::const_iterator end();
+    std::vector<port_count>::const_reverse_iterator rbegin();
+    std::vector<port_count>::const_reverse_iterator rend();
 
-    void render(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
-    void render_bars(cairo_t *cr, const plot::bounds_t &bounds, const one_page_report &report);
-    void get_top_ports(std::vector<port_count> &top_ports);
-    void quick_config(const relationship_t &relationship_, const std::string &title_);
-    uint64_t get_ingest_count();
-
-    plot parent;
-    relationship_t relationship;
-    double bar_space_factor;
-    int bar_count;
-    double bar_label_font_size;
+    static const size_t bucket_count;
 
 private:
     std::map<uint16_t, uint64_t> port_counts;
     uint64_t data_bytes_ingested;
-    std::vector<port_count> top_ports_cache;
-    bool top_ports_dirty;
+    std::vector<port_count> buckets;
+    bool buckets_dirty;
+
+    void refresh_buckets();
 };
 
 #endif

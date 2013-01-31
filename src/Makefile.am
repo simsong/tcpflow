@@ -38,16 +38,24 @@ BE13_API = \
 	be13_api/utils.cpp
 
 NETVIZ = \
-	netviz/plot.cpp \
-	netviz/plot.h \
+	netviz/plot_view.cpp \
+	netviz/plot_view.h \
+	netviz/time_histogram_view.cpp \
+	netviz/time_histogram_view.h \
 	netviz/time_histogram.cpp \
 	netviz/time_histogram.h \
+	netviz/address_histogram_view.cpp \
+	netviz/address_histogram_view.h \
 	netviz/address_histogram.cpp \
 	netviz/address_histogram.h \
+	netviz/port_histogram_view.cpp \
+	netviz/port_histogram_view.h \
 	netviz/port_histogram.cpp \
 	netviz/port_histogram.h \
 	netviz/packetfall.cpp \
 	netviz/packetfall.h \
+	netviz/net_map.cpp \
+	netviz/net_map.h \
 	netviz/one_page_report.cpp \
 	netviz/one_page_report.h
 
