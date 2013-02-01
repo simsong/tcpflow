@@ -493,7 +493,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     /* make sure that the packet is at least as long as the min IP header */
     if (pi.ip_datalen < sizeof(struct be13::ip4)) {
 	DEBUG(6) ("received truncated IP datagram!");
-	return 0;
+	return -1;                      // couldn't process
     }
 
     const struct be13::ip4 *ip_header = (struct be13::ip4 *) pi.ip_data;
@@ -509,7 +509,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip_p != IPPROTO_TCP) {
 	DEBUG(50) ("got non-TCP frame -- IP proto %d", ip_header->ip_p);
-	return 0;
+	return -1;                      // couldn't process
     }
 
     /* check and see if we got everything.  NOTE: we must use
@@ -527,7 +527,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
      */
     if (ntohs(ip_header->ip_off) & 0x1fff) {
 	DEBUG(2) ("warning: throwing away IP fragment from X to X");
-	return 1;
+	return -1;
     }
 
     /* figure out where the IP header ends */
@@ -536,7 +536,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     /* make sure there's some data */
     if (ip_header_len > ip_total_len) {
 	DEBUG(6) ("received truncated IP datagram!");
-	return 1;
+	return -1;
     }
 
     /* do TCP processing, faking an ipv6 address  */
@@ -555,28 +555,13 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
  */
 
 /* These might be defined from an include file, so undef them to be sure */
-#if 0
-#undef ip6_vfc
-#undef ip6_flow
-#undef ip6_plen	
-#undef ip6_nxt	
-#undef ip6_hlim	
-#undef ip6_hops	
-
-#define ip6_vfc		ip6_ctlun.ip6_un2_vfc
-#define ip6_flow	ip6_ctlun.ip6_un1.ip6_un1_flow
-#define ip6_plen	ip6_ctlun.ip6_un1.ip6_un1_plen
-#define ip6_nxt		ip6_ctlun.ip6_un1.ip6_un1_nxt
-#define ip6_hlim	ip6_ctlun.ip6_un1.ip6_un1_hlim
-#define ip6_hops	ip6_ctlun.ip6_un1.ip6_un1_hlim
-#endif
 
 int tcpdemux::process_ip6(const be13::packet_info &pi)
 {
     /* make sure that the packet is at least as long as the IPv6 header */
     if (pi.ip_datalen < sizeof(struct be13::ip6_hdr)) {
 	DEBUG(6) ("received truncated IPv6 datagram!");
-	return 1;
+	return -1;
     }
 
     const struct be13::ip6_hdr *ip_header = (struct be13::ip6_hdr *) pi.ip_data;
@@ -584,7 +569,7 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
     /* for now we're only looking for TCP; throw away everything else */
     if (ip_header->ip6_ctlun.ip6_un1.ip6_un1_nxt != IPPROTO_TCP) {
 	DEBUG(50) ("got non-TCP frame -- IP proto %d", ip_header->ip6_ctlun.ip6_un1.ip6_un1_nxt);
-	return 1;
+	return -1;
     }
 
     uint16_t ip_payload_len = ntohs(ip_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
@@ -592,14 +577,13 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
     /* make sure there's some data */
     if (ip_payload_len == 0) {
 	DEBUG(6) ("received truncated IP datagram!");
-	return 1;
+	return -1;
     }
 
     /* do TCP processing */
 
-/*SLG */
-    ipaddr src(ip_header->ip6_src.__u6_addr.__u6_addr8);
-    ipaddr dst(ip_header->ip6_dst.__u6_addr.__u6_addr8);
+    ipaddr src(ip_header->ip6_src.addr.addr8);
+    ipaddr dst(ip_header->ip6_dst.addr.addr8);
     
     return process_tcp(src, dst ,AF_INET6,
                        pi.ip_data + sizeof(struct be13::ip6_hdr),ip_payload_len,pi);
