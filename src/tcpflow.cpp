@@ -500,6 +500,7 @@ int main(int argc, char *argv[])
             std::cerr << "currently the -w option requires the -r option\n";
             exit(1);
         }
+        if(access(input_fname.c_str(),R_OK)) die("cannot read: %s: %s",input_fname.c_str(),strerror(errno));
         demux.save_unk_packets(opt_unk_packets,input_fname);
     }
 
