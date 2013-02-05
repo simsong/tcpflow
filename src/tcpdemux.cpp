@@ -108,11 +108,14 @@ tcpip *tcpdemux::find_tcpip(const flow_addr &flow)
  * Puts the flow in the map.
  * Returns a pointer to the new state.
  *
- * This is called by process_tcp
+ * This is called by tcpdemux::process_tcp(). (Only place it is called)
  *
  * NOTE: We keep pointers to tcp structures in the map, rather than
  * the structures themselves. This makes the map slightly more efficient,
  * since it doesn't need to shuffle entire structures.
+ *
+ * TK: Note that the flow() is created on the stack and then used in new tcpip().
+ * This is resulting in an unnecessary copy. 
  */
 
 tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,be13::tcp_seq isn,const timeval &ts)
@@ -122,7 +125,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,be13::tcp_seq
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->last_packet_number = packet_counter++;
-    new_tcpip->nsn   = isn+1;		// expected
+    new_tcpip->nsn   = isn+1;		// expected sequence number of the first byte
     DEBUG(5) ("%s: new flow. next seq num (nsn):%d", new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
     flow_map[flow] = new_tcpip;
     return new_tcpip;
@@ -278,8 +281,13 @@ void tcpdemux::saved_flow_remove_oldest_if_necessary()
     }
 }
 
-/*
- * Called to processes a tcp packet
+/**
+ * process_tcp():
+ *
+ * Called to processes a tcp packet from either process_ip4() or process_ip6().
+ * The caller breaks out the ip addresses and finds the start of the tcp header.
+ *
+ * Skips but otherwise ignores TCP options.
  * 
  * creates a new tcp connection if necessary, then asks the connection to either
  * print the packet or store it.
@@ -293,7 +301,7 @@ iptree mytree;
 ip2tree my2tree;
 
 int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
-                           const u_char *tcp_data, uint32_t tcp_datalen,
+                          const u_char *tcp_data, uint32_t tcp_datalen,
                           const be13::packet_info &pi)
 {
     if(iphtest==1){                     // mode 1 testing - when the tree gets 4000, drop it to 400
@@ -303,7 +311,8 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     }
 
     if (tcp_datalen < sizeof(struct be13::tcphdr)) {
-	DEBUG(6) ("received truncated TCP segment!");
+	DEBUG(6) ("received truncated TCP segment! (%u<%u)",
+                  (u_int)tcp_datalen,(u_int)sizeof(struct be13::tcphdr));
 	return 0;
     }
 
@@ -540,10 +549,11 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    return process_tcp(ipaddr(ip_header->ip_src.addr),
-                       ipaddr(ip_header->ip_dst.addr),
-                       AF_INET,
-                       pi.ip_data + ip_header_len, ip_total_len - ip_header_len,
+    uint16_t ip_payload_len = ip_total_len - ip_header_len;
+    ipaddr src(ip_header->ip_src.addr);
+    ipaddr dst(ip_header->ip_dst.addr);
+    return process_tcp(src, dst, AF_INET,
+                       pi.ip_data + ip_header_len, ip_payload_len,
                        pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -572,16 +582,8 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
 	return -1;
     }
 
-    uint16_t ip_payload_len = ntohs(ip_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
-
-    /* make sure there's some data */
-    if (ip_payload_len == 0) {
-	DEBUG(6) ("received truncated IP datagram!");
-	return -1;
-    }
-
     /* do TCP processing */
-
+    uint16_t ip_payload_len = ntohs(ip_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
     ipaddr src(ip_header->ip6_src.addr.addr8);
     ipaddr dst(ip_header->ip6_dst.addr.addr8);
     

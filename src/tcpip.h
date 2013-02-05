@@ -136,6 +136,7 @@ inline std::ostream & operator <<(std::ostream &os,const flow_addr &f)  {
 /*
  * A flow is a flow_addr that has additional information regarding when it was seen
  * and how many packets were seen. The address is used to locate the flow in the array.
+ * Notice that it contains no pointers, so it can be copied with the default operator.
  */
 class flow : public flow_addr {
 public:;
@@ -153,8 +154,12 @@ public:;
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
     uint64_t packet_count;			// packet count
-    std::string filename(uint32_t connection_count); // returns a new filename for a flow based on the template
-    std::string new_filename(int *fd,int flags,int mode);	// returns a new filename for a flow based on the temlate, opening if fd is provided
+
+    // return a filename for a flow based on the template and the connection count
+    std::string filename(uint32_t connection_count); 
+    // return a new filename for a flow based on the temlate,
+    // optionally opening the file and returning a fd if &fd is provided
+    std::string new_filename(int *fd,int flags,int mode);	
 };
 
 /*

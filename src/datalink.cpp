@@ -15,7 +15,6 @@
  */
 
 #include "tcpflow.h"
-//#include "be13_api/net_ethernet.h"
 
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
  * order 32 bit integer that specifies the family, e.g. AF_INET.
@@ -29,7 +28,6 @@
 #endif
 
 int32_t datalink_tdelta = 0;
-
 
 /**
  * shift the time value, in line with what the user requested...
@@ -130,7 +128,8 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     /* Create a packet_info structure with ip data and data length  */
     struct timeval tv;
-    be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),ether_data, caplen - sizeof(struct be13::ether_header));
+    be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
+                         ether_data, caplen - sizeof(struct be13::ether_header));
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
@@ -190,7 +189,8 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 #ifdef DLT_LINUX_SLL
 #define SLL_HDR_LEN       16
-void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
+void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+{
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -207,6 +207,34 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p){
     struct timeval tv;
     be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
     process_packet_info(pi);
+}
+#endif
+
+#ifdef DLT_IEEE802_11_RADIO
+#define IEEE80211_ADDR_LEN      6               /* size of 802.11 address */
+void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+{
+    struct ieee80211_frame {
+        uint8_t        i_fc[2];
+        uint8_t        i_dur[2];
+        uint8_t        i_addr1[IEEE80211_ADDR_LEN];
+        uint8_t        i_addr2[IEEE80211_ADDR_LEN];
+        uint8_t        i_addr3[IEEE80211_ADDR_LEN];
+        uint8_t        i_seq[2];
+    } __attribute__((__packed__));
+
+    u_int caplen = h->caplen;
+    //    u_int length = h->len;
+    if(caplen < sizeof(struct ieee80211_frame)) return;
+       
+    const struct ieee80211_frame *ie = (const struct ieee80211_frame *)p;
+    
+    printf("ieee80211_frame fc[0]=%x fc[1]=%x dur[0]=%x dur1]=%x seq[0]=%x seq[1]=%x\n",
+           ie->i_fc[0],ie->i_fc[1],ie->i_dur[0],ie->i_dur[1],ie->i_seq[0],ie->i_seq[1]);
+    
+    //struct timeval tv;
+    //be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
+    //process_packet_info(pi);
 }
 #endif
 
@@ -227,6 +255,9 @@ dlt_handlers handlers[] = {
     { dl_ppp,      DLT_PPP },
 #ifdef DLT_LINUX_SLL
     { dl_linux_sll,DLT_LINUX_SLL },
+#endif
+#ifdef DLT_IEEE802_11_RADIO
+    { dl_ieee802_11_radio,DLT_IEEE802_11_RADIO },
 #endif
     { NULL, 0 },
 };

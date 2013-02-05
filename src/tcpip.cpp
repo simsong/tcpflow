@@ -20,6 +20,8 @@
  * 
  * Creating a new object creates a new passive TCP/IP decoder.
  * It will *NOT* append to a flow that is already on the disk or in memory.
+ *
+ * called from tcpdemux::create_tcpip()
  */
 tcpip::tcpip(tcpdemux &demux_,const flow &flow_,be13::tcp_seq isn_):
     demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),

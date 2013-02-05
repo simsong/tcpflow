@@ -80,20 +80,8 @@ if [ ! -d /etc/yum.repos.d ]; then
   exit 1
 fi
 
-### DEPRECATED REPO --- KEEPING JUST IN CASE FEDORA DECIDES TO DISAPPEAR MINGW FROM DEFAULT REPO
-#if [ ! -r /etc/yum.repos.d/fedora-cross.repo ] ; then
-#  if wget --directory-prefix=/etc/yum.repos.d  http://build1.openftd.org/fedora-cross/fedora-cross.repo ; then
-#    echo Successfully downloaded
-#  else
-#    echo Cannot download the file.
-#    exit 1
-#  fi
-#fi
-
-#PKGS+=strings
-
 PKGS+="install autoconf automake gcc gcc-c++ mingw32-gcc mingw32-gcc-c++ mingw64-gcc mingw64-gcc-c++"
-echo "Now adding all of the packages that we will need: autoconf automake gcc gcc-c++ mingw32-gcc mingw32-gcc-c++ mingw64-gcc mingw64-gcc-c++"
+echo "Now adding all of the packages that we will need: $PKGS"
 if yum -y $PKGS ; then
   echo "Installed all yummy packages"
 else

@@ -72,7 +72,8 @@ std::string flow::filename(uint32_t connection_count)
 	    case 'A': // source IP address
 		switch(family){
 		case AF_INET:
-		    snprintf(buf,sizeof(buf),"%03d.%03d.%03d.%03d", src.addr[0], src.addr[1], src.addr[2], src.addr[3]);
+		    snprintf(buf,sizeof(buf),"%03d.%03d.%03d.%03d",
+                             src.addr[0], src.addr[1], src.addr[2], src.addr[3]);
 		    break;
 		case AF_INET6:
 		    inet_ntop(family, src.addr, buf,sizeof(buf));
@@ -84,7 +85,8 @@ std::string flow::filename(uint32_t connection_count)
 	    case 'B': // dest IP address
 		switch(family){
 		case AF_INET:
-		    snprintf(buf,sizeof(buf),"%03d.%03d.%03d.%03d", dst.addr[0], dst.addr[1], dst.addr[2], dst.addr[3]);
+		    snprintf(buf,sizeof(buf),"%03d.%03d.%03d.%03d",
+                             dst.addr[0], dst.addr[1], dst.addr[2], dst.addr[3]);
 		    break;
 		case AF_INET6:
 		    inet_ntop(family, dst.addr, buf,sizeof(buf));
@@ -144,7 +146,8 @@ std::string flow::filename(uint32_t connection_count)
 }
 
 /**
- * Open the flow and return the filename
+ * Find an unused filename for the flow and optionally open it. 
+ * This is called from tcpip::open_file().
  */
 
 std::string flow::new_filename(int *fd,int flags,int mode)

@@ -122,3 +122,8 @@ If the file is already there:
 
 On retransmit:
  - If the data doesn't match, increment the connection count (easy way to document the retransmit)
+
+
+================================================================
+tcpdemux.cpp: - explore elimination of unnecessary copy of flow() structure by creating a 'new flow'
+in tcpdemux::create_tcpip() and passing a pointer to the newly created. 
