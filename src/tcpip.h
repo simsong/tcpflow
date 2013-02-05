@@ -143,17 +143,19 @@ public:;
     static void usage();			// print information on flow notation
     static std::string filename_template;	// 
     static std::string outdir;                  // where the output gets written
-    flow():id(),vlan(),tstart(),tlast(),packet_count(){};
+    flow():id(),vlan(),mac_daddr(),mac_saddr(),tstart(),tlast(),packet_count(){};
     flow(const flow_addr &flow_addr_,int32_t vlan_,const struct timeval &t1,
 	 const struct timeval &t2,uint64_t id_):
-	flow_addr(flow_addr_),id(id_),vlan(vlan_),tstart(t1),tlast(t2),
+	flow_addr(flow_addr_),id(id_),vlan(vlan_),mac_daddr(),mac_saddr(),tstart(t1),tlast(t2),
 	packet_count(0){}
     virtual ~flow(){};
     uint64_t  id;			// flow_counter when this flow was created
-    int32_t   vlan;			// vlan interface we observed; -1 means no vlan 
+    int32_t   vlan;			// vlan interface we first observed; -1 means no vlan 
+    uint8_t mac_daddr[6];               // dst mac address of first packet
+    uint8_t mac_saddr[6];               // source mac address of first packet
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
-    uint64_t packet_count;			// packet count
+    uint64_t packet_count;		// packet count
 
     // return a filename for a flow based on the template and the connection count
     std::string filename(uint32_t connection_count); 

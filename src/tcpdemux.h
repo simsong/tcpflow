@@ -123,7 +123,7 @@ public:
     int   retrying_open(const std::string &filename,int oflag,int mask);
 
     /* the flow database holds in-process tcpip connections */
-    tcpip *create_tcpip(const flow_addr &flow, int32_t vlan,be13::tcp_seq isn, const timeval &ts);
+    tcpip *create_tcpip(const flow_addr &flow, be13::tcp_seq isn, const be13::packet_info &pi);
     tcpip *find_tcpip(const flow_addr &flow);
 
     /* saved flows are completed flows that we remember in case straggling packets

@@ -110,18 +110,21 @@ tcpip *tcpdemux::find_tcpip(const flow_addr &flow)
  *
  * This is called by tcpdemux::process_tcp(). (Only place it is called)
  *
+ * @param - pi - first packet seen on this connection.
+ *
  * NOTE: We keep pointers to tcp structures in the map, rather than
  * the structures themselves. This makes the map slightly more efficient,
  * since it doesn't need to shuffle entire structures.
+ *
  *
  * TK: Note that the flow() is created on the stack and then used in new tcpip().
  * This is resulting in an unnecessary copy. 
  */
 
-tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, int32_t vlan,be13::tcp_seq isn,const timeval &ts)
+tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be13::packet_info &pi)
 {
     /* create space for the new state */
-    flow flow(flowa,vlan,ts,ts,flow_counter++);
+    flow flow(flowa,pi.vlan(),pi.ts,pi.ts,flow_counter++);
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->last_packet_number = packet_counter++;
@@ -414,7 +417,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 	 * delta will be 0, because it's a new connection!
 	 */
         be13::tcp_seq isn = syn_set ? seq : seq-1;
-	tcp = create_tcpip(this_flow, pi.vlan(), isn, pi.ts);
+	tcp = create_tcpip(this_flow, isn, pi);
     }
 
     /* Now tcp is valid */
