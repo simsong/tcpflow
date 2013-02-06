@@ -113,14 +113,14 @@ public:
     }
 
     inline bool operator <(const flow_addr &b) const {
-	if (this->src<b.src) return true;
-	if (this->src>b.src) return false;
-	if (this->dst<b.dst) return true;
-	if (this->dst>b.dst) return false;
-	if (this->sport<b.sport) return true;
-	if (this->sport>b.sport) return false;
-	if (this->dport<b.dport) return true;
-	if (this->dport>b.dport) return false;
+	if (this->src < b.src) return true;
+	if (this->src > b.src) return false;
+	if (this->dst < b.dst) return true;
+	if (this->dst > b.dst) return false;
+	if (this->sport < b.sport) return true;
+	if (this->sport > b.sport) return false;
+	if (this->dport < b.dport) return true;
+	if (this->dport > b.dport) return false;
 	if (this->family < b.family) return true;
 	if (this->family > b.family) return false;
 	return false;    /* they are equal! */
@@ -144,10 +144,15 @@ public:;
     static std::string filename_template;	// 
     static std::string outdir;                  // where the output gets written
     flow():id(),vlan(),mac_daddr(),mac_saddr(),tstart(),tlast(),packet_count(){};
-    flow(const flow_addr &flow_addr_,int32_t vlan_,const struct timeval &t1,
-	 const struct timeval &t2,uint64_t id_):
-	flow_addr(flow_addr_),id(id_),vlan(vlan_),mac_daddr(),mac_saddr(),tstart(t1),tlast(t2),
-	packet_count(0){}
+    flow(const flow_addr &flow_addr_,uint64_t id_,const be13::packet_info &pi):
+	flow_addr(flow_addr_),id(id_),vlan(pi.vlan()),
+        mac_daddr(),
+        mac_saddr(),
+        tstart(pi.ts),tlast(pi.ts),
+	packet_count(0){
+        memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
+        memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
+    }
     virtual ~flow(){};
     uint64_t  id;			// flow_counter when this flow was created
     int32_t   vlan;			// vlan interface we first observed; -1 means no vlan 
@@ -162,6 +167,14 @@ public:;
     // return a new filename for a flow based on the temlate,
     // optionally opening the file and returning a fd if &fd is provided
     std::string new_filename(int *fd,int flags,int mode);	
+
+    bool has_mac_daddr(){
+        return mac_daddr[0] || mac_daddr[1] || mac_daddr[2] || mac_daddr[3] || mac_daddr[4] || mac_daddr[5];
+    }
+
+    bool has_mac_saddr(){
+        return mac_saddr[0] || mac_saddr[1] || mac_saddr[2] || mac_saddr[3] || mac_saddr[4] || mac_saddr[5];
+    }
 };
 
 /*

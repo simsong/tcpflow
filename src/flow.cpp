@@ -32,6 +32,7 @@ void flow::usage()
 {
     std::cout << "Filename template format:\n";
     std::cout << "  %A/%a - source IP address/port;          %B/%b - dest IP address/port\n";
+    std::cout << "  %E/%e - source/dest Ethernet Mac address\n";
     std::cout << "  %V/%v - VLAN number, '--' if no vlan/'' if no vlan\n";
     std::cout << "  %T/%t - Timestamp in ISO8601 format/unix time_t\n";
     std::cout << "  %c - connection_count for connections>0 / %# for all connections;";
@@ -96,6 +97,14 @@ std::string flow::filename(uint32_t connection_count)
 		snprintf(buf,sizeof(buf),"%05d",dport);
 		break;
                 /* binning by connection number */
+            case 'E':
+                snprintf(buf,sizeof(buf),"%02x:%02x:%02x:%02x:%02x:%02x",
+                         mac_saddr[0],mac_saddr[1],mac_saddr[2],mac_saddr[3],mac_saddr[4],mac_saddr[5]);
+                break;
+            case 'e':
+                snprintf(buf,sizeof(buf),"%02x:%02x:%02x:%02x:%02x:%02x",
+                         mac_daddr[0],mac_daddr[1],mac_daddr[2],mac_daddr[3],mac_daddr[4],mac_daddr[5]);
+                break;
             case 'N': snprintf(buf,sizeof(buf),"%03d",(int)(id)             % 1000);break;
             case 'K': snprintf(buf,sizeof(buf),"%03d",(int)(id /1000 )      % 1000);break;
             case 'M': snprintf(buf,sizeof(buf),"%03d",(int)(id /1000000)    % 1000);break;

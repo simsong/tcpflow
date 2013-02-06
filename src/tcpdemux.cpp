@@ -124,7 +124,7 @@ tcpip *tcpdemux::find_tcpip(const flow_addr &flow)
 tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be13::packet_info &pi)
 {
     /* create space for the new state */
-    flow flow(flowa,pi.vlan(),pi.ts,pi.ts,flow_counter++);
+    flow flow(flowa,flow_counter++,pi);
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->last_packet_number = packet_counter++;

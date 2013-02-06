@@ -50,6 +50,14 @@ void tcpip::dump_seen()
     }
 }
 
+static std::string macaddr(const uint8_t *addr)
+{
+    char buf[256];
+    snprintf(buf,sizeof(buf),"%02x:%02x:%02x:%02x:%02x:%02x",
+             addr[0],addr[1],addr[2],addr[3],addr[4],addr[5]);
+    return std::string(buf);
+}
+
 void tcpip::dump_xml(class xml *xreport,const std::string &xmladd)
 {
     static const std::string fileobject_str("fileobject");
@@ -67,6 +75,8 @@ void tcpip::dump_xml(class xml *xreport,const std::string &xmladd)
     attrs << "endtime='"  << xml::to8601(myflow.tlast)  << "' ";
     attrs << "src_ipn='"  << myflow.src << "' ";
     attrs << "dst_ipn='"  << myflow.dst << "' ";
+    if(myflow.has_mac_daddr()) attrs << "mac_daddr='" << macaddr(myflow.mac_daddr) << "' ";
+    if(myflow.has_mac_saddr()) attrs << "mac_saddr='" << macaddr(myflow.mac_saddr) << "' ";
     attrs << "packets='"  << myflow.packet_count << "' ";
     attrs << "srcport='"  << myflow.sport << "' ";
     attrs << "dstport='"  << myflow.dport << "' ";
