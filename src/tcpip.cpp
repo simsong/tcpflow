@@ -50,14 +50,6 @@ void tcpip::dump_seen()
     }
 }
 
-static std::string macaddr(const uint8_t *addr)
-{
-    char buf[256];
-    snprintf(buf,sizeof(buf),"%02x:%02x:%02x:%02x:%02x:%02x",
-             addr[0],addr[1],addr[2],addr[3],addr[4],addr[5]);
-    return std::string(buf);
-}
-
 void tcpip::dump_xml(class xml *xreport,const std::string &xmladd)
 {
     static const std::string fileobject_str("fileobject");

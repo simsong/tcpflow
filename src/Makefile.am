@@ -56,6 +56,7 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	tcpip.h tcpip.cpp \
 	tcpdemux.h tcpdemux.cpp \
 	tcpflow.h util.cpp \
+	radiotap.h radiotap.c radiotap_iter.h\
 	scan_md5.cpp \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \

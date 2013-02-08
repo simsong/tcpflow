@@ -78,6 +78,14 @@ std::string comma_number_string(int64_t input)
 }
 
 
+std::string macaddr(const uint8_t *addr)
+{
+    char buf[256];
+    snprintf(buf,sizeof(buf),"%02x:%02x:%02x:%02x:%02x:%02x",
+             addr[0],addr[1],addr[2],addr[3],addr[4],addr[5]);
+    return std::string(buf);
+}
+
 /*
  * Remember our program name and process ID so we can use them later
  * for printing debug messages

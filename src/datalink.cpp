@@ -1,3 +1,4 @@
+
 /**
  * 
  * This file is part of tcpflow. Originally by Jeremy Elson
@@ -212,29 +213,78 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 #ifdef DLT_IEEE802_11_RADIO
 #define IEEE80211_ADDR_LEN      6               /* size of 802.11 address */
+
+#include "radiotap.h"
+#include "radiotap_iter.h" 
+
+
+#define MAX_SSID_LEN    32
+#define MAX_PROTECT_LEN 10
+
+#define WLANCAP_MAGIC_COOKIE_BASE 0x80211000
+#define WLANCAP_MAGIC_COOKIE_V1 0x80211001
+#define WLANCAP_MAGIC_COOKIE_V2 0x80211002
+
+
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     struct ieee80211_frame {
-        uint8_t        i_fc[2];
-        uint8_t        i_dur[2];
-        uint8_t        i_addr1[IEEE80211_ADDR_LEN];
-        uint8_t        i_addr2[IEEE80211_ADDR_LEN];
-        uint8_t        i_addr3[IEEE80211_ADDR_LEN];
-        uint8_t        i_seq[2];
+        /* Radiotap Header */
+        uint8_t         bssid[IEEE80211_ADDR_LEN]; // @0 
+        uint8_t         src[IEEE80211_ADDR_LEN];   // @6
+        uint8_t         dst[IEEE80211_ADDR_LEN];   // @12
+        uint16_t        type;                      // @18
+        uint8_t         channel;                   // @20
+        uint8_t         ssid_len;                  // @21
+        uint8_t         ssid[0];        // first characer of ssid; ssid is followed by 'protection'
     } __attribute__((__packed__));
 
+    const u_char *data = p;
     u_int caplen = h->caplen;
-    //    u_int length = h->len;
-    if(caplen < sizeof(struct ieee80211_frame)) return;
-       
-    const struct ieee80211_frame *ie = (const struct ieee80211_frame *)p;
     
-    printf("ieee80211_frame fc[0]=%x fc[1]=%x dur[0]=%x dur1]=%x seq[0]=%x seq[1]=%x\n",
-           ie->i_fc[0],ie->i_fc[1],ie->i_dur[0],ie->i_dur[1],ie->i_seq[0],ie->i_seq[1]);
-    
-    //struct timeval tv;
-    //be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
-    //process_packet_info(pi);
+    struct ieee80211_radiotap_iterator iter;
+    int err = ieee80211_radiotap_iterator_init(&iter, (ieee80211_radiotap_header *)(data), caplen, &radiotap_vns);
+    if (err) {
+        std::cerr << "malformed radiotap header (init returns " << err << ")\n";
+        return;
+    }
+    while (!(err = ieee80211_radiotap_iterator_next(&iter))) {
+        if (iter.this_arg_index == IEEE80211_RADIOTAP_VENDOR_NAMESPACE) {
+            printf("\tvendor NS (%.2x-%.2x-%.2x:%d, %d bytes)\n",
+                   iter.this_arg[0], iter.this_arg[1],
+                   iter.this_arg[2], iter.this_arg[3],
+                   iter.this_arg_size - 6);
+            for (int i = 6; i < iter.this_arg_size; i++) {
+                if (i % 8 == 6)
+                    printf("\t\t");
+                else
+                    printf(" ");
+                printf("%.2x", iter.this_arg[i]);
+            }
+        } else if (iter.is_radiotap_ns){
+            printf("NS: ");
+            print_radiotap_namespace(&iter);
+        }
+//        else if (iter.current_namespace == &vns_array[0]) {
+        //          printf("TEST: ");
+        //  print_test_namespace(&iter);
+//        }
+    }
+    /* Figure out what kind of IEEE 802.11 frame it is. Currently we will respond to:
+     * Beacons - Transmit BSSID, SRC, DST, Type, Channel, SSID_LEN, SSID, and Protection
+     * Data - Transmit BSSID, SRC, DST, and an IP packet.
+     */
+
+    const struct ieee80211_frame &ie = *(const struct ieee80211_frame *)(data+iter.this_arg_index+iter.this_arg_size+29);
+    if(ie.ssid_len <= MAX_SSID_LEN){
+        printf("type: %02x  channel:%d  ssid_len:%d bssid: %s  ",ie.type,ie.channel,ie.ssid_len,macaddr(ie.bssid).c_str());
+        for(int i=0;i<ie.ssid_len;i++){
+            putchar(ie.ssid[i]);
+        }
+        printf("  protect_len = %d  ",ie.ssid[ie.ssid_len]);
+        printf("\n");
+    }
+    printf("\n");
 }
 #endif
 
