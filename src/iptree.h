@@ -320,7 +320,14 @@ public:
 };
 
 
-/* add a node.
+/** Add 'val' to the node associated with a particular ip address.
+ * @param addr - the address
+ *
+ * @param addrlen - the length of the address (allows mixing of IPv4 & IPv6 in the same gree
+ *
+ * @param val - what to add. Use "1" to tally the number of packets,
+ * "bytes" to count the number of bytes associated with each IP
+ * address.
  */ 
 template <typename TYPE,size_t ADDRBYTES>
 void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
@@ -331,7 +338,6 @@ void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
     u_int maxdepth = addrlen * 8;         // in bits
     node *ptr = root;                   // start at the root
     for(u_int depth=0;depth<=maxdepth;depth++){
-        //ptr->inc(val);                // increment this node (and all of its descendants 
         if(depth==maxdepth){        // reached bottom
             assert((ptr->ptr0==0) && (ptr->ptr1==0));
             ptr->inc(val);                // increment this node (and all of its descendants 
