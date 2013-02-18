@@ -252,8 +252,6 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 
 static int shift_file(int fd, size_t inslen)
 {
-    abort();
-
     enum { BUFFERSIZE = 64 * 1024 };
     char buffer[BUFFERSIZE];
     struct stat sb;
