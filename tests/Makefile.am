@@ -1,5 +1,5 @@
 EXTRA_DIST = test1.sh test1.pcap test2.pcap test3.pcap test4.pcap
-TESTS = test1.sh 
+TESTS = test1.sh test-pdfs.sh
 CLEANFILES = \
 	out/010.000.000.001.09999-010.000.000.002.36559--42 \
 	out/010.000.000.002.36559-010.000.000.001.09999--42 \
