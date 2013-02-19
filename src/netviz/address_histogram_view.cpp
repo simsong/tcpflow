@@ -33,6 +33,7 @@ address_histogram_view::address_histogram_view(const address_histogram &histogra
 }
 
 const double address_histogram_view::bar_space_factor = 1.2;
+const size_t address_histogram_view::compressed_ip6_str_max_len = 16;
 
 void address_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
 {
@@ -67,6 +68,13 @@ const address_histogram &address_histogram_view::get_data() const
     return histogram;
 }
 
+string address_histogram_view::compressed_ip6_str(iptree::addr_elem address)
+{
+    return ssprintf("%x:%x...%x", (address.addr[0] << 8) + address.addr[1],
+            (address.addr[2] << 8) + address.addr[3],
+            (address.addr[14] << 8) + address.addr[15]);
+}
+
 // bucket view
 
 const double address_histogram_view::bucket_view::label_font_size = 6.0;
@@ -78,14 +86,11 @@ void address_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bo
     cairo_fill(cr);
 
     string label = bucket.str();
+    if(!bucket.is4() && label.length() > compressed_ip6_str_max_len) {
+        label = compressed_ip6_str(bucket);
+    }
 
-    // IP6 labels are half size since they're (potentially) much longer
-    if(bucket.is4()) {
-        cairo_set_font_size(cr, label_font_size);
-    }
-    else {
-        cairo_set_font_size(cr, label_font_size / 2.0);
-    }
+    cairo_set_font_size(cr, label_font_size);
 
     cairo_text_extents_t label_extents;
     cairo_text_extents(cr, label.c_str(), &label_extents);
