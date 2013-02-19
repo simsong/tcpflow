@@ -323,7 +323,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
-        if(left_data.size() > ii) {
+        if(left_data.size() > ii && left_data.at(ii).count > 0) {
             const iptree::addr_elem &addr = left_data.at(ii);
             uint8_t percentage = 0;
 
@@ -336,7 +336,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
                     left_extents);
         }
 
-        if(right_data.size() > ii) {
+        if(right_data.size() > ii && right_data.at(ii).count > 0) {
             const iptree::addr_elem &addr = right_data.at(ii);
             uint8_t percentage = 0;
 
@@ -349,7 +349,9 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
                     right_extents);
         }
 
-        end_of_content += max(left_extents.height, right_extents.height) * 1.5;
+        if(left_data.at(ii).count > 0 || right_data.at(ii).count > 0) {
+            end_of_content += max(left_extents.height, right_extents.height) * 1.5;
+        }
     }
 
     end_of_content += max(left_bounds.height, right_bounds.height) *
@@ -378,7 +380,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
-        if(left_data.size() > ii) {
+        if(left_data.size() > ii && left_data.at(ii).count > 0) {
             port_histogram::port_count port = left_data.at(ii);
             uint8_t percentage = 0;
 
@@ -391,7 +393,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
                     left_extents);
         }
 
-        if(right_data.size() > ii) {
+        if(right_data.size() > ii && right_data.at(ii).count > 0) {
             port_histogram::port_count port = right_data.at(ii);
             uint8_t percentage = 0;
 
@@ -404,7 +406,9 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
                     right_extents);
         }
 
-        end_of_content += max(left_extents.height, right_extents.height) * 1.5;
+        if(left_data.at(ii).count > 0 || right_data.at(ii).count > 0) {
+            end_of_content += max(left_extents.height, right_extents.height) * 1.5;
+        }
     }
 
     end_of_content += max(left_bounds.height, right_bounds.height) *
