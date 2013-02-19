@@ -209,7 +209,12 @@ string one_page_report::pretty_byte_total(uint64_t byte_count)
     if(size_log_1000 >= size_suffixes.size()) {
         size_log_1000 = 0;
     }
-    return ssprintf("%.2f %s", (double) byte_count / pow(1000.0, (double) size_log_1000),
+    // only put decimal places if using a unit less granular than the byte (2.00 bytes looks silly)
+    uint8_t precision = 2;
+    if(size_log_1000 == 0) {
+        precision = 0;
+    }
+    return ssprintf("%.*f %s", precision, (double) byte_count / pow(1000.0, (double) size_log_1000),
             size_suffixes.at(size_log_1000).c_str());
 }
 
