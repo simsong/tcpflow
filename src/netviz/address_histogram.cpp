@@ -38,11 +38,10 @@ address_histogram::address_histogram(const iptree &tree) :
     }
 
     buckets.clear();
-    buckets.resize(bucket_count);
 
     vector<iptree::addr_elem>::const_iterator it = addresses.begin();
     for(size_t ii = 0; ii < bucket_count && it != addresses.end(); ii++, it++) {
-        buckets.at(ii) = *it;
+        buckets.push_back(*it);
     }
 
     datagrams_ingested = tree.sum();
