@@ -320,6 +320,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
     end_of_content += max(left_bounds.height, right_bounds.height);
 
     // text stats
+    string stat_line_format = "%d) %s - %sB (%d%%)";
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
@@ -329,7 +330,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
 
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
-            string str = ssprintf("%d. %s - %sB (%d%%)", ii + 1, addr.str().c_str(),
+            string str = ssprintf(stat_line_format.c_str(), ii + 1, addr.str().c_str(),
                     pretty_byte_total(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
@@ -342,7 +343,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
 
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
-            string str = ssprintf("%d. %s - %sB (%d%%)", ii + 1, addr.str().c_str(),
+            string str = ssprintf(stat_line_format.c_str(), ii + 1, addr.str().c_str(),
                     pretty_byte_total(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
@@ -377,6 +378,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
     end_of_content += max(left_bounds.height, right_bounds.height);
 
     // text stats
+    string stat_line_format = "%d) %d - %sB (%d%%)";
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
@@ -386,7 +388,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
 
             percentage = (uint8_t) (((double) port.count / (double) total_bytes) * 100.0);
 
-            string str = ssprintf("%d. %d - %sB (%d%%)", ii + 1, port.port,
+            string str = ssprintf(stat_line_format.c_str(), ii + 1, port.port,
                     pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
@@ -399,7 +401,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
 
             percentage = (uint8_t) (((double) port.count / (double) total_bytes) * 100.0);
 
-            string str = ssprintf("%d. %d - %sB (%d%%)", ii + 1, port.port,
+            string str = ssprintf(stat_line_format.c_str(), ii + 1, port.port,
                     pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
