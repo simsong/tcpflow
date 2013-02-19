@@ -162,6 +162,7 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     size_t bars = histogram.non_sparse_size();
     double bar_allocation = bounds.width / (double) bars; // bar width with spacing
     double bar_width = bar_allocation / bar_space_factor; // bar width as rendered
+    double bar_leading_pad = (bar_allocation - bar_width) / 2.0;
     map<time_histogram::timescale_off_t, time_histogram::bucket>::const_iterator it =
         histogram.begin();
 
@@ -174,7 +175,7 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     for(; it != histogram.end(); it++) {
         double bar_height = (double) it->second.sum / (double) histogram.tallest_bar() *
             bounds.height;
-        double bar_x = bounds.x + (it->first - least) * bar_allocation;
+        double bar_x = bounds.x + (it->first - least) * bar_allocation + bar_leading_pad;
         double bar_y = bounds.y + (bounds.height - bar_height);
         bounds_t bar_bounds(bar_x, bar_y, bar_width, bar_height);
 

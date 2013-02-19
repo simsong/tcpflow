@@ -41,7 +41,7 @@ void port_histogram_view::render_data(cairo_t *cr, const plot_view::bounds_t &bo
 
     double offset_unit = bounds.width / histogram.size();
     double bar_width = offset_unit / bar_space_factor;
-    double space_width = offset_unit - bar_width;
+    double space_width = (offset_unit - bar_width) / 2.0;
     uint64_t greatest = histogram.at(0).count;
     int index = 0;
 
