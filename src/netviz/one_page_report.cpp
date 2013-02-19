@@ -23,6 +23,7 @@
 
 using namespace std;
 
+const unsigned int one_page_report::port_colors_count = 4;
 // string constants
 const string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
 const vector<string> one_page_report::size_suffixes =
@@ -38,6 +39,16 @@ const double one_page_report::address_histogram_height = 125.0;
 const double one_page_report::port_histogram_height = 100.0;
 // color constants
 const plot_view::rgb_t one_page_report::default_color(0.67, 0.67, 0.67);
+const plot_view::rgb_t one_page_report::color_orange(1.00, 0.47, 0.00);
+const plot_view::rgb_t one_page_report::color_red(1.00, 0.00, 0.00);
+const plot_view::rgb_t one_page_report::color_magenta(0.75, 0.00, 0.60);
+const plot_view::rgb_t one_page_report::color_purple(0.58, 0.00, 0.75);
+const plot_view::rgb_t one_page_report::color_deep_purple(0.40, 0.00, 0.75);
+const plot_view::rgb_t one_page_report::color_blue(0.02, 0.00, 1.00);
+const plot_view::rgb_t one_page_report::color_teal(0.00, 0.75, 0.65);
+const plot_view::rgb_t one_page_report::color_green(0.02, 0.75, 0.00);
+const plot_view::rgb_t one_page_report::color_yellow(0.99, 1.00, 0.00);
+const plot_view::rgb_t one_page_report::color_light_orange(1.00, 0.73, 0.00);
 
 one_page_report::one_page_report() : 
     source_identifier(), filename("report.pdf"),
@@ -51,8 +62,17 @@ one_page_report::one_page_report() :
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
 
-    port_color_map[PORT_HTTP] = plot_view::rgb_t(0.07, 0.44, 0.87);
-    port_color_map[PORT_HTTPS] = plot_view::rgb_t(0.25, 0.79, 0.40);
+    port_color_map[PORT_HTTP] = color_blue;
+    port_color_map[PORT_HTTP_ALT_0] = color_blue;
+    port_color_map[PORT_HTTP_ALT_1] = color_blue;
+    port_color_map[PORT_HTTP_ALT_2] = color_blue;
+    port_color_map[PORT_HTTP_ALT_3] = color_blue;
+    port_color_map[PORT_HTTP_ALT_4] = color_blue;
+    port_color_map[PORT_HTTP_ALT_5] = color_blue;
+    port_color_map[PORT_HTTPS] = color_green;
+    port_color_map[PORT_SSH] = color_purple;
+    port_color_map[PORT_FTP_CONTROL] = color_red;
+    port_color_map[PORT_FTP_DATA] = color_red;
 
     // build null alias map to avoid requiring special handling for unmapped ports
     for(int ii = 0; ii <= 65535; ii++) {
@@ -138,6 +158,32 @@ void one_page_report::render(const string &outdir)
             bounds.height - pad_size * 2);
     cairo_translate(cr, pad_bounds.x, pad_bounds.y);
 
+    // assign the top 4 source ports colors if they don't already have them
+    vector<port_histogram::port_count>::const_iterator it = src_port_histogram.begin();
+    for(size_t count = 0; count < port_colors_count && it != src_port_histogram.end(); it++) {
+        map<port_histogram::port_t, plot_view::rgb_t>::const_iterator color =
+                port_color_map.find(it->port);
+        if(color == port_color_map.end()) {
+            switch(count) {
+                case 0:
+                    port_color_map[it->port] = color_orange;
+                    break;
+                case 1:
+                    port_color_map[it->port] = color_magenta;
+                    break;
+                case 2:
+                    port_color_map[it->port] = color_deep_purple;
+                    break;
+                case 3:
+                    port_color_map[it->port] = color_teal;
+                    break;
+                default:
+                    port_color_map[it->port] = default_color;
+            }
+            count++;
+        }
+    }
+
     render_pass pass(*this, cr, pad_bounds);
 
     pass.render_header();
@@ -180,7 +226,7 @@ void one_page_report::render(const string &outdir)
     dst_ah_view.bar_color = default_color;
     pass.render(src_ah_view, dst_ah_view);
 
-    // address histograms
+    // port histograms
     port_histogram_view sp_view(src_port_histogram, port_color_map, default_color);
     port_histogram_view dp_view(dst_port_histogram, port_color_map, default_color);
     if(src_port_histogram.size()) {

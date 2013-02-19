@@ -188,6 +188,9 @@ public:;
 #define PORT_HTTP_ALT_4 82
 #define PORT_HTTP_ALT_5 8090
 #define PORT_HTTPS 443
+#define PORT_SSH 22
+#define PORT_FTP_DATA 20
+#define PORT_FTP_CONTROL 21
 class tcp_header_t {
 public:
 #pragma GCC diagnostic ignored "-Wcast-align"

@@ -1,6 +1,5 @@
 #ifndef ONE_PAGE_REPORT_H
 #define ONE_PAGE_REPORT_H
-
 #include "plot_view.h"
 #include "time_histogram.h"
 #include "time_histogram_view.h"
@@ -57,6 +56,7 @@ public:
 
     static std::string pretty_byte_total(uint64_t byte_count);
 
+    static const unsigned int port_colors_count;
     // string constants
     static const std::string title_version;
     static const std::vector<std::string> size_suffixes;
@@ -71,6 +71,16 @@ public:
     static const double port_histogram_height;
     // color constants
     static const plot_view::rgb_t default_color;
+    static const plot_view::rgb_t color_orange;
+    static const plot_view::rgb_t color_red;
+    static const plot_view::rgb_t color_magenta;
+    static const plot_view::rgb_t color_purple;
+    static const plot_view::rgb_t color_deep_purple;
+    static const plot_view::rgb_t color_blue;
+    static const plot_view::rgb_t color_teal;
+    static const plot_view::rgb_t color_green;
+    static const plot_view::rgb_t color_yellow;
+    static const plot_view::rgb_t color_light_orange;
 
 private:
 
