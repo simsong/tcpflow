@@ -48,9 +48,11 @@ const port_histogram::port_count &port_histogram::at(size_t index)
     return buckets.at(index);
 }
 
-size_t port_histogram::size() const
+size_t port_histogram::size()
 {
-    return bucket_count;
+    refresh_buckets();
+
+    return buckets.size();
 }
 
 uint64_t port_histogram::ingest_count() const
@@ -104,7 +106,9 @@ void port_histogram::refresh_buckets()
                 buckets.end(), descending_counts());
     }
 
-    buckets.resize(bucket_count);
+    if(buckets.size() > bucket_count) {
+        buckets.erase(buckets.begin() + bucket_count, buckets.end());
+    }
 
     buckets_dirty = false;
 }

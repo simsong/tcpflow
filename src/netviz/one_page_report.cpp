@@ -163,18 +163,38 @@ void one_page_report::render(const string &outdir)
     address_histogram src_addr_histogram(src_tree);
     address_histogram dst_addr_histogram(dst_tree);
     address_histogram_view src_ah_view(src_addr_histogram);
-    src_ah_view.title = "Top Source Addresses";
+    if(src_addr_histogram.size() > 0) {
+        src_ah_view.title = "Top Source Addresses";
+    }
+    else {
+        src_ah_view.title = "No Source Addresses";
+    }
     src_ah_view.bar_color = default_color;
     address_histogram_view dst_ah_view(dst_addr_histogram);
-    dst_ah_view.title = "Top Destination Addresses";
+    if(dst_addr_histogram.size() > 0) {
+        dst_ah_view.title = "Top Destination Addresses";
+    }
+    else {
+        dst_ah_view.title = "No Destination Addresses";
+    }
     dst_ah_view.bar_color = default_color;
     pass.render(src_ah_view, dst_ah_view);
 
     // address histograms
     port_histogram_view sp_view(src_port_histogram, port_color_map, default_color);
     port_histogram_view dp_view(dst_port_histogram, port_color_map, default_color);
-    sp_view.title = "Top Source Ports";
-    dp_view.title = "Top Destination Ports";
+    if(src_port_histogram.size()) {
+        sp_view.title = "Top Source Ports";
+    }
+    else {
+        sp_view.title = "No Source Ports";
+    }
+    if(dst_port_histogram.size()) {
+        dp_view.title = "Top Destination Ports";
+    }
+    else {
+        dp_view.title = "No Destination Ports";
+    }
     pass.render(sp_view, dp_view);
 
     // cleanup
@@ -350,7 +370,8 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
                     right_extents);
         }
 
-        if(left_data.at(ii).count > 0 || right_data.at(ii).count > 0) {
+        if((left_data.size() > ii && left_data.at(ii).count > 0) ||
+                (right_data.size() > ii && right_data.at(ii).count > 0)) {
             end_of_content += max(left_extents.height, right_extents.height) * 1.5;
         }
     }
@@ -408,7 +429,8 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
                     right_extents);
         }
 
-        if(left_data.at(ii).count > 0 || right_data.at(ii).count > 0) {
+        if((left_data.size() > ii && left_data.at(ii).count > 0) ||
+                (right_data.size() > ii && right_data.at(ii).count > 0)) {
             end_of_content += max(left_extents.height, right_extents.height) * 1.5;
         }
     }

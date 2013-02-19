@@ -8,7 +8,6 @@ public:
 
     class port_count {
     public:
-        port_count() : port(0), count(0) {}
         port_count(uint16_t port_, uint64_t count_) :
             port(port_), count(count_) {}
         uint16_t port;
@@ -23,7 +22,7 @@ public:
 
     void increment(uint16_t port, uint64_t delta);
     const port_count &at(size_t index);
-    size_t size() const;
+    size_t size();
     uint64_t ingest_count() const;
     std::vector<port_count>::const_iterator begin();
     std::vector<port_count>::const_iterator end();
