@@ -17,12 +17,15 @@ public:
     public:
         bucket_view(const port_histogram::port_count &bucket_,
                 const rgb_t &color_) :
-            bucket(bucket_), color(color_) {}
+            bucket(bucket_), color(color_), chip_height(0.0), chip_offset(0.0) {}
 
         const port_histogram::port_count &bucket;
         const rgb_t &color;
+        double chip_height;
+        double chip_offset;
 
         static const double label_font_size;
+        static const double chip_width_factor;
 
         void render(cairo_t *cr, const bounds_t &bounds);
     };
@@ -32,6 +35,7 @@ public:
     const rgb_t &default_color;
 
     static const double bar_space_factor;
+    static const double bar_chip_size_factor;
 
     void render_data(cairo_t *cr, const bounds_t &bounds);
     port_histogram &get_data();

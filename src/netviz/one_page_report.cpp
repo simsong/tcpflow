@@ -28,6 +28,8 @@ const unsigned int one_page_report::port_colors_count = 4;
 const string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
 const vector<string> one_page_report::size_suffixes =
         one_page_report::build_size_suffixes();
+const vector<one_page_report::transport_type> one_page_report::display_transports =
+        one_page_report::build_display_transports();
 // ratio constants
 const double one_page_report::page_margin_factor = 0.05;
 const double one_page_report::line_space_factor = 0.25;
@@ -312,14 +314,27 @@ void one_page_report::render_pass::render_header()
         transport_total += ii->second;
     }
 
-    formatted = ssprintf("Transports: IPv4 %.2f%% IPv6 %.2f%% ARP %.2f%% Other %.2f%%",
-            ((double) report.transport_counts[ETHERTYPE_IP] / (double) transport_total) * 100.0,
-            ((double) report.transport_counts[ETHERTYPE_IPV6] / (double) transport_total) * 100.0,
-            ((double) report.transport_counts[ETHERTYPE_ARP] / (double) transport_total) * 100.0,
-            (1.0 - ((double) (report.transport_counts[ETHERTYPE_IP] +
-                              report.transport_counts[ETHERTYPE_IPV6] +
-                              report.transport_counts[ETHERTYPE_ARP]) /
-                    (double) transport_total)) * 100.0);
+    stringstream ss;
+    unsigned int percentage = 0;
+    uint64_t classified_total = 0;
+    ss << "Transports: ";
+    if(transport_total > 0) {
+        for(vector<transport_type>::const_iterator it = display_transports.begin();
+                it != display_transports.end(); it++) {
+            uint64_t count = report.transport_counts[it->ethertype];
+            classified_total += count;
+            percentage = (unsigned int) (((double) count / (double) transport_total) * 100.0);
+
+            if(percentage > 0) {
+                ss << it->name << " " << percentage << "% ";
+            }
+        }
+        percentage = (unsigned int) (((double) (transport_total - classified_total) / transport_total) * 100.0);
+        if(percentage > 0) {
+            ss << "Other " << percentage << "% ";
+        }
+    }
+    formatted = ss.str();
     render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     // trailing pad for entire header
@@ -502,6 +517,16 @@ vector<string> one_page_report::build_size_suffixes()
     v.push_back("T");
     v.push_back("P");
     v.push_back("E");
+    return v;
+}
+
+vector<one_page_report::transport_type> one_page_report::build_display_transports()
+{
+    vector<transport_type> v;
+    v.push_back(transport_type(ETHERTYPE_IP, "IPv4"));
+    v.push_back(transport_type(ETHERTYPE_IPV6, "IPv6"));
+    v.push_back(transport_type(ETHERTYPE_ARP, "ARP"));
+    v.push_back(transport_type(ETHERTYPE_VLAN, "VLAN"));
     return v;
 }
 #endif

@@ -42,91 +42,96 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
         x_label = "no TCP packets received";
         x_axis_decoration = plot_view::AXIS_SPAN_STOP;
     }
-    else if(bar_interval < 1) {
-        x_label = "";
-    }
     else {
-        // how long does each bar represent?
-        string interval_name;
-        uint64_t interval_value = 0;
-        for(vector<time_unit>::const_iterator it = time_units.begin();
-                it != time_units.end(); it++) {
-            
-            if(it + 1 == time_units.end() || bar_interval <= (it+1)->seconds) {
-                interval_name = it->name;
-                interval_value = bar_interval / it->seconds;
-                break;
-            }
-
-        }
-
-        // how long does is the total capture?
-        // the total time is represented by the two (or one) coursest appropriate units
-        // example:
-        //     5 hours, 10 minutes
-        //     58 seconds
-        // but never:
-        //     5 hours. 10 minutes, 30 seconds
-
-        // break the duration down into its constituent parts
-        vector<uint64_t> duration_values;
-        vector<string> duration_names;
-        int remainder = duration;
-        for(vector<time_unit>::const_reverse_iterator it = time_units.rbegin();
-                it != time_units.rend(); it++) {
-
-            duration_values.push_back(remainder / it->seconds);
-            duration_names.push_back(it->name);
-            remainder %= it->seconds;
-        }
-
-        int print_count = 0;
-        // find how many time units are worth printing (for comma insertion)
-        for(vector<uint64_t>::const_iterator it = duration_values.begin();
-                it != duration_values.end(); it++) {
-            if(*it > 0) {
-                print_count++;
-            }
-            // if we've seen a nonzero unit, and now a zero unit, abort because skipping
-            // a unit is weird (2 months, 1 second)
-            else if(print_count > 0) {
-                break;
-            }
-        }
-
         stringstream ss;
+        // how long does is the total capture?
+        if(duration < 1) {
+            ss << "<1 second";
+        }
+        else {
+            // the total time is represented by the two (or one) coursest appropriate units
+            // example:
+            //     5 hours, 10 minutes
+            //     58 seconds
+            // but never:
+            //     5 hours. 10 minutes, 30 seconds
 
-        // work back through the values and print the two coursest nonzero
-        print_count = min(print_count, 2);
-        int printed = 0;
-        for(size_t ii = 0; ii < time_units.size(); ii++) {
-            string name = duration_names.at(ii);
-            uint64_t value = duration_values.at(ii);
+            // break the duration down into its constituent parts
+            vector<uint64_t> duration_values;
+            vector<string> duration_names;
+            int remainder = duration;
+            for(vector<time_unit>::const_reverse_iterator it = time_units.rbegin();
+                    it != time_units.rend(); it++) {
 
-            // skip over insignificant units
-            if(value == 0 && printed == 0) {
-                continue;
-            }
-            printed++;
-
-            // don't actually print intermediate zero values (no 3 hours, 0 minutes, 30 seconds)
-            if(value > 0) {
-                ss << value << " " << name;
-            }
-            if(value > 1) {
-                ss << "s";
-            }
-            if(printed < print_count) {
-                ss << ", ";
+                duration_values.push_back(remainder / it->seconds);
+                duration_names.push_back(it->name);
+                remainder %= it->seconds;
             }
 
-            if(printed == print_count) {
-                break;
+            int print_count = 0;
+            // find how many time units are worth printing (for comma insertion)
+            for(vector<uint64_t>::const_iterator it = duration_values.begin();
+                    it != duration_values.end(); it++) {
+                if(*it > 0) {
+                    print_count++;
+                }
+                // if we've seen a nonzero unit, and now a zero unit, abort because skipping
+                // a unit is weird (2 months, 1 second)
+                else if(print_count > 0) {
+                    break;
+                }
+            }
+
+            // work back through the values and print the two coursest nonzero
+            print_count = min(print_count, 2);
+            int printed = 0;
+            for(size_t ii = 0; ii < time_units.size(); ii++) {
+                string name = duration_names.at(ii);
+                uint64_t value = duration_values.at(ii);
+
+                // skip over insignificant units
+                if(value == 0 && printed == 0) {
+                    continue;
+                }
+                printed++;
+
+                // don't actually print intermediate zero values (no 3 hours, 0 minutes, 30 seconds)
+                if(value > 0) {
+                    ss << value << " " << name;
+                }
+                if(value > 1) {
+                    ss << "s";
+                }
+                if(printed < print_count) {
+                    ss << ", ";
+                }
+
+                if(printed == print_count) {
+                    break;
+                }
             }
         }
 
-        ss << " (" << interval_value << " " << interval_name << " intervals)";
+        // how long does each bar represent?
+        if(bar_interval < 1 && duration >= 1) {
+            ss << " (<1 second intervals)";
+        }
+        else if(bar_interval >= 1) {
+            string interval_name;
+            uint64_t interval_value = 0;
+            for(vector<time_unit>::const_iterator it = time_units.begin();
+                    it != time_units.end(); it++) {
+                
+                if(it + 1 == time_units.end() || bar_interval <= (it+1)->seconds) {
+                    interval_name = it->name;
+                    interval_value = bar_interval / it->seconds;
+                    break;
+                }
 
+            }
+
+            ss << " (" << interval_value << " " << interval_name << " intervals)";
+        }
         x_label = ss.str();
     }
 

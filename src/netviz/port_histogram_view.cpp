@@ -32,6 +32,7 @@ port_histogram_view::port_histogram_view(port_histogram &histogram_,
 }
 
 const double port_histogram_view::bar_space_factor = 1.2;
+const double port_histogram_view::bar_chip_size_factor = 0.04;
 
 void port_histogram_view::render_data(cairo_t *cr, const plot_view::bounds_t &bounds)
 {
@@ -39,6 +40,7 @@ void port_histogram_view::render_data(cairo_t *cr, const plot_view::bounds_t &bo
         return;
     }
 
+    double visibility_chip_height = bounds.height * bar_chip_size_factor;
     double offset_unit = bounds.width / histogram.size();
     double bar_width = offset_unit / bar_space_factor;
     double space_width = (offset_unit - bar_width) / 2.0;
@@ -61,6 +63,12 @@ void port_histogram_view::render_data(cairo_t *cr, const plot_view::bounds_t &bo
             }
 
             bucket_view view(*it, bar_color);
+
+            if(bar_height < visibility_chip_height && bar_color != default_color) {
+                view.chip_height = visibility_chip_height;
+                view.chip_offset = visibility_chip_height * 0.6;
+            }
+
             view.render(cr, bounds_t(bar_x, bar_y, bar_width, bar_height));
 	}
 	index++;
@@ -75,12 +83,21 @@ port_histogram &port_histogram_view::get_data()
 // bucket view
 
 const double port_histogram_view::bucket_view::label_font_size = 6.0;
+const double port_histogram_view::bucket_view::chip_width_factor = 0.4;
 
 void port_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bounds)
 {
     cairo_set_source_rgb(cr, color.r, color.g, color.b);
     cairo_rectangle(cr, bounds.x, bounds.y, bounds.width, bounds.height);
     cairo_fill(cr);
+    if(chip_height > 0.0) {
+        double chip_x = bounds.x + (bounds.width * ((1.0 - chip_width_factor) / 2.0));
+        double chip_y = bounds.y + bounds.height + chip_offset;
+        double chip_width = bounds.width * chip_width_factor;
+
+        cairo_rectangle(cr, chip_x, chip_y, chip_width, chip_height);
+        cairo_fill(cr);
+    }
 
     string label = ssprintf("%d", bucket.port);
 

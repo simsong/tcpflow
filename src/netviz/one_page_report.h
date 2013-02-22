@@ -20,6 +20,13 @@ public:
     double top_list_font_size;
     unsigned int histogram_show_top_n_text;
 
+    class transport_type {
+    public:
+        transport_type(uint16_t ethertype_, std::string name_) :
+            ethertype(ethertype_), name(name_) {}
+        uint16_t ethertype;
+        std::string name;
+    };
     // a single render event: content moves down a bounded cairo surface as
     // indicated by end_of_content between render method invocations
     class render_pass {
@@ -55,11 +62,13 @@ public:
     plot_view::rgb_t port_color(uint16_t port) const;
 
     static std::string pretty_byte_total(uint64_t byte_count);
+    static std::vector<transport_type> build_display_transports();
 
     static const unsigned int port_colors_count;
     // string constants
     static const std::string title_version;
     static const std::vector<std::string> size_suffixes;
+    static const std::vector<transport_type> display_transports;
     // ratio constants
     static const double page_margin_factor;
     static const double line_space_factor;

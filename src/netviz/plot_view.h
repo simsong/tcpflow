@@ -127,5 +127,10 @@ inline bool operator==(const plot_view::rgb_t &a, const plot_view::rgb_t &b)
         fabs(a.b - b.b) < plot_view::rgb_t::epsilon;
 }
 
+inline bool operator!=(const plot_view::rgb_t &a, const plot_view::rgb_t &b)
+{
+    return !(a == b);
+}
+
 #endif
 #endif
