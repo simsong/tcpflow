@@ -33,17 +33,16 @@ const vector<time_histogram_view::si_prefix> time_histogram_view::si_prefixes =
 
 void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
 {
-    //TODO something more intelligent
-    if(histogram.packet_count() == 0) {
-        return;
-    }
-
     //
     // create x label based on duration of capture
     //
     uint64_t bar_interval = histogram.usec_per_bucket() / (1000 * 1000);
     time_t duration = histogram.end_date() - histogram.start_date();
-    if(bar_interval < 1) {
+    if(histogram.packet_count() == 0) {
+        x_label = "no TCP packets received";
+        x_axis_decoration = plot_view::AXIS_SPAN_STOP;
+    }
+    else if(bar_interval < 1) {
         x_label = "";
     }
     else {
@@ -145,9 +144,15 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
     double y_scale_range = histogram.tallest_bar() / (double) unit.magnitude;
     double y_scale_interval = y_scale_range / (y_tick_count - 1);
 
+    uint64_t next_value = 0;
     for(int ii = 0; ii < y_tick_count; ii++) {
-        double raw_value = (y_tick_count - (ii + 1)) * y_scale_interval;
-        uint64_t value = (uint64_t) floor(raw_value + 0.5);
+        uint64_t value = next_value;
+        double next_raw_value = (ii + 1) * y_scale_interval;
+        next_value = (uint64_t) floor(next_raw_value + 0.5);
+
+        if(value == next_value && ii < y_tick_count - 1) {
+            continue;
+        }
 
         string label = ssprintf("%d%s", value, unit.prefix.c_str());
 
@@ -171,10 +176,10 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     }
 
     time_histogram::timescale_off_t least = it->first;
+    double tallest_bar = (double) histogram.tallest_bar();
 
     for(; it != histogram.end(); it++) {
-        double bar_height = (double) it->second.sum / (double) histogram.tallest_bar() *
-            bounds.height;
+        double bar_height = (double) it->second.sum / tallest_bar * bounds.height;
         double bar_x = bounds.x + (it->first - least) * bar_allocation + bar_leading_pad;
         double bar_y = bounds.y + (bounds.height - bar_height);
         bounds_t bar_bounds(bar_x, bar_y, bar_width, bar_height);

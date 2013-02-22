@@ -176,16 +176,20 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
     cairo_translate(cr, 0, pad_top);
 
     double y_height = bounds.height - pad_bottom - pad_top;
-    double y_tick_spacing = y_height / (double) (y_tick_labels.size() - 1);
+    double y_tick_spacing = 0.0;
+    if(y_tick_labels.size() > 1) {
+        y_tick_spacing = y_height / (double) (y_tick_labels.size() - 1);
+    }
     for(size_t ii = 0; ii < y_tick_labels.size(); ii++) {
         cairo_text_extents_t label_extents;
-        double yy = (((double) ii) * y_tick_spacing);
+        double yy = y_height - (((double) ii) * y_tick_spacing);
+        string label = y_tick_labels.at(ii);
 
-        cairo_text_extents(cr, y_tick_labels.at(ii).c_str(),
+        cairo_text_extents(cr, label.c_str(),
                &label_extents);
         cairo_move_to(cr, (pad_left - tick_length - label_extents.width),
           yy + (label_extents.height / 2));
-        cairo_show_text(cr, y_tick_labels.at(ii).c_str());
+        cairo_show_text(cr, label.c_str());
 
         // tick mark
         cairo_rectangle(cr, pad_left - tick_length, yy - (tick_width / 2),

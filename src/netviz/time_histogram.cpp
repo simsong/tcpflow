@@ -41,10 +41,11 @@ const vector<uint64_t> time_histogram::span_lengths =
 void time_histogram::insert(const struct timeval &ts, const port_t port)
 {
     sum++;
-    if(earliest_ts.tv_sec == 0 || (ts.tv_sec < earliest_ts.tv_sec && ts.tv_usec < earliest_ts.tv_usec)) {
+    if(earliest_ts.tv_sec == 0 || (ts.tv_sec < earliest_ts.tv_sec ||
+                (ts.tv_sec == earliest_ts.tv_sec && ts.tv_usec < earliest_ts.tv_usec))) {
         earliest_ts = ts;
     }
-    if(ts.tv_sec > latest_ts.tv_sec && ts.tv_usec > latest_ts.tv_usec) {
+    if(ts.tv_sec > latest_ts.tv_sec || (ts.tv_sec == latest_ts.tv_sec && ts.tv_usec > latest_ts.tv_usec)) {
         latest_ts = ts;
     }
     for(vector<histogram_map>::iterator it = histograms.begin() + best_fit_index;
@@ -159,8 +160,6 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_
     if(target.sum > greatest_bucket_sum) {
         greatest_bucket_sum = target.sum;
     }
-
-    buckets[target_index].increment(port, 1);
 
     return false;
 }

@@ -82,10 +82,11 @@ one_page_report::one_page_report() :
 
 void one_page_report::ingest_packet(const be13::packet_info &pi)
 {
-    if(earliest.tv_sec == 0) {
+    if(earliest.tv_sec == 0 || (pi.ts.tv_sec < earliest.tv_sec ||
+                (pi.ts.tv_sec == earliest.tv_sec && pi.ts.tv_usec < earliest.tv_usec))) {
         earliest = pi.ts;
     }
-    if(pi.ts.tv_sec > latest.tv_sec && pi.ts.tv_usec > latest.tv_usec) {
+    if(pi.ts.tv_sec > latest.tv_sec || (pi.ts.tv_sec == latest.tv_sec && pi.ts.tv_usec > latest.tv_usec)) {
         latest = pi.ts;
     }
 
