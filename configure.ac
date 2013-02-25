@@ -257,7 +257,13 @@ AC_LANG_POP()
 
 AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
 AC_CHECK_HEADERS([cairo.h cairo-pdf.h])
-AC_CHECK_LIB([cairo],[cairo_create])
+AC_CHECK_LIB([cairo],[cairo_create], , [
+  AC_MSG_WARN([
+*** cairo libraries not detected.
+*** Please install cairo-devel to get 1-page PDF summary generation.
+])
+  missing_library="cairo-devel $missing_library"
+])
 
 ################################################################
 # pcap support. A bit more involved than normal due to the error message
@@ -286,7 +292,9 @@ pcap-dev library.  Please execute this command:
 If your libpcap is installed in a non-standard location, you will need
 to use the --with-pcap=directory to specify where your pcap is
 located.
-  ])])
+  ])
+  missing_library="$missing_library libpcap-dev "
+])
 fi
 
 
@@ -502,3 +510,8 @@ else
 fi
 
 AC_OUTPUT
+
+if test "x${missing_library}" != "x" ; then
+  AC_MSG_NOTICE([*** You may wish to install these libraries: $missing_library])
+fi
+
