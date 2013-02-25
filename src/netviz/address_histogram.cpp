@@ -25,7 +25,7 @@ address_histogram::address_histogram(const iptree &tree) :
     buckets(), datagrams_ingested(0)
 {
     // convert iptree to suitable vector for count histogram
-    vector<iptree::addr_elem> addresses;
+    iptree::histogram_t addresses;
 
     tree.get_histogram(addresses);
 
@@ -35,6 +35,11 @@ address_histogram::address_histogram(const iptree &tree) :
     else {
         partial_sort(addresses.begin(), addresses.begin() + bucket_count,
                 addresses.end(), iptree_node_comparator());
+    }
+
+    if(debug>100){
+        std::cout << "address_histogram:\n";
+        tree.dump(std::cout,addresses);
     }
 
     buckets.clear();
