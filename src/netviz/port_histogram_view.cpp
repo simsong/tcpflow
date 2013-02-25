@@ -25,14 +25,25 @@ port_histogram_view::port_histogram_view(port_histogram &histogram_,
 {
     subtitle = "";
     title_on_bottom = true;
-    pad_left_factor = 0.0;
+    pad_left_factor = 0.1;
     pad_right_factor = 0.1;
     x_label = "";
     y_label = "";
+    y_tick_font_size = 6.0;
 }
 
 const double port_histogram_view::bar_space_factor = 1.2;
 const double port_histogram_view::bar_chip_size_factor = 0.04;
+
+void port_histogram_view::render(cairo_t *cr, const plot_view::bounds_t &bounds)
+{
+    y_tick_labels.push_back(plot_view::pretty_byte_total(0));
+    if(histogram.size() > 0) {
+        y_tick_labels.push_back(plot_view::pretty_byte_total(histogram.at(0).count, 0));
+    }
+
+    plot_view::render(cr, bounds);
+}
 
 void port_histogram_view::render_data(cairo_t *cr, const plot_view::bounds_t &bounds)
 {

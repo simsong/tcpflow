@@ -25,15 +25,26 @@ address_histogram_view::address_histogram_view(const address_histogram &histogra
 {
     subtitle = "";
     title_on_bottom = true;
-    pad_left_factor = 0.0;
+    pad_left_factor = 0.1;
     pad_right_factor = 0.2;
     pad_top_factor = 0.5;
     x_label = "";
     y_label = "";
+    y_tick_font_size = 6.0;
 }
 
 const double address_histogram_view::bar_space_factor = 1.2;
 const size_t address_histogram_view::compressed_ip6_str_max_len = 16;
+
+void address_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
+{
+    y_tick_labels.push_back(plot_view::pretty_byte_total(0));
+    if(histogram.size() > 0) {
+        y_tick_labels.push_back(plot_view::pretty_byte_total(histogram.at(0).count, 0));
+    }
+
+    plot_view::render(cr, bounds);
+}
 
 void address_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
 {

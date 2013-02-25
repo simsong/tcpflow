@@ -31,6 +31,7 @@ public:
     static const double bar_space_factor;
     static const size_t compressed_ip6_str_max_len;
 
+    void render(cairo_t *cr, const bounds_t &bounds);
     void render_data(cairo_t *cr, const bounds_t &bounds);
     const address_histogram &get_data() const;
 

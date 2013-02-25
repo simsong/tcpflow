@@ -37,6 +37,7 @@ public:
     static const double bar_space_factor;
     static const double bar_chip_size_factor;
 
+    void render(cairo_t *cr, const bounds_t &bounds);
     void render_data(cairo_t *cr, const bounds_t &bounds);
     port_histogram &get_data();
 };
