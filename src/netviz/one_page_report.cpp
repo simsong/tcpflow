@@ -103,14 +103,14 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     if(pi.is_ip4()) {
         ip_ver = 4;
 
-        src_tree.add((uint8_t *) pi.ip_data + pi.ip4_src_off, 4, pi.ip_datalen);
-        dst_tree.add((uint8_t *) pi.ip_data + pi.ip4_dst_off, 4, pi.ip_datalen);
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip4_src_off, IP4_ADDR_LEN, pi.ip_datalen);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip4_dst_off, IP4_ADDR_LEN, pi.ip_datalen);
     }
     else if(pi.is_ip6()) {
         ip_ver = 6;
 
-        src_tree.add((uint8_t *) pi.ip_data + pi.ip6_src_off, 16, pi.ip_datalen);
-        dst_tree.add((uint8_t *) pi.ip_data + pi.ip6_dst_off, 16, pi.ip_datalen);
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip6_src_off, IP6_ADDR_LEN, pi.ip_datalen);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip6_dst_off, IP6_ADDR_LEN, pi.ip_datalen);
     }
     else {
         return;

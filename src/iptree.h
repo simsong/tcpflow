@@ -22,6 +22,9 @@
 #include <arpa/inet.h>
 #endif
 
+#define IP4_ADDR_LEN 4
+#define IP6_ADDR_LEN 16
+
 /* addrbytes is the number of bytes in the address */
 
 template <typename TYPE,size_t ADDRBYTES> class iptreet {
