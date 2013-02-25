@@ -16,6 +16,12 @@
 
 #include <math.h>
 
+const double plot_view::text_line_base_width = 0.05;
+const double plot_view::span_arrow_angle = M_PI / 4.0;
+const double plot_view::span_stop_angle = M_PI / 2.0;
+const vector<string> plot_view::size_suffixes =
+        plot_view::build_size_suffixes();
+
 void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
     cairo_matrix_t original_matrix;
     cairo_get_matrix(cr, &original_matrix);
@@ -292,5 +298,37 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
 
     render_data(cr, content_bounds);
 }
-#endif
 
+string plot_view::pretty_byte_total(uint64_t byte_count, uint8_t precision)
+{
+    //// packet count/size
+    uint64_t size_log_1000 = (uint64_t) (log(byte_count) / log(1000));
+    if(size_log_1000 >= size_suffixes.size()) {
+        size_log_1000 = 0;
+    }
+    // only put decimal places if using a unit less granular than the byte (2.00 bytes looks silly)
+    if(size_log_1000 == 0) {
+        precision = 0;
+    }
+    return ssprintf("%.*f %sB", precision, (double) byte_count / pow(1000.0, (double) size_log_1000),
+            size_suffixes.at(size_log_1000).c_str());
+}
+
+string plot_view::pretty_byte_total(uint64_t byte_count)
+{
+    return pretty_byte_total(byte_count, 2);
+}
+
+vector<string> plot_view::build_size_suffixes()
+{
+    vector<string> v;
+    v.push_back("");
+    v.push_back("K");
+    v.push_back("M");
+    v.push_back("G");
+    v.push_back("T");
+    v.push_back("P");
+    v.push_back("E");
+    return v;
+}
+#endif

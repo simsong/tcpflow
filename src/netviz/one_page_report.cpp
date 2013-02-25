@@ -26,8 +26,6 @@ using namespace std;
 const unsigned int one_page_report::port_colors_count = 4;
 // string constants
 const string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
-const vector<string> one_page_report::size_suffixes =
-        one_page_report::build_size_suffixes();
 const vector<one_page_report::transport_type> one_page_report::display_transports =
         one_page_report::build_display_transports();
 // ratio constants
@@ -251,22 +249,6 @@ void one_page_report::render(const string &outdir)
     cairo_surface_destroy(surface);
 }
 
-string one_page_report::pretty_byte_total(uint64_t byte_count)
-{
-    //// packet count/size
-    uint64_t size_log_1000 = (uint64_t) (log(byte_count) / log(1000));
-    if(size_log_1000 >= size_suffixes.size()) {
-        size_log_1000 = 0;
-    }
-    // only put decimal places if using a unit less granular than the byte (2.00 bytes looks silly)
-    uint8_t precision = 2;
-    if(size_log_1000 == 0) {
-        precision = 0;
-    }
-    return ssprintf("%.*f %s", precision, (double) byte_count / pow(1000.0, (double) size_log_1000),
-            size_suffixes.at(size_log_1000).c_str());
-}
-
 void one_page_report::render_pass::render_header()
 {
     string formatted;
@@ -301,9 +283,9 @@ void one_page_report::render_pass::render_header()
     render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// packet count/size
-    formatted = ssprintf("Packets analyzed: %s (%sB)",
+    formatted = ssprintf("Packets analyzed: %s (%s)",
             comma_number_string(report.packet_count).c_str(),
-            pretty_byte_total(report.byte_count).c_str());
+            plot_view::pretty_byte_total(report.byte_count).c_str());
     render_text_line(formatted.c_str(), report.header_font_size,
             title_line_space);
     //// protocol breakdown
@@ -407,7 +389,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
     end_of_content += max(left_bounds.height, right_bounds.height);
 
     // text stats
-    string stat_line_format = "%d) %s - %sB (%d%%)";
+    string stat_line_format = "%d) %s - %s (%d%%)";
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
@@ -418,7 +400,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
             string str = ssprintf(stat_line_format.c_str(), ii + 1, addr.str().c_str(),
-                    pretty_byte_total(addr.count).c_str(), percentage);
+                    plot_view::pretty_byte_total(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
                     left_extents);
@@ -431,7 +413,7 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
             percentage = (uint8_t) (((double) addr.count / (double) total_datagrams) * 100.0);
 
             string str = ssprintf(stat_line_format.c_str(), ii + 1, addr.str().c_str(),
-                    pretty_byte_total(addr.count).c_str(), percentage);
+                    plot_view::pretty_byte_total(addr.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
                     right_extents);
@@ -466,7 +448,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
     end_of_content += max(left_bounds.height, right_bounds.height);
 
     // text stats
-    string stat_line_format = "%d) %d - %sB (%d%%)";
+    string stat_line_format = "%d) %d - %s (%d%%)";
     for(size_t ii = 0; ii < report.histogram_show_top_n_text; ii++) {
         cairo_text_extents_t left_extents, right_extents;
 
@@ -477,7 +459,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
             percentage = (uint8_t) (((double) port.count / (double) total_bytes) * 100.0);
 
             string str = ssprintf(stat_line_format.c_str(), ii + 1, port.port,
-                    pretty_byte_total(port.count).c_str(), percentage);
+                    plot_view::pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, left_bounds.x,
                     left_extents);
@@ -490,7 +472,7 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
             percentage = (uint8_t) (((double) port.count / (double) total_bytes) * 100.0);
 
             string str = ssprintf(stat_line_format.c_str(), ii + 1, port.port,
-                    pretty_byte_total(port.count).c_str(), percentage);
+                    plot_view::pretty_byte_total(port.count).c_str(), percentage);
 
             render_text(str.c_str(), report.top_list_font_size, right_bounds.x,
                     right_extents);
@@ -504,20 +486,6 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
 
     end_of_content += max(left_bounds.height, right_bounds.height) *
         (histogram_pad_factor_y - 1.0);
-}
-
-
-vector<string> one_page_report::build_size_suffixes()
-{
-    vector<string> v;
-    v.push_back("");
-    v.push_back("K");
-    v.push_back("M");
-    v.push_back("G");
-    v.push_back("T");
-    v.push_back("P");
-    v.push_back("E");
-    return v;
 }
 
 vector<one_page_report::transport_type> one_page_report::build_display_transports()

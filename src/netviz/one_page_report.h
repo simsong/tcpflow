@@ -61,13 +61,11 @@ public:
     void render(const std::string &outdir);
     plot_view::rgb_t port_color(uint16_t port) const;
 
-    static std::string pretty_byte_total(uint64_t byte_count);
     static std::vector<transport_type> build_display_transports();
 
     static const unsigned int port_colors_count;
     // string constants
     static const std::string title_version;
-    static const std::vector<std::string> size_suffixes;
     static const std::vector<transport_type> display_transports;
     // ratio constants
     static const double page_margin_factor;
@@ -107,8 +105,6 @@ private:
     iptree dst_tree;
     std::map<uint16_t, uint16_t> port_aliases;
     std::map<uint16_t, plot_view::rgb_t> port_color_map;
-
-    static std::vector<std::string> build_size_suffixes();
 };
 
 #endif

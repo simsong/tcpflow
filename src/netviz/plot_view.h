@@ -4,6 +4,7 @@
 #include "config.h"
 
 #ifdef HAVE_LIBCAIRO
+#include "tcpflow.h"
 
 #ifdef HAVE_CAIRO_H
 #include <cairo.h>
@@ -106,16 +107,21 @@ public:
     // axis decoration
     axis_decoration_t x_axis_decoration, y_axis_decoration;
 
+    static const double text_line_base_width;
+    static const double span_arrow_angle;
+    static const double span_stop_angle;
+    static const std::vector<std::string> size_suffixes;
+
     virtual ~plot_view() = 0;
     // render everything common to all plots (everything but the data)
     void render(cairo_t *cr, const bounds_t &bounds);
     // called by render(); subclass-specific data rendering
     virtual void render_data(cairo_t *cr, const bounds_t &bounds) = 0;
 
-    // constants
-    static const double text_line_base_width = 0.05;
-    static const double span_arrow_angle = M_PI / 4.0;
-    static const double span_stop_angle = M_PI / 2.0;
+    // format a byte count for humans ( 12 MB etc)
+    static std::string pretty_byte_total(uint64_t byte_count, uint8_t precision);
+    static std::string pretty_byte_total(uint64_t byte_count);
+    static std::vector<std::string> build_size_suffixes();
 };
 
 inline plot_view::~plot_view() {}
