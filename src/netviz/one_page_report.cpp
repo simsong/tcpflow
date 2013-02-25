@@ -91,7 +91,7 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     }
 
     packet_count++;
-    byte_count += pi.pcap_hdr->caplen;
+    byte_count += pi.ip_datalen;
     transport_counts[pi.ether_type()]++; // should we handle VLANs?
 
     // break out TCP/IP info and feed child views
