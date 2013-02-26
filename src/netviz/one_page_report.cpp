@@ -191,12 +191,6 @@ void one_page_report::render(const string &outdir)
     
     // time histogram
     time_histogram_view th_view(packet_histogram, port_color_map, default_color);
-    th_view.title = "TCP Packets Received";
-    th_view.pad_left_factor = 0.2;
-    th_view.y_tick_font_size = 6.0;
-    th_view.x_tick_font_size = 6.0;
-    th_view.x_axis_font_size = 8.0;
-    th_view.x_axis_decoration = plot_view::AXIS_SPAN_ARROW;
     pass.render(th_view);
 
     if(getenv("DEBUG")) {

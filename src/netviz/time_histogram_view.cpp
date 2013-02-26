@@ -20,8 +20,15 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
         const map<time_histogram::port_t, rgb_t> &port_colors_, const rgb_t &default_color_) :
     histogram(histogram_), port_colors(port_colors_), default_color(default_color_)
 {
+    title = "";
     subtitle = "";
-    y_label = "packets";
+    pad_left_factor = 0.2;
+    pad_top_factor = 0.1;
+    y_tick_font_size = 6.0;
+    x_tick_font_size = 6.0;
+    x_axis_font_size = 8.0;
+    x_axis_decoration = plot_view::AXIS_SPAN_ARROW;
+    y_label = "TCP packets";
 }
 
 const uint8_t time_histogram_view::y_tick_count = 5;
