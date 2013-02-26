@@ -17,8 +17,10 @@
 using namespace std;
 
 time_histogram_view::time_histogram_view(const time_histogram &histogram_,
-        const map<time_histogram::port_t, rgb_t> &port_colors_, const rgb_t &default_color_) :
-    histogram(histogram_), port_colors(port_colors_), default_color(default_color_)
+        const map<time_histogram::port_t, rgb_t> &port_colors_, const rgb_t &default_color_,
+        const rgb_t &cdf_color_) :
+    histogram(histogram_), port_colors(port_colors_), default_color(default_color_),
+    cdf_color(cdf_color_)
 {
     title = "";
     subtitle = "";
@@ -33,6 +35,7 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
 
 const uint8_t time_histogram_view::y_tick_count = 5;
 const double time_histogram_view::bar_space_factor = 1.2;
+const double time_histogram_view::cdf_line_width = 0.5;
 const vector<time_histogram_view::time_unit> time_histogram_view::time_units =
         time_histogram_view::build_time_units();
 const vector<time_histogram_view::si_prefix> time_histogram_view::si_prefixes =
@@ -187,12 +190,12 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         return;
     }
 
-    time_histogram::timescale_off_t least = it->first;
+    time_histogram::timescale_off_t first_offset = it->first;
     double tallest_bar = (double) histogram.tallest_bar();
 
     for(; it != histogram.end(); it++) {
         double bar_height = (double) it->second.sum / tallest_bar * bounds.height;
-        double bar_x = bounds.x + (it->first - least) * bar_allocation + bar_leading_pad;
+        double bar_x = bounds.x + (it->first - first_offset) * bar_allocation + bar_leading_pad;
         double bar_y = bounds.y + (bounds.height - bar_height);
         bounds_t bar_bounds(bar_x, bar_y, bar_width, bar_height);
 
@@ -200,6 +203,28 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
 
         bar.render(cr, bar_bounds);
     }
+
+    // CDF
+    double accumulator = 0.0;
+    double histogram_sum = (double) histogram.packet_count();
+    cairo_move_to(cr, bounds.x, bounds.y + bounds.height);
+    for(size_t ii = 0; ii < bars; ii++) {
+        const time_histogram::bucket bkt = histogram.at(ii + first_offset);
+        cout << bkt.sum << endl;
+        accumulator += (double) bkt.sum / histogram_sum;
+
+        double x = bounds.x + ii * bar_allocation;
+        double next_x = x + bar_allocation;
+        double y = bounds.y + (1.0 - accumulator) * bounds.height;
+
+        cairo_line_to(cr, x, y);
+        cairo_line_to(cr, next_x, y);
+    }
+    cout << histogram_sum << endl;
+    cout << accumulator << endl;
+    cairo_set_source_rgb(cr, cdf_color.r, cdf_color.g, cdf_color.b);
+    cairo_set_line_width(cr, cdf_line_width);
+    cairo_stroke(cr);
 }
 
 vector<time_histogram_view::time_unit> time_histogram_view::build_time_units()

@@ -49,6 +49,7 @@ const plot_view::rgb_t one_page_report::color_teal(0.00, 0.75, 0.65);
 const plot_view::rgb_t one_page_report::color_green(0.02, 0.75, 0.00);
 const plot_view::rgb_t one_page_report::color_yellow(0.99, 1.00, 0.00);
 const plot_view::rgb_t one_page_report::color_light_orange(1.00, 0.73, 0.00);
+const plot_view::rgb_t one_page_report::cdf_color(0.00, 0.00, 0.00);
 
 one_page_report::one_page_report() : 
     source_identifier(), filename("report.pdf"),
@@ -190,7 +191,8 @@ void one_page_report::render(const string &outdir)
     pass.render_header();
     
     // time histogram
-    time_histogram_view th_view(packet_histogram, port_color_map, default_color);
+    time_histogram_view th_view(packet_histogram, port_color_map, default_color,
+            cdf_color);
     pass.render(th_view);
 
     if(getenv("DEBUG")) {

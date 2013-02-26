@@ -11,7 +11,7 @@ class time_histogram_view : public plot_view {
 public:
     time_histogram_view(const time_histogram &histogram_,
             const std::map<time_histogram::port_t, rgb_t> &port_colors_,
-            const rgb_t &default_color_);
+            const rgb_t &default_color_, const rgb_t &cdf_color_);
 
     class time_unit {
     public:
@@ -44,9 +44,11 @@ public:
     const time_histogram &histogram;
     const std::map<time_histogram::port_t, rgb_t> port_colors;
     const rgb_t default_color;
+    const rgb_t cdf_color;
 
     static const uint8_t y_tick_count;
     static const double bar_space_factor;
+    static const double cdf_line_width;
     static const std::vector<time_unit> time_units;
     static const std::vector<si_prefix> si_prefixes;
 
