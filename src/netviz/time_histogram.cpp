@@ -37,6 +37,7 @@ const float time_histogram::underflow_pad_factor = 0.1;
 // the previous
 const vector<uint64_t> time_histogram::span_lengths =
         time_histogram::build_span_lengths(); // in microseconds
+const time_histogram::bucket time_histogram::empty_bucket;
 
 void time_histogram::insert(const struct timeval &ts, const port_t port)
 {
@@ -82,6 +83,15 @@ time_t time_histogram::end_date() const
 uint64_t time_histogram::tallest_bar() const
 {
     return histograms.at(best_fit_index).greatest_bucket_sum;
+}
+
+const time_histogram::bucket &time_histogram::at(timescale_off_t index) const {
+    const map<timescale_off_t, bucket> &hgram = histograms.at(best_fit_index).buckets;
+    map<timescale_off_t, bucket>::const_iterator bkt = hgram.find(index);
+    if(bkt == hgram.end()) {
+        return empty_bucket;
+    }
+    return bkt->second;
 }
 
 size_t time_histogram::size() const
