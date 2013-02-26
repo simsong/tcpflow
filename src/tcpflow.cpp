@@ -87,6 +87,7 @@ static void usage()
         std::cout << "   -f: maximum number of file descriptors to use\n";
         std::cout << "   -h: print this help message (-hh for more help)\n";
         std::cout << "   -i: network interface on which to listen\n";
+        std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
         std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
         std::cout << "   -p: don't use promiscuous mode\n";
         std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
@@ -312,8 +313,9 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
+    bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:L:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:lL:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -384,6 +386,7 @@ int main(int argc, char *argv[])
 	    }
 	    break;
 	case 'i': device = optarg; break;
+        case 'l': trailing_input_list = true; break;
 	case 'L': lockname = optarg; break;
 	case 'm':
 	    demux.opt.max_seek = atoi(optarg);
@@ -455,11 +458,19 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
-    /* get the user's expression out of remainder of the arg... */
+    /* remaining arguments are either an input list (-l flag) or a pcap expression (default) */
     std::string expression = "";
-    for(int i=0;i<argc;i++){
-	if(expression.size()>0) expression+=" ";
-	expression += argv[i];
+    if(trailing_input_list) {
+        for(int ii = 0; ii < argc; ii++) {
+            rfiles.push_back(argv[ii]);
+        }
+    }
+    else {
+        /* get the user's expression out of remainder of the arg... */
+        for(int i=0;i<argc;i++){
+            if(expression.size()>0) expression+=" ";
+            expression += argv[i];
+        }
     }
 
     struct stat sbuf;
