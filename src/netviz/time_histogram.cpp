@@ -144,7 +144,7 @@ vector<uint64_t> time_histogram::build_span_lengths()
     output.push_back(30L * 24L * 60L * 60L * 1000L * 1000L); // month
     output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L); // year
     output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L); // decade
-    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L * 100L); // century
+    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L * 50L); // semicentury
 
     return output;
 }
@@ -160,7 +160,8 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_
 
     timescale_off_t target_index = (raw_time - base_time) / bucket_width;
 
-    if(target_index < 0 || target_index >= bucket_count) {
+    /* NOTE: target_index is always >=0 since it is unsigned */
+    if(/* target_index < 0 || */ target_index >= bucket_count) {
         return true;
     }
 

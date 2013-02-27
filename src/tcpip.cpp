@@ -386,8 +386,12 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	    if (debug >= 1) perror("");
 	}
 	if(wlength != length){
-	    lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
+	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
+            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,length-wlength,p);
 	}
+        if(debug>=100){
+            DEBUG(100)("    pos=%"PRId64"  lseek(fd,0,SEEK_CUR)=%"PRId64,pos,lseek(fd,(off_t)0,SEEK_CUR));
+        }
     }
 
     /* Update the database of bytes that we've seen */
