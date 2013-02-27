@@ -58,7 +58,7 @@ private:
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
     tcpdemux();
 public:
-    unsigned int get_max_fds(void);             // returns the max
+    static unsigned int get_max_fds(void);             // returns the max
     virtual ~tcpdemux(){
         if(xreport) delete xreport;
         if(pwriter) delete pwriter;
@@ -71,7 +71,7 @@ public:
         options():console_output(false),store_output(true),opt_md5(false),
                   post_processing(false),gzip_decompress(true),
                   max_bytes_per_flow(),
-                  max_desired_fds(),max_flows(0),suppress_header(0),
+                  max_flows(0),suppress_header(0),
                   output_strip_nonprint(true),output_hex(false),use_color(0),max_seek(MAX_SEEK){
         }
         bool    console_output;
@@ -80,7 +80,6 @@ public:
         bool    post_processing;        // decode headers after tcp connection closes
         bool    gzip_decompress;
         uint64_t max_bytes_per_flow;
-        uint32_t max_desired_fds;
         uint32_t max_flows;
         bool    suppress_header;
         bool    output_strip_nonprint;

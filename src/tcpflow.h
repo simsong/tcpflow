@@ -239,8 +239,14 @@ typedef size_t socklen_t;
 
 #define DEFAULT_DEBUG_LEVEL 1
 #define MAX_FD_GUESS        64
-#define NUM_RESERVED_FDS    10    /* number of FDs to set aside; allows files to be opened as necessary */
 #define SNAPLEN             65536 /* largest possible MTU we'll see */
+
+/* Reserve FDs for stdin, stdout, stderr, and the packet filter; one for breathing
+ * room (we open new files before closing old ones), and one more to
+ * be safe.
+ */
+#define NUM_RESERVED_FDS    6    /* number of FDs to set aside; allows files to be opened as necessary */
+
 
 
 #include "be13_api/bulk_extractor_i.h"
