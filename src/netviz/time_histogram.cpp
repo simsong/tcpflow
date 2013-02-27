@@ -144,7 +144,7 @@ vector<uint64_t> time_histogram::build_span_lengths()
     output.push_back(30L * 24L * 60L * 60L * 1000L * 1000L); // month
     output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L); // year
     output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L); // decade
-    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L * 100L); // century
+    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L * 50L); // semicentury
 
     return output;
 }
