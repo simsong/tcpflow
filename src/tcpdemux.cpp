@@ -81,7 +81,7 @@ int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
     while(true){
 	if(open_flows.size() >= max_fds) close_oldest_fd();
 	int fd = ::open(filename.c_str(),oflag,mask);
-	DEBUG(2)("::open(%s,%d,%d)=%d",filename.c_str(),oflag,mask,fd);
+	DEBUG(2)("retrying_open ::open(fn=%s,oflag=0%o,mask:0%o)=%d",filename.c_str(),oflag,mask,fd);
 	if(fd>=0) return fd;
 	DEBUG(2)("retrying_open ::open failed with errno=%d",errno);
 	if (errno != ENFILE && errno != EMFILE){
