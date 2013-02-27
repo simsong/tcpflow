@@ -447,8 +447,8 @@ int main(int argc, char *argv[])
     load_scanners(scanners_builtin);
     scanners_process_commands();
 
-    /* If we were asked to do everything and there is no report filename, call it report.xml in the output directory */
-    if( opt_all && (reportfilename.size()==0) ){
+    /* If there is no report filename, call it report.xml in the output directory */
+    if( reportfilename.size()==0 ){
 	reportfilename = demux.outdir + "/" + DEFAULT_REPORT_FILENAME;
     }
 
