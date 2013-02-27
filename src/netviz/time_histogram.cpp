@@ -160,7 +160,8 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_
 
     timescale_off_t target_index = (raw_time - base_time) / bucket_width;
 
-    if(target_index < 0 || target_index >= bucket_count) {
+    /* NOTE: target_index is always >=0 since it is unsigned */
+    if(/* target_index < 0 || */ target_index >= bucket_count) {
         return true;
     }
 

@@ -98,15 +98,16 @@ void init_debug(char *argv[])
 }
 
 
+/* mkdir all of the containing directories in path.
+ * keep track of those made so we don't need to keep remaking them.
+ */
 void mkdirs_for_path(std::string path)
 {
-    static std::set<std::string> made_dirs;
-    if(path.size()==0);
+    static std::set<std::string> made_dirs; // track what we made
 
-    std::string mpath;
+    std::string mpath;                  // the path we are making
 
     if(path.at(0)=='/'){
-        std::cerr << "path begins / " << path << "\n" ;
         mpath = "/";
         path = path.substr(1);
     }
