@@ -138,6 +138,8 @@ static void usage()
         }
         std::cout << "\n";
         std::cout << "DEBUG Levels (specify with -dNN):\n";
+        std::cout << "get_max_fds() = " << tcpdemux::getInstance()->get_max_fds() << "\n";
+        std::cout << "NUM_RESERVED_FDS = " << NUM_RESERVED_FDS << "\n";
         break;
     }
 }
@@ -378,9 +380,7 @@ int main(int argc, char *argv[])
 	    break;
 	case 'f':
 	    if ((demux.opt.max_desired_fds = atoi(optarg)) < (NUM_RESERVED_FDS + 2)) {
-		DEBUG(1) ("warning: -f flag must be used with argument >= %d",
-			  NUM_RESERVED_FDS + 2);
-		demux.opt.max_desired_fds = 0;
+		DEBUG(1) ("warning: -f flag should be used with argument >= %d", NUM_RESERVED_FDS + 2);
 	    }
 	    break;
 	case 'i': device = optarg; break;
@@ -567,6 +567,7 @@ int main(int argc, char *argv[])
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */
 
     DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.open_flows.size());
+    DEBUG(2)("demux.max_open_flows:               %d",(int)demux.max_open_flows);
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
 
     demux.close_all_fd();

@@ -24,7 +24,7 @@
 /* static */ uint32_t tcpdemux::max_saved_flows = 100;
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),pwriter(0),max_fds(10),flow_map(),open_flows(),saved_flow_map(),
+		     xreport(0),pwriter(0),max_open_flows(),max_fds(10),flow_map(),open_flows(),saved_flow_map(),
 		     saved_flows(),start_new_connections(false),opt(),fs()
 		     
 {
@@ -81,8 +81,11 @@ int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
     while(true){
 	if(open_flows.size() >= max_fds) close_oldest_fd();
 	int fd = ::open(filename.c_str(),oflag,mask);
-	DEBUG(2)("retrying_open ::open(fn=%s,oflag=0%o,mask:0%o)=%d",filename.c_str(),oflag,mask,fd);
-	if(fd>=0) return fd;
+	DEBUG(2)("retrying_open ::open(fn=%s,oflag=x%x,mask:x%x)=%d",filename.c_str(),oflag,mask,fd);
+	if(fd>=0){
+            /* Open was successful */
+            return fd;
+        }
 	DEBUG(2)("retrying_open ::open failed with errno=%d",errno);
 	if (errno != ENFILE && errno != EMFILE){
 	    DEBUG(2)("retrying_open ::open failed with errno=%d (%s)",errno,strerror(errno));
@@ -363,6 +366,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                 if(fd>0){
                     char *buf = (char *)malloc(tcp_datalen);
                     if(buf){
+                        DEBUG(100)("lseek(fd,%"PRId64",SEEK_SET)",offset);
                         lseek(fd,offset,SEEK_SET);
                         ssize_t r = read(fd,buf,tcp_datalen);
                         data_match = (r==(ssize_t)tcp_datalen) && memcmp(buf,tcp_data,tcp_datalen)==0;

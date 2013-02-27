@@ -175,6 +175,7 @@ int tcpip::open_file()
         }
         /* Remember that we have this open */
         demux.open_flows.insert(this);
+        if(demux.open_flows.size() > demux.max_open_flows) demux.max_open_flows = demux.open_flows.size();
     }
     return 0;
 }
@@ -255,6 +256,8 @@ static int shift_file(int fd, size_t inslen)
     enum { BUFFERSIZE = 64 * 1024 };
     char buffer[BUFFERSIZE];
     struct stat sb;
+
+    DEBUG(100)("shift_file(%d,%zd)",fd,inslen);
 
     if (fstat(fd, &sb) != 0) return -1;
 
@@ -384,7 +387,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	}
 	if(wlength != length){
 	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
-            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,length-wlength,p);
+            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,(int64_t)(length-wlength),p);
 	}
     }
 
