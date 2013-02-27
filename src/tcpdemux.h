@@ -30,14 +30,13 @@
  */
 class tcpdemux {
 private:
-    unsigned int get_max_fds(void);             // returns the max
     class not_impl: public std::exception {
         virtual const char *what() const throw() {
             return "copying tcpdemux objects is not implemented.";
         }
     };
     tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),pwriter(),
-        max_fds(),flow_map(),open_flows(),saved_flow_map(),saved_flows(),start_new_connections(),opt(),fs(){
+        max_open_flows(),max_fds(),flow_map(),open_flows(),saved_flow_map(),saved_flows(),start_new_connections(),opt(),fs(){
         throw new not_impl();
     }
     tcpdemux &operator=(const tcpdemux &that){
@@ -59,6 +58,7 @@ private:
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
     tcpdemux();
 public:
+    unsigned int get_max_fds(void);             // returns the max
     virtual ~tcpdemux(){
         if(xreport) delete xreport;
         if(pwriter) delete pwriter;
@@ -94,6 +94,7 @@ public:
     uint64_t    packet_counter;         // monotomically increasing 
     xml         *xreport;               // DFXML output file
     pcap_writer *pwriter;               // where we should write packets
+    unsigned int max_open_flows;        // how large did it ever get?
     unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux
 
     flow_map_t  flow_map;               // db of open tcpip objects, indexed by flow

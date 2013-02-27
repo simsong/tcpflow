@@ -175,6 +175,7 @@ int tcpip::open_file()
         }
         /* Remember that we have this open */
         demux.open_flows.insert(this);
+        if(demux.open_flows.size() > demux.max_open_flows) demux.max_open_flows = demux.open_flows.size();
     }
     return 0;
 }
@@ -255,6 +256,8 @@ static int shift_file(int fd, size_t inslen)
     enum { BUFFERSIZE = 64 * 1024 };
     char buffer[BUFFERSIZE];
     struct stat sb;
+
+    DEBUG(100)("shift_file(%d,%z)",fd,inslen)
 
     if (fstat(fd, &sb) != 0) return -1;
 
