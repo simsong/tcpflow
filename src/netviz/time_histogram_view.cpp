@@ -210,7 +210,6 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     cairo_move_to(cr, bounds.x, bounds.y + bounds.height);
     for(size_t ii = 0; ii < bars; ii++) {
         const time_histogram::bucket bkt = histogram.at(ii + first_offset);
-        cout << bkt.sum << endl;
         accumulator += (double) bkt.sum / histogram_sum;
 
         double x = bounds.x + ii * bar_allocation;
@@ -220,8 +219,6 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         cairo_line_to(cr, x, y);
         cairo_line_to(cr, next_x, y);
     }
-    cout << histogram_sum << endl;
-    cout << accumulator << endl;
     cairo_set_source_rgb(cr, cdf_color.r, cdf_color.g, cdf_color.b);
     cairo_set_line_width(cr, cdf_line_width);
     cairo_stroke(cr);
