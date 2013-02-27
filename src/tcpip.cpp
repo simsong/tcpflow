@@ -386,9 +386,6 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
             DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,length-wlength,p);
 	}
-        if(debug>=100){
-            DEBUG(100)("    pos=%"PRId64"  lseek(fd,0,SEEK_CUR)=%"PRId64,pos,lseek(fd,(off_t)0,SEEK_CUR));
-        }
     }
 
     /* Update the database of bytes that we've seen */
@@ -399,6 +396,12 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     nsn += length;			// expected next sequence number
 
     if(pos>last_byte) last_byte = pos;
+
+    if(debug>=100){
+        uint64_t rpos = lseek(fd,(off_t)0,SEEK_CUR);
+        DEBUG(100)("    pos=%"PRId64"  lseek(fd,0,SEEK_CUR)=%"PRId64,pos,rpos);
+        assert(pos==rpos);
+    }
 
 #ifdef DEBUG_REOPEN_LOGIC
     /* For debugging, force this connection closed */
