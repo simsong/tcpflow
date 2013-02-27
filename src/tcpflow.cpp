@@ -289,7 +289,6 @@ int main(int argc, char *argv[])
 #endif
 
     bool force_binary_output = false;
-    bool opt_all = false;
     const char *device = "<default>";
     const char *lockname = 0;
     int need_usage = 0;
@@ -321,7 +320,6 @@ int main(int argc, char *argv[])
 	    demux.opt.post_processing = true;
 	    demux.opt.opt_md5 = true;
 	    scanners_enable_all();
-	    opt_all = true;
 	    break;
 
 	case 'A': 
