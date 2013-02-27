@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
 
     /* Set up debug system */
     progname = argv[0];
-    init_debug(argv);
+    init_debug(progname,1);
 
     /* Make sure that the system was compiled properly */
     if(sizeof(struct be13::ip4)!=20 || sizeof(struct be13::tcphdr)!=20){
@@ -473,7 +473,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    struct stat sbuf;
+    /* More option processing */
+
+    /* was a semaphore provided for the lock? */
     if(lockname){
 #if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD)
 	semlock = sem_open(lockname,O_CREAT,0777,1); // get the semaphore
@@ -484,10 +486,10 @@ int main(int argc, char *argv[])
     }
 
     if(force_binary_output) demux.opt.output_strip_nonprint = false;
-
     /* make sure outdir is a directory. If it isn't, try to make it.*/
-    if(stat(demux.outdir.c_str(),&sbuf)==0){
-	if(!S_ISDIR(sbuf.st_mode)){
+    struct stat stbuf;
+    if(stat(demux.outdir.c_str(),&stbuf)==0){
+	if(!S_ISDIR(stbuf.st_mode)){
 	    std::cerr << "outdir is not a directory: " << demux.outdir << "\n";
 	    exit(1);
 	}
@@ -501,6 +503,7 @@ int main(int argc, char *argv[])
     std::string input_fname;
     if(rfiles.size()>0) input_fname = rfiles.at(0);
 
+    /* report file specified? */
     if(reportfilename.size()>0){
 	xreport = new xml(reportfilename,false);
 	dfxml_create(*xreport,command_line);
@@ -513,6 +516,11 @@ int main(int argc, char *argv[])
         }
         if(access(input_fname.c_str(),R_OK)) die("cannot read: %s: %s",input_fname.c_str(),strerror(errno));
         demux.save_unk_packets(opt_unk_packets,input_fname);
+    }
+
+    /* Debug prefix set? */
+    if(be_config.find("debug-prefix") != be_config.end()){
+        init_debug(be_config["debug-prefix"].c_str(),0);
     }
 
     argc -= optind;
@@ -532,6 +540,7 @@ int main(int argc, char *argv[])
 
     if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 
+    /* Process r files and R files */
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)

@@ -283,7 +283,7 @@ void mkdirs_for_path(std::string path); // creates any directories necessary for
 std::string macaddr(const uint8_t *addr);
 
 #define DEBUG_PEDANTIC    0x0001       // check values more rigorously
-void init_debug(char *argv[]);
+void init_debug(const char *progname,int include_pid);
 void (*portable_signal(int signo, void (*func)(int)))(int);
 void debug_real(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((format (printf, 1, 2)));

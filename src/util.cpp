@@ -89,12 +89,19 @@ std::string macaddr(const uint8_t *addr)
 /*
  * Remember our program name and process ID so we can use them later
  * for printing debug messages
+ *
  */
-void init_debug(char *argv[])
+void init_debug(const char *pfx,int include_pid)
 {
-    debug_prefix = (char *)calloc(sizeof(char), strlen(argv[0]) + 16);
+    if(debug_prefix) free(debug_prefix);
+    size_t debug_prefix_size = strlen(pfx) + 16;
+    debug_prefix = (char *)calloc(sizeof(char), debug_prefix_size);
     if(debug_prefix==0) die("malloc failed");
-    sprintf(debug_prefix, "%s[%d]", argv[0], (int) getpid());
+    if(include_pid){
+        snprintf(debug_prefix, debug_prefix_size, "%s[%d]", pfx, (int) getpid());
+    } else {
+        snprintf(debug_prefix, debug_prefix_size, "%s", pfx);
+    }
 }
 
 
