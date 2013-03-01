@@ -501,7 +501,12 @@ int main(int argc, char *argv[])
     }
 
     std::string input_fname;
-    if(rfiles.size()>0) input_fname = rfiles.at(0);
+    if(rfiles.size() > 0) {
+        input_fname = rfiles.at(0);
+        if(rfiles.size() > 1) {
+            input_fname += ssprintf(" + %d more", rfiles.size() - 1);
+        }
+    }
 
     /* report file specified? */
     if(reportfilename.size()>0){
