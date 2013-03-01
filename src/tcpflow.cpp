@@ -193,6 +193,78 @@ void terminate(int sig)
     exit(0); /* libpcap uses onexit to clean up */
 }
 
+// transparent decompression for process_infile
+class inflater {
+public:
+    inflater(regex_t regex_, std::string invoc_format_) :
+        regex(regex_), invoc_format(invoc_format_) {}
+    // is this inflater appropriate for a given file?
+    bool appropriate(const std::string &file_path) const
+    {
+        return regexec(&regex, file_path.c_str(), (size_t) 0, NULL, 0) == 0;
+    }
+    // invoke the inflater in a shell, and return the file descriptor to read the inflated file from
+    int invoke(const std::string &file_path) const
+    {
+        std::string invocation = ssprintf(invoc_format.c_str(), file_path.c_str());
+        int pipe_fds[2];
+        if(!system(NULL)) {
+            std::cerr << "no shell available to decompress '" << file_path << "'" << std::endl;
+            return -1;
+        }
+        if(pipe(pipe_fds)) {
+            std::cerr << "failed to create pipe to decompress '" << file_path << "'" << std::endl;
+            return -1;
+        }
+
+        pid_t child_pid;
+        child_pid = fork();
+        if(child_pid == -1) {
+            std::cerr << "failed to fork child to decompress '" << file_path << "'" << std::endl;
+            return -1;
+        }
+        if(child_pid == 0) {
+            // decompressor
+            close(pipe_fds[0]);
+            dup2(pipe_fds[1], 1);
+            if(system(invocation.c_str())) {
+                std::cerr << "decompressor reported error inflating '" << file_path << "'" << std::endl;
+                exit(1);
+            }
+            exit(0);
+        }
+        close(pipe_fds[1]);
+        return pipe_fds[0];
+    }
+    regex_t regex;
+    std::string invoc_format;
+};
+
+static std::vector<inflater> build_inflaters()
+{
+    std::vector<inflater> output;
+    regex_t re;
+
+    // gzip
+    regcomp(&re, "\\.gz$", REG_EXTENDED);
+    output.push_back(inflater(re, "gunzip -c '%s'"));
+    // zip
+    regcomp(&re, "\\.zip$", REG_EXTENDED);
+    output.push_back(inflater(re, "unzip -p '%s'"));
+    // bz2
+    regcomp(&re, "\\.bz2$", REG_EXTENDED);
+    output.push_back(inflater(re, "bunzip2 -c '%s'"));
+    // xz
+    regcomp(&re, "\\.xz$", REG_EXTENDED);
+    output.push_back(inflater(re, "unxz -c '%s'"));
+    // lzma
+    regcomp(&re, "\\.lzma$", REG_EXTENDED);
+    output.push_back(inflater(re, "unlzma -c '%s'"));
+
+    return output;
+}
+
+static std::vector<inflater> inflaters = build_inflaters();
 
 /*
  * process an input file or device
@@ -207,7 +279,24 @@ static void process_infile(const std::string &expression,const char *device,cons
     pcap_handler handler;
 
     if (infile!=""){
-	if ((pd = pcap_open_offline(infile.c_str(), error)) == NULL){	/* open the capture file */
+        std::string file_path = infile;
+        // decompress input if necessary
+        for(std::vector<inflater>::const_iterator it = inflaters.begin(); it != inflaters.end(); it++) {
+            if(it->appropriate(infile)) {
+                int fd = it->invoke(infile);
+                file_path = ssprintf("/dev/fd/%d", fd);
+                if(fd < 0) {
+                    std::cerr << "decompression of '" << infile << "' failed" << std::endl;
+                    exit(1);
+                }
+                if(access(file_path.c_str(), R_OK)) {
+                    std::cerr << "decompression of '" << infile << "' is not available on this system" << std::endl;
+                    exit(1);
+                }
+                break;
+            }
+        }
+	if ((pd = pcap_open_offline(file_path.c_str(), error)) == NULL){	/* open the capture file */
 	    die("%s", error);
 	}
 	dlt = pcap_datalink(pd);	/* get the handler for this kind of packets */
