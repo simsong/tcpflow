@@ -1,3 +1,7 @@
+2013-02-27  Simson Garfinkel  <simsong@Mucha.local>
+
+	* configure.ac: added /usr/boost/include to search path
+
 2013-01-27  Simson Garfinkel  <simsong@FC17>
 
 	* src/tcpdemux.cpp (close_all_fd): now calls close_file(false), to preven openflows from being modified while it is being iterated.
