@@ -158,7 +158,6 @@ void one_page_report::render(const string &outdir)
     plot_view::bounds_t pad_bounds(bounds.x + pad_size,
             bounds.y + pad_size, bounds.width - pad_size * 2,
             bounds.height - pad_size * 2);
-    cairo_translate(cr, pad_bounds.x, pad_bounds.y);
 
     // assign the top 4 source ports colors if they don't already have them
     vector<port_histogram::port_count>::const_iterator it = src_port_histogram.begin();
@@ -213,6 +212,7 @@ void one_page_report::render(const string &outdir)
         src_ah_view.title = "No Source Addresses";
     }
     src_ah_view.bar_color = default_color;
+    src_ah_view.cdf_color = cdf_color;
     address_histogram_view dst_ah_view(dst_addr_histogram);
     if(dst_addr_histogram.size() > 0) {
         dst_ah_view.title = "Top Destination Addresses";
@@ -221,11 +221,14 @@ void one_page_report::render(const string &outdir)
         dst_ah_view.title = "No Destination Addresses";
     }
     dst_ah_view.bar_color = default_color;
+    dst_ah_view.cdf_color = cdf_color;
     pass.render(src_ah_view, dst_ah_view);
 
     // port histograms
-    port_histogram_view sp_view(src_port_histogram, port_color_map, default_color);
-    port_histogram_view dp_view(dst_port_histogram, port_color_map, default_color);
+    port_histogram_view sp_view(src_port_histogram, port_color_map, default_color,
+            cdf_color);
+    port_histogram_view dp_view(dst_port_histogram, port_color_map, default_color,
+            cdf_color);
     if(src_port_histogram.size()) {
         sp_view.title = "Top Source Ports";
     }
@@ -326,7 +329,8 @@ void one_page_report::render_pass::render_text(string text,
     cairo_set_font_size(surface, font_size);
     cairo_set_source_rgb(surface, 0.0, 0.0, 0.0);
     cairo_text_extents(surface, text.c_str(), &rendered_extents);
-    cairo_move_to(surface, x_offset, end_of_content + rendered_extents.height);
+    cairo_move_to(surface, surface_bounds.x + x_offset, surface_bounds.y +
+            end_of_content + rendered_extents.height);
     cairo_show_text(surface, text.c_str());
 }
 
@@ -340,7 +344,7 @@ void one_page_report::render_pass::render_text_line(string text,
 
 void one_page_report::render_pass::render(time_histogram_view &view)
 {
-    plot_view::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
+    plot_view::bounds_t bounds(surface_bounds.x, surface_bounds.y + end_of_content, surface_bounds.width,
             packet_histogram_height);
 
     view.render(surface, bounds);
@@ -350,7 +354,7 @@ void one_page_report::render_pass::render(time_histogram_view &view)
 
 void one_page_report::render_pass::render_packetfall()
 {
-    plot_view::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
+    plot_view::bounds_t bounds(surface_bounds.x, surface_bounds.y + end_of_content, surface_bounds.width,
             packet_histogram_height);
 
     report.pfall.render(surface, bounds);
@@ -360,8 +364,8 @@ void one_page_report::render_pass::render_packetfall()
 
 void one_page_report::render_pass::render_map()
 {
-    plot_view::bounds_t bounds(0.0, end_of_content, surface_bounds.width,
-            packet_histogram_height);
+    plot_view::bounds_t bounds(surface_bounds.x,
+            surface_bounds.y + end_of_content, surface_bounds.width, packet_histogram_height);
 
     report.netmap.render(surface, bounds);
 
@@ -375,11 +379,12 @@ void one_page_report::render_pass::render(address_histogram_view &left, address_
     const address_histogram &right_data = right.get_data();
     uint64_t total_datagrams = left_data.ingest_count();
 
-    plot_view::bounds_t left_bounds(0.0, end_of_content, width, address_histogram_height);
+    plot_view::bounds_t left_bounds(surface_bounds.x, surface_bounds.y +
+            end_of_content, width, address_histogram_height);
     left.render(surface, left_bounds);
 
-    plot_view::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
-            width, address_histogram_height);
+    plot_view::bounds_t right_bounds(surface_bounds.x + (surface_bounds.width - width),
+            surface_bounds.y + end_of_content, width, address_histogram_height);
     right.render(surface, right_bounds);
 
     end_of_content += max(left_bounds.height, right_bounds.height);
@@ -434,11 +439,12 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
 
     double width = surface_bounds.width / address_histogram_width_divisor;
 
-    plot_view::bounds_t left_bounds(0.0, end_of_content, width, port_histogram_height);
+    plot_view::bounds_t left_bounds(surface_bounds.x, surface_bounds.y + end_of_content,
+            width, port_histogram_height);
     left.render(surface, left_bounds);
 
-    plot_view::bounds_t right_bounds(surface_bounds.width - width, end_of_content,
-            width, port_histogram_height);
+    plot_view::bounds_t right_bounds(surface_bounds.x + (surface_bounds.width - width),
+            surface_bounds.y + end_of_content, width, port_histogram_height);
     right.render(surface, right_bounds);
 
     end_of_content += max(left_bounds.height, right_bounds.height);

@@ -202,6 +202,30 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
                 tick_length, tick_width);
         cairo_fill(cr);
     }
+
+    // right ticks (packet counts)
+
+    cairo_set_font_size(cr, right_tick_font_size);
+
+    if(right_tick_labels.size() > 1) {
+        y_tick_spacing = y_height / (double) (right_tick_labels.size() - 1);
+    }
+    for(size_t ii = 0; ii < right_tick_labels.size(); ii++) {
+        cairo_text_extents_t label_extents;
+        double yy = y_height - (((double) ii) * y_tick_spacing);
+        string label = right_tick_labels.at(ii);
+
+        cairo_text_extents(cr, label.c_str(),
+               &label_extents);
+        cairo_move_to(cr, (bounds.width - pad_right + tick_length),
+          yy + (label_extents.height / 2));
+        cairo_show_text(cr, label.c_str());
+
+        // tick mark
+        cairo_rectangle(cr, bounds.width - pad_right, yy - (tick_width / 2),
+                tick_length, tick_width);
+        cairo_fill(cr);
+    }
     cairo_set_matrix(cr, &original_matrix);
     cairo_translate(cr, bounds.x, bounds.y);
 
@@ -288,10 +312,18 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
     cairo_rectangle(cr, content_bounds.x,
             content_bounds.y + (content_bounds.height - axis_width),
             content_bounds.width, axis_width);
+    // if there are right hand ticks, draw a right-hand axis
+    if(right_tick_labels.size() > 0) {
+        cairo_rectangle(cr, content_bounds.x + content_bounds.width - axis_width, content_bounds.y, axis_width,
+                content_bounds.height);
+    }
     cairo_fill(cr);
 
     content_bounds.x += axis_width;
     content_bounds.width -= axis_width;
+    if(right_tick_labels.size() > 0) {
+        content_bounds.width -= axis_width;
+    }
     content_bounds.height -= axis_width;
 
     // render data!

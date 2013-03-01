@@ -23,13 +23,17 @@ public:
         static const double label_font_size;
 
         void render(cairo_t *cr, const bounds_t &bounds);
+        void render_label(cairo_t *cr, const bounds_t &bounds);
     };
 
     const address_histogram &histogram;
     rgb_t bar_color;
+    rgb_t cdf_color;
 
     static const double bar_space_factor;
     static const size_t compressed_ip6_str_max_len;
+    static const double cdf_line_width;
+    static const double data_width_factor;
 
     void render(cairo_t *cr, const bounds_t &bounds);
     void render_data(cairo_t *cr, const bounds_t &bounds);
