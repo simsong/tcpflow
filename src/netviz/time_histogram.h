@@ -50,6 +50,7 @@ public:
     static const timescale_off_t bucket_count;
     static const float underflow_pad_factor;
     static const std::vector<uint64_t> span_lengths; // in microseconds
+    static const bucket empty_bucket;
 
     void insert(const struct timeval &ts, const port_t port);
     uint64_t usec_per_bucket() const;
@@ -57,6 +58,7 @@ public:
     time_t start_date() const;
     time_t end_date() const;
     uint64_t tallest_bar() const;
+    const bucket &at(timescale_off_t index) const;
     size_t size() const;
     size_t non_sparse_size() const;
     std::map<timescale_off_t, bucket>::const_iterator begin() const;

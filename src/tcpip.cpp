@@ -162,6 +162,8 @@ int tcpip::open_file()
         } else {
             /* open an existing flow */
             fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
+            lseek(fd,0,SEEK_SET);  /* SLG ADD 1 */
+            pos = 0;               /* SLG ADD 1 */
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
         
@@ -175,6 +177,7 @@ int tcpip::open_file()
         }
         /* Remember that we have this open */
         demux.open_flows.insert(this);
+        if(demux.open_flows.size() > demux.max_open_flows) demux.max_open_flows = demux.open_flows.size();
     }
     return 0;
 }
@@ -255,6 +258,8 @@ static int shift_file(int fd, size_t inslen)
     enum { BUFFERSIZE = 64 * 1024 };
     char buffer[BUFFERSIZE];
     struct stat sb;
+
+    DEBUG(100)("shift_file(%d,%zd)",fd,inslen);
 
     if (fstat(fd, &sb) != 0) return -1;
 
@@ -375,7 +380,10 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     }
     
     /* write the data into the file */
-    DEBUG(25) ("%s: writing %ld bytes @%"PRId64, flow_pathname.c_str(), (long) wlength, offset);
+    DEBUG(25) ("%s: %s write %ld bytes @%"PRId64,
+               flow_pathname.c_str(),
+               fd>=0 ? "will" : "won't",
+               (long) wlength, offset);
     
     if(fd>=0){
 	if (write(fd,data, wlength) != wlength) {
@@ -383,7 +391,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	    if (debug >= 1) perror("");
 	}
 	if(wlength != length){
-	    lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
+	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
+            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,(int64_t)(length-wlength),p);
 	}
     }
 
@@ -395,6 +404,12 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     nsn += length;			// expected next sequence number
 
     if(pos>last_byte) last_byte = pos;
+
+    if(debug>=100){
+        uint64_t rpos = lseek(fd,(off_t)0,SEEK_CUR);
+        DEBUG(100)("    pos=%"PRId64"  lseek(fd,0,SEEK_CUR)=%"PRId64,pos,rpos);
+        assert(pos==rpos);
+    }
 
 #ifdef DEBUG_REOPEN_LOGIC
     /* For debugging, force this connection closed */

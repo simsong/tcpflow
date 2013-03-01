@@ -37,6 +37,7 @@ const float time_histogram::underflow_pad_factor = 0.1;
 // the previous
 const vector<uint64_t> time_histogram::span_lengths =
         time_histogram::build_span_lengths(); // in microseconds
+const time_histogram::bucket time_histogram::empty_bucket;
 
 void time_histogram::insert(const struct timeval &ts, const port_t port)
 {
@@ -82,6 +83,15 @@ time_t time_histogram::end_date() const
 uint64_t time_histogram::tallest_bar() const
 {
     return histograms.at(best_fit_index).greatest_bucket_sum;
+}
+
+const time_histogram::bucket &time_histogram::at(timescale_off_t index) const {
+    const map<timescale_off_t, bucket> &hgram = histograms.at(best_fit_index).buckets;
+    map<timescale_off_t, bucket>::const_iterator bkt = hgram.find(index);
+    if(bkt == hgram.end()) {
+        return empty_bucket;
+    }
+    return bkt->second;
 }
 
 size_t time_histogram::size() const
@@ -132,7 +142,9 @@ vector<uint64_t> time_histogram::build_span_lengths()
     output.push_back(24L * 60L * 60L * 1000L * 1000L); // day
     output.push_back(7L * 24L * 60L * 60L * 1000L * 1000L); // week
     output.push_back(30L * 24L * 60L * 60L * 1000L * 1000L); // month
-    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000); // year
+    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L); // year
+    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L); // decade
+    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L * 50L); // semicentury
 
     return output;
 }
@@ -148,7 +160,8 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_
 
     timescale_off_t target_index = (raw_time - base_time) / bucket_width;
 
-    if(target_index < 0 || target_index >= bucket_count) {
+    /* NOTE: target_index is always >=0 since it is unsigned */
+    if(/* target_index < 0 || */ target_index >= bucket_count) {
         return true;
     }
 

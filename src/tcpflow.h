@@ -239,8 +239,14 @@ typedef size_t socklen_t;
 
 #define DEFAULT_DEBUG_LEVEL 1
 #define MAX_FD_GUESS        64
-#define NUM_RESERVED_FDS    10    /* number of FDs to set aside; allows files to be opened as necessary */
 #define SNAPLEN             65536 /* largest possible MTU we'll see */
+
+/* Reserve FDs for stdin, stdout, stderr, and the packet filter; one for breathing
+ * room (we open new files before closing old ones), and one more to
+ * be safe.
+ */
+#define NUM_RESERVED_FDS    6    /* number of FDs to set aside; allows files to be opened as necessary */
+
 
 
 #include "be13_api/bulk_extractor_i.h"
@@ -283,7 +289,7 @@ void mkdirs_for_path(std::string path); // creates any directories necessary for
 std::string macaddr(const uint8_t *addr);
 
 #define DEBUG_PEDANTIC    0x0001       // check values more rigorously
-void init_debug(char *argv[]);
+void init_debug(const char *progname,int include_pid);
 void (*portable_signal(int signo, void (*func)(int)))(int);
 void debug_real(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((format (printf, 1, 2)));

@@ -88,6 +88,7 @@ public:
     static const plot_view::rgb_t color_green;
     static const plot_view::rgb_t color_yellow;
     static const plot_view::rgb_t color_light_orange;
+    static const plot_view::rgb_t cdf_color;
 
 private:
 

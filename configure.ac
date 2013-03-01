@@ -246,7 +246,7 @@ AC_LANG_PUSH(C++)
     if test x"$mingw" = x"yes" ; then 
       AC_MSG_ERROR([Please install mingw32-boost and mingw64-boost])
     else
-      AC_MSG_ERROR([Please install boost-devel.])
+      AC_MSG_ERROR([Please install boost-devel or libboost-dev.])
     fi
   fi
 AC_LANG_POP()    
@@ -262,7 +262,8 @@ AC_CHECK_LIB([cairo],[cairo_create], , [
 *** cairo libraries not detected.
 *** Please install cairo-devel to get 1-page PDF summary generation.
 ])
-  missing_library="cairo-devel $missing_library"
+  Fmissing_library="cairo-devel $missing_library"
+  Umissing_library="libcairo2-dev $missing_library"
 ])
 
 ################################################################
@@ -293,7 +294,8 @@ If your libpcap is installed in a non-standard location, you will need
 to use the --with-pcap=directory to specify where your pcap is
 located.
   ])
-  missing_library="$missing_library libpcap-dev "
+  Fmissing_library="$Fmissing_library libpcap-dev "
+  Umissing_library="$Umissing_library libpcap-dev "
 ])
 fi
 
@@ -331,6 +333,8 @@ AC_CHECK_HEADERS([\
 	sys/bitypes.h \
 	unistd.h \
 	])
+
+AC_CHECK_FUNCS([getdtablesize])
 
 #
 # These all require additional headers. See:

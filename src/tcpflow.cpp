@@ -87,6 +87,7 @@ static void usage()
         std::cout << "   -f: maximum number of file descriptors to use\n";
         std::cout << "   -h: print this help message (-hh for more help)\n";
         std::cout << "   -i: network interface on which to listen\n";
+        std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
         std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
         std::cout << "   -p: don't use promiscuous mode\n";
         std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
@@ -137,6 +138,8 @@ static void usage()
         }
         std::cout << "\n";
         std::cout << "DEBUG Levels (specify with -dNN):\n";
+        std::cout << "get_max_fds() = " << tcpdemux::getInstance()->get_max_fds() << "\n";
+        std::cout << "NUM_RESERVED_FDS = " << NUM_RESERVED_FDS << "\n";
         break;
     }
 }
@@ -288,7 +291,6 @@ int main(int argc, char *argv[])
 #endif
 
     bool force_binary_output = false;
-    bool opt_all = false;
     const char *device = "<default>";
     const char *lockname = 0;
     int need_usage = 0;
@@ -301,7 +303,7 @@ int main(int argc, char *argv[])
 
     /* Set up debug system */
     progname = argv[0];
-    init_debug(argv);
+    init_debug(progname,1);
 
     /* Make sure that the system was compiled properly */
     if(sizeof(struct be13::ip4)!=20 || sizeof(struct be13::tcphdr)!=20){
@@ -312,14 +314,14 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
+    bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:L:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:lL:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
 	    demux.opt.opt_md5 = true;
 	    scanners_enable_all();
-	    opt_all = true;
 	    break;
 
 	case 'A': 
@@ -377,13 +379,14 @@ int main(int argc, char *argv[])
 	    }
 	    break;
 	case 'f':
-	    if ((demux.opt.max_desired_fds = atoi(optarg)) < (NUM_RESERVED_FDS + 2)) {
-		DEBUG(1) ("warning: -f flag must be used with argument >= %d",
-			  NUM_RESERVED_FDS + 2);
-		demux.opt.max_desired_fds = 0;
-	    }
+        {
+            int mnew = atoi(optarg);
+            DEBUG(1)("changing max_fds from %d to %d",demux.max_fds,mnew);
+            demux.max_fds = mnew;
 	    break;
+        }
 	case 'i': device = optarg; break;
+        case 'l': trailing_input_list = true; break;
 	case 'L': lockname = optarg; break;
 	case 'm':
 	    demux.opt.max_seek = atoi(optarg);
@@ -444,8 +447,8 @@ int main(int argc, char *argv[])
     load_scanners(scanners_builtin);
     scanners_process_commands();
 
-    /* If we were asked to do everything and there is no report filename, call it report.xml in the output directory */
-    if( opt_all && (reportfilename.size()==0) ){
+    /* If there is no report filename, call it report.xml in the output directory */
+    if( reportfilename.size()==0 ){
 	reportfilename = demux.outdir + "/" + DEFAULT_REPORT_FILENAME;
     }
 
@@ -455,14 +458,24 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
-    /* get the user's expression out of remainder of the arg... */
+    /* remaining arguments are either an input list (-l flag) or a pcap expression (default) */
     std::string expression = "";
-    for(int i=0;i<argc;i++){
-	if(expression.size()>0) expression+=" ";
-	expression += argv[i];
+    if(trailing_input_list) {
+        for(int ii = 0; ii < argc; ii++) {
+            rfiles.push_back(argv[ii]);
+        }
+    }
+    else {
+        /* get the user's expression out of remainder of the arg... */
+        for(int i=0;i<argc;i++){
+            if(expression.size()>0) expression+=" ";
+            expression += argv[i];
+        }
     }
 
-    struct stat sbuf;
+    /* More option processing */
+
+    /* was a semaphore provided for the lock? */
     if(lockname){
 #if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD)
 	semlock = sem_open(lockname,O_CREAT,0777,1); // get the semaphore
@@ -473,10 +486,10 @@ int main(int argc, char *argv[])
     }
 
     if(force_binary_output) demux.opt.output_strip_nonprint = false;
-
     /* make sure outdir is a directory. If it isn't, try to make it.*/
-    if(stat(demux.outdir.c_str(),&sbuf)==0){
-	if(!S_ISDIR(sbuf.st_mode)){
+    struct stat stbuf;
+    if(stat(demux.outdir.c_str(),&stbuf)==0){
+	if(!S_ISDIR(stbuf.st_mode)){
 	    std::cerr << "outdir is not a directory: " << demux.outdir << "\n";
 	    exit(1);
 	}
@@ -490,6 +503,7 @@ int main(int argc, char *argv[])
     std::string input_fname;
     if(rfiles.size()>0) input_fname = rfiles.at(0);
 
+    /* report file specified? */
     if(reportfilename.size()>0){
 	xreport = new xml(reportfilename,false);
 	dfxml_create(*xreport,command_line);
@@ -502,6 +516,11 @@ int main(int argc, char *argv[])
         }
         if(access(input_fname.c_str(),R_OK)) die("cannot read: %s: %s",input_fname.c_str(),strerror(errno));
         demux.save_unk_packets(opt_unk_packets,input_fname);
+    }
+
+    /* Debug prefix set? */
+    if(be_config.find("debug-prefix") != be_config.end()){
+        init_debug(be_config["debug-prefix"].c_str(),0);
     }
 
     argc -= optind;
@@ -521,6 +540,7 @@ int main(int argc, char *argv[])
 
     if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 
+    /* Process r files and R files */
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
@@ -549,6 +569,7 @@ int main(int argc, char *argv[])
     /* -1 causes pcap_loop to loop forever, but it finished when the input file is exhausted. */
 
     DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.open_flows.size());
+    DEBUG(2)("demux.max_open_flows:               %d",(int)demux.max_open_flows);
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
 
     demux.close_all_fd();
