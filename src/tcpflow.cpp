@@ -379,10 +379,12 @@ int main(int argc, char *argv[])
 	    }
 	    break;
 	case 'f':
-	    if ((demux.opt.max_desired_fds = atoi(optarg)) < (NUM_RESERVED_FDS + 2)) {
-		DEBUG(1) ("warning: -f flag should be used with argument >= %d", NUM_RESERVED_FDS + 2);
-	    }
+        {
+            int mnew = atoi(optarg);
+            DEBUG(1)("changing max_fds from %d to %d",demux.max_fds,mnew);
+            demux.max_fds = mnew;
 	    break;
+        }
 	case 'i': device = optarg; break;
         case 'l': trailing_input_list = true; break;
 	case 'L': lockname = optarg; break;

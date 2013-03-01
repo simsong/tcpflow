@@ -334,6 +334,8 @@ AC_CHECK_HEADERS([\
 	unistd.h \
 	])
 
+AC_CHECK_FUNCS([getdtablesize])
+
 #
 # These all require additional headers. See:
 # http://www.gnu.org/software/autoconf/manual/autoconf-2.67/html_node/Present-But-Cannot-Be-Compiled.html

@@ -24,16 +24,11 @@
 /* static */ uint32_t tcpdemux::max_saved_flows = 100;
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),pwriter(0),max_open_flows(),max_fds(10),flow_map(),open_flows(),saved_flow_map(),
+		     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
+                     flow_map(),open_flows(),saved_flow_map(),
 		     saved_flows(),start_new_connections(false),opt(),fs()
 		     
 {
-    /* Find out how many files we can have open safely...subtract 4 for
-     * stdin, stdout, stderr, and the packet filter; one for breathing
-     * room (we open new files before closing old ones), and one more to
-     * be safe.
-     */
-    max_fds = get_max_fds() - NUM_RESERVED_FDS;
 }
 
 /* static */ tcpdemux *tcpdemux::getInstance()
@@ -200,10 +195,10 @@ unsigned int tcpdemux::get_max_fds(void)
     int max_descs = 0;
     const char *method=0;
 
-    /* Use OPEN_MAX if it is available */
-#if defined (OPEN_MAX)
-    method = "OPEN_MAX";
-    max_descs = OPEN_MAX;
+    /* No longer users OPEN_MAX */
+#if defined (HAVE_GETDTABLESIZE)
+    method = "getdtablesize";
+    max_descs = getdtablesize();
 #elif defined(RLIMIT_NOFILE)
     {
 	struct rlimit limit;
@@ -216,8 +211,7 @@ unsigned int tcpdemux::get_max_fds(void)
 	}
 
 	/* set the current to the maximum or specified value */
-	if (max_desired_fds) limit.rlim_cur = max_desired_fds;
-	else limit.rlim_cur = limit.rlim_max;
+	limit.rlim_cur = limit.rlim_max;
 
 	if (setrlimit(RLIMIT_NOFILE, &limit) < 0) {
 	    perror("setrlimit");
@@ -250,11 +244,6 @@ unsigned int tcpdemux::get_max_fds(void)
     max_descs = MAX_FD_GUESS;
 #endif
     /* this must go here, after rlimit code */
-    if (opt.max_desired_fds) {
-	DEBUG(10) ("using only %d FDs", opt.max_desired_fds);
-	return opt.max_desired_fds;
-    }
-
     DEBUG(10) ("found max FDs to be %d using %s", max_descs, method);
     return max_descs;
 }
@@ -366,7 +355,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                 if(fd>0){
                     char *buf = (char *)malloc(tcp_datalen);
                     if(buf){
-                        DEBUG(100)("lseek(fd,%"PRId64",SEEK_SET)",offset);
+                        DEBUG(100)("lseek(fd,%"PRId64",SEEK_SET)",(int64_t)(offset));
                         lseek(fd,offset,SEEK_SET);
                         ssize_t r = read(fd,buf,tcp_datalen);
                         data_match = (r==(ssize_t)tcp_datalen) && memcmp(buf,tcp_data,tcp_datalen)==0;

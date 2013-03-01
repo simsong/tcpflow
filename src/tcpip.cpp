@@ -162,6 +162,8 @@ int tcpip::open_file()
         } else {
             /* open an existing flow */
             fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
+            lseek(fd,0,SEEK_SET);  /* SLG ADD 1 */
+            pos = 0;               /* SLG ADD 1 */
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
         
@@ -378,7 +380,10 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     }
     
     /* write the data into the file */
-    DEBUG(25) ("%s: writing %ld bytes @%"PRId64, flow_pathname.c_str(), (long) wlength, offset);
+    DEBUG(25) ("%s: %s write %ld bytes @%"PRId64,
+               flow_pathname.c_str(),
+               fd>=0 ? "will" : "won't",
+               (long) wlength, offset);
     
     if(fd>=0){
 	if (write(fd,data, wlength) != wlength) {
@@ -401,7 +406,9 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     if(pos>last_byte) last_byte = pos;
 
     if(debug>=100){
-        DEBUG(100)("    pos=%"PRId64"  lseek(fd,0,SEEK_CUR)=%"PRId64,pos,lseek(fd,(off_t)0,SEEK_CUR));
+        uint64_t rpos = lseek(fd,(off_t)0,SEEK_CUR);
+        DEBUG(100)("    pos=%"PRId64"  lseek(fd,0,SEEK_CUR)=%"PRId64,pos,rpos);
+        assert(pos==rpos);
     }
 
 #ifdef DEBUG_REOPEN_LOGIC
