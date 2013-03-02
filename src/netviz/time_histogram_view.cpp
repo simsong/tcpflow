@@ -27,7 +27,7 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
     pad_left_factor = 0.2;
     pad_top_factor = 0.1;
     y_tick_font_size = 6.0;
-    x_tick_font_size = 6.0;
+    right_tick_font_size = 6.0;
     x_axis_font_size = 8.0;
     x_axis_decoration = plot_view::AXIS_SPAN_ARROW;
     y_label = "TCP packets";
@@ -174,6 +174,9 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
 	y_tick_labels.push_back(label);
     }
 
+    right_tick_labels.push_back("0%");
+    right_tick_labels.push_back("100%");
+
     plot_view::render(cr, bounds);
 }
 
@@ -216,7 +219,13 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         double next_x = x + bar_allocation;
         double y = bounds.y + (1.0 - accumulator) * bounds.height;
 
-        cairo_line_to(cr, x, y);
+        // don't draw over the left-hand y axis
+        if(ii == 0) {
+            cairo_move_to(cr, x, y);
+        }
+        else {
+            cairo_line_to(cr, x, y);
+        }
         cairo_line_to(cr, next_x, y);
     }
     cairo_set_source_rgb(cr, cdf_color.r, cdf_color.g, cdf_color.b);
