@@ -77,7 +77,7 @@ inline bool operator <(const struct timeval &a,const struct timeval &b) {
 class flow_addr {
 public:
     flow_addr():src(),dst(),sport(0),dport(0),family(0){ }
-    flow_addr(ipaddr s,ipaddr d,uint16_t sp,uint16_t dp,sa_family_t f):
+    flow_addr(const ipaddr &s,const ipaddr &d,uint16_t sp,uint16_t dp,sa_family_t f):
 	src(s),dst(d),sport(sp),dport(dp),family(f){
     }
     flow_addr(const flow_addr &f):src(f.src),dst(f.dst),sport(f.sport),dport(f.dport),

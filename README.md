@@ -1,15 +1,15 @@
 TCPFLOW 1.3
 ===========
-
-By Simson L. Garfinkel <simsong@acm.org>
-originally by Jeremy Elson <jelson@circlemud.org>
-
 Downloads directory: http://www.digitalcorpora.org/downloads/tcpflow/
 
 
 Compiling
 ---------
 To compile for Linux
+
+Be sure you have the necessary precursors:
+
+    # yum install cairo-devel boost-devel automake autoconf gcc-c++ git   
 
 Download the sources with git, run bootstrap.sh, configure and make:
 
@@ -19,7 +19,6 @@ Download the sources with git, run bootstrap.sh, configure and make:
     ./configure
 
 To Compile for Windows with mingw on Fedora Core:
-
 
 Be sure that mingw is installed, then 
 
@@ -152,5 +151,11 @@ Please enter bugs on the [github issue tracker](https://github.com/simsong/tcpfl
 tcpflow currently does not understand IP fragments.  Flows containing
 IP fragments will not be recorded correctly. IP fragmentation is
 increasingly a rare event, so this does not seem to be a significant problem.
+
+
+Author
+======
+By Simson L. Garfinkel <simsong@acm.org>
+originally by Jeremy Elson <jelson@circlemud.org>
 
 
