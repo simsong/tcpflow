@@ -125,7 +125,6 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be
     flow flow(flowa,flow_counter++,pi);
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
-    new_tcpip->last_packet_number = packet_counter++;
     new_tcpip->nsn   = isn+1;		// expected sequence number of the first byte
     DEBUG(5) ("%s: new flow. next seq num (nsn):%d", new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
     flow_map[flow] = new_tcpip;
@@ -134,7 +133,8 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be
 
 /**
  * remove a flow from the database and close the flow
- * These are the only places where a tcpip object is deleted.
+ * These are the only places where a tcpip object is deleted so there is no chance of finding it again.
+ * This typically happens at the end of the run unless items in the map were removed.
  */
 
 void tcpdemux::post_process(tcpip *tcp)
@@ -142,9 +142,10 @@ void tcpdemux::post_process(tcpip *tcp)
     std::stringstream xmladd;		// for this <fileobject>
     if(opt.post_processing && tcp->file_created && tcp->last_byte>0){
         /** 
-         * After the flow is finished, put it in an SBUF and process it.
-         * if we are doing post-processing.
-         * This is called from tcpip::~tcpip() in tcpip.cpp.
+         * After the flow is finished, if more than a byte was
+         * written, then put it in an SBUF and process it.  if we are
+         * doing post-processing.  This is called from tcpip::~tcpip()
+         * in tcpip.cpp.
          */
 
         /* Open the fd if it is not already open */
@@ -418,6 +419,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 
     /* Now tcp is valid */
     tcp->myflow.tlast = pi.ts;		// most recently seen packet
+    tcp->last_packet_number = packet_counter++;
     tcp->myflow.packet_count++;
 
     /*
@@ -432,6 +434,9 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
      * in accordance with the TCP spec.
      */
     if(syn_set){
+        /* If the syn is set this is either a SYN or SYN-ACK. We use this information to set the direction
+         * flag, but that's it. The direction flag is only used for coloring.
+         */
 	if(tcp->syn_count>1){
 	    DEBUG(2)("Multiple SYNs (%d) seen on connection %s",tcp->syn_count,tcp->flow_pathname.c_str());
 	}

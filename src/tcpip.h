@@ -249,8 +249,8 @@ public:
     /** track the direction of the flow; this is largely unused */
     typedef enum {
 	unknown=0,			// unknown direction
-	dir_sc,				// server-to-client
-	dir_cs				// client-to-server
+	dir_sc,				// server-to-client 1 
+	dir_cs				// client-to-server 2
     } dir_t;
 	
 private:
@@ -297,7 +297,7 @@ public:;
     /* Stats */
     recon_set   *seen;                  // what we've seen; it must be * due to boost lossage
     uint64_t    last_byte;              // last byte in flow processed
-    uint64_t	last_packet_number;	// for finding most recent packet
+    uint64_t	last_packet_number;	// for finding most recent packet written
     uint64_t	out_of_order_count;	// all packets were contigious
     uint64_t    violations;		// protocol violation count
 
@@ -312,8 +312,15 @@ public:;
     void dump_xml(class xml *xmlreport,const std::string &xmladd);
 };
 
+/* print a tcpip data structure. Largely for debugging */
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
-    os << "tcpip[" << f.myflow << " isn:" << f.isn << " pos:" << f.pos << "]";
+    os << "tcpip[" << f.myflow
+       << " dir:" << int(f.dir) << " isn:" << f.isn << " nsn: " << f.nsn
+       << " sc:" << f.syn_count << " fc:" << f.fin_count << " fs:" << f.fin_size
+       << " pos:" << f.pos << " fd: " << f.fd << " cr:" << f.file_created 
+       << " lb:" << f.last_byte << " lpn:" << f.last_packet_number << " ooc:" << f.out_of_order_count
+       << "]";
+    if(f.fd>0) os << " ftell(" << f.fd << ")=" << lseek(f.fd,0L,SEEK_CUR);
     return os;
 }
 

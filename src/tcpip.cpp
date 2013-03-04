@@ -16,6 +16,10 @@
 
 #pragma GCC diagnostic ignored "-Weffc++"
 #pragma GCC diagnostic ignored "-Wshadow"
+
+static int ct=0;
+
+
 /* Create a new tcp object.
  * 
  * Creating a new object creates a new passive TCP/IP decoder.
@@ -116,6 +120,12 @@ tcpip::~tcpip()
  */
 void tcpip::close_file()
 {
+    ct++;
+    //std::cerr << "close_file0 " << ct << " " << *this << "\n";
+    if(ct==122){
+        //std::cerr << "ct==122\n";
+    }
+
     if (fd>=0){
 	struct timeval times[2];
 	times[0] = myflow.tstart;
@@ -142,6 +152,7 @@ void tcpip::close_file()
 	fd = -1;
     }
     demux.open_flows.erase(this);           // we are no longer open
+    //std::cerr << "close_file1 " << *this << "\n";
 }
 
 /*
@@ -152,8 +163,9 @@ void tcpip::close_file()
 
 int tcpip::open_file()
 {
+    ct++;
     if(fd<0){
-
+        //std::cerr << "open_file0 " << ct << " " << *this << "\n";
         /* If we don't have a filename, create the flow */
         if(flow_pathname.size()==0) {
             flow_pathname = myflow.new_filename(&fd,O_RDWR|O_BINARY|O_CREAT,0666);
@@ -162,8 +174,8 @@ int tcpip::open_file()
         } else {
             /* open an existing flow */
             fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
-            lseek(fd,0,SEEK_SET);  /* SLG ADD 1 */
-            pos = 0;               /* SLG ADD 1 */
+            lseek(fd,pos,SEEK_SET);  /* SLG ADD 1 */
+            //pos = 0;               /* SLG ADD 1 */
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
         
@@ -178,6 +190,7 @@ int tcpip::open_file()
         /* Remember that we have this open */
         demux.open_flows.insert(this);
         if(demux.open_flows.size() > demux.max_open_flows) demux.max_open_flows = demux.open_flows.size();
+        //std::cerr << "open_file1 " << *this << "\n";
     }
     return 0;
 }
