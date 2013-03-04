@@ -1,3 +1,7 @@
+2013-03-03  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/scan_netviz.cpp (scan_netviz): scan_netviz enabled by default
+
 2013-02-27  Simson Garfinkel  <simsong@Mucha.local>
 
 	* configure.ac: added /usr/boost/include to search path

@@ -212,6 +212,9 @@ unsigned int tcpdemux::get_max_fds(void)
 
 	/* set the current to the maximum or specified value */
 	limit.rlim_cur = limit.rlim_max;
+#ifdef OPEN_MAX
+        if(limit.rlim_cur > OPEN_MAX) limit.rlim_cur = OPEN_MAX;
+#endif        
 
 	if (setrlimit(RLIMIT_NOFILE, &limit) < 0) {
 	    perror("setrlimit");
