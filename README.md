@@ -9,14 +9,21 @@ To compile for Linux
 
 Be sure you have the necessary precursors:
 
-    # yum install cairo-devel boost-devel automake autoconf gcc-c++ git   
+    # yum -y install git gcc-c++ automake autoconf boost-devel cairo-devel
 
 Download the sources with git, run bootstrap.sh, configure and make:
 
     git clone --recursive https://github.com/simsong/tcpflow.git
     cd tcpflow
     sh bootstrap.sh
-    ./configure
+
+
+To download and compile for Amazon AMI:
+   ssh ec2-user@<your ec2 instance>
+   sudo bash yum -y install git gcc-c++ automake autoconf boost-devel cairo-devel
+   git clone --recursive https://github.com/simsong/tcpflow.git
+   sh bootstrap.sh
+
 
 To Compile for Windows with mingw on Fedora Core:
 
@@ -25,8 +32,9 @@ Be sure that mingw is installed, then
 
 
 
-Introduction
-------------
+
+Introduction To tcpflow
+=======================
 
 tcpflow is a program that captures data transmitted as part of TCP
 connections (flows), and stores the data in a way that is convenient
