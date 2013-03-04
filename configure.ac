@@ -237,17 +237,25 @@ AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_LIB([pthreadGC2],[pthread_create])
 
 ################################################################
-# boost interval set
+# Boost
+AC_CHECK_HEADERS([boost/version.hpp],,
+  AC_MSG_WARN([tcpflow now requires boost interval_map and interval_set.])
+  if test x"$mingw" = x"yes" ; then 
+    AC_MSG_ERROR([Please install mingw32-boost and mingw64-boost])
+  else
+    AC_MSG_ERROR([Please install boost-devel or libboost-dev.])
+  fi
+)
+
+# Now make sure we have the correct boost version
 AC_LANG_PUSH(C++)
   have_interval=yes
   AC_CHECK_HEADERS([boost/icl/interval.hpp boost/icl/interval_map.hpp boost/icl/interval_set.hpp],,have_interval=no)
   if test "${have_interval}" != yes ; then
-    AC_MSG_WARN([tcpflow now requires boost interval_map and interval_set.])
-    if test x"$mingw" = x"yes" ; then 
-      AC_MSG_ERROR([Please install mingw32-boost and mingw64-boost])
-    else
-      AC_MSG_ERROR([Please install boost-devel or libboost-dev.])
-    fi
+    AC_MSG_ERROR([
+tcpflow requires a version of Boost that has Boost interval_map and interval_set.
+Your version is too old! Please install a current version of Boost from http://www.boost.org/users/download/.
+])
   fi
 AC_LANG_POP()    
 
