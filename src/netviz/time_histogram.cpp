@@ -137,14 +137,14 @@ vector<uint64_t> time_histogram::build_span_lengths()
 {
     vector<uint64_t> output;
 
-    output.push_back(60L * 1000L * 1000L); // minute
-    output.push_back(60L * 60L * 1000L * 1000L); // hour
-    output.push_back(24L * 60L * 60L * 1000L * 1000L); // day
-    output.push_back(7L * 24L * 60L * 60L * 1000L * 1000L); // week
-    output.push_back(30L * 24L * 60L * 60L * 1000L * 1000L); // month
-    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L); // year
-    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L); // decade
-    output.push_back(12L * 30L * 24L * 60L * 60L * 1000L * 1000L * 10L * 50L); // semicentury
+    output.push_back(60LL * 1000LL * 1000LL); // minute
+    output.push_back(60LL * 60LL * 1000LL * 1000LL); // hour
+    output.push_back(24LL * 60LL * 60LL * 1000LL * 1000LL); // day
+    output.push_back(7LL * 24LL * 60LL * 60LL * 1000LL * 1000LL); // week
+    output.push_back(30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL); // month
+    output.push_back(12LL * 30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL); // year
+    output.push_back(12LL * 30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL * 10LL); // decade
+    output.push_back(12LL * 30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL * 10LL * 50LL); // semicentury
 
     return output;
 }

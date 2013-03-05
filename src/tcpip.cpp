@@ -340,7 +340,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     /* reduce length to write if it goes beyond the number of bytes per flow,
      * but remember to seek out to the actual position after the truncated write...
      */
-    ssize_t wlength = length;		// length to write
+    uint32_t wlength = length;		// length to write
     if (demux.opt.max_bytes_per_flow){
 	if(offset >= demux.opt.max_bytes_per_flow){
 	    wlength = 0;
@@ -399,13 +399,13 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
                (long) wlength, offset);
     
     if(fd>=0){
-	if (write(fd,data, wlength) != wlength) {
+      if ((uint32_t)write(fd,data, wlength) != wlength) {
 	    DEBUG(1) ("write to %s failed: ", flow_pathname.c_str());
 	    if (debug >= 1) perror("");
 	}
 	if(wlength != length){
 	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
-            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,(int64_t)(length-wlength),p);
+            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,(int64_t)(length-wlength),(int64_t)p);
 	}
     }
 

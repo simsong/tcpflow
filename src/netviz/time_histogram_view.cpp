@@ -252,13 +252,13 @@ vector<time_histogram_view::si_prefix> time_histogram_view::build_si_prefixes()
 {
     vector<si_prefix> output;
 
-    output.push_back(si_prefix("", 1L));
-    output.push_back(si_prefix("K", 1000L));
-    output.push_back(si_prefix("M", 1000L * 1000L));
-    output.push_back(si_prefix("G", 1000L * 1000L * 1000L));
-    output.push_back(si_prefix("T", 1000L * 1000L * 1000L * 1000L));
-    output.push_back(si_prefix("P", 1000L * 1000L * 1000L * 1000L * 1000L));
-    output.push_back(si_prefix("E", 1000L * 1000L * 1000L * 1000L * 1000L * 1000L));
+    output.push_back(si_prefix("", 1LL));
+    output.push_back(si_prefix("K", 1000LL));
+    output.push_back(si_prefix("M", 1000LL * 1000LL));
+    output.push_back(si_prefix("G", 1000LL * 1000LL * 1000LL));
+    output.push_back(si_prefix("T", 1000LL * 1000LL * 1000LL * 1000LL));
+    output.push_back(si_prefix("P", 1000LL * 1000LL * 1000LL * 1000LL * 1000LL));
+    output.push_back(si_prefix("E", 1000LL * 1000LL * 1000LL * 1000LL * 1000LL * 1000LL));
 
     return output;
 }
