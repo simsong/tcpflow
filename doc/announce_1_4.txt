@@ -12,6 +12,18 @@ Completely rewritten TCP implementation that:
   retransmissions. If they do not match they are put in new transcript
   files.
 
+Completely rewritten HTTP parser
+
+* Handles multiple HTTP objects per connections
+
+* Optional http_cmd will run a program or script for each HTTP
+  attachment received as received. For example, to run the program
+  /bin/echo and provide the filename of the attachment for each
+  attachment, specify:
+
+      tcpflow -Shttp_cmd=/bin/echo ...
+
+
 New Scalability features:
 
 * Automatically creates new directories as necessary for output
