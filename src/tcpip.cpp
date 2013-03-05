@@ -174,8 +174,7 @@ int tcpip::open_file()
         } else {
             /* open an existing flow */
             fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
-            lseek(fd,pos,SEEK_SET);  /* SLG ADD 1 */
-            //pos = 0;               /* SLG ADD 1 */
+            lseek(fd,pos,SEEK_SET);  
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
         
@@ -358,7 +357,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
      */
     if (fd < 0 && wlength>0) {
 	if (open_file()) {
-	    DEBUG(1)("unable to open TCP file %s",flow_pathname.c_str());
+	    DEBUG(1)("unable to open TCP file %s  fd=%d  wlength=%d",
+                     flow_pathname.c_str(),fd,(int)wlength);
 	    return;
 	}
     }

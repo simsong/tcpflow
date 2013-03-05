@@ -75,7 +75,8 @@ tcpflow_SOURCES = datalink.cpp flow.cpp \
 	$(BE13_API) \
 	http-parser/http_parser.c \
 	http-parser/http_parser.h \
-	mime_map.cpp
+	mime_map.cpp \
+	mime_map.h
 
 EXTRA_DIST =\
 	http-parser/AUTHORS \

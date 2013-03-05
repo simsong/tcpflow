@@ -9,7 +9,7 @@ To compile for Linux
 
 Be sure you have the necessary precursors:
 
-    # yum -y install git gcc-c++ automake autoconf boost-devel cairo-devel pcap-devel
+    # yum -y install git gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel
 
 Download the sources with git, run bootstrap.sh, configure and make:
 
@@ -20,7 +20,7 @@ Download the sources with git, run bootstrap.sh, configure and make:
 
 To download and compile for Amazon AMI:
    ssh ec2-user@<your ec2 instance>
-   sudo bash yum -y install git make gcc-c++ automake autoconf boost-devel cairo-devel pcap-devel
+   sudo bash yum -y install git make gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel
    git clone --recursive https://github.com/simsong/tcpflow.git
    sh bootstrap.sh
 
