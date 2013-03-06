@@ -131,7 +131,7 @@ void tcpip::close_file()
 	times[0] = myflow.tstart;
 	times[1] = myflow.tstart;
 
-	DEBUG(5) ("%s: closing file", flow_pathname.c_str());
+	DEBUG(5) ("%s: closing file in tcpip::close_file", flow_pathname.c_str());
 	/* close the file and remember that it's closed */
 #if defined(HAVE_FUTIMES)
 	if(futimes(fd,times)){

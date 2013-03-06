@@ -38,6 +38,8 @@
 
 #define HTTP_CMD "http_cmd"
 std::string http_cmd;                   // command to run on each http object
+int http_subproc_max = 10;              // how many subprocesses are we allowed?
+int http_subproc = 0;                   // how many do we currently have?
 
 
 /* define a callback object for sharing state between scan_http() and its callbacks
@@ -367,9 +369,23 @@ int scan_http_cbo::on_message_complete()
             xml_fo << "<filesize>" << bytes_written << "</filesize></fileobject></byte_run>\n";
             if(xmlstream) *xmlstream << xml_fo.str();
         }
-        if(http_cmd.size()>0){
-            std::string cmd = http_cmd + " " + output_path;
-            system(cmd.c_str());
+        if(http_cmd.size()>0 && output_path.size()>0){
+            /* If we are at maximum number of subprocesses, wait for one to exit */
+            int status=0;
+            pid_t pid = 0;
+            while(http_subproc >= http_subproc_max){
+                pid = wait(&status);
+                http_subproc--;
+            }
+            /* Fork off a child */
+            pid = fork();
+            if(pid<0) die("Cannot fork child");
+            if(pid==0){
+                /* We are the child */
+                std::string cmd = http_cmd + " " + output_path;
+                exit(system(cmd.c_str()));
+            }
+            http_subproc++;
         }
     } else {
         /* Nothing written; erase the file */
