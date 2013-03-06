@@ -348,6 +348,7 @@ AC_CHECK_HEADERS([\
 	sys/socket.h \
 	sys/types.h \
 	sys/bitypes.h \
+	sys/wait.h \
 	unistd.h \
 	])
 

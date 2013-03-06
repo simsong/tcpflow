@@ -15,6 +15,11 @@
 
 #include "mime_map.h"
 
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
+
 #ifdef HAVE_LIBZ
 #  define ZLIB_CONST
 #  ifdef GNUC_HAS_DIAGNOSTIC_PRAGMA
