@@ -230,8 +230,13 @@ typedef struct {
 
 dlt_handlers handlers[] = {
     { dl_null,	   DLT_NULL },
-#ifdef DLT_RAW /* older versions of libpcap do not have DLT_RAW */
-    { dl_raw,      DLT_RAW },
+/* Some systems define DLT_RAW as 12, some as 14, and some as 101.
+ * So it is hard-coded here.
+ */
+#ifdef DLT_RAW 
+    { dl_raw,      12 },
+    { dl_raw,      14 },
+    { dl_raw,     101 },
 #endif
     { dl_ethernet, DLT_EN10MB },
     { dl_ethernet, DLT_IEEE802 },
@@ -253,7 +258,9 @@ pcap_handler find_handler(int datalink_type, const char *device)
 	      datalink_type, device);
 
     for (i = 0; handlers[i].handler != NULL; i++){
-	if (handlers[i].type == datalink_type) return handlers[i].handler;
+	if (handlers[i].type == datalink_type){
+            return handlers[i].handler;
+        }
     }
 
     die("sorry - unknown datalink type %d on interface %s", datalink_type, device);

@@ -38,6 +38,13 @@ public:;
     bool bit(int i) const {             // get the ith bit; 0 is MSB
         return (addr[i / 8]) & (1<<(7-i%8));
     }
+    uint32_t quad(int i) const {        // gets the ith quad as a 32-bit value
+        return (addr[i*4+0]<<24) | (addr[i*4+2]<<16) | (addr[i*4+1]<<8) |  (addr[i*4+3]<<0);
+    }
+    uint64_t dquad(int i) const {       // gets the first 64-bit half or the second 64-bit half
+        return (uint64_t)(quad(i*2+1))<<32 | (uint64_t)(quad(i*2));
+    }
+        
     inline bool operator ==(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))==0; };
     inline bool operator <=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))<=0; };
     inline bool operator > (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>0; };
@@ -45,10 +52,6 @@ public:;
     inline bool operator < (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(this->addr))<0; }
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-    inline in_addr_t quad0() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[0]; }
-    inline in_addr_t quad2() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[1]; }
-    inline in_addr_t quad3() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[2]; }
-    inline in_addr_t quad4() const { uint32_t *i = (uint32_t *)((uint8_t *)&addr); return i[3]; }
     inline bool isv4() const {		// is this an IPv6 address?
 	uint32_t *i = (uint32_t *)((uint8_t *)&addr);
 	return i[1]==0 && i[2]==0 && i[3]==0;
@@ -77,7 +80,7 @@ inline bool operator <(const struct timeval &a,const struct timeval &b) {
 class flow_addr {
 public:
     flow_addr():src(),dst(),sport(0),dport(0),family(0){ }
-    flow_addr(ipaddr s,ipaddr d,uint16_t sp,uint16_t dp,sa_family_t f):
+    flow_addr(const ipaddr &s,const ipaddr &d,uint16_t sp,uint16_t dp,sa_family_t f):
 	src(s),dst(d),sport(sp),dport(dp),family(f){
     }
     flow_addr(const flow_addr &f):src(f.src),dst(f.dst),sport(f.sport),dport(f.dport),
@@ -93,13 +96,14 @@ public:
 #pragma GCC diagnostic ignored "-Wcast-align"
     uint64_t hash() const {
 	if(family==AF_INET){
-	    const uint32_t *s =  (uint32_t *)src.addr; const uint64_t S0 = s[0];
-	    const uint32_t *d =  (uint32_t *)dst.addr; const uint64_t D0 = d[0];
-	    return (S0<<32 | D0) ^ (D0<<32 | S0) ^ (sport<<16 | dport);
+	    return ((uint64_t)(src.quad(0))<<32 | dst.quad(0))
+                ^ ((uint64_t)(dst.quad(0))<<32 | src.quad(0))
+                ^ (sport<<16 | dport);
 	} else {
-	    const uint64_t *s =  (uint64_t *)src.addr; const uint64_t S0 = s[0];const uint64_t S8 = s[1];
-	    const uint64_t *d =  (uint64_t *)dst.addr; const uint64_t D0 = d[0];const uint64_t D8 = d[1];
-	    return (S0<<32 ^ D0) ^ (D0<<32 ^ S0) ^ (S8 ^ D8) ^ (sport<<16 | dport);
+	    return (src.dquad(0)<<32 ^ dst.dquad(0))
+                ^ (dst.dquad(0)<<32 ^ src.dquad(0))
+                ^ (src.dquad(1) ^ dst.dquad(1))
+                ^ (sport<<16 | dport);
 	}
     }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -249,8 +253,8 @@ public:
     /** track the direction of the flow; this is largely unused */
     typedef enum {
 	unknown=0,			// unknown direction
-	dir_sc,				// server-to-client
-	dir_cs				// client-to-server
+	dir_sc,				// server-to-client 1 
+	dir_cs				// client-to-server 2
     } dir_t;
 	
 private:
@@ -297,7 +301,7 @@ public:;
     /* Stats */
     recon_set   *seen;                  // what we've seen; it must be * due to boost lossage
     uint64_t    last_byte;              // last byte in flow processed
-    uint64_t	last_packet_number;	// for finding most recent packet
+    uint64_t	last_packet_number;	// for finding most recent packet written
     uint64_t	out_of_order_count;	// all packets were contigious
     uint64_t    violations;		// protocol violation count
 
@@ -312,8 +316,15 @@ public:;
     void dump_xml(class xml *xmlreport,const std::string &xmladd);
 };
 
+/* print a tcpip data structure. Largely for debugging */
 inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
-    os << "tcpip[" << f.myflow << " isn:" << f.isn << " pos:" << f.pos << "]";
+    os << "tcpip[" << f.myflow
+       << " dir:" << int(f.dir) << " isn:" << f.isn << " nsn: " << f.nsn
+       << " sc:" << f.syn_count << " fc:" << f.fin_count << " fs:" << f.fin_size
+       << " pos:" << f.pos << " fd: " << f.fd << " cr:" << f.file_created 
+       << " lb:" << f.last_byte << " lpn:" << f.last_packet_number << " ooc:" << f.out_of_order_count
+       << "]";
+    if(f.fd>0) os << " ftell(" << f.fd << ")=" << lseek(f.fd,0L,SEEK_CUR);
     return os;
 }
 

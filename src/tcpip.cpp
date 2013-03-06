@@ -16,6 +16,10 @@
 
 #pragma GCC diagnostic ignored "-Weffc++"
 #pragma GCC diagnostic ignored "-Wshadow"
+
+static int ct=0;
+
+
 /* Create a new tcp object.
  * 
  * Creating a new object creates a new passive TCP/IP decoder.
@@ -116,12 +120,18 @@ tcpip::~tcpip()
  */
 void tcpip::close_file()
 {
+    ct++;
+    //std::cerr << "close_file0 " << ct << " " << *this << "\n";
+    if(ct==122){
+        //std::cerr << "ct==122\n";
+    }
+
     if (fd>=0){
 	struct timeval times[2];
 	times[0] = myflow.tstart;
 	times[1] = myflow.tstart;
 
-	DEBUG(5) ("%s: closing file", flow_pathname.c_str());
+	DEBUG(5) ("%s: closing file in tcpip::close_file", flow_pathname.c_str());
 	/* close the file and remember that it's closed */
 #if defined(HAVE_FUTIMES)
 	if(futimes(fd,times)){
@@ -142,6 +152,7 @@ void tcpip::close_file()
 	fd = -1;
     }
     demux.open_flows.erase(this);           // we are no longer open
+    //std::cerr << "close_file1 " << *this << "\n";
 }
 
 /*
@@ -152,8 +163,9 @@ void tcpip::close_file()
 
 int tcpip::open_file()
 {
+    ct++;
     if(fd<0){
-
+        //std::cerr << "open_file0 " << ct << " " << *this << "\n";
         /* If we don't have a filename, create the flow */
         if(flow_pathname.size()==0) {
             flow_pathname = myflow.new_filename(&fd,O_RDWR|O_BINARY|O_CREAT,0666);
@@ -162,8 +174,7 @@ int tcpip::open_file()
         } else {
             /* open an existing flow */
             fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
-            lseek(fd,0,SEEK_SET);  /* SLG ADD 1 */
-            pos = 0;               /* SLG ADD 1 */
+            lseek(fd,pos,SEEK_SET);  
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
         
@@ -178,6 +189,7 @@ int tcpip::open_file()
         /* Remember that we have this open */
         demux.open_flows.insert(this);
         if(demux.open_flows.size() > demux.max_open_flows) demux.max_open_flows = demux.open_flows.size();
+        //std::cerr << "open_file1 " << *this << "\n";
     }
     return 0;
 }
@@ -327,7 +339,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     /* reduce length to write if it goes beyond the number of bytes per flow,
      * but remember to seek out to the actual position after the truncated write...
      */
-    ssize_t wlength = length;		// length to write
+    uint32_t wlength = length;		// length to write
     if (demux.opt.max_bytes_per_flow){
 	if(offset >= demux.opt.max_bytes_per_flow){
 	    wlength = 0;
@@ -345,7 +357,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
      */
     if (fd < 0 && wlength>0) {
 	if (open_file()) {
-	    DEBUG(1)("unable to open TCP file %s",flow_pathname.c_str());
+	    DEBUG(1)("unable to open TCP file %s  fd=%d  wlength=%d",
+                     flow_pathname.c_str(),fd,(int)wlength);
 	    return;
 	}
     }
@@ -386,13 +399,13 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
                (long) wlength, offset);
     
     if(fd>=0){
-	if (write(fd,data, wlength) != wlength) {
+      if ((uint32_t)write(fd,data, wlength) != wlength) {
 	    DEBUG(1) ("write to %s failed: ", flow_pathname.c_str());
 	    if (debug >= 1) perror("");
 	}
 	if(wlength != length){
 	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
-            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,(int64_t)(length-wlength),p);
+            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,(int64_t)(length-wlength),(int64_t)p);
 	}
     }
 

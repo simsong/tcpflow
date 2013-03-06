@@ -3,12 +3,25 @@
 
 . ./test-subs.sh
 
-echo multifile test with varying number of maxfds
+testlist="1 2 3 4 10 100"
+deldir=yes
 
-for maxfds in 1 2 3 4 10 100 
+if test x$1 != x ; then
+  echo Just testing $1
+  testlist=$1
+  deldir=no
+fi
+  
+for maxfds in $testlist
 do
   /bin/rm -rf out
+  if test -x out ; then 
+    echo out directory not deleted.
+    ls -l out
+    exit 1
+  fi
   cmd="$TCPFLOW -f $maxfds -o out -X out/report.xml -r multifile_25_21.pcap -a"
+  $TCPFLOW -V
   echo $cmd
   if ! $cmd; then echo tcpdump failed; exit 1 ; fi
   checkmd5 "out/038.122.002.045.00080-192.168.123.101.04634" "e0971231a9473c40c2de398b73dc0d80" "3183"
@@ -69,7 +82,10 @@ do
   checkmd5 "out/192.168.123.101.04660-110.045.186.224.01120" "dcd18bf7b6572443215154539a37d75c" "363"
   checkmd5 "out/192.168.123.101.04661-110.045.186.224.01120" "d202ebd7c286d1ea4734bdbef69431c6" "323"
   checkmd5 "out/202.043.063.139.00443-192.168.123.101.04591" "722c54c6443119b6c411359b9b7a47c2" "53"
-  /bin/rm -rf out
+  if test $deldir == "yes" ; then
+    /bin/rm -rf out
+  fi
 done
+exit 0
   
 

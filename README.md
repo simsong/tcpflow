@@ -1,9 +1,5 @@
 TCPFLOW 1.3
 ===========
-
-By Simson L. Garfinkel <simsong@acm.org>
-originally by Jeremy Elson <jelson@circlemud.org>
-
 Downloads directory: http://www.digitalcorpora.org/downloads/tcpflow/
 
 
@@ -11,23 +7,34 @@ Compiling
 ---------
 To compile for Linux
 
+Be sure you have the necessary precursors:
+
+    # yum -y install git gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel
+
 Download the sources with git, run bootstrap.sh, configure and make:
 
     git clone --recursive https://github.com/simsong/tcpflow.git
     cd tcpflow
     sh bootstrap.sh
-    ./configure
+
+
+To download and compile for Amazon AMI:
+   ssh ec2-user@<your ec2 instance>
+   sudo bash yum -y install git make gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel
+   git clone --recursive https://github.com/simsong/tcpflow.git
+   sh bootstrap.sh
+
 
 To Compile for Windows with mingw on Fedora Core:
-
 
 Be sure that mingw is installed, then 
 
 
 
 
-Introduction
-------------
+
+Introduction To tcpflow
+=======================
 
 tcpflow is a program that captures data transmitted as part of TCP
 connections (flows), and stores the data in a way that is convenient
@@ -152,5 +159,11 @@ Please enter bugs on the [github issue tracker](https://github.com/simsong/tcpfl
 tcpflow currently does not understand IP fragments.  Flows containing
 IP fragments will not be recorded correctly. IP fragmentation is
 increasingly a rare event, so this does not seem to be a significant problem.
+
+
+Author
+======
+By Simson L. Garfinkel <simsong@acm.org>
+originally by Jeremy Elson <jelson@circlemud.org>
 
 

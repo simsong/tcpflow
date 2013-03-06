@@ -26,13 +26,14 @@ public:
     plot_view() :
         title("graph of things"), subtitle("x vs y"),
         x_label("x axis"), y_label("y axis"), x_tick_labels(), y_tick_labels(),
+        right_tick_labels(),
         legend(), width(161.803), height(100.000), title_on_bottom(false),
         title_font_size(8.0), x_axis_font_size(8.0), y_axis_font_size(8.0),
         title_max_width_ratio(0.8), title_y_pad_factor(2.0), subtitle_y_pad_factor(0.2),
         subtitle_font_size_factor(0.4), axis_thickness_factor(0.002),
         tick_length_factor(0.0124), tick_width_factor(0.002),
-        x_tick_label_pad_factor(4.0), y_tick_label_pad_factor(2.0),
-        x_tick_font_size(3.0), y_tick_font_size(3.0), pad_left_factor(0.148),
+        x_tick_label_pad_factor(4.0), y_tick_label_pad_factor(2.0), right_tick_label_pad_factor(2.0),
+        x_tick_font_size(3.0), y_tick_font_size(3.0), right_tick_font_size(3.0), pad_left_factor(0.148),
         pad_top_factor(0.2), pad_bottom_factor(0.2), pad_right_factor(0.148),
         legend_chip_factor(1.2), legend_font_size(2.5),
         x_axis_decoration(AXIS_NO_DECO), y_axis_decoration(AXIS_NO_DECO) {}
@@ -75,7 +76,7 @@ public:
 
     std::string title, subtitle;
     std::string x_label, y_label;
-    std::vector<std::string> x_tick_labels, y_tick_labels;
+    std::vector<std::string> x_tick_labels, y_tick_labels, right_tick_labels;
     std::vector<legend_entry_t> legend;
     // width and height are in pt
     double width, height;
@@ -97,8 +98,8 @@ public:
     // size of scale ticks, in pt
     double tick_length_factor, tick_width_factor;
     // multiple of label dummy text length to allocate for spacing
-    double x_tick_label_pad_factor, y_tick_label_pad_factor;
-    double x_tick_font_size, y_tick_font_size;
+    double x_tick_label_pad_factor, y_tick_label_pad_factor, right_tick_label_pad_factor;
+    double x_tick_font_size, y_tick_font_size, right_tick_font_size;
     // non-dynamic padding for the right and bottom of graph
     double pad_left_factor, pad_top_factor, pad_bottom_factor, pad_right_factor;
     // legend
