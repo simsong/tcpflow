@@ -20,6 +20,14 @@ public:
     typedef uint16_t port_t;
     typedef uint32_t timescale_off_t;
 
+    class span_params {
+    public:
+        span_params(count_t usec_, count_t bucket_count_) :
+            usec(usec_), bucket_count(bucket_count_) {}
+        count_t usec;
+        count_t bucket_count;
+    };
+
     // a bucket counts packets received in a given timeframe, organized by TCP port
     class bucket {
     public:
@@ -32,27 +40,28 @@ public:
     };
     class histogram_map {
     public:
-        histogram_map(uint64_t time_span_) :
-            buckets(), bucket_width(time_span_ / bucket_count), base_time(0),
-            time_span(time_span_), sum(0), greatest_bucket_sum(0) {}
+        histogram_map(span_params span_) :
+            span(span_), buckets(), bucket_width(span.usec / span.bucket_count),
+            base_time(0), sum(0), greatest_bucket_sum(0) {}
 
+        span_params span;
         std::map<timescale_off_t, bucket> buckets;
         uint64_t bucket_width;
         uint64_t base_time;
-        uint64_t time_span;
         count_t sum;
         uint64_t greatest_bucket_sum;
 
         // returns true if the insertion resulted in over/underflow
-        bool insert(const struct timeval &ts, const port_t port);
+        bool insert(const struct timeval &ts, const port_t port, const count_t count = 1);
     };
 
     static const timescale_off_t bucket_count;
     static const float underflow_pad_factor;
-    static const std::vector<uint64_t> span_lengths; // in microseconds
+    static const std::vector<span_params> spans; // in microseconds
     static const bucket empty_bucket;
 
     void insert(const struct timeval &ts, const port_t port);
+    void condense(int factor);
     uint64_t usec_per_bucket() const;
     count_t packet_count() const;
     time_t start_date() const;
@@ -65,7 +74,7 @@ public:
     std::map<timescale_off_t, bucket>::const_iterator end() const;
     std::map<timescale_off_t, bucket>::const_reverse_iterator rbegin() const;
     std::map<timescale_off_t, bucket>::const_reverse_iterator rend() const;
-    static std::vector<uint64_t> build_span_lengths();
+    static std::vector<span_params> build_spans();
 
 private:
     std::vector<histogram_map> histograms;

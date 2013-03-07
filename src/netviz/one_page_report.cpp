@@ -23,6 +23,7 @@
 
 using namespace std;
 
+const unsigned int one_page_report::max_bars = 200;
 const unsigned int one_page_report::port_colors_count = 4;
 // string constants
 const string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
@@ -190,6 +191,10 @@ void one_page_report::render(const string &outdir)
     pass.render_header();
     
     // time histogram
+    size_t packet_histogram_bars = packet_histogram.non_sparse_size();
+    if(packet_histogram_bars > max_bars) {
+        packet_histogram.condense(packet_histogram_bars / max_bars);
+    }
     time_histogram_view th_view(packet_histogram, port_color_map, default_color,
             cdf_color);
     pass.render(th_view);

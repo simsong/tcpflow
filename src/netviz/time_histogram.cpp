@@ -23,20 +23,18 @@ time_histogram::time_histogram() :
     earliest_ts = (struct timeval) { 0 };
     latest_ts = (struct timeval) { 0 };
 
-    for(vector<uint64_t>::const_iterator it = span_lengths.begin();
-            it != span_lengths.end(); it++) {
+    for(vector<span_params>::const_iterator it = spans.begin();
+            it != spans.end(); it++) {
         histograms.push_back(histogram_map(*it));
     }
 }
 
-const time_histogram::timescale_off_t time_histogram::bucket_count = 600;
 const float time_histogram::underflow_pad_factor = 0.1;
 
-// span_lengths dictates the granularities of each histogram.  One histogram
-// will be created per entry in this vector.  Each value must be greater than
-// the previous
-const vector<uint64_t> time_histogram::span_lengths =
-        time_histogram::build_span_lengths(); // in microseconds
+// spans dictates the granularities of each histogram.  One histogram
+// will be created per entry in this vector.  Each value must have a greater
+// value of seconds than the previous
+const vector<time_histogram::span_params> time_histogram::spans = time_histogram::build_spans();
 const time_histogram::bucket time_histogram::empty_bucket;
 
 void time_histogram::insert(const struct timeval &ts, const port_t port)
@@ -58,6 +56,31 @@ void time_histogram::insert(const struct timeval &ts, const port_t port)
             best_fit_index++;
         }
     }
+}
+
+// combine each bucket with (factor - 1) subsequent neighbors and increase bucket width by factor
+// lots of possible optimizations ignored for simplicity's sake
+void time_histogram::condense(int factor)
+{
+    const histogram_map &original = histograms.at(best_fit_index);
+    histogram_map condensed(span_params(original.span.usec, original.span.bucket_count / factor));
+
+    for(map<timescale_off_t, bucket>::const_iterator it = original.buckets.begin();
+            it != original.buckets.end(); it++) {
+
+        const bucket &bkt = it->second;
+        uint64_t recons_usec = it->first * original.bucket_width + original.base_time;
+        //uint64_t recons_usec = it->first + original.base_time;
+        struct timeval reconstructed_ts = { (time_t) (recons_usec % 1000 * 1000),
+            (time_t) (recons_usec / 1000 * 1000) };
+
+        for(map<port_t, count_t>::const_iterator jt = bkt.counts.begin();
+                jt != bkt.counts.end(); jt++) {
+            condensed.insert(reconstructed_ts, jt->first, jt->second);
+        }
+    }
+
+    histograms.at(best_fit_index) = condensed;
 }
 
 uint64_t time_histogram::usec_per_bucket() const
@@ -133,41 +156,57 @@ map<time_histogram::timescale_off_t, time_histogram::bucket>::const_reverse_iter
     return histograms.at(best_fit_index).buckets.rend();
 }
 
-vector<uint64_t> time_histogram::build_span_lengths()
+vector<time_histogram::span_params> time_histogram::build_spans()
 {
-    vector<uint64_t> output;
+    vector<span_params> output;
 
-    output.push_back(60LL * 1000LL * 1000LL); // minute
-    output.push_back(60LL * 60LL * 1000LL * 1000LL); // hour
-    output.push_back(24LL * 60LL * 60LL * 1000LL * 1000LL); // day
-    output.push_back(7LL * 24LL * 60LL * 60LL * 1000LL * 1000LL); // week
-    output.push_back(30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL); // month
-    output.push_back(12LL * 30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL); // year
-    output.push_back(12LL * 30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL * 10LL); // decade
-    output.push_back(12LL * 30LL * 24LL * 60LL * 60LL * 1000LL * 1000LL * 10LL * 50LL); // semicentury
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL, // minute
+                600)); // 600 0.1 second buckets
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL * 60LL, // hour
+                3600)); // 3,600 1 second buckets
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL * 60LL * 24LL, // day
+                1440)); // 1,440 1 minute buckets
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL * 60LL * 24LL * 7LL, // week
+                1008)); // 1,008 10 minute buckets
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL * 60LL * 24LL * 30LL, // month
+                720)); // 720 1 hour buckets
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL * 60LL * 24LL * 30LL * 12LL, // year
+                360)); // 360 1 day buckets
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL * 60LL * 24LL * 30LL * 12LL * 10LL, // decade
+                514)); // 514 7.004 day (~week) buckets
+    output.push_back(span_params(
+                1000LL * 1000LL * 60LL * 60LL * 24LL * 30LL * 12LL * 50LL, // semicentury
+                200)); // 200 3 month intervals
 
     return output;
 }
 
 // time histogram map
 
-bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_t port)
+bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_t port, const count_t count)
 {
     uint64_t raw_time = ts.tv_sec * (1000L * 1000L) + ts.tv_usec;
     if(base_time == 0) {
-        base_time = raw_time - (bucket_width * (bucket_count * underflow_pad_factor));
+        base_time = raw_time - (bucket_width * (span.bucket_count * underflow_pad_factor));
     }
 
     timescale_off_t target_index = (raw_time - base_time) / bucket_width;
 
-    if(target_index >= bucket_count) {
+    if(target_index >= span.bucket_count) {
         return true;
     }
 
-    sum++;
+    sum += count;
 
     bucket &target = buckets[target_index];
-    target.increment(port, 1);
+    target.increment(port, count);
 
     if(target.sum > greatest_bucket_sum) {
         greatest_bucket_sum = target.sum;

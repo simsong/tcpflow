@@ -63,6 +63,7 @@ public:
 
     static std::vector<transport_type> build_display_transports();
 
+    static const unsigned int max_bars;
     static const unsigned int port_colors_count;
     // string constants
     static const std::string title_version;
