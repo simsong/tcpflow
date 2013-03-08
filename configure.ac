@@ -524,6 +524,11 @@ if test "${with_opt}" = "no" ; then
   AC_MSG_NOTICE([Dropping optimization flags])
   CFLAGS=`echo "$CFLAGS" | sed s/-O[[0-9]]//`             # note the double quoting! 
   CXXFLAGS=`echo "$CXXFLAGS" | sed s/-O[[0-9]]//`
+
+  AC_MSG_NOTICE([Removing -D_FORTIFY_SOURCE=2])
+  CPPFLAGS=`echo $CPPFLAGS | sed s/-D_FORTIFY_SOURCE=2//`
+  CXXFLAGS=`echo $CXXFLAGS | sed s/-D_FORTIFY_SOURCE=2//`
+  CFLAGS=`echo $CFLAGS | sed s/-D_FORTIFY_SOURCE=2//`
 else
   # and increase optimizer from -O2 to -O3 if not explicitly forbidden
   if test "${with_o3}" != "no" ; then
