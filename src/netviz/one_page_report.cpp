@@ -139,7 +139,23 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
             return;
     }
 
-    packet_histogram.insert(pi.ts, tcp_src);
+    // if either the TCP source or destination is a pre-colored port, submit that
+    // port to the time histogram
+    map<uint16_t, plot_view::rgb_t>::const_iterator
+            tcp_src_color = port_color_map.find(tcp_src),
+            tcp_dst_color = port_color_map.find(tcp_dst);
+    uint16_t packet_histogram_port = tcp_src;
+    // if dst is colored and src isn't; use dst instead
+    if(tcp_dst_color != port_color_map.end() && tcp_src_color == port_color_map.end()) {
+        packet_histogram_port = tcp_dst;
+    }
+    // if both are colored, alternate src and dst
+    else if(tcp_src_color != port_color_map.end() && tcp_dst_color != port_color_map.end() &&
+            packet_count % 2 == 0) {
+        packet_histogram_port = tcp_dst;
+    }
+    packet_histogram.insert(pi.ts, packet_histogram_port);
+
     src_port_histogram.increment(tcp_src, pi.ip_datalen);
     dst_port_histogram.increment(tcp_dst, pi.ip_datalen);
 }
