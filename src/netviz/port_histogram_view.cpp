@@ -38,7 +38,7 @@ port_histogram_view::port_histogram_view(port_histogram &histogram_,
 const double port_histogram_view::bar_space_factor = 1.2;
 const double port_histogram_view::bar_chip_size_factor = 0.04;
 const double port_histogram_view::cdf_line_width = 0.5;
-const double port_histogram_view::data_width_factor = 0.9;
+const double port_histogram_view::data_width_factor = 0.95;
 
 void port_histogram_view::render(cairo_t *cr, const plot_view::bounds_t &bounds)
 {
@@ -60,7 +60,7 @@ void port_histogram_view::render_data(cairo_t *cr, const plot_view::bounds_t &bo
     }
 
     double data_width = bounds.width * data_width_factor;
-    double data_offset = (bounds.width - data_width) / 2.0;
+    double data_offset = 0;
     bounds_t data_bounds(bounds.x + data_offset, bounds.y,
             data_width, bounds.height);
 

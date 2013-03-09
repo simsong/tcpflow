@@ -37,7 +37,7 @@ address_histogram_view::address_histogram_view(const address_histogram &histogra
 const double address_histogram_view::bar_space_factor = 1.2;
 const size_t address_histogram_view::compressed_ip6_str_max_len = 16;
 const double address_histogram_view::cdf_line_width = 0.5;
-const double address_histogram_view::data_width_factor = 0.65;
+const double address_histogram_view::data_width_factor = 0.85;
 
 void address_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
 {
@@ -59,7 +59,7 @@ void address_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     }
 
     double data_width = bounds.width * data_width_factor;
-    double data_offset = (bounds.width - data_width) / 2.0;
+    double data_offset = 0;
     bounds_t data_bounds(bounds.x + data_offset, bounds.y,
             data_width, bounds.height);
 
