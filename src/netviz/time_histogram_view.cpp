@@ -29,7 +29,7 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
     y_tick_font_size = 6.0;
     right_tick_font_size = 6.0;
     x_axis_font_size = 8.0;
-    x_axis_decoration = plot_view::AXIS_SPAN_ARROW;
+    x_axis_decoration = plot_view::AXIS_SPAN_STOP;
     y_label = "TCP packets";
 }
 
