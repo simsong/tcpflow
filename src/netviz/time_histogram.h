@@ -13,9 +13,6 @@ class time_histogram {
 public:
     time_histogram();
 
-    typedef enum {
-        MINUTE = 0, HOUR, DAY, WEEK, MONTH, YEAR
-    } span_t;
     typedef uint64_t count_t;
     typedef uint16_t port_t;
     typedef uint32_t timescale_off_t;
