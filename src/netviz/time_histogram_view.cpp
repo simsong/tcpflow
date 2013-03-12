@@ -132,7 +132,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
             for(vector<time_unit>::const_iterator it = time_units.begin();
                     it != time_units.end(); it++) {
                 
-                if(it + 1 == time_units.end() || bar_interval <= (it+1)->seconds) {
+                if(it + 1 == time_units.end() || bar_interval < (it+1)->seconds) {
                     interval_name = it->name;
                     interval_value = bar_interval / it->seconds;
                     break;
