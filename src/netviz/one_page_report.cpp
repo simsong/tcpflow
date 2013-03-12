@@ -119,24 +119,32 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
 
     // feed TCP views
     uint16_t tcp_src = 0, tcp_dst = 0;
+    bool has_tcp = false;
 
     switch(ip_ver) {
         case 4:
             if(!pi.is_ip4_tcp()) {
-                return;
+                break;
             }
             tcp_src = pi.get_ip4_tcp_sport();
             tcp_dst = pi.get_ip4_tcp_dport();
+            has_tcp = true;
             break;
         case 6:
             if(!pi.is_ip6_tcp()) {
-                return;
+                break;
             }
             tcp_src = pi.get_ip6_tcp_sport();
             tcp_dst = pi.get_ip6_tcp_dport();
+            has_tcp = true;
             break;
         default:
             return;
+    }
+
+    if(!has_tcp) {
+        packet_histogram.insert(pi.ts, 0, 1, time_histogram::F_NON_TCP);
+        return;
     }
 
     // if either the TCP source or destination is a pre-colored port, submit that

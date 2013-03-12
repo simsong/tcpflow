@@ -30,7 +30,7 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
     right_tick_font_size = 6.0;
     x_axis_font_size = 8.0;
     x_axis_decoration = plot_view::AXIS_SPAN_STOP;
-    y_label = "TCP packets";
+    y_label = "packets";
 }
 
 const uint8_t time_histogram_view::y_tick_count = 5;
@@ -40,6 +40,8 @@ const vector<time_histogram_view::time_unit> time_histogram_view::time_units =
         time_histogram_view::build_time_units();
 const vector<time_histogram_view::si_prefix> time_histogram_view::si_prefixes =
         time_histogram_view::build_si_prefixes();
+const double time_histogram_view::blank_bar_line_width = 0.25;
+const time_histogram_view::rgb_t time_histogram_view::blank_bar_line_color(0.0, 0.0, 0.0);
 
 void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
 {
@@ -49,7 +51,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
     uint64_t bar_interval = histogram.usec_per_bucket() / (1000 * 1000);
     time_t duration = histogram.end_date() - histogram.start_date();
     if(histogram.packet_count() == 0) {
-        x_label = "no TCP packets received";
+        x_label = "no packets received";
         x_axis_decoration = plot_view::AXIS_SPAN_STOP;
     }
     else {
@@ -317,6 +319,17 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
         cairo_fill(cr);
 
         total_height -= height;
+    }
+
+    // non-TCP packets
+    if(bucket.portless_count > 0) {
+        double height = bounds.height * ((double) bucket.portless_count / (double) bucket.sum);
+        cairo_set_source_rgb(cr, blank_bar_line_color.r, blank_bar_line_color.g, blank_bar_line_color.b);
+        double offset = blank_bar_line_width / 2;
+        cairo_set_line_width(cr, blank_bar_line_width);
+        cairo_rectangle(cr, bounds.x + offset, total_height - height + offset,
+                bounds.width - blank_bar_line_width, height - blank_bar_line_width);
+        cairo_stroke(cr);
     }
 }
 

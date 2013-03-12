@@ -36,8 +36,10 @@ const float time_histogram::underflow_pad_factor = 0.1;
 // value of seconds than the previous
 const vector<time_histogram::span_params> time_histogram::spans = time_histogram::build_spans();
 const time_histogram::bucket time_histogram::empty_bucket;
+const unsigned int time_histogram::F_NON_TCP = 0x01;
 
-void time_histogram::insert(const struct timeval &ts, const port_t port)
+void time_histogram::insert(const struct timeval &ts, const port_t port, const count_t count,
+        const unsigned int flags)
 {
     sum++;
     if(earliest_ts.tv_sec == 0 || (ts.tv_sec < earliest_ts.tv_sec ||
@@ -49,7 +51,7 @@ void time_histogram::insert(const struct timeval &ts, const port_t port)
     }
     for(vector<histogram_map>::iterator it = histograms.begin() + best_fit_index;
             it != histograms.end(); it++) {
-        bool overflowed = it->insert(ts, port);
+        bool overflowed = it->insert(ts, port, count, flags);
         // if there was an overflow and the best fit isn't already the least
         // granular histogram, downgrade granularity by one step
         if(overflowed && best_fit_index < histograms.size() - 1) {
@@ -78,6 +80,7 @@ void time_histogram::condense(int factor)
                 jt != bkt.counts.end(); jt++) {
             condensed.insert(reconstructed_ts, jt->first, jt->second);
         }
+        condensed.insert(reconstructed_ts, 0, bkt.portless_count, F_NON_TCP);
     }
 
     histograms.at(best_fit_index) = condensed;
@@ -190,7 +193,8 @@ vector<time_histogram::span_params> time_histogram::build_spans()
 
 // time histogram map
 
-bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_t port, const count_t count)
+bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_t port, const count_t count,
+        const unsigned int flags)
 {
     uint64_t raw_time = ts.tv_sec * (1000L * 1000L) + ts.tv_usec;
     if(base_time == 0) {
@@ -206,7 +210,7 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_
     sum += count;
 
     bucket &target = buckets[target_index];
-    target.increment(port, count);
+    target.increment(port, count, flags);
 
     if(target.sum > greatest_bucket_sum) {
         greatest_bucket_sum = target.sum;
@@ -217,8 +221,13 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_
 
 // time histogram bucket
 
-inline void time_histogram::bucket::increment(port_t port, count_t delta)
+inline void time_histogram::bucket::increment(port_t port, count_t delta, unsigned int flags)
 {
-    counts[port] += delta;
+    if(flags & F_NON_TCP) {
+        portless_count += delta;
+    }
+    else {
+        counts[port] += delta;
+    }
     sum += delta;
 }

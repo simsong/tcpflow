@@ -28,12 +28,13 @@ public:
     // a bucket counts packets received in a given timeframe, organized by TCP port
     class bucket {
     public:
-        bucket() : counts(), sum() {}
+        bucket() : counts(), portless_count(), sum() {}
 
         std::map<port_t, count_t> counts;
+        count_t portless_count;
         count_t sum;
 
-        void increment(port_t port, count_t delta);
+        void increment(port_t port, count_t delta, unsigned int flags = 0x00);
     };
     class histogram_map {
     public:
@@ -49,15 +50,18 @@ public:
         uint64_t greatest_bucket_sum;
 
         // returns true if the insertion resulted in over/underflow
-        bool insert(const struct timeval &ts, const port_t port, const count_t count = 1);
+        bool insert(const struct timeval &ts, const port_t port, const count_t count = 1,
+                const unsigned int flags = 0x00);
     };
 
     static const timescale_off_t bucket_count;
     static const float underflow_pad_factor;
     static const std::vector<span_params> spans; // in microseconds
     static const bucket empty_bucket;
+    static const unsigned int F_NON_TCP;
 
-    void insert(const struct timeval &ts, const port_t port);
+    void insert(const struct timeval &ts, const port_t port, const count_t count = 1,
+            const unsigned int flags = 0x00);
     void condense(int factor);
     uint64_t usec_per_bucket() const;
     count_t packet_count() const;

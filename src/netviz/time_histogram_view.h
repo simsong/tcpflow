@@ -51,6 +51,8 @@ public:
     static const double cdf_line_width;
     static const std::vector<time_unit> time_units;
     static const std::vector<si_prefix> si_prefixes;
+    static const double blank_bar_line_width;
+    static const rgb_t blank_bar_line_color;
 
     void render(cairo_t *cr, const bounds_t &bounds);
     void render_data(cairo_t *cr, const bounds_t &bounds);
