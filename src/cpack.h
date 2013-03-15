@@ -30,7 +30,7 @@
 #ifndef _CPACK_H
 #define _CPACK_H
 
-#include "os.h"
+//#include "os.h"
 
 struct cpack_state {
 	u_int8_t					*c_buf;

@@ -251,7 +251,19 @@ typedef size_t socklen_t;
 
 #include "be13_api/bulk_extractor_i.h"
   
-/***************************** Macros *************************************/
+/***************************** Main Support *************************************/
+
+/* tcpflow.cpp - CLI */
+extern const char *progname;
+void    terminate(int sig) __attribute__ ((__noreturn__));
+#ifndef HAVE_INET_NTOP
+const char *inet_ntop(int af, const void *src,char *dst, socklen_t size);
+#endif
+
+#ifdef HAVE_PTHREAD
+#include <semaphore.h>
+extern sem_t *semlock;
+#endif
 
 #ifndef __MAIN_C__
 extern int debug;
@@ -259,25 +271,18 @@ extern int debug;
 
 #define DEBUG(message_level) if (debug >= message_level) debug_real
 
-
-/************************* Function prototypes ****************************/
+/************************* per-file globals  ****************************/
 
 /* datalink.cpp - callback for libpcap */
 extern int32_t datalink_tdelta;                                   // time delta to add to each packet
 pcap_handler find_handler(int datalink_type, const char *device); // callback for pcap
+typedef struct {
+    pcap_handler handler;
+    int type;
+} dlt_handler_t;
 
-/* tcpflow.cpp - CLI */
-#ifndef HAVE_INET_NTOP
-const char *inet_ntop(int af, const void *src,char *dst, socklen_t size);
-#endif
+void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 
-extern const char *progname;
-void terminate(int sig) __attribute__ ((__noreturn__));
-
-#ifdef HAVE_PTHREAD
-#include <semaphore.h>
-extern sem_t *semlock;
-#endif
 
 /* util.cpp - utility functions */
 extern int debug;

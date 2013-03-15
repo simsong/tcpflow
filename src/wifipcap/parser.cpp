@@ -1901,6 +1901,7 @@ void handle_packet(u_char *user, const struct pcap_pkthdr *header, const u_char 
     Wifipcap *wcap = data->wcap;
     WifipcapCallbacks *cbs = data->cbs;
 
+#if 0
     if (wcap->startTime == TIME_NONE) {
 	wcap->startTime = header->ts;
 	wcap->lastPrintTime = header->ts;
@@ -1916,6 +1917,7 @@ void handle_packet(u_char *user, const struct pcap_pkthdr *header, const u_char 
 	wcap->lastPrintTime = header->ts;
     }
     wcap->packetsProcessed++;
+#endif
 
     cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
     int frameOffset = 0;

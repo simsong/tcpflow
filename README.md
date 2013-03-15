@@ -161,9 +161,16 @@ IP fragments will not be recorded correctly. IP fragmentation is
 increasingly a rare event, so this does not seem to be a significant problem.
 
 
-Author
+Authors
 ======
-By Simson L. Garfinkel <simsong@acm.org>
-originally by Jeremy Elson <jelson@circlemud.org>
+Simson L. Garfinkel <simsong@acm.org>
+  - Current version and maintenance
+Jeffrey Pang <jeffpang@cs.cmu.edu> 
+  - radiotap implementation
+Doug Madory
+  - Wifi parser
+Jeremy Elson <jelson@circlemud.org>
+  - Original idea and initial tcp/ip implementation
+
 
 

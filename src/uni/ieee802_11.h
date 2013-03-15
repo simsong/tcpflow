@@ -4,6 +4,7 @@
  * Copyright (c) 2001
  *	Fortress Technologies
  *      Charlie Lenahan ( clenahan@fortresstech.com )
+ * 2013-03-15 - Simson Garfinkel - Updated for compiling on a modern compiler.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that: (1) source code distributions
@@ -24,6 +25,8 @@
 
 #ifndef _WLANSEC_IEEE802_11_H
 #define _WLANSEC_IEEE802_11_H 1
+
+//static const char *charlie_lenahan_copyright="Portions Copyright (C) 2001 Fortress Technologies";
 
 /* Lengths of 802.11 header components. */
 #define	IEEE802_11_FC_LEN		2
@@ -108,18 +111,18 @@
 #define	FC_ORDER(fc)		((fc) & 0x8000)
 
 struct mgmt_header_t {
+    mgmt_header_t():fc(),duration(),da(),sa(),bssid(),seq(),frag(){};
     u_int16_t fc;
     u_int16_t duration;
     MAC da;
     MAC sa;
     MAC bssid;
-    
     u_int16_t seq;
     u_int8_t  frag;
 };
 
-#define	MGMT_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+\
-			 IEEE802_11_DA_LEN+IEEE802_11_SA_LEN+\
+#define	MGMT_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+          \
+			 IEEE802_11_DA_LEN+IEEE802_11_SA_LEN+           \
 			 IEEE802_11_BSSID_LEN+IEEE802_11_SEQ_LEN)
 
 #define	CAPABILITY_ESS(cap)	((cap) & 0x0001)
@@ -129,61 +132,65 @@ struct mgmt_header_t {
 #define	CAPABILITY_PRIVACY(cap)	((cap) & 0x0010)
 
 typedef enum {
-	NOT_PRESENT,
-	PRESENT,
-	TRUNCATED
+    NOT_PRESENT,
+    PRESENT,
+    TRUNCATED
 } elem_status_t;
 
 
 struct ssid_t {
-	u_int8_t	element_id;
-	u_int8_t	length;
-	u_char		ssid[33];  /* 32 + 1 for null */
+    ssid_t():element_id(),length(),ssid(){};
+    u_int8_t	element_id;
+    u_int8_t	length;
+    u_char		ssid[33];  /* 32 + 1 for null */
 };
 
 struct rates_t {
-	u_int8_t	element_id;
-	u_int8_t	length;
-	u_int8_t	rate[16];
+    rates_t():element_id(),length(),rate(){};
+    u_int8_t	element_id;
+    u_int8_t	length;
+    u_int8_t	rate[16];
 };
 
 struct challenge_t {
-	u_int8_t	element_id;
-	u_int8_t	length;
-	u_int8_t	text[254]; /* 1-253 + 1 for null */
+    challenge_t():element_id(),length(),text(){};
+    u_int8_t	element_id;
+    u_int8_t	length;
+    u_int8_t	text[254]; /* 1-253 + 1 for null */
 };
 
 struct fh_t {
-	u_int8_t	element_id;
-	u_int8_t	length;
-	u_int16_t	dwell_time;
-	u_int8_t	hop_set;
-	u_int8_t 	hop_pattern;
-	u_int8_t	hop_index;
+    fh_t():element_id(),length(),dwell_time(),hop_set(),hop_pattern(),hop_index(){};
+    u_int8_t	element_id;
+    u_int8_t	length;
+    u_int16_t	dwell_time;
+    u_int8_t	hop_set;
+    u_int8_t 	hop_pattern;
+    u_int8_t	hop_index;
 };
 
 struct ds_t {
-	u_int8_t	element_id;
-	u_int8_t	length;
-	u_int8_t	channel;
+    u_int8_t	element_id;
+    u_int8_t	length;
+    u_int8_t	channel;
 };
 
 struct cf_t {
-	u_int8_t	element_id;
-	u_int8_t	length;
-	u_int8_t	count;
-	u_int8_t	period;
-	u_int16_t	max_duration;
-	u_int16_t	dur_remaing;
+    u_int8_t	element_id;
+    u_int8_t	length;
+    u_int8_t	count;
+    u_int8_t	period;
+    u_int16_t	max_duration;
+    u_int16_t	dur_remaing;
 };
 
 struct tim_t {
-	u_int8_t	element_id;
-	u_int8_t	length;
-	u_int8_t	count;
-	u_int8_t	period;
-	u_int8_t	bitmap_control;
-	u_int8_t	bitmap[251];
+    u_int8_t	element_id;
+    u_int8_t	length;
+    u_int8_t	count;
+    u_int8_t	period;
+    u_int8_t	bitmap_control;
+    u_int8_t	bitmap[251];
 };
 
 #define	E_SSID 		0
@@ -212,35 +219,39 @@ struct tim_t {
 /* reserved 		16 */
 
 struct mgmt_body_t {
-	u_int8_t   	timestamp[IEEE802_11_TSTAMP_LEN];
-	u_int16_t  	beacon_interval;
-	u_int16_t 	listen_interval;
-	u_int16_t 	status_code;
-	u_int16_t 	aid;
-	u_char		ap[IEEE802_11_AP_LEN];
-	u_int16_t	reason_code;
-	u_int16_t	auth_alg;
-	u_int16_t	auth_trans_seq_num;
-	elem_status_t	challenge_status;
-	struct challenge_t  challenge;
-	u_int16_t	capability_info;
-	elem_status_t	ssid_status;
-	struct ssid_t	ssid;
-	elem_status_t	rates_status;
-	struct rates_t 	rates;
-	elem_status_t	ds_status;
-	struct ds_t	ds;
-	elem_status_t	cf_status;
-	struct cf_t	cf;
-	elem_status_t	fh_status;
-	struct fh_t	fh;
-	elem_status_t	tim_status;
-	struct tim_t	tim;
+    mgmt_body_t():timestamp(),beacon_interval(),listen_interval(),status_code(),aid(),ap(),reason_code(),auth_alg(),
+                  auth_trans_seq_num(),challenge_status(),challenge(),capability_info(),ssid_status(),ssid(),
+                  rates_status(),rates(),ds_status(),ds(),cf_status(),cf(),fh_status(),fh(),tim_status(),tim(){};
+    u_int8_t   	timestamp[IEEE802_11_TSTAMP_LEN];
+    u_int16_t  	beacon_interval;
+    u_int16_t 	listen_interval;
+    u_int16_t 	status_code;
+    u_int16_t 	aid;
+    u_char		ap[IEEE802_11_AP_LEN];
+    u_int16_t	reason_code;
+    u_int16_t	auth_alg;
+    u_int16_t	auth_trans_seq_num;
+    elem_status_t	challenge_status;
+    struct challenge_t  challenge;
+    u_int16_t	capability_info;
+    elem_status_t	ssid_status;
+    struct ssid_t	ssid;
+    elem_status_t	rates_status;
+    struct rates_t 	rates;
+    elem_status_t	ds_status;
+    struct ds_t	ds;
+    elem_status_t	cf_status;
+    struct cf_t	cf;
+    elem_status_t	fh_status;
+    struct fh_t	fh;
+    elem_status_t	tim_status;
+    struct tim_t	tim;
 };
 
 // XXX Jeff: no FCS fields are filled in right now
 
 struct ctrl_rts_t {
+    ctrl_rts_t():fc(),duration(),ra(),ta(),fcs(){}
     u_int16_t fc;
     u_int16_t duration;
     MAC ra;
@@ -248,10 +259,11 @@ struct ctrl_rts_t {
     u_int8_t fcs[4];
 };
 
-#define	CTRL_RTS_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+\
+#define	CTRL_RTS_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+  \
 			 IEEE802_11_RA_LEN+IEEE802_11_TA_LEN)
 
 struct ctrl_cts_t {
+    ctrl_cts_t():fc(),duration(),ra(),fcs(){};
     u_int16_t fc;
     u_int16_t duration;
     MAC ra;
@@ -261,6 +273,7 @@ struct ctrl_cts_t {
 #define	CTRL_CTS_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+IEEE802_11_RA_LEN)
 
 struct ctrl_ack_t {
+    ctrl_ack_t():fc(),duration(),ra(),fcs(){};
     u_int16_t fc;
     u_int16_t duration;
     MAC ra;
@@ -270,6 +283,7 @@ struct ctrl_ack_t {
 #define	CTRL_ACK_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+IEEE802_11_RA_LEN)
 
 struct ctrl_ps_poll_t {
+    ctrl_ps_poll_t():fc(),aid(),bssid(),ta(),fcs(){};
     u_int16_t fc;
     u_int16_t aid;
     MAC bssid;
@@ -277,10 +291,11 @@ struct ctrl_ps_poll_t {
     u_int8_t fcs[4];
 };
 
-#define	CTRL_PS_POLL_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_AID_LEN+\
+#define	CTRL_PS_POLL_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_AID_LEN+  \
 				 IEEE802_11_BSSID_LEN+IEEE802_11_TA_LEN)
 
 struct ctrl_end_t {
+    ctrl_end_t():fc(),duration(),ra(),bssid(),fcs(){}
     u_int16_t fc;
     u_int16_t duration;
     MAC ra;
@@ -288,10 +303,11 @@ struct ctrl_end_t {
     u_int8_t fcs[4];
 };
 
-#define	CTRL_END_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+\
+#define	CTRL_END_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+          \
 			 IEEE802_11_RA_LEN+IEEE802_11_BSSID_LEN)
 
 struct ctrl_end_ack_t {
+    ctrl_end_ack_t():fc(),duration(),ra(),bssid(),fcs(){};
     u_int16_t fc;
     u_int16_t duration;
     MAC ra;
@@ -299,7 +315,7 @@ struct ctrl_end_ack_t {
     u_int8_t fcs[4];
 };
 
-#define	CTRL_END_ACK_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+\
+#define	CTRL_END_ACK_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+  \
 				 IEEE802_11_RA_LEN+IEEE802_11_BSSID_LEN)
 
 #define	IV_IV(iv)	((iv) & 0xFFFFFF)
@@ -307,6 +323,7 @@ struct ctrl_end_ack_t {
 #define	IV_KEYID(iv)	(((iv) >> 30) & 0x03)
 
 struct data_hdr_ibss_t {
+    data_hdr_ibss_t():fc(),duration(),seq(),frag(),fcs(){};
     u_int16_t fc;
     u_int16_t duration;
     u_int16_t seq;
@@ -315,6 +332,7 @@ struct data_hdr_ibss_t {
 };
 
 struct data_hdr_t {
+    data_hdr_t():fc(),duration(),seq(),frag(),sa(),da(),bssid(),fcs(){}
     u_int16_t fc;
     u_int16_t duration;
     u_int16_t seq;
@@ -326,6 +344,7 @@ struct data_hdr_t {
 };
 
 struct data_hdr_wds_t {
+    data_hdr_wds_t():fc(),duration(),seq(),frag(),ra(),ta(),sa(),da(),fcs(){}
     u_int16_t fc;
     u_int16_t duration;
     u_int16_t seq;
@@ -337,16 +356,17 @@ struct data_hdr_wds_t {
     u_int8_t fcs[4];
 };
 
-#define	DATA_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+\
-			 IEEE802_11_SA_LEN+IEEE802_11_DA_LEN+\
+#define	DATA_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+          \
+			 IEEE802_11_SA_LEN+IEEE802_11_DA_LEN+           \
 			 IEEE802_11_BSSID_LEN+IEEE802_11_SEQ_LEN)
 
-#define	DATA_WDS_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+	\
-			 IEEE802_11_RA_LEN+IEEE802_11_TA_LEN+\
+#define	DATA_WDS_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+          \
+			 IEEE802_11_RA_LEN+IEEE802_11_TA_LEN+           \
 			 IEEE802_11_SA_LEN+IEEE802_11_DA_LEN+IEEE802_11_SEQ_LEN)
 
 /* Jeff: added for fully-decoded wep info */
 struct wep_hdr_t {
+    wep_hdr_t():iv(),pad(),keyid(){};
     u_int32_t iv;
     u_int32_t pad;
     u_int32_t keyid;

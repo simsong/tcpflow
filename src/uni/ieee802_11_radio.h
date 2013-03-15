@@ -27,6 +27,7 @@
  * OF SUCH DAMAGE.
  */
 
+//static const char *david_young_copyright = "Portions Copyright(C) 2003, 2004 David Young";
 /*
  * Modifications to fit into the linux IEEE 802.11 stack,
  * Mike Kershaw (dragorn@kismetwireless.net)

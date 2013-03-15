@@ -59,24 +59,32 @@ NETVIZ = \
 	netviz/one_page_report.cpp \
 	netviz/one_page_report.h
 
-tcpflow_SOURCES = datalink.cpp flow.cpp \
+WIFI = 	wifipcap.h \
+	wifipcap.cpp \ 
+	wifi_datalink.cpp \
+	ieee802_11_radio.h \
+	cpack.cpp 
+
+tcpflow_SOURCES = \
+	$(NETVIZ) \
+	$(BE13_API) \
+	$(WIFI) \
+	datalink.cpp flow.cpp \
 	tcpflow.cpp \
 	tcpip.h tcpip.cpp \
 	tcpdemux.h tcpdemux.cpp \
 	tcpflow.h util.cpp \
-	radiotap.h radiotap.c radiotap_iter.h\
 	scan_md5.cpp \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
 	pcap_writer.h \
 	iptree.h \
-	$(NETVIZ) \
-	$(BE13_API) \
 	http-parser/http_parser.c \
 	http-parser/http_parser.h \
 	mime_map.cpp \
-	mime_map.h
+	mime_map.h 
+
 
 EXTRA_DIST =\
 	http-parser/AUTHORS \

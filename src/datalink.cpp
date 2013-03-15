@@ -78,7 +78,6 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
-#ifdef DLT_RAW
 /* DLT_RAW: just a raw IP packet, no encapsulation or link-layer
  * headers.  Used for PPP connections under some OSs including Linux
  * and IRIX. */
@@ -92,7 +91,6 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     be13::packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
     process_packet_info(pi);
 }
-#endif
 
 /* Ethernet datalink handler; used by all 10 and 100 mbit/sec
  * ethernet.  We are given the entire ethernet header so we check to
@@ -243,43 +241,29 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 }
 #endif
 
-#ifdef DLT_IEEE802_11_RADIO
-
-
-void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
-{
-    fprintf(stderr,"802.11 not currently handled\n");
-    exit(1);
-}
+#ifndef DLT_IEEE802_11_RADIO
+#define DLT_IEEE802_11_RADIO    127  /* 802.11 plus radiotap radio header */
 #endif
 
-
 /* List of callbacks for each data link type */
-typedef struct {
-    pcap_handler handler;
-    int type;
-} dlt_handlers;
-
-dlt_handlers handlers[] = {
+dlt_handler_t handlers[] = {
     { dl_null,	   DLT_NULL },
 /* Some systems define DLT_RAW as 12, some as 14, and some as 101.
  * So it is hard-coded here.
  */
-#ifdef DLT_RAW 
     { dl_raw,      12 },
     { dl_raw,      14 },
     { dl_raw,     101 },
-#endif
     { dl_ethernet, DLT_EN10MB },
     { dl_ethernet, DLT_IEEE802 },
     { dl_ppp,      DLT_PPP },
 #ifdef DLT_LINUX_SLL
     { dl_linux_sll,DLT_LINUX_SLL },
 #endif
-#ifdef DLT_IEEE802_11_RADIO
-    { dl_ieee802_11_radio,DLT_IEEE802_11_RADIO },
-#endif
-    { NULL, 0 },
+    { dl_ieee802_11_radio, DLT_IEEE802_11 },
+    { dl_ieee802_11_radio, DLT_IEEE802_11_RADIO },
+    { dl_ieee802_11_radio, DLT_PRISM_HEADER},
+    { NULL, 0 }
 };
 
 pcap_handler find_handler(int datalink_type, const char *device)
@@ -298,4 +282,3 @@ pcap_handler find_handler(int datalink_type, const char *device)
     die("sorry - unknown datalink type %d on interface %s", datalink_type, device);
     return NULL;    /* NOTREACHED */
 }
-
