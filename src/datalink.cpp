@@ -190,6 +190,16 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 #ifdef DLT_LINUX_SLL
 #define SLL_HDR_LEN       16
+
+#define SLL_ADDRLEN 8
+
+#ifndef ETHERTYPE_MPLS
+#define ETHERTYPE_MPLS      0x8847
+#endif
+#ifndef ETHERTYPE_MPLS_MULTI
+#define ETHERTYPE_MPLS_MULTI    0x8848
+#endif
+
 void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
@@ -205,8 +215,30 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
   
+    struct _sll_header {
+        u_int16_t   sll_pkttype;    /* packet type */
+        u_int16_t   sll_hatype; /* link-layer address type */
+        u_int16_t   sll_halen;  /* link-layer address length */
+        u_int8_t    sll_addr[SLL_ADDRLEN];  /* link-layer address */
+        u_int16_t   sll_protocol;   /* protocol */
+    };
+    
+    _sll_header *sllp = (_sll_header*)p;
+    u_int mpls_sz = 0;
+    if (ntohs(sllp->sll_protocol) == ETHERTYPE_MPLS) {
+        // unwind MPLS stack
+        do {
+            if(caplen < SLL_HDR_LEN + mpls_sz + 4){
+                DEBUG(6) ("warning: MPLS stack overrun");
+                return;
+            }
+            mpls_sz += 4;
+            caplen -= 4;
+        } while ((p[SLL_HDR_LEN + mpls_sz - 2] & 1) == 0 );
+    }
+    
     struct timeval tv;
-    be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN, caplen - SLL_HDR_LEN);
+    be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN + mpls_sz, caplen - SLL_HDR_LEN);
     process_packet_info(pi);
 }
 #endif
