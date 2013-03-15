@@ -26,6 +26,8 @@
 #ifndef _WLANSEC_IEEE802_11_H
 #define _WLANSEC_IEEE802_11_H 1
 
+typedef WifipcapCallbacks::MAC MAC;
+
 //static const char *charlie_lenahan_copyright="Portions Copyright (C) 2001 Fortress Technologies";
 
 /* Lengths of 802.11 header components. */
@@ -142,7 +144,7 @@ struct ssid_t {
     ssid_t():element_id(),length(),ssid(){};
     u_int8_t	element_id;
     u_int8_t	length;
-    u_char		ssid[33];  /* 32 + 1 for null */
+    char	ssid[33];  /* 32 + 1 for null */
 };
 
 struct rates_t {

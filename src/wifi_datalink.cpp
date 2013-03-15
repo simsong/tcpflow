@@ -1,17 +1,37 @@
 /**
  * wifi datalink function and callbacks to handle 802.11
- *
+ * In addition to calling process_packet_info() for the packets,
+ * it maintains some 802.11 specific databases.
  */ 
 
 
 #include "tcpflow.h"
-
 #include "wifipcap.h"
-class Tcpflow_Callbacks : public WifipcapCallbacks {
+#include <algorithm>
+#include <map>
+
+bool opt_enforce_80211_frame_checksum = true; // by default, only give good checksums
+
+/**
+ * TFWC --- TCPFLOW callbacks for wifippcap
+ */
+
+class TFWC : public WifipcapCallbacks {
 private:
-    bool fcs_ok;                        // framechecksum is okay?
+    bool fcs_ok;                        // framechecksum is okay!
+    typedef pair<const WifipcapCallbacks::MAC *,const char *> mac_ssid_pair;
+    typedef struct {
+        bool operator() (const mac_ssid_pair &a, const mac_ssid_pair &b) const {
+            if (*(a.first) < (*(b.first))) return true;
+            if (*(b.first) < (*(a.first))) return false;
+            return strcmp(a.second,b.second) < 0;
+        }
+    } mac_ssid_pair_lt;
+    typedef std::set<mac_ssid_pair,mac_ssid_pair_lt> mac_ssids_seen_t;
+    mac_ssids_seen_t mac_ssids_seen;
+
 public:
-    Tcpflow_Callbacks():fcs_ok(){};
+    TFWC():fcs_ok(),mac_ssids_seen(){};
 
 #ifdef DEBUG_WIFI
     void PacketBegin(const struct timeval& t, const u_char *pkt, int len, int origlen) {
@@ -22,58 +42,61 @@ public:
     }
 #endif
  
-    bool Check80211FCS() { return true; } // check the frame checksums
-    void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
-	if (!fcs_ok) {
-            cout << hdr->sa;
-
-	    cout << "  " << "802.11 data from AP:\t" 
-		 << hdr->sa << " -> " 
-		 << hdr->da << "\t" 
-		 << len << endl;
-	}
-    }
-    void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
-	if (!fcs_ok) {
-	    cout << "  " << "802.11 data to AP:\t" 
-		 << hdr->sa << " -> " 
-		 << hdr->da << "\t" 
-		 << len << endl;
-	}
-    }
-
-    void Handle80211(const struct timeval& t, u_int16_t fc, const MAC& sa, const MAC& da, const MAC& ra, const MAC& ta,const u_char *ptr, int len, bool flag) {
-        std::cerr << "fcs set to " << flag << "\n";
+    bool Check80211FCS() { return opt_enforce_80211_frame_checksum; } // check the frame checksums
+    void Handle80211(const struct timeval& t, u_int16_t fc, const MAC& sa, const MAC& da, const MAC& ra, const MAC& ta,
+                     const u_char *ptr, int len, bool flag) {
 	this->fcs_ok = flag;
     }
 
-    void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, int len) {
-        cout << " Ethernet: " << hdr->sa << " -> " << hdr->da << endl;
-    }
-    
-    void Handle80211MgmtProbeRequest(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body) {
-	if (!fcs_ok) {
-	    cout << "  " << "802.11 mgmt:\t" 
-		 << hdr->sa << "\tprobe\t\"" 
-		 << body->ssid.ssid << "\"" << endl;
-	}
+    void HandleLLC(const struct timeval& t, const struct llc_hdr_t *hdr, const u_char *rest, int len) {
+        if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
+#ifdef DEBUG_WIFI
+        cout << "  " << "802.11 LLC :\t" 
+             << "len=" << len << endl;
+#endif
     }
 
-    void Handle80211MgmtAssocRequest(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body) {
-	if (!fcs_ok) {
-	    cout << "  " << "802.11 mgmt:\t" 
-		 << hdr->sa << "\tassocRequest\t\"" 
-		 << body->ssid.ssid << "\"" << endl;
-	}
+    void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
+        if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
+#ifdef DEBUG_WIFI
+        cout << hdr->sa;
+        cout << "  " << "802.11 data from AP:\t" 
+             << hdr->sa << " -> " 
+             << hdr->da << "\t" 
+             << len << endl;
+#endif
+    }
+    void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
+        if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
+#ifdef DEBUG_WIFI
+        cout << "  " << "802.11 data to AP:\t" 
+             << hdr->sa << " -> " 
+             << hdr->da << "\t" 
+             << len << endl;
+#endif
     }
 
+    /* This implementation only cares about beacons, so that's all we record */
     void Handle80211MgmtBeacon(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body) {
-	if (!fcs_ok || 1) {
-	    cout << "  " << "802.11 mgmt:\t" 
-		 << hdr->sa << "\tbeacon\t\"" 
-		 << body->ssid.ssid << "\"" << endl;
-	} else {
-            cout << "GADS\n";
+        if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
+#ifdef DEBUG_WIFI
+        cout << "  " << "802.11 mgmt:\t" 
+             << hdr->sa << "\tbeacon\t\"" 
+             << body->ssid.ssid << "\"" << endl;
+#endif
+        mac_ssid_pair ptest(&hdr->sa,body->ssid.ssid);
+
+        //cout << "check " << hdr->sa << " to " << body->ssid.ssid << "\n";
+
+
+        if(mac_ssids_seen.find(ptest)==mac_ssids_seen.end()){
+            const MAC *m2 = new MAC(hdr->sa);
+            const char *s2 = strdup(body->ssid.ssid);
+            mac_ssid_pair pi(m2,s2);
+            
+            cout << "new mapping " << *ptest.first << "->" << ptest.second << "\n";
+            
+            mac_ssids_seen.insert(pi);
         }
     }
 };
@@ -86,56 +109,19 @@ void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char
     if(wcap==0){
         wcap = new Wifipcap();
         data.wcap = wcap;
-        data.cbs  = new Tcpflow_Callbacks();
-        data.header_type = DLT_IEEE802_11_RADIO;
+        data.cbs  = new TFWC();
     }
-    Wifipcap::handle_packet(reinterpret_cast<u_char *>(&data),h,p);
+    Wifipcap::dl_ieee802_11_radio(reinterpret_cast<u_char *>(&data),h,p);
 }    
 
-#ifdef STANDALONE
-/**
- * usage: test <pcap_trace_file>
- */
-int main(int argc, char **argv) {
-#ifdef _WIN32
-    if (argc == 1) {
-        pcap_if_t *alldevs;
-        pcap_if_t *d;
-        int i=0;
-        char errbuf[PCAP_ERRBUF_SIZE];
-    
-        /* Retrieve the device list from the local machine */
-        if (pcap_findalldevs(&alldevs, errbuf) == -1) {
-                fprintf(stderr,"Error in pcap_findalldevs_ex: %s\n", errbuf);
-                exit(1);
-            }
-    
-        /* Print the list */
-        for(d= alldevs; d != NULL; d= d->next)
-            {
-                printf("%d. %s", ++i, d->name);
-                if (d->description)
-                    printf(" (%s)\n", d->description);
-                else
-                    printf(" (No description available)\n");
-            }
-    
-        if (i == 0)
-            {
-                printf("\nNo interfaces found! Make sure WinPcap is installed.\n");
-                return 1;
-            }
-
-        /* We don't need any more the device list. Free it */
-        pcap_freealldevs(alldevs);
-        return 1;
+void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+{
+    if(wcap==0){
+        wcap = new Wifipcap();
+        data.wcap = wcap;
+        data.cbs  = new TFWC();
     }
-#endif
+    Wifipcap::dl_prism(reinterpret_cast<u_char *>(&data),h,p);
+}    
 
-    bool live = argc == 3 && atoi(argv[2]) == 1;
-    Wifipcap *wcap = new Wifipcap(argv[1], live);
-    wcap->Run(new Tcpflow_Callbacks());
-    return 0;
-}
-
-#endif
+        

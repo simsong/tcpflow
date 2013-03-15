@@ -282,6 +282,7 @@ typedef struct {
 } dlt_handler_t;
 
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
+void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 
 
 /* util.cpp - utility functions */

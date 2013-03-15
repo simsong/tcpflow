@@ -1,8 +1,6 @@
 /**********************************************************************
- * file:   wifi_parser.c
- * date:   Sun Mar 12 11:19:46 EST 2006
- * Original Author: Doug Madory
  * Log:
+ * 2006-03-12: Parts originally authored by Doug Madory as wifi_parser.c
  * 2013-03-15: Substantially modified by Simson Garfinkel for inclusion into tcpflow
  **********************************************************************/
 
@@ -12,19 +10,14 @@
 #include <cstring>
 
 #include <stdarg.h>
-//#include <string.h>
 #include <errno.h>
+#include <net/ethernet.h>
+#include <arpa/inet.h>
 
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-
-
-using namespace std;
-
-#include <net/ethernet.h>
-#include <arpa/inet.h>
 
 #include "wifipcap.h"
 #include "cpack.h"
@@ -32,11 +25,9 @@ using namespace std;
 #include "uni/oui.h"
 #include "uni/ethertype.h"
 
+/* wifipcap uses a MAC class which is somewhat lame, but works */
 
-//#include "ieee802_11_radio.h"
-//#include "cpack.h"
-
-MAC::MAC(const uint8_t *ether):
+WifipcapCallbacks::MAC::MAC(const uint8_t *ether):
     val(((((((((((((uint64_t) (ether[0]))
                   << 8) | ether[1])
                 << 8) | ether[2])
@@ -44,8 +35,8 @@ MAC::MAC(const uint8_t *ether):
             << 8) | ether[4])
           << 8) | ether[5])) {}
 
-MAC::MAC(uint64_t v) : val(v) {}
-MAC::MAC(const char *str):val() {
+WifipcapCallbacks::MAC::MAC(uint64_t v) : val(v) {}
+WifipcapCallbacks::MAC::MAC(const char *str):val() {
     int o[6];
     int ret = sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
 		     &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
@@ -68,12 +59,12 @@ MAC::MAC(const char *str):val() {
 	    << 8) | o[5]);
 }
 
-MAC::MAC(const MAC& o) : val(o.val) { }
-MAC MAC::broadcast = MAC(0xffffffffffffULL);
-MAC MAC::null = MAC((uint64_t)0);
-int MAC::print_fmt = MAC::PRINT_FMT_COLON;
+WifipcapCallbacks::MAC::MAC(const MAC& o) : val(o.val) { }
+WifipcapCallbacks::MAC WifipcapCallbacks::MAC::broadcast = WifipcapCallbacks::MAC(0xffffffffffffULL);
+WifipcapCallbacks::MAC WifipcapCallbacks::MAC::null = MAC((uint64_t)0);
+int WifipcapCallbacks::MAC::print_fmt = WifipcapCallbacks::MAC::PRINT_FMT_COLON;
 
-std::ostream& operator<<(std::ostream& out, const MAC& mac) {
+std::ostream& operator<<(std::ostream& out, const WifipcapCallbacks::MAC& mac) {
     const char *fmt = MAC::print_fmt == MAC::PRINT_FMT_COLON ? 
 	"%02x:%02x:%02x:%02x:%02x:%02x" :
 	"%02x%02x%02x%02x%02x%02x";
@@ -93,23 +84,6 @@ std::ostream& operator<<(std::ostream& out, const MAC& mac) {
 std::ostream& operator<<(std::ostream& out, const struct in_addr& ip) {
     out << inet_ntoa(ip);
     return out;
-}
-
-char *va(const char *format, ...)
-{
-    va_list		argptr;
-    static int index = 0;
-    static char	buf[8][512];
-    
-    char *b = *(buf + index);
-
-    va_start (argptr, format);
-    vsprintf (b, format,argptr);
-    va_end (argptr);
-
-    index = (index + 1) % 8;
-
-    return b;	
 }
 
 struct tok {
@@ -154,44 +128,6 @@ const struct tok ethertype_values[] = {
     { ETHERTYPE_GRE_ISO,        "GRE-OSI" },
     { 0, NULL}
 };
-
-/*
- * Convert a token value to a string; use "fmt" if not found.
- */
-const char *
-tok2strbuf(register const struct tok *lp, register const char *fmt,
-	   register int v, char *buf, size_t bufsize)
-{
-    if (lp != NULL) {
-        while (lp->s != NULL) {
-            if (lp->v == v)
-                return (lp->s);
-            ++lp;
-        }
-    }
-    if (fmt == NULL)
-        fmt = "#%d";
-
-    (void)snprintf(buf, bufsize, fmt, v);
-    return (const char *)buf;
-}
-
-/*
- * Convert a token value to a string; use "fmt" if not found.
- */
-const char *
-tok2str(register const struct tok *lp, register const char *fmt,
-	register int v)
-{
-    static char buf[4][128];
-    static int idx = 0;
-    char *ret;
-
-    ret = buf[idx];
-    idx = (idx+1) & 3;
-    return tok2strbuf(lp, fmt, v, ret, sizeof(buf[0]));
-}
-
 
 /*max length of an IEEE 802.11 packet*/
 #ifndef MAX_LEN_80211
@@ -270,7 +206,7 @@ static const char * data_subtype_text[] = {
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// crc32 implementation needed for wifi
+// crc32 implementation needed for wifi checksum
 
 /* crc32.c
  * CRC-32 routine
@@ -424,10 +360,8 @@ static size_t extract_header_length(u_int16_t fc)
 {
     switch (FC_TYPE(fc)) {
     case T_MGMT:
-        std::cerr << "T_MGMT\n";
 	return MGMT_HDRLEN;
     case T_CTRL:
-        std::cerr << "T_CTRL\n";
 	switch (FC_SUBTYPE(fc)) {
 	case CTRL_PS_POLL:
 	    return CTRL_PS_POLL_HDRLEN;
@@ -445,7 +379,6 @@ static size_t extract_header_length(u_int16_t fc)
 	    return 0;
 	}
     case T_DATA:
-        std::cerr << "T_DATA\n";
 	return (FC_TO_DS(fc) && FC_FROM_DS(fc)) ? 30 : 24;
     default:
 	return 0;
@@ -482,24 +415,6 @@ void handle_llc(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
     len -= 8;
 
     cbs->HandleLLC(t, &hdr, ptr, len);
-    std::cerr << "handle_llc: Is this where we handle the packets?\n";
-
-#if 0
-    switch (hdr.type) {
-    case ETHERTYPE_IP:
-	handle_ip(t, cbs, ptr, len);
-	return;
-    case ETHERTYPE_IPV6:
-	handle_ip6(t, cbs, ptr, len);
-	return;
-    case ETHERTYPE_ARP:
-	handle_arp(t, cbs, ptr, len);
-	return;
-    default:
-	cbs->HandleL2Unknown(t, hdr.type, ptr, len);
-	return;
-    }
-#endif
 }
 
 void handle_wep(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
@@ -515,12 +430,10 @@ void handle_wep(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
 	cbs->HandleWEP(t, NULL, ptr, len);
 	return;
     }
-
     iv = EXTRACT_LE_32BITS(ptr);
     hdr.iv = IV_IV(iv);
     hdr.pad = IV_PAD(iv);
     hdr.keyid = IV_KEYID(iv);
-
     cbs->HandleWEP(t, &hdr, ptr, len);
 }
 
@@ -576,10 +489,6 @@ const char *Wifipcap::WifiUtil::MgmtStatusCode2Txt(uint v) {
 }
 const char *Wifipcap::WifiUtil::MgmtReasonCode2Txt(uint v) {
     return v < NUM_REASONS ? reason_text[v] : "Reserved";
-}
-
-const char *Wifipcap::WifiUtil::EtherType2Txt(uint t) {
-    return tok2str(ethertype_values,"Unknown", t);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -754,10 +663,7 @@ handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt
       CAPABILITY_ESS(pbody.capability_info) ? "ESS" : "IBSS");
       PRINT_DS_CHANNEL(pbody);
     */
-    std::cout << "calling Handle80211MgmtBeacon\n";
     cbs->Handle80211MgmtBeacon(t, pmh, &pbody);
-    std::cout << "back\n";
-
     return 1;
 }
 
@@ -1026,11 +932,15 @@ handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt
  *********************************************************************************/
 
 
-int
+/** Decode a management request.
+ * @return 0 - failure, non-zero success
+ *
+ * NOTE — this function and all that it calls should be handled as methods in WifipcapCallbacks
+ */
+ 
+static int
 decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, int len)
 {
-    std::cout << "decode_mgmt_body\n";
-
     switch (FC_SUBTYPE(fc)) {
     case ST_ASSOC_REQUEST:
         return handle_assoc_request(t, cbs, pmh, p, len);
@@ -1064,33 +974,32 @@ decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, 
         return handle_deauth(t, cbs, pmh, p, len);
         break;
     default:
-        std::cout << "default\n";
         return 0;
     }
 }
 
+static
 int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok)
 {
     mgmt_header_t hdr;
-
     u_int16_t seq_ctl;
 
-    hdr.da = ether2MAC(ptr + 4);
-    hdr.sa = ether2MAC(ptr + 10);
+    hdr.da    = ether2MAC(ptr + 4);
+    hdr.sa    = ether2MAC(ptr + 10);
     hdr.bssid = ether2MAC(ptr + 16);
 
     hdr.duration = EXTRACT_LE_16BITS(ptr+2);
 
-    seq_ctl = pletohs(ptr + 22);
+    seq_ctl   = pletohs(ptr + 22);
 
-    hdr.seq = COOK_SEQUENCE_NUMBER(seq_ctl);
-    hdr.frag = COOK_FRAGMENT_NUMBER(seq_ctl);
+    hdr.seq   = COOK_SEQUENCE_NUMBER(seq_ctl);
+    hdr.frag  = COOK_FRAGMENT_NUMBER(seq_ctl);
 
     cbs->Handle80211(t, fc, hdr.sa, hdr.da, MAC::null, MAC::null, ptr, len, fcs_ok);
 
     int ret = decode_mgmt_body(t, cbs, fc, &hdr, ptr+MGMT_HDRLEN, len-MGMT_HDRLEN);
-    std::cout << "ret=" << ret << "\n";
-    if (!ret) {
+
+    if (ret==0) {
 	cbs->Handle80211Unknown(t, fc, ptr, len);
 	return 0;
     }
@@ -1098,7 +1007,7 @@ int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_c
     return 0;
 }
 
-int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
+static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
 {
     u_int16_t seq_ctl;
     u_int16_t seq;
@@ -1178,8 +1087,7 @@ int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_c
     return 0;
 }
 
-
-int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
+static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
 {
     u_int16_t du = EXTRACT_LE_16BITS(ptr+2);        //duration
 
@@ -1252,10 +1160,6 @@ int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_c
     return 0;
 }
 
-
-
-
-
 #ifndef roundup2
 #define	roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
 #endif
@@ -1300,7 +1204,6 @@ void handle_80211(const struct timeval& t, WifipcapCallbacks *cbs, const u_char 
     }
 
     // fill in current_frame: type, sn
-    std::cout << "point 1\n";
     switch (FC_TYPE(fc)) {
     case T_MGMT:
 	if(decode_mgmt_frame(t, cbs, packet, len, fc, hdrlen, fcs_ok)<0)
@@ -1321,23 +1224,6 @@ void handle_80211(const struct timeval& t, WifipcapCallbacks *cbs, const u_char 
     }
 }
 
-void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
-{
-    WifipcapCallbacks::prism2_pkthdr hdr;
-
-    hdr.host_time 	= EXTRACT_LE_32BITS(packet+32);
-    hdr.mac_time 	= EXTRACT_LE_32BITS(packet+44);
-    hdr.channel 	= EXTRACT_LE_32BITS(packet+56);
-    hdr.rssi 		= EXTRACT_LE_32BITS(packet+68);
-    hdr.sq 		= EXTRACT_LE_32BITS(packet+80);
-    hdr.signal  	= EXTRACT_LE_32BITS(packet+92);
-    hdr.noise   	= EXTRACT_LE_32BITS(packet+104);
-    hdr.rate		= EXTRACT_LE_32BITS(packet+116)/2;
-    hdr.istx		= EXTRACT_LE_32BITS(packet+128);
-
-    cbs->HandlePrism(t, &hdr, packet + 144, len - 144);
-}
-
 static int
 print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCallbacks::radiotap_hdr *hdr)
 {
@@ -1348,7 +1234,7 @@ print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCal
         u_int16_t	u16;
         u_int32_t	u32;
         u_int64_t	u64;
-    } u, u2;
+    } u, u2, u3;
     int rc;
 
     switch (bit) {
@@ -1399,13 +1285,21 @@ print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCal
     case IEEE80211_RADIOTAP_DATA_RETRIES:
         rc = cpack_uint8(s, &u.u8);
         break;
+        // simson add follows:
+    case IEEE80211_RADIOTAP_XCHANNEL:
+        rc = cpack_uint8(s, &u.u8);      // simson guess
+        break;
+    case IEEE80211_RADIOTAP_MCS:
+        rc = cpack_uint8(s, &u.u8) || cpack_uint8(s, &u2.u8) || cpack_uint8(s, &u3.u8);      // simson guess
+        break;
+        // simson end
     default:
         /* this bit indicates a field whose
          * size we do not know, so we cannot
          * proceed.
          */
         //printf("[0x%08x] ", bit);
-        fprintf(stderr, "wifipcap: unknown radiotap bit: %d\n", bit);
+        fprintf(stderr, "wifipcap: unknown radiotap bit: %d (%d)\n", bit,IEEE80211_RADIOTAP_XCHANNEL);
         return -1;
     }
 
@@ -1522,7 +1416,7 @@ print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCal
     return 0;
 }
 
-void handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p, u_int caplen)
+static void handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p, u_int caplen)
 {
 #define	BITNO_32(x) (((x) >> 16) ? 16 + BITNO_16((x) >> 16) : BITNO_16((x)))
 #define	BITNO_16(x) (((x) >> 8) ? 8 + BITNO_8((x) >> 8) : BITNO_8((x)))
@@ -1530,40 +1424,29 @@ void handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_ch
 #define	BITNO_4(x) (((x) >> 2) ? 2 + BITNO_2((x) >> 2) : BITNO_2((x)))
 #define	BITNO_2(x) (((x) & 2) ? 1 : 0)
 #define	BIT(n)	(1 << n)
-#define	IS_EXTENDED(__p)                                        \
-    (EXTRACT_LE_32BITS(__p) & BIT(IEEE80211_RADIOTAP_EXT)) != 0
+#define	IS_EXTENDED(__p) (EXTRACT_LE_32BITS(__p) & BIT(IEEE80211_RADIOTAP_EXT)) != 0
 
-    struct cpack_state cpacker;
-    struct ieee80211_radiotap_header *hdr;
-    u_int32_t present, next_present;
-    u_int32_t *presentp, *last_presentp;
-    enum ieee80211_radiotap_type bit;
-    int bit0;
-    const u_char *iter;
-    u_int len;
-    int pad;
 
-    //u_int length = caplen;
-
-    if (caplen < sizeof(*hdr)) {
-        //printf("[|802.11]");
+    // If caplen is too small, just give it a try and carry on.
+    if (caplen < sizeof(struct ieee80211_radiotap_header)) {
         cbs->HandleRadiotap(t, NULL, p, caplen);
-        return;// caplen;
+        return;
     }
 
-    hdr = (struct ieee80211_radiotap_header *)p;
+    struct ieee80211_radiotap_header *hdr = (struct ieee80211_radiotap_header *)p;
 
-    len = EXTRACT_LE_16BITS(&hdr->it_len);
+    size_t len = EXTRACT_LE_16BITS(&hdr->it_len); // length of radiotap header
 
     if (caplen < len) {
         //printf("[|802.11]");
         cbs->HandleRadiotap(t, NULL, p, caplen);
         return;// caplen;
     }
+    uint32_t *last_presentp=0;
     for (last_presentp = &hdr->it_present;
-         IS_EXTENDED(last_presentp) &&
-	     (u_char*)(last_presentp + 1) <= p + len;
-         last_presentp++);
+         IS_EXTENDED(last_presentp) && (u_char*)(last_presentp + 1) <= p + len;
+         last_presentp++){
+    }
 
     /* are there more bitmap extensions than bytes in header? */
     if (IS_EXTENDED(last_presentp)) {
@@ -1572,8 +1455,8 @@ void handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_ch
         return;// caplen;
     }
 
-    iter = (u_char*)(last_presentp + 1);
-
+    const u_char *iter = (u_char*)(last_presentp + 1);
+    struct cpack_state cpacker;
     if (cpack_init(&cpacker, (u_int8_t*)iter, len - (iter - p)) != 0) {
         /* XXX */
         //printf("[|802.11]");
@@ -1585,27 +1468,31 @@ void handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_ch
     memset(&ohdr, 0, sizeof(ohdr));
 	
     /* Assume no Atheros padding between 802.11 header and body */
-    pad = 0;
+    int pad = 0;
+    uint32_t *presentp;
+    int bit0=0;
     for (bit0 = 0, presentp = &hdr->it_present; presentp <= last_presentp;
          presentp++, bit0 += 32) {
+
+        u_int32_t present, next_present;
         for (present = EXTRACT_LE_32BITS(presentp); present;
              present = next_present) {
             /* clear the least significant bit that is set */
             next_present = present & (present - 1);
 
             /* extract the least significant bit that is set */
-            bit = (enum ieee80211_radiotap_type)
+            enum ieee80211_radiotap_type bit = (enum ieee80211_radiotap_type)
                 (bit0 + BITNO_32(present ^ next_present));
 
-            if (print_radiotap_field(&cpacker, bit, &pad, &ohdr) != 0) {
-                cbs->HandleRadiotap(t, &ohdr, p, caplen);
-                goto out;
-            }
+            /* print the next radiotap field */
+            int r = print_radiotap_field(&cpacker, bit, &pad, &ohdr);
+
+            /* If we got an error, break both loops */
+            if(r!=0) goto done;
         }
     }
+done:;
     cbs->HandleRadiotap(t, &ohdr, p, caplen);
-out:
-    handle_80211(t, cbs, p + len, caplen - len);
     //return len + ieee802_11_print(p + len, length - len, caplen - len, pad);
 #undef BITNO_32
 #undef BITNO_16
@@ -1613,64 +1500,55 @@ out:
 #undef BITNO_4
 #undef BITNO_2
 #undef BIT
+    handle_80211(t, cbs, p+len, caplen-len);
 }
 
-void Wifipcap::handle_packet(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
+static void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
+{
+   WifipcapCallbacks::prism2_pkthdr hdr;
+
+    /* get the fields */
+    hdr.host_time 	= EXTRACT_LE_32BITS(packet+32);
+    hdr.mac_time 	= EXTRACT_LE_32BITS(packet+44);
+    hdr.channel 	= EXTRACT_LE_32BITS(packet+56);
+    hdr.rssi 		= EXTRACT_LE_32BITS(packet+68);
+    hdr.sq 		= EXTRACT_LE_32BITS(packet+80);
+    hdr.signal  	= EXTRACT_LE_32BITS(packet+92);
+    hdr.noise   	= EXTRACT_LE_32BITS(packet+104);
+    hdr.rate		= EXTRACT_LE_32BITS(packet+116)/2;
+    hdr.istx		= EXTRACT_LE_32BITS(packet+128);
+    cbs->HandlePrism(t, &hdr, packet + 144, len - 144);
+    handle_80211(t,cbs,packet+144,len-144);
+ }
+
+/* static */ void Wifipcap::dl_prism(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
 {
     PcapUserData *data = reinterpret_cast<PcapUserData *>(user);
-    //Wifipcap *wcap = data->wcap;
     WifipcapCallbacks *cbs = data->cbs;
 
-#if 0
-    if (wcap->startTime == TIME_NONE) {
-	wcap->startTime = header->ts;
-	wcap->lastPrintTime = header->ts;
-    }
-    if (header->ts.tv_sec > wcap->lastPrintTime.tv_sec + Wifipcap::PRINT_TIME_INTERVAL) {
-	if (wcap->verbose) {
-	    int hours = (header->ts.tv_sec - wcap->startTime.tv_sec)/3600;
-	    int days  = hours/24;
-	    int left  = hours%24;
-	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10d pkts\n", 
-		    days, left, wcap->packetsProcessed);
-	}
-	wcap->lastPrintTime = header->ts;
-    }
-    wcap->packetsProcessed++;
-#endif
+    if(header->caplen < 144) return;    // prism header
 
     cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    int frameOffset = 0;
-    int frameLen = header->caplen;
-    if (data->header_type == DLT_PRISM_HEADER) {
-	handle_prism(header->ts, cbs, packet, header->caplen);
-	frameOffset += 144;
-	frameLen -= 144;
-	handle_80211(header->ts, cbs, packet + frameOffset, frameLen);
-    } else if (data->header_type == DLT_IEEE802_11_RADIO) {
-	handle_radiotap(header->ts, cbs, packet + frameOffset, header->caplen);
-    } else if (data->header_type == DLT_IEEE802_11) {
-	handle_80211(   header->ts, cbs, packet + frameOffset, frameLen);
-    } 
+    handle_prism(header->ts,cbs,packet+144,header->caplen-144);
+    cbs->PacketEnd();
+}
 
-#if 0
-else if (data->header_type == DLT_EN10MB) {
-	// plain old ethernet
-	handle_ether(header->ts, cbs, packet, frameLen);
-    } else {
-	// try handling it as default IP assuming framing is ethernet 
-	// (this is for testing)
-	handle_ip(header->ts, cbs, packet+14, frameLen-14);
-    }
-#endif
+/* static */ void Wifipcap::dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
+{
+    PcapUserData *data = reinterpret_cast<PcapUserData *>(user);
+    WifipcapCallbacks *cbs = data->cbs;
+
+    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
+    handle_radiotap(header->ts, cbs, packet, header->caplen);
     cbs->PacketEnd();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // These were used for the standalone program. 
-// We don't use them here. 
+// We don't use them here. They may not work anymore
 
 #ifdef STANDALONE
+
 Wifipcap::Wifipcap(const char* const *filenames, int nfiles, bool verbose) :
     descr(NULL), verbose(verbose), startTime(TIME_NONE), 
     lastPrintTime(TIME_NONE), packetsProcessed(0)
@@ -1777,14 +1655,14 @@ const char *Wifipcap::SetFilter(const char *filter)
 
 void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
 {
+    /* NOTE: This needs to be fixed so that the correct handle_packet is called  */
+
     packetsProcessed = 0;
     
     do {
 	PcapUserData data;
 	data.wcap = this;
 	data.cbs = cbs;
-	data.header_type = datalink;
-
 	pcap_loop(descr, maxpkts > 0 ? maxpkts - packetsProcessed : 0,
 		  handle_packet, reinterpret_cast<u_char *>(&data));
     } while ( InitNext() );
@@ -1831,6 +1709,7 @@ int main(int argc, char **argv)
     wcap->Run(new TestCB());
     return 0;
 }
+
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////

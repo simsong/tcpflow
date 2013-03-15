@@ -30,12 +30,10 @@
 #ifndef _CPACK_H
 #define _CPACK_H
 
-//#include "os.h"
-
 struct cpack_state {
-	u_int8_t					*c_buf;
-	u_int8_t					*c_next;
-	size_t						 c_len;
+    u_int8_t *c_buf;
+    u_int8_t *c_next;
+    size_t   c_len;
 };
 
 int cpack_init(struct cpack_state *, u_int8_t *, size_t);

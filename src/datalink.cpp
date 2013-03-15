@@ -262,7 +262,7 @@ dlt_handler_t handlers[] = {
 #endif
     { dl_ieee802_11_radio, DLT_IEEE802_11 },
     { dl_ieee802_11_radio, DLT_IEEE802_11_RADIO },
-    { dl_ieee802_11_radio, DLT_PRISM_HEADER},
+    { dl_prism, DLT_PRISM_HEADER},
     { NULL, 0 }
 };
 
