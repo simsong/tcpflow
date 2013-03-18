@@ -1007,7 +1007,8 @@ int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_c
     return 0;
 }
 
-static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
+static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
+                             const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
 {
     u_int16_t seq_ctl;
     u_int16_t seq;

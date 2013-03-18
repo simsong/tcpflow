@@ -284,6 +284,19 @@ typedef struct {
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 
+/**
+ * shift the time value, in line with what the user requested...
+ * previously this returned a structure on the stack, but that
+ * created an optimization problem with gcc 4.7.2
+ */
+inline const timeval &tvshift(struct timeval &tv,const struct timeval &tv_)
+{
+    tv.tv_sec  = tv_.tv_sec + datalink_tdelta;
+    tv.tv_usec = tv_.tv_usec;
+    return tv;
+}
+
+
 
 /* util.cpp - utility functions */
 extern int debug;

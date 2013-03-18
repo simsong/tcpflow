@@ -51,8 +51,7 @@ public:
     void HandleLLC(const struct timeval& t, const struct llc_hdr_t *hdr, const u_char *rest, int len) {
         if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
 #ifdef DEBUG_WIFI
-        cout << "  " << "802.11 LLC :\t" 
-             << "len=" << len << endl;
+        cout << "  " << "802.11 LLC :\t" << "len=" << len << endl;
 #endif
     }
 
@@ -61,19 +60,25 @@ public:
 #ifdef DEBUG_WIFI
         cout << hdr->sa;
         cout << "  " << "802.11 data from AP:\t" 
-             << hdr->sa << " -> " 
-             << hdr->da << "\t" 
-             << len << endl;
+             << hdr->sa << " -> " << hdr->da << "\t" << len << endl;
 #endif
+        struct timeval tv;
+        /* TK1: Does the pcap header make sense? */
+        /* TK2: How do we get and preserve the the three MAC addresses? */
+        be13::packet_info pi(DLT_IEEE802_11,(const pcap_pkthdr *)0,(const u_char *)0,tvshift(tv,t),rest,len);
+        process_packet_info(pi);
     }
     void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
         if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
 #ifdef DEBUG_WIFI
         cout << "  " << "802.11 data to AP:\t" 
-             << hdr->sa << " -> " 
-             << hdr->da << "\t" 
-             << len << endl;
+             << hdr->sa << " -> " << hdr->da << "\t" << len << endl;
 #endif
+        struct timeval tv;
+        /* TK1: Does the pcap header make sense? */
+        /* TK2: How do we get and preserve the the three MAC addresses? */
+        be13::packet_info pi(DLT_IEEE802_11,(const pcap_pkthdr *)0,(const u_char *)0,tvshift(tv,t),rest,len);
+        process_packet_info(pi);
     }
 
     /* This implementation only cares about beacons, so that's all we record */
@@ -81,8 +86,7 @@ public:
         if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
 #ifdef DEBUG_WIFI
         cout << "  " << "802.11 mgmt:\t" 
-             << hdr->sa << "\tbeacon\t\"" 
-             << body->ssid.ssid << "\"" << endl;
+             << hdr->sa << "\tbeacon\t\"" << body->ssid.ssid << "\"" << endl;
 #endif
         mac_ssid_pair ptest(&hdr->sa,body->ssid.ssid);
 
@@ -95,8 +99,8 @@ public:
             mac_ssid_pair pi(m2,s2);
             
             cout << "new mapping " << *ptest.first << "->" << ptest.second << "\n";
-            
             mac_ssids_seen.insert(pi);
+            /* TK3: How do we get this into the XML? */
         }
     }
 };
