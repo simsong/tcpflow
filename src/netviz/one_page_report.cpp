@@ -23,7 +23,7 @@
 
 using namespace std;
 
-const unsigned int one_page_report::max_bars = 200;
+const unsigned int one_page_report::max_bars = 100;
 const unsigned int one_page_report::port_colors_count = 4;
 // string constants
 const string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
