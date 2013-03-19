@@ -215,9 +215,9 @@ void one_page_report::render(const string &outdir)
     pass.render_header();
     
     // time histogram
-    size_t packet_histogram_bars = packet_histogram.non_sparse_size();
-    if(packet_histogram_bars > max_bars) {
-        packet_histogram.condense(packet_histogram_bars / max_bars);
+    double condension_factor = (double) packet_histogram.non_sparse_size() / (double) max_bars;
+    if(condension_factor > 1.1) {
+        packet_histogram.condense(condension_factor);
     }
     time_histogram_view th_view(packet_histogram, port_color_map, default_color,
             cdf_color);

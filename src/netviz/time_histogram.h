@@ -62,7 +62,7 @@ public:
 
     void insert(const struct timeval &ts, const port_t port, const count_t count = 1,
             const unsigned int flags = 0x00);
-    void condense(int factor);
+    void condense(double factor);
     uint64_t usec_per_bucket() const;
     count_t packet_count() const;
     time_t start_date() const;

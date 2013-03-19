@@ -62,10 +62,10 @@ void time_histogram::insert(const struct timeval &ts, const port_t port, const c
 
 // combine each bucket with (factor - 1) subsequent neighbors and increase bucket width by factor
 // lots of possible optimizations ignored for simplicity's sake
-void time_histogram::condense(int factor)
+void time_histogram::condense(double factor)
 {
     const histogram_map &original = histograms.at(best_fit_index);
-    histogram_map condensed(span_params(original.span.usec, original.span.bucket_count / factor));
+    histogram_map condensed(span_params(original.span.usec, (uint64_t) ((double) original.span.bucket_count / factor)));
 
     for(map<timescale_off_t, bucket>::const_iterator it = original.buckets.begin();
             it != original.buckets.end(); it++) {
