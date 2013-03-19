@@ -72,9 +72,9 @@ void time_histogram::condense(int factor)
 
         const bucket &bkt = it->second;
         uint64_t recons_usec = it->first * original.bucket_width + original.base_time;
-        //uint64_t recons_usec = it->first + original.base_time;
-        struct timeval reconstructed_ts = { (time_t) (recons_usec % 1000 * 1000),
-            (time_t) (recons_usec / 1000 * 1000) };
+        struct timeval reconstructed_ts;
+        reconstructed_ts.tv_usec = (time_t) (recons_usec % (1000LL * 1000LL));
+        reconstructed_ts.tv_sec = (time_t) (recons_usec / (1000LL * 1000LL));
 
         for(map<port_t, count_t>::const_iterator jt = bkt.counts.begin();
                 jt != bkt.counts.end(); jt++) {
@@ -196,7 +196,7 @@ vector<time_histogram::span_params> time_histogram::build_spans()
 bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_t port, const count_t count,
         const unsigned int flags)
 {
-    uint64_t raw_time = ts.tv_sec * (1000L * 1000L) + ts.tv_usec;
+    uint64_t raw_time = ts.tv_sec * (1000LL * 1000LL) + ts.tv_usec;
     if(base_time == 0) {
         base_time = raw_time - (bucket_width * (span.bucket_count * underflow_pad_factor));
     }
