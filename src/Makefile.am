@@ -60,7 +60,7 @@ NETVIZ = \
 	netviz/one_page_report.h
 
 WIFI = 	wifipcap.h \
-	wifipcap.cpp \ 
+	wifipcap.cpp \
 	wifi_datalink.cpp \
 	ieee802_11_radio.h \
 	cpack.cpp 
