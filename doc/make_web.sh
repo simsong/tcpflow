@@ -15,7 +15,8 @@ run()
   DPNG=${DPDF%pdf}png
   echo DPDF=$DPDF
   echo DPNG=$DPNG
-  $TCPFLOW -o $TMP -x tcpdemux -E netviz -r $1  
+  echo $TCPFLOW -o $TMP -x tcpdemux -E netviz $1  
+  $TCPFLOW -o $TMP -x tcpdemux -E netviz $1  
   if [ ! -r $TMP/report.pdf ]; then
     echo tcpflow failed
     exit 1
@@ -26,5 +27,7 @@ run()
   ls -l $DPDF $DPNG
 }
 
-run /corp/nps/packets/2008-nitroba/nitroba.pcap nitroba.pdf
+run "-r /corp/nps/packets/2008-nitroba/nitroba.pcap"      nitroba.pdf
+run "-l /corp/nps/packets/2009-m57-patents/day*.zip"      m57-day.pdf
+run "-l /corp/nps/packets/2009-m57-patents/net-2009*.gz"  m57-net.pdf
 
