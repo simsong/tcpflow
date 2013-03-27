@@ -20,13 +20,13 @@ void  scan_md5(const class scanner_params &sp,const recursion_control_block &rcb
 	exit(1);
     }
 
-    if(sp.phase==scanner_params::startup){
+    if(sp.phase==scanner_params::PHASE_STARTUP){
 	sp.info->name  = "md5";
 	sp.info->flags = scanner_info::SCANNER_DISABLED;
         return;     /* No feature files created */
     }
 
-    if(sp.phase==scanner_params::scan){
+    if(sp.phase==scanner_params::PHASE_SCAN){
 	static const std::string hash0("<hashdigest type='MD5'>");
 	static const std::string hash1("</hashdigest>");
 	if(sp.sbufxml) (*sp.sbufxml) << hash0 << sp.sbuf.md5().hexdigest() << hash1;

@@ -26,7 +26,7 @@
 int iphtest=0;
 size_t iphtrim=0;
 
-be_config_t be_config; // system configuration
+scanner_info::config_t be_config; // system configuration
 
 typedef struct {
     const char *name;
@@ -534,7 +534,7 @@ int main(int argc, char *argv[])
 
     /* Load all the scanners and enable the ones we care about */
     if(demux.opt.opt_md5) scanners_enable("md5");
-    load_scanners(scanners_builtin);
+    load_scanners(scanners_builtin,be_config);
     scanners_process_commands();
 
     /* If there is no report filename, call it report.xml in the output directory */

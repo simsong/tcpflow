@@ -15,3 +15,4 @@ CLEANFILES = \
 clean:
 	@echo Erase any left over trace files
 	/bin/rm -f *.[0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9].*
+

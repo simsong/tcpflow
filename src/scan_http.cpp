@@ -427,14 +427,14 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
         exit(1);
     }
 
-    if(sp.phase==scanner_params::startup){
+    if(sp.phase==scanner_params::PHASE_STARTUP){
         sp.info->name  = "http";
         sp.info->flags = scanner_info::SCANNER_DISABLED; // default disabled
-        http_cmd = be_config[HTTP_CMD];
+        http_cmd = sp.info->config[HTTP_CMD];
         return;         /* No feature files created */
     }
 
-    if(sp.phase==scanner_params::scan){
+    if(sp.phase==scanner_params::PHASE_SCAN){
         /* See if there is an HTTP response */
         if(sp.sbuf.bufsize>=MIN_HTTP_BUFSIZE && sp.sbuf.memcmp(reinterpret_cast<const uint8_t *>("HTTP/1."),0,7)==0){
             /* Smells enough like HTTP to try parsing */

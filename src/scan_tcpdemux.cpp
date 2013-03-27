@@ -37,7 +37,7 @@ void  scan_tcpdemux(const class scanner_params &sp,const recursion_control_block
 	exit(1);
     }
 
-    if(sp.phase==scanner_params::startup){
+    if(sp.phase==scanner_params::PHASE_STARTUP){
 	sp.info->name  = "tcpdemux";
 	sp.info->author= "Simson Garfinkel";
 	sp.info->packet_user = tcpdemux::getInstance();
@@ -45,7 +45,7 @@ void  scan_tcpdemux(const class scanner_params &sp,const recursion_control_block
         return;     /* No feature files created */
     }
 
-    if(sp.phase==scanner_params::scan){
+    if(sp.phase==scanner_params::PHASE_SCAN){
 	static const std::string hash0("<hashdigest type='TCPDEMUX'>");
 	static const std::string hash1("</hashdigest>");
 	return;

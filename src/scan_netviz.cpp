@@ -45,7 +45,7 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
 	exit(1);
     }
 
-    if(sp.phase==scanner_params::startup){
+    if(sp.phase==scanner_params::PHASE_STARTUP){
 #ifdef HAVE_LIBCAIRO
 	sp.info->name  = "netviz";
 	//sp.info->flags = scanner_info::SCANNER_DISABLED;
@@ -58,11 +58,11 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
 #endif	
     }
 
-    if(sp.phase==scanner_params::scan){	// this is for scanning sbufs
+    if(sp.phase==scanner_params::PHASE_SCAN){	// this is for scanning sbufs
 	return;
     }
 
-    if(sp.phase==scanner_params::shutdown){
+    if(sp.phase==scanner_params::PHASE_SHUTDOWN){
 #ifdef HAVE_LIBCAIRO
 	th_shutdown(sp);
 #endif

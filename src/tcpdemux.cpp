@@ -153,7 +153,7 @@ void tcpdemux::post_process(tcpip *tcp)
         if(tcp->fd>=0){
             sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,pos0_t(tcp->flow_pathname),tcp->fd);
             if(sbuf){
-                process_sbuf(scanner_params(scanner_params::scan,*sbuf,*(fs),&xmladd));
+                process_sbuf(scanner_params(scanner_params::PHASE_SCAN,*sbuf,*(fs),&xmladd));
                 delete sbuf;
                 sbuf = 0;
             }

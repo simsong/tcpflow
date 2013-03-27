@@ -128,9 +128,12 @@ void mkdirs_for_path(std::string path)
         if(made_dirs.find(mpath)==made_dirs.end()){
             if(mpath.size()){
                 int r = MKDIR(mpath.c_str(),0777);
-                if(r<0 && errno!=EEXIST){
-                    perror(mpath.c_str());
-                    exit(1);
+                if(r<0){
+                    /* Can't make path; see if we can execute it*/
+                    if(access(mpath.c_str(),X_OK)<0){
+                        perror(mpath.c_str());
+                        exit(1);
+                    }
                 }
                 made_dirs.insert(mpath);
             }
