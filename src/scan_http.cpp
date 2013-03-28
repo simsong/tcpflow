@@ -42,9 +42,13 @@
 #include <iomanip>
 
 #define HTTP_CMD "http_cmd"
+#define HTTP_ALERT_FD "http_alert_fd"
+
+/* options */
 std::string http_cmd;                   // command to run on each http object
 int http_subproc_max = 10;              // how many subprocesses are we allowed?
 int http_subproc = 0;                   // how many do we currently have?
+int http_alert_fd = -1;                 // where should we send alerts?
 
 
 /* define a callback object for sharing state between scan_http() and its callbacks
@@ -247,6 +251,12 @@ int scan_http_cbo::on_headers_complete()
     if (fd < 0) {
         DEBUG(1) ("unable to open HTTP body file %s", output_path.c_str());
     }
+    if(http_alert_fd>=0){
+        std::stringstream ss;
+        ss << "open\t" << output_path << "\n";
+        const std::string &sso = ss.str();
+        write(http_alert_fd,sso.c_str(),sso.size());
+    }
 
     first_body = true;                  // next call to on_body will be the first one
         
@@ -374,6 +384,12 @@ int scan_http_cbo::on_message_complete()
             xml_fo << "<filesize>" << bytes_written << "</filesize></fileobject></byte_run>\n";
             if(xmlstream) *xmlstream << xml_fo.str();
         }
+        if(http_alert_fd>=0){
+            std::stringstream ss;
+            ss << "close\t" << output_path << "\n";
+            const std::string &sso = ss.str();
+            write(http_alert_fd,sso.c_str(),sso.size());
+        }
         if(http_cmd.size()>0 && output_path.size()>0){
             /* If we are at maximum number of subprocesses, wait for one to exit */
             int status=0;
@@ -431,6 +447,9 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
         sp.info->name  = "http";
         sp.info->flags = scanner_info::SCANNER_DISABLED; // default disabled
         http_cmd = sp.info->config[HTTP_CMD];
+        if(sp.info->config[HTTP_ALERT_FD].size()>0){
+            http_alert_fd = atoi(sp.info->config[HTTP_ALERT_FD].c_str());
+        }
         return;         /* No feature files created */
     }
 
