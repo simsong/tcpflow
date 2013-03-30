@@ -1,3 +1,7 @@
+2013-03-30  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/scan_tcpdemux.cpp (scan_tcpdemux): added -S tcp_timeout 
+
 2013-03-03  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/scan_netviz.cpp (scan_netviz): scan_netviz enabled by default

@@ -42,6 +42,9 @@ void  scan_tcpdemux(const class scanner_params &sp,const recursion_control_block
 	sp.info->author= "Simson Garfinkel";
 	sp.info->packet_user = tcpdemux::getInstance();
 	sp.info->packet_cb = packet_handler;
+        
+        tcpdemux::getInstance()->tcp_timeout = atoi(sp.info->config["tcp_timeout"].c_str());
+
         return;     /* No feature files created */
     }
 

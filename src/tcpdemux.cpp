@@ -22,6 +22,7 @@
 
 
 /* static */ uint32_t tcpdemux::max_saved_flows = 100;
+/* static */ uint32_t tcpdemux::tcp_timeout = 0;
 
 tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
 		     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
@@ -481,10 +482,12 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 
     /* If a fin was sent and we've seen all of the bytes, close the stream */
     DEBUG(50)("%d>0 && %d == %d",tcp->fin_count,tcp->seen_bytes(),tcp->fin_size);
+
     if (tcp->fin_count>0 && tcp->seen_bytes() == tcp->fin_size){
         DEBUG(50)("all bytes have been received; removing flow");
         remove_flow(this_flow);	// take it out of the map  
     }
+
     DEBUG(50)("fin_set=%d  seq=%u fin_count=%d  seq_count=%d len=%d isn=%u",
             fin_set,seq,tcp->fin_count,tcp->syn_count,tcp_datalen,tcp->isn);
     return 0;                           // successfully processed
@@ -595,8 +598,6 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
                        pi.ip_data + sizeof(struct be13::ip6_hdr),ip_payload_len,pi);
 }
 
-
-
 /* This is called when we receive an IPv4 or IPv6 datagram.
  * This function calls process_ip4 or process_ip6
  * Returns 0 if packet is processed, 1 if it is not processed, -1 if error.
@@ -617,6 +618,23 @@ int tcpdemux::process_pkt(const be13::packet_info &pi)
     if(r!=0){                           // packet not processed?
         /* Write the packet if we didn't process it */
         if(pwriter) pwriter->writepkt(pi.pcap_hdr,pi.pcap_data);
+    }
+
+    /* Process the timeout, if there is any */
+    if(tcp_timeout){
+        std::vector<flow *> to_close;
+        for(flow_map_t::iterator it = flow_map.begin(); it!=flow_map.end(); it++){
+            tcpip &tcp = *(it->second);
+            flow &f = tcp.myflow;
+            uint32_t age = pi.ts.tv_sec - f.tlast.tv_sec;
+            if (age > tcp_timeout){
+                to_close.push_back(&f);
+            }
+        }
+
+        for(std::vector<flow *>::iterator it = to_close.begin(); it!=to_close.end(); it++){
+            remove_flow(*(*it));
+        }
     }
     return r;     
 }

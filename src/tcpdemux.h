@@ -58,6 +58,7 @@ private:
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
     tcpdemux();
 public:
+    static uint32_t tcp_timeout;
     static unsigned int get_max_fds(void);             // returns the max
     virtual ~tcpdemux(){
         if(xreport) delete xreport;
