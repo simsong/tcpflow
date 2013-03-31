@@ -23,6 +23,33 @@ Completely rewritten HTTP parser
 
       tcpflow -Shttp_cmd=/bin/echo ...
 
+* Optional timeout on tcp connections, causes processing of HTTP
+  objects before the HTTP connection closes:  
+
+      -Stcp_timeout=10
+
+* Optional alert file descriptor causes http parser to alert as files are opened and closed
+  by the HTTP parser. e.g.:
+
+$ ./tcpflow -o out -a  -E http -S http_alert_fd=1 -r ../tests/multifile_25_21.pcap
+open        out/038.122.002.045.00080-192.168.123.101.04634-HTTPBODY-001.png
+close       out/038.122.002.045.00080-192.168.123.101.04634-HTTPBODY-001.png
+open        out/038.122.002.045.00080-192.168.123.101.04637-HTTPBODY-001.png
+close       out/038.122.002.045.00080-192.168.123.101.04637-HTTPBODY-001.png
+open        out/038.122.002.045.00080-192.168.123.101.04637-HTTPBODY-002.png
+close       out/038.122.002.045.00080-192.168.123.101.04637-HTTPBODY-002.png
+open        out/038.122.002.045.00080-192.168.123.101.04648-HTTPBODY-001.png
+close       out/038.122.002.045.00080-192.168.123.101.04648-HTTPBODY-001.png
+open        out/038.122.002.045.00080-192.168.123.101.04649-HTTPBODY-001.png
+close       out/038.122.002.045.00080-192.168.123.101.04649-HTTPBODY-001.png
+open        out/038.122.002.045.00080-192.168.123.101.04654-HTTPBODY-001
+close       out/038.122.002.045.00080-192.168.123.101.04654-HTTPBODY-001
+open        out/038.122.002.045.00080-192.168.123.101.04655-HTTPBODY-001
+close       out/038.122.002.045.00080-192.168.123.101.04655-HTTPBODY-001
+open        out/038.122.002.045.00080-192.168.123.101.04655-HTTPBODY-002
+close       out/038.122.002.045.00080-192.168.123.101.04655-HTTPBODY-002
+...
+
 
 New Scalability features:
 
@@ -50,6 +77,9 @@ Additional features:
   including multiple objects sent over a single HTTP stream.
 
 * Full support for the bulk_extractor plug-in system
+
+HTTP module:
+
 
 You can download version 1.4.0, both source and precompiled windows binaries,
 from:
