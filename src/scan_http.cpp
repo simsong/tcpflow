@@ -255,7 +255,9 @@ int scan_http_cbo::on_headers_complete()
         std::stringstream ss;
         ss << "open\t" << output_path << "\n";
         const std::string &sso = ss.str();
-        write(http_alert_fd,sso.c_str(),sso.size());
+        if(write(http_alert_fd,sso.c_str(),sso.size())!=(int)sso.size()){
+            perror("write");
+        }
     }
 
     first_body = true;                  // next call to on_body will be the first one
@@ -388,10 +390,14 @@ int scan_http_cbo::on_message_complete()
             std::stringstream ss;
             ss << "close\t" << output_path << "\n";
             const std::string &sso = ss.str();
-            write(http_alert_fd,sso.c_str(),sso.size());
+            if(write(http_alert_fd,sso.c_str(),sso.size()) != (int)sso.size()){
+                perror("write");
+            }
         }
         if(http_cmd.size()>0 && output_path.size()>0){
             /* If we are at maximum number of subprocesses, wait for one to exit */
+            std::string cmd = http_cmd + " " + output_path;
+#ifdef HAVE_FORK
             int status=0;
             pid_t pid = 0;
             while(http_subproc >= http_subproc_max){
@@ -403,10 +409,12 @@ int scan_http_cbo::on_message_complete()
             if(pid<0) die("Cannot fork child");
             if(pid==0){
                 /* We are the child */
-                std::string cmd = http_cmd + " " + output_path;
                 exit(system(cmd.c_str()));
             }
             http_subproc++;
+#else
+            system(cmd.c_str());
+#endif            
         }
     } else {
         /* Nothing written; erase the file */

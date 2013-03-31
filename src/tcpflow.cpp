@@ -193,6 +193,7 @@ void terminate(int sig)
     exit(0); /* libpcap uses onexit to clean up */
 }
 
+#ifdef HAVE_FORK
 // transparent decompression for process_infile
 class inflater {
 public:
@@ -265,6 +266,8 @@ static std::vector<inflater> build_inflaters()
 }
 
 static std::vector<inflater> inflaters = build_inflaters();
+#define HAVE_INFLATER
+#endif
 
 /*
  * process an input file or device
@@ -281,6 +284,7 @@ static void process_infile(const std::string &expression,const char *device,cons
     if (infile!=""){
         std::string file_path = infile;
         // decompress input if necessary
+#ifdef HAVE_INFLATER
         for(std::vector<inflater>::const_iterator it = inflaters.begin(); it != inflaters.end(); it++) {
             if(it->appropriate(infile)) {
                 int fd = it->invoke(infile);
@@ -296,6 +300,7 @@ static void process_infile(const std::string &expression,const char *device,cons
                 break;
             }
         }
+#endif
 	if ((pd = pcap_open_offline(file_path.c_str(), error)) == NULL){	/* open the capture file */
 	    die("%s", error);
 	}

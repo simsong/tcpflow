@@ -27,9 +27,12 @@
  * OF SUCH DAMAGE.
  */
 
+#ifndef WIN32
+
+#include "tcpflow.h"
+
 #include <stdlib.h>
 #include <string.h>
-
 
 #include "cpack.h"
 #include "uni/extract.h"
@@ -138,3 +141,4 @@ cpack_uint8(struct cpack_state *cs, u_int8_t *u)
 	cs->c_next++;
 	return 0;
 }
+#endif
