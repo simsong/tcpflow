@@ -65,7 +65,17 @@ public:
         struct timeval tv;
         /* TK1: Does the pcap header make sense? */
         /* TK2: How do we get and preserve the the three MAC addresses? */
+
+        printf("DATA_HDRLEN=%d  DATA_WDS_HDRLEN=%d\n",DATA_HDRLEN,DATA_WDS_HDRLEN);
+
+        sbuf_t sb(pos0_t(),rest,len,len,0);
+        sb.hex_dump(std::cout);
+
+        rest += 10;                     // where does 10 come from? 
+        len -= 10;
+
         be13::packet_info pi(DLT_IEEE802_11,(const pcap_pkthdr *)0,(const u_char *)0,tvshift(tv,t),rest,len);
+        printf("pi.ip_version=%d\n",pi.ip_version());
         process_packet_info(pi);
     }
     void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {

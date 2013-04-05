@@ -154,8 +154,10 @@ public:;
         mac_saddr(),
         tstart(pi.ts),tlast(pi.ts),
 	packet_count(0){
-        memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
-        memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
+        if(pi.pcap_hdr){
+            memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
+            memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
+        }
     }
     virtual ~flow(){};
     uint64_t  id;			// flow_counter when this flow was created

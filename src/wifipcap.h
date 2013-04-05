@@ -2,14 +2,19 @@
 /**
  * Include this header in applications using wifipcap.
  * Some code (c) Jeffrey Pang <jeffpang@cs.cmu.edu>. Released under GPL.
+ * Modified by Simson Garfinkel
  */
 
 #ifndef _WIFIPCAP_H_
 #define _WIFIPCAP_H_
 
 #include <list>
-#include <pcap.h>
 #include <netinet/in.h>
+
+#pragma GCC diagnostic ignored "-Wredundant-decls"
+#include <pcap/pcap.h>
+#pragma GCC diagnostic warning "-Wredundant-decls"
+
 
 /**
  * Applications should implement a subclass of this interface and pass

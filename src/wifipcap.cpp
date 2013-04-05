@@ -14,7 +14,6 @@
 #include <net/ethernet.h>
 #include <arpa/inet.h>
 
-
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
