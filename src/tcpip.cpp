@@ -271,7 +271,7 @@ static int shift_file(int fd, size_t inslen)
     char buffer[BUFFERSIZE];
     struct stat sb;
 
-    DEBUG(100)("shift_file(%d,%zd)",fd,inslen);
+    DEBUG(100)("shift_file(%d,%d)",fd,(int)inslen);
 
     if (fstat(fd, &sb) != 0) return -1;
 

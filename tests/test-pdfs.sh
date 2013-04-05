@@ -16,14 +16,17 @@ case x"$srcdir" in
 esac
 
 
+cmd() {
+  echo $1;
+  $1;
+}
+
 # create PDFs for all of the pcap files
 for i in *.pcap
 do
   echo $i
-  cmd="$TCPFLOW -Fg -E netviz -o tmp$$ -r $i"
-  echo $cmd
-  $cmd
-  mv tmp$$/report.pdf `basename $i .pcap`.pdf
+  cmd "$TCPFLOW -Fg -E netviz -o tmp$$ -r $i"
+  cmd "mv tmp$$/report.pdf `basename $i .pcap`.pdf"
   echo ""
   /bin/rm -rf tmp$$
 done

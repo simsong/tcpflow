@@ -5,10 +5,13 @@
  */ 
 
 
+#ifndef WIN32
+
 #include "tcpflow.h"
 #include "wifipcap.h"
 #include <algorithm>
 #include <map>
+
 
 bool opt_enforce_80211_frame_checksum = true; // by default, only give good checksums
 
@@ -139,3 +142,4 @@ void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 }    
 
         
+#endif

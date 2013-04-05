@@ -45,11 +45,12 @@ case $host in
 
   *-*-mingw32*)   
      LIBS="-lpsapi -lws2_32 -lgdi32 $LIBS"  
-     CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -DHAVE_STRUCT_TIMESPEC $CPPFLAGS"
-     CFLAGS="$CFLAGS --static"
-     CXXFLAGS="$CXXFLAGS -Wno-format "  # compiler mingw-4.3.0 is broken on I64u formats
+     CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -g $CPPFLAGS"
+     CPPFLAGS="$CPPFLAGS --static"
      CFLAGS="$CFLAGS --static -static-libgcc -static-libstdc++"
+     CXXFLAGS="$CXXFLAGS -Wno-format "  # compiler mingw-4.3.0 is broken on I64u formats
      CXXFLAGS="$CXXFLAGS --static -static-libgcc -static-libstdc++"
+     LDFLAGS="$LDFLAGS --static"
      mingw="yes"
      ;;		 		     
 esac
@@ -191,7 +192,7 @@ AC_CHECK_FUNCS([isxdigit ishexnumber])
 ################################################################
 # DFXML support
 AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h regex.h])
-AC_CHECK_FUNCS([localtime_r getuid gethostname getwpuid getrusage mkstemp vasprintf regcomp])
+AC_CHECK_FUNCS([fork localtime_r getuid gethostname getwpuid getrusage mkstemp vasprintf regcomp])
 
 # Determine UTC date offset
 CPPFLAGS="$CPPFLAGS -DUTC_OFFSET=`date +%z`"
@@ -217,11 +218,11 @@ AC_TRY_COMPILE([#pragma GCC diagnostic ignored "-Wredundant-decls"],
 
 if test  x"$mingw" = x"yes";  then
   #AC_DEFINE([HAVE_STRUCT_TIMESPEC],1,[Required for mingw])
-  #CFLAGS="$CFLAGS -mthreads "
-  #CPPFLAGS="-DPTW32_STATIC_LIB $CPPFLAGS"
-  #CXXFLAGS="$CXXFLAGS -mthreads "
-  #AC_DEFINE(HAVE_PTHREAD,1,[Defined to POSIX threads for mingw])
-  AC_MSG_NOTICE([pthreads now disabled under mingw])
+  CFLAGS="$CFLAGS -mthreads "
+  CPPFLAGS="-DPTW32_STATIC_LIB $CPPFLAGS"
+  CXXFLAGS="$CXXFLAGS -mthreads "
+  AC_DEFINE(HAVE_PTHREAD,1,[Defined to POSIX threads for mingw])
+  #AC_MSG_NOTICE([pthreads now disabled under mingw])
 else
   m4_include([m4/ax_pthread.m4])
   AX_PTHREAD([
@@ -294,7 +295,11 @@ AC_ARG_ENABLE([pcap],[  --enable-pcap=false to disable libpcap even if present])
   fi
 
 if test $pcap = test ; then
-  AC_CHECK_LIB(pcap, pcap_lookupdev, , [
+  AC_CHECK_HEADERS(pcap.h pcap/pcap.h )
+  if test x"$mingw" = x"yes" ; then 
+    AC_MSG_WARN([pcap not supported under mingw])
+  else
+    AC_CHECK_LIB(pcap, pcap_lookupdev, , [
 	AC_MSG_WARN([
 Can't find the pcap library (libpcap.a). 
 tcpflow will not live capture or compile rules without pcap!
@@ -310,11 +315,11 @@ pcap-dev library.  Please execute this command:
 
 If your libpcap is installed in a non-standard location, you will need
 to use the --with-pcap=directory to specify where your pcap is
-located.
-  ])
-  Fmissing_library="$Fmissing_library libpcap-dev "
-  Umissing_library="$Umissing_library libpcap-dev "
-])
+located.])
+        Fmissing_library="$Fmissing_library libpcap-dev "
+        Umissing_library="$Umissing_library libpcap-dev "
+    ])
+  fi
 fi
 
 
@@ -332,8 +337,6 @@ AC_CHECK_HEADERS([\
 	netinet/in.h \
 	netinet/in_systm.h \
 	netinet/tcp.h \
-	pcap.h \
-	pcap/pcap.h \
 	regex.h \
 	semaphore.h \
 	signal.h \

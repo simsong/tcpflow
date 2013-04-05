@@ -59,11 +59,45 @@ NETVIZ = \
 	netviz/one_page_report.cpp \
 	netviz/one_page_report.h
 
-WIFI = 	wifipcap.h \
-	wifipcap.cpp \ 
-	wifi_datalink.cpp \
-	ieee802_11_radio.h \
-	cpack.cpp 
+WIFI = 	wifi_datalink.cpp \
+	wifipcap.cpp \
+	wifipcap.h \
+	cpack.h \
+	cpack.cpp \
+	uni/ethertype.h \
+	uni/extract.h \
+	uni/ieee802_11.h \
+	uni/ieee802_11_radio.h \
+	uni/llc.h \
+	uni/oui.h \
+	uni/packet-ieee80211.h 
+
+
+WIFIDIST = \
+	wifipcap/README.txt \
+	wifipcap/TimeVal.cpp \
+	wifipcap/TimeVal.h \
+	wifipcap/arp.h \
+	wifipcap/ether.h \
+	wifipcap/ethertype.h \
+	wifipcap/extract.h \
+	wifipcap/icmp.h \
+	wifipcap/ieee802_11_radio.h \
+	wifipcap/ip.h \
+	wifipcap/ip6.h \
+	wifipcap/ipproto.h \
+	wifipcap/os.h \
+	wifipcap/oui.h \
+	wifipcap/parser.cpp \
+	wifipcap/prism.h \
+	wifipcap/radiotap.h \
+	wifipcap/sample.cpp \
+	wifipcap/tcp.h \
+	wifipcap/types.h \
+	wifipcap/udp.h \
+	wifipcap/util.cpp \
+	wifipcap/util.h \
+	wifipcap/wifipcap.h 
 
 tcpflow_SOURCES = \
 	$(NETVIZ) \
@@ -92,7 +126,8 @@ EXTRA_DIST =\
 	http-parser/LICENSE-MIT \
 	http-parser/Makefile \
 	http-parser/README.md \
-	http-parser/http_parser.gyp 
+	http-parser/http_parser.gyp \
+	$(WIFIDIST)
 
 testiph: tcpflow
 	echo Testing the IP histogram

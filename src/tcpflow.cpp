@@ -26,7 +26,7 @@
 int iphtest=0;
 size_t iphtrim=0;
 
-be_config_t be_config; // system configuration
+scanner_info::config_t be_config; // system configuration
 
 typedef struct {
     const char *name;
@@ -193,6 +193,7 @@ void terminate(int sig)
     exit(0); /* libpcap uses onexit to clean up */
 }
 
+#ifdef HAVE_FORK
 // transparent decompression for process_infile
 class inflater {
 public:
@@ -265,6 +266,8 @@ static std::vector<inflater> build_inflaters()
 }
 
 static std::vector<inflater> inflaters = build_inflaters();
+#define HAVE_INFLATER
+#endif
 
 /*
  * process an input file or device
@@ -281,6 +284,7 @@ static void process_infile(const std::string &expression,const char *device,cons
     if (infile!=""){
         std::string file_path = infile;
         // decompress input if necessary
+#ifdef HAVE_INFLATER
         for(std::vector<inflater>::const_iterator it = inflaters.begin(); it != inflaters.end(); it++) {
             if(it->appropriate(infile)) {
                 int fd = it->invoke(infile);
@@ -296,6 +300,7 @@ static void process_infile(const std::string &expression,const char *device,cons
                 break;
             }
         }
+#endif
 	if ((pd = pcap_open_offline(file_path.c_str(), error)) == NULL){	/* open the capture file */
 	    die("%s", error);
 	}
@@ -362,7 +367,8 @@ static void process_infile(const std::string &expression,const char *device,cons
     /* start listening or reading from the input file */
     if (infile == "") DEBUG(1) ("listening on %s", device);
     if (pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance()) < 0){
-	die("%s", pcap_geterr(pd));
+	
+	die("%s: %s", infile.c_str(),pcap_geterr(pd));
     }
 }
 
@@ -533,7 +539,7 @@ int main(int argc, char *argv[])
 
     /* Load all the scanners and enable the ones we care about */
     if(demux.opt.opt_md5) scanners_enable("md5");
-    load_scanners(scanners_builtin);
+    load_scanners(scanners_builtin,be_config);
     scanners_process_commands();
 
     /* If there is no report filename, call it report.xml in the output directory */

@@ -9,7 +9,18 @@
 #define _WIFIPCAP_H_
 
 #include <list>
+#include <stdint.h>
+#include <inttypes.h>
+
+#ifdef HAVE_PCAP_H
+#include <pcap.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
+#endif
+
+#include <list>
 
 #pragma GCC diagnostic ignored "-Wredundant-decls"
 #include <pcap/pcap.h>
@@ -296,7 +307,9 @@ class Wifipcap {
     Wifipcap(const char* const *names, int nfiles, bool verbose = false);
 
     virtual ~Wifipcap(){
+#ifdef STANDALONE
         if(descr) pcap_close(descr);
+#endif
     };
 
     /**
@@ -319,15 +332,21 @@ class Wifipcap {
      */
     void Run(WifipcapCallbacks *cbs, int maxpkts = 0);
 
+#ifdef STANDALONE
     pcap_t *GetPcap() { return descr; }
+#endif
     int    GetDataLink() { return datalink; }
 
  private:
     void Init(const char *name, bool live);
     bool InitNext();
 
+#ifdef STANDALONE
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* descr;
+#else
+    void *descr;
+#endif
     int datalink;
     std::list<const char *> morefiles;
 

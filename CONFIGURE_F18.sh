@@ -55,23 +55,37 @@ else
   exit 1
 fi
 
-echo Will now try to install 
+echo Adding packages to install list required to compile tcpflow under Fedora.
 
-echo wget is required for updating fedora
-yum -y install wget
+PKGS+="autoconf automake gcc gcc-c++ texinfo man-db man-pages"
 
-echo Adding the Fedora Win32 and Win64 packages, as well as necessary
-echo support tools.
-echo For information, please see:
-echo http://fedoraproject.org/wiki/MinGW/CrossCompilerFramework
-if [ ! -d /etc/yum.repos.d ]; then
-  echo /etc/yum.repos.d does not exist. This is very bad.
-  exit 1
-fi
+echo Adding libraries required to compile tcpflow under Fedora.
+PKGS+="zlib-devel zlib-static boost-devel boost-static cairo-devel "
+PKGS+="libpcap-devel tre "
 
-PKGS+="install autoconf automake gcc gcc-c++ mingw32-gcc mingw32-gcc-c++ mingw64-gcc mingw64-gcc-c++"
+echo Adding mingw32 packages:
+
+PKGS+="mingw32-gcc mingw32-gcc-c++ mingw32-zlib-static mingw32-gettext-static "
+PKGS+="mingw32-boost mingw32-boost-static "
+PKGS+="mingw32-cairo mingw32-cairo-static "
+PKGS+="mingw32-pthreads mingw32-pthreads-static "
+PKGS+="mingw32-libgnurx-static "
+PKGS+="mingw32-wpcap ";
+
+echo Adding mingw64 packages:
+PKGS+="mingw64-gcc mingw64-gcc-c++ mingw64-zlib-static mingw64-gettext-static "
+PKGS+="mingw64-boost mingw64-boost-static "
+PKGS+="mingw64-cairo mingw64-cairo-static "
+PKGS+="mingw64-pthreads mingw64-pthreads-static "
+PKGS+="mingw64-libgnurx-static "
+PKGS+="mingw64-wpcap ";
+
+echo Adding wine for testing:
+PKGS+="wine "
+  
+
 echo "Now adding all of the packages that we will need: $PKGS"
-if yum -y $PKGS ; then
+if yum -y install $PKGS ; then
   echo "Installed all yummy packages"
 else
   echo "Could not install all yummy packages"
@@ -81,24 +95,6 @@ fi
 echo 
 echo "Now performing a yum update to update system packages"
 yum -y update
-
-echo ================================================================
-echo ================================================================
-echo Now installing all of the packages needed. We need LaTeX 
-echo for texinfo for regex package.
-
-if yum -y install \
-  texinfo \
-  mingw32-zlib-static mingw64-zlib-static \
-  mingw32-gettext-static mingw64-gettext-static \
-  mingw32-pthreads mingw32-pthreads-static \
-  mingw64-pthreads mingw64-pthreads-static
-then
-  echo All mingw packages properly installed
-else
-  echo Could not install all mingw packages
-  exit 1
-fi
 
 echo ================================================================
 echo ================================================================

@@ -4,6 +4,10 @@
  * 2013-03-15: Substantially modified by Simson Garfinkel for inclusion into tcpflow
  **********************************************************************/
 
+#ifndef WIN32
+
+#include "config.h"		// pull in HAVE_ defines
+
 #include <iostream>
 #include <cstdlib>
 #include <cstdio>
@@ -11,14 +15,25 @@
 
 #include <stdarg.h>
 #include <errno.h>
+
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#endif
+
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
 #include "wifipcap.h"
+
+#ifdef HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
+#endif
+
 #include "cpack.h"
 #include "uni/extract.h"
 #include "uni/oui.h"
@@ -1009,18 +1024,14 @@ int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_c
 static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
                              const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
 {
-    u_int16_t seq_ctl;
-    u_int16_t seq;
-    u_int8_t  frag;
-
     u_int16_t du = EXTRACT_LE_16BITS(ptr+2);        //duration
 
-    seq_ctl = pletohs(ptr + 22);
-    seq = COOK_SEQUENCE_NUMBER(seq_ctl);
-    frag = COOK_FRAGMENT_NUMBER(seq_ctl);
+    uint16_t seq_ctl = pletohs(ptr + 22);
+    uint16_t seq = COOK_SEQUENCE_NUMBER(seq_ctl);
+    uint8_t frag = COOK_FRAGMENT_NUMBER(seq_ctl);
 
     bool body = true;
-    int hdrlen;
+    int hdrlen = 0;
 
     if (!FC_TO_DS(fc) && !FC_FROM_DS(fc)) {
 	/* ad hoc IBSS */
@@ -1709,6 +1720,8 @@ int main(int argc, char **argv)
     wcap->Run(new TestCB());
     return 0;
 }
+
+#endif
 
 #endif
 
