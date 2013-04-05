@@ -132,7 +132,6 @@ public:
      * new flows.
      */
     void  save_flow(tcpip *);
-    void  saved_flow_remove_oldest_if_necessary();
 
     /** packet processing.
      * Each returns 0 if processed, 1 if not processed, -1 if error.

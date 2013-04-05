@@ -12,19 +12,10 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#ifdef HAVE_PCAP_H
-#include <pcap.h>
-#endif
-
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 
-#include <list>
-
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#include <pcap/pcap.h>
-#pragma GCC diagnostic warning "-Wredundant-decls"
 
 
 /**
@@ -333,7 +324,7 @@ class Wifipcap {
     void Run(WifipcapCallbacks *cbs, int maxpkts = 0);
 
 #ifdef STANDALONE
-    pcap_t *GetPcap() { return descr; }
+    struct pcap_t *GetPcap() { return descr; }
 #endif
     int    GetDataLink() { return datalink; }
 
@@ -343,7 +334,7 @@ class Wifipcap {
 
 #ifdef STANDALONE
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_t* descr;
+    struct pcap_t* descr;
 #else
     void *descr;
 #endif

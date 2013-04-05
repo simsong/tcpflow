@@ -337,14 +337,16 @@ inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
  * been written to disk. To do this we need ot know the filename and the ISN...
  */
 
-class saved_flow : public flow_addr {
+class saved_flow  {
 public:
-    saved_flow(tcpip *tcp):flow_addr(tcp->myflow),
+    saved_flow(tcpip *tcp):addr(tcp->myflow),
                            saved_filename(tcp->flow_pathname),
                            isn(tcp->isn) {}
                            
-    std::string saved_filename;        // where the flow was saved
+    flow_addr         addr;                  // flow address
+    std::string       saved_filename;        // where the flow was saved
     be13::tcp_seq     isn;                    // the flow's ISN
+    virtual ~saved_flow(){};
 };
 
 

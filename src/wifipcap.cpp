@@ -28,11 +28,15 @@
 #include <unistd.h>
 #endif
 
-#include "wifipcap.h"
-
+#pragma GCC diagnostic ignored "-Wredundant-decls"
 #ifdef HAVE_PCAP_PCAP_H
 #include <pcap/pcap.h>
 #endif
+#pragma GCC diagnostic warning "-Wredundant-decls"
+
+
+
+#include "wifipcap.h"
 
 #include "cpack.h"
 #include "uni/extract.h"

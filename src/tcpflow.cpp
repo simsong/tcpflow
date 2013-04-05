@@ -692,21 +692,5 @@ int main(int argc, char *argv[])
 	delete xreport;                 
     }
 
-    if(iphtest==1){
-        extern iptree mytree;
-        extern ip2tree my2tree;
-        std::cout << "trim before: " << mytree.size() << "\n";
-        while(mytree.size()>iphtrim){
-            mytree.trim();
-        }
-        std::cout << "trim after: " << mytree.size() << "\n";
-        std::cout << mytree;
-        std::cout << "\n";
-        std::cout << "my2tree:\n";
-        std::cout << my2tree;
-        std::cout << "\n";
-        exit(0);
-    }
-
     exit(0);                            // return(0) causes crash on Windows
 }
