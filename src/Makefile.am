@@ -73,32 +73,6 @@ WIFI = 	wifi_datalink.cpp \
 	uni/packet-ieee80211.h 
 
 
-WIFIDIST = \
-	wifipcap/README.txt \
-	wifipcap/TimeVal.cpp \
-	wifipcap/TimeVal.h \
-	wifipcap/arp.h \
-	wifipcap/ether.h \
-	wifipcap/ethertype.h \
-	wifipcap/extract.h \
-	wifipcap/icmp.h \
-	wifipcap/ieee802_11_radio.h \
-	wifipcap/ip.h \
-	wifipcap/ip6.h \
-	wifipcap/ipproto.h \
-	wifipcap/os.h \
-	wifipcap/oui.h \
-	wifipcap/parser.cpp \
-	wifipcap/prism.h \
-	wifipcap/radiotap.h \
-	wifipcap/sample.cpp \
-	wifipcap/tcp.h \
-	wifipcap/types.h \
-	wifipcap/udp.h \
-	wifipcap/util.cpp \
-	wifipcap/util.h \
-	wifipcap/wifipcap.h 
-
 tcpflow_SOURCES = \
 	$(NETVIZ) \
 	$(BE13_API) \
@@ -126,8 +100,7 @@ EXTRA_DIST =\
 	http-parser/LICENSE-MIT \
 	http-parser/Makefile \
 	http-parser/README.md \
-	http-parser/http_parser.gyp \
-	$(WIFIDIST)
+	http-parser/http_parser.gyp 
 
 testiph: tcpflow
 	echo Testing the IP histogram

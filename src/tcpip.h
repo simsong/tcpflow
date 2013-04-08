@@ -154,8 +154,10 @@ public:;
         mac_saddr(),
         tstart(pi.ts),tlast(pi.ts),
 	packet_count(0){
-        memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
-        memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
+        if(pi.pcap_hdr){
+            memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
+            memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
+        }
     }
     virtual ~flow(){};
     uint64_t  id;			// flow_counter when this flow was created
@@ -335,14 +337,16 @@ inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
  * been written to disk. To do this we need ot know the filename and the ISN...
  */
 
-class saved_flow : public flow_addr {
+class saved_flow  {
 public:
-    saved_flow(tcpip *tcp):flow_addr(tcp->myflow),
+    saved_flow(tcpip *tcp):addr(tcp->myflow),
                            saved_filename(tcp->flow_pathname),
                            isn(tcp->isn) {}
                            
-    std::string saved_filename;        // where the flow was saved
+    flow_addr         addr;                  // flow address
+    std::string       saved_filename;        // where the flow was saved
     be13::tcp_seq     isn;                    // the flow's ISN
+    virtual ~saved_flow(){};
 };
 
 

@@ -2,23 +2,21 @@
 /**
  * Include this header in applications using wifipcap.
  * Some code (c) Jeffrey Pang <jeffpang@cs.cmu.edu>. Released under GPL.
+ * Modified by Simson Garfinkel
  */
 
 #ifndef _WIFIPCAP_H_
 #define _WIFIPCAP_H_
 
+#include <list>
 #include <stdint.h>
 #include <inttypes.h>
-
-#ifdef HAVE_PCAP_H
-#include <pcap.h>
-#endif
 
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 
-#include <list>
+
 
 /**
  * Applications should implement a subclass of this interface and pass
@@ -326,7 +324,7 @@ class Wifipcap {
     void Run(WifipcapCallbacks *cbs, int maxpkts = 0);
 
 #ifdef STANDALONE
-    pcap_t *GetPcap() { return descr; }
+    struct pcap_t *GetPcap() { return descr; }
 #endif
     int    GetDataLink() { return datalink; }
 
@@ -336,7 +334,7 @@ class Wifipcap {
 
 #ifdef STANDALONE
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_t* descr;
+    struct pcap_t* descr;
 #else
     void *descr;
 #endif

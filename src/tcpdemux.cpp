@@ -165,7 +165,6 @@ void tcpdemux::post_process(tcpip *tcp)
     /**
      * Before we delete the tcp structure, save information about the saved flow
      */
-    saved_flow_remove_oldest_if_necessary();
     save_flow(tcp);
     delete tcp;
 }
@@ -265,21 +264,23 @@ void tcpdemux::save_unk_packets(const std::string &ofname,const std::string &ifn
 /**
  * save information on this flow needed to handle strangling packets
  */
+int c = 0;
 void tcpdemux::save_flow(tcpip *tcp)
 {
+    /* First remove the oldest flow if we are in overload */
+    if(saved_flows.size()>0 && saved_flows.size()>max_saved_flows){
+        saved_flow *flow0 = saved_flows.at(0);
+        saved_flow_map.erase(flow0->addr);    // remove from the map
+        saved_flows.erase(saved_flows.begin()); // remove from the vector
+        delete flow0;                           // and delete the saved flow
+    }
+
+    /* Now save the flow */
     saved_flow *sf = new saved_flow(tcp);
-    saved_flow_map[*sf] = sf;
+    saved_flow_map[sf->addr] = sf;
     saved_flows.push_back(sf);
 }
 
-void tcpdemux::saved_flow_remove_oldest_if_necessary()
-{
-    if(saved_flows.size()>0 && saved_flows.size()>max_saved_flows){
-        flow_addr this_flow = *saved_flows.at(0);
-        saved_flow_map.erase(this_flow);
-        saved_flows.erase(saved_flows.begin());
-    }
-}
 
 /**
  * process_tcp():
