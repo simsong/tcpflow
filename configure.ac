@@ -281,8 +281,9 @@ AC_CHECK_LIB([cairo],[cairo_create], , [
 *** cairo libraries not detected.
 *** Please install cairo-devel to get 1-page PDF summary generation.
 ])
-  Fmissing_library="cairo-devel $missing_library"
-  Umissing_library="libcairo2-dev $missing_library"
+  Fmissing_library="cairo-devel $missing_library "
+  Umissing_library="libcairo2-dev $missing_library "
+  Mmissing_library="cairo-devel "
 ])
 
 ################################################################
@@ -318,6 +319,7 @@ to use the --with-pcap=directory to specify where your pcap is
 located.])
         Fmissing_library="$Fmissing_library libpcap-dev "
         Umissing_library="$Umissing_library libpcap-dev "
+        Mmissing_library="$Mmissing_library libpcap "
     ])
   fi
 fi
@@ -542,7 +544,10 @@ fi
 
 AC_OUTPUT
 
-if test "x${missing_library}" != "x" ; then
-  AC_MSG_NOTICE([*** You may wish to install these libraries: $missing_library])
+if test "x${Fmissing_library}" != "x" ; then
+  AC_MSG_NOTICE([*** You have missing libraries. To install them:])
+  AC_MSG_NOTICE([*** Fedora:  sudo yum install $Fmissing_library])
+  AC_MSG_NOTICE([*** Ubuntu:  sudo apt-get install $Umissing_library])
+  AC_MSG_NOTICE([*** MacOS:   sudo port install $Mmissing_library])
 fi
 
