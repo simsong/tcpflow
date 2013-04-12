@@ -57,7 +57,7 @@ fi
 
 echo Adding packages to install list required to compile tcpflow under Fedora.
 
-PKGS+="autoconf automake gcc gcc-c++ texinfo man-db man-pages"
+PKGS+="autoconf automake gcc gcc-c++ texinfo man-db man-pages "
 
 echo Adding libraries required to compile tcpflow under Fedora.
 PKGS+="zlib-devel zlib-static boost-devel boost-static cairo-devel "
