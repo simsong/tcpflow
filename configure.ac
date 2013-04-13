@@ -274,6 +274,9 @@ AC_LANG_POP()
 # drawing support via cairo
 #
 
+# Cairo requires pixman on some platforms
+AC_CHECK_LIB([pixman-1],[pixman_region_init])
+
 AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
 AC_CHECK_HEADERS([cairo.h cairo-pdf.h])
 AC_CHECK_LIB([cairo],[cairo_create], , [
