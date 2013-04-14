@@ -4,7 +4,7 @@
 # See http://autotoolset.sourceforge.net/tutorial.html 
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
-AC_INIT(TCPFLOW, 1.4.0a3_dev, bugs@afflib.org)
+AC_INIT(TCPFLOW, 1.4.0b1, bugs@afflib.org)
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
 AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
@@ -274,8 +274,12 @@ AC_LANG_POP()
 # drawing support via cairo
 #
 
-# Cairo requires pixman on some platforms
+# Cairo requires these to be explicitly included on mingw (and perhaps others):
+AC_CHECK_LIB([expat],[XML_ParserCreate])
 AC_CHECK_LIB([pixman-1],[pixman_region_init])
+AC_CHECK_LIB([bz2],[BZ2_bzDecompress])
+AC_CHECK_LIB([freetype],[FT_Init_FreeType]) # requires bz2
+AC_CHECK_LIB([fontconfig],[FcBlanksCreate]) # requires freetype expat
 
 AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
 AC_CHECK_HEADERS([cairo.h cairo-pdf.h])

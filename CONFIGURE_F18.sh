@@ -65,17 +65,23 @@ PKGS+="libpcap-devel tre "
 
 echo Adding mingw32 packages:
 
-PKGS+="mingw32-gcc mingw32-gcc-c++ mingw32-zlib-static mingw32-gettext-static "
-PKGS+="mingw32-boost mingw32-boost-static "
-PKGS+="mingw32-cairo mingw32-cairo-static mingw32-pixman mingw32-pixman-static "
+PKGS+="mingw32-gcc      mingw32-gcc-c++ mingw32-zlib-static mingw32-gettext-static "
+PKGS+="mingw32-boost    mingw32-boost-static "
+PKGS+="mingw32-cairo    mingw32-cairo-static mingw32-pixman mingw32-pixman-static "
+PKGS+="mingw32-freetype mingw32-freetype-static "
+PKGS+="mingw32-bzip2    mingw32-bzip2-static "
+PKGS+="mingw32-expat    mingw32-expat-static "
 PKGS+="mingw32-pthreads mingw32-pthreads-static "
 PKGS+="mingw32-libgnurx-static "
 PKGS+="mingw32-wpcap ";
 
 echo Adding mingw64 packages:
-PKGS+="mingw64-gcc mingw64-gcc-c++ mingw64-zlib-static mingw64-gettext-static "
-PKGS+="mingw64-boost mingw64-boost-static "
-PKGS+="mingw64-cairo mingw64-cairo-static mingw64-pixman mingw64-pixman-static "
+PKGS+="mingw64-gcc      mingw64-gcc-c++ mingw64-zlib-static mingw64-gettext-static "
+PKGS+="mingw64-boost    mingw64-boost-static "
+PKGS+="mingw64-cairo    mingw64-cairo-static mingw64-pixman mingw64-pixman-static "
+PKGS+="mingw64-freetype mingw64-freetype-static "
+PKGS+="mingw64-bzip2    mingw64-bzip2-static "
+PKGS+="mingw64-expat    mingw64-expat-static "
 PKGS+="mingw64-pthreads mingw64-pthreads-static "
 PKGS+="mingw64-libgnurx-static "
 PKGS+="mingw64-wpcap ";
