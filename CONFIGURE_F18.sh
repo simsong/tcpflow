@@ -90,7 +90,7 @@ echo Attempting to install both DLL and static version of all mingw libraries
 echo At this point we will keep going even if there is an error...
 for M in mingw32 mingw64 ; 
 do
-  for lib in zlib gettext boost cairo pixman freetype fontconfig bzip expat pthreads libgnurx tre wpcap ; 
+  for lib in zlib gettext boost cairo pixman freetype fontconfig bzip2 expat pthreads libgnurx tre wpcap ; 
   do
     yum -y install ${M}-${lib}
     yum -y install ${M}-${lib}-static
