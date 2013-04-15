@@ -61,7 +61,7 @@ PKGS+="autoconf automake gcc gcc-c++ texinfo man-db man-pages "
 
 echo Adding libraries required to compile tcpflow under Fedora.
 PKGS+="zlib-devel zlib-static boost-devel boost-static cairo-devel "
-PKGS+="libpcap-devel tre "
+PKGS+="libpcap-devel tre wget "
 
 echo Adding wine for Windows testing:
 PKGS+="wine "
@@ -90,7 +90,7 @@ echo Attempting to install both DLL and static version of all mingw libraries
 echo At this point we will keep going even if there is an error...
 for M in mingw32 mingw64 ; 
 do
-  for lib in zlib gettext boost cairo pixman freetype fontconfig bzip expat pthreads libgnurx wpcap ; 
+  for lib in zlib gettext boost cairo pixman freetype fontconfig bzip expat pthreads libgnurx tre wpcap ; 
   do
     yum -y install ${M}-${lib}
     yum -y install ${M}-${lib}-static
