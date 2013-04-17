@@ -17,6 +17,9 @@
 #include <string>
 #include <vector>
 
+#include <sys/types.h>
+#include <dirent.h>
+
 /* bring in inet_ntop if it is not present */
 #define ETH_ALEN 6
 #ifndef HAVE_INET_NTOP
@@ -90,6 +93,7 @@ static void usage()
         std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
         std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
         std::cout << "   -p: don't use promiscuous mode\n";
+        std::cout << "   -q: quiet mode - do not print warnings\n";
         std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
         std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
         std::cout << "   -w file: write packets not processed to file\n";
@@ -395,6 +399,7 @@ int main(int argc, char *argv[])
     tcpdemux &demux = *tcpdemux::getInstance();			// the demux object we will be using.
     std::string command_line = xml::make_command_line(argc,argv);
     std::string opt_unk_packets;
+    bool opt_quiet = false;
 
     /* Set up debug system */
     progname = argv[0];
@@ -411,7 +416,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:lL:m:o:pR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -491,6 +496,7 @@ int main(int argc, char *argv[])
             flow::outdir = optarg;
             break;
 	case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
+        case 'q': opt_quiet = true; break;
 	case 'R': Rfiles.push_back(optarg); break;
 	case 'r': rfiles.push_back(optarg); break;
         case 'S':
@@ -528,6 +534,7 @@ int main(int argc, char *argv[])
 	    break;
 	}
     }
+
     if(didhelp) exit(0);
     if(demux.opt.post_processing && !demux.opt.store_output){
         std::cerr << "ERROR: post_processing currently requires storing output.\n";
@@ -671,6 +678,7 @@ int main(int argc, char *argv[])
     DEBUG(2)("Open FDs at end of processing:      %d",(int)demux.open_flows.size());
     DEBUG(2)("demux.max_open_flows:               %d",(int)demux.max_open_flows);
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
+    DEBUG(2)("Flows seen:                         %d",(int)demux.flow_counter);
 
     demux.close_all_fd();
     phase_shutdown(fs,*xreport);
@@ -690,6 +698,36 @@ int main(int argc, char *argv[])
 	xreport->pop();                 // bulk_extractor
 	xreport->close();
 	delete xreport;                 
+    }
+
+    if(demux.flow_counter > tcpdemux::WARN_TOO_MANY_FILES){
+        if(!opt_quiet){
+            /* Start counting how many files we have in the output directory.
+             * If we find more than 10,000, print the warning, and keep counting...
+             */
+            uint64_t filecount=0;
+            DIR *dirp = opendir(demux.outdir.c_str());
+            if(dirp){
+                struct dirent *dp=0;
+                while((dp=readdir(dirp))!=NULL){
+                    filecount++;
+                    if(filecount==10000){
+                        std::cerr << "*** tcpflow WARNING:\n";
+                        std::cerr << "*** Modern operating systems do not perform well \n";
+                        std::cerr << "*** with more than 10,000 entries in a directory.\n";
+                        std::cerr << "***\n";
+                    }
+                }
+                closedir(dirp);
+            }
+            if(filecount>=10000){
+                std::cerr << "*** tcpflow created " << filecount << " files in output directory " << demux.outdir << "\n";
+                std::cerr << "***\n";
+                std::cerr << "*** Next time, specify command-line options: -Fk , -Fm , or -Fg \n";
+                std::cerr << "*** This will automatically bin output into subdirectories.\n";
+                std::cerr << "*** type 'tcpflow -hhh' for more information.\n";
+            }
+        }
     }
 
     exit(0);                            // return(0) causes crash on Windows

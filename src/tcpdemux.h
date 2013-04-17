@@ -89,6 +89,8 @@ public:
         int32_t max_seek;               // signed becuase we compare with abs()
     };
 
+    enum { WARN_TOO_MANY_FILES=10000};  // warn if more than this number of files in a directory
+
     std::string outdir;                 /* output directory */
     uint64_t    flow_counter;           // how many flows have we seen?
     uint64_t    packet_counter;         // monotomically increasing 

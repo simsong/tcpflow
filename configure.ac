@@ -274,6 +274,13 @@ AC_LANG_POP()
 # drawing support via cairo
 #
 
+# Cairo requires these to be explicitly included on mingw (and perhaps others):
+AC_CHECK_LIB([expat],[XML_ParserCreate])
+AC_CHECK_LIB([pixman-1],[pixman_region_init])
+AC_CHECK_LIB([bz2],[BZ2_bzDecompress])
+AC_CHECK_LIB([freetype],[FT_Init_FreeType]) # requires bz2
+AC_CHECK_LIB([fontconfig],[FcBlanksCreate]) # requires freetype expat
+
 AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
 AC_CHECK_HEADERS([cairo.h cairo-pdf.h])
 AC_CHECK_LIB([cairo],[cairo_create], , [

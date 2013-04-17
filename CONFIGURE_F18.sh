@@ -22,7 +22,7 @@ mingw32 and 64.  It requires:
    NOTE: The first time you log in, the system will block the yum 
    system as it downloads updates. This is annoying.
 
-2. Get this script. You have it. Put it in your home directory.
+2. This script. You have it. Put it in your home directory.
 
 3. Root access. This script must be run as root. You can do that 
    by typing:
@@ -57,32 +57,14 @@ fi
 
 echo Adding packages to install list required to compile tcpflow under Fedora.
 
-PKGS+="autoconf automake gcc gcc-c++ texinfo man-db man-pages"
+PKGS+="autoconf automake gcc gcc-c++ texinfo man-db man-pages "
 
 echo Adding libraries required to compile tcpflow under Fedora.
 PKGS+="zlib-devel zlib-static boost-devel boost-static cairo-devel "
-PKGS+="libpcap-devel tre "
+PKGS+="libpcap-devel tre wget "
 
-echo Adding mingw32 packages:
-
-PKGS+="mingw32-gcc mingw32-gcc-c++ mingw32-zlib-static mingw32-gettext-static "
-PKGS+="mingw32-boost mingw32-boost-static "
-PKGS+="mingw32-cairo mingw32-cairo-static "
-PKGS+="mingw32-pthreads mingw32-pthreads-static "
-PKGS+="mingw32-libgnurx-static "
-PKGS+="mingw32-wpcap ";
-
-echo Adding mingw64 packages:
-PKGS+="mingw64-gcc mingw64-gcc-c++ mingw64-zlib-static mingw64-gettext-static "
-PKGS+="mingw64-boost mingw64-boost-static "
-PKGS+="mingw64-cairo mingw64-cairo-static "
-PKGS+="mingw64-pthreads mingw64-pthreads-static "
-PKGS+="mingw64-libgnurx-static "
-PKGS+="mingw64-wpcap ";
-
-echo Adding wine for testing:
+echo Adding wine for Windows testing:
 PKGS+="wine "
-  
 
 echo "Now adding all of the packages that we will need: $PKGS"
 if yum -y install $PKGS ; then
@@ -92,9 +74,43 @@ else
   exit 1
 fi
 
+echo Adding mingw compilers...
+for M in mingw32 mingw64 ; 
+do
+  PKGS = "${M}-gcc ${M}-gcc-c++"
+  if yum -y install $PKGS ; then
+    echo mingw compilers installed successfully
+  else
+    echo could not install mingw compilers
+    exit 1
+  fi
+done
+
+echo Attempting to install both DLL and static version of all mingw libraries
+echo At this point we will keep going even if there is an error...
+for M in mingw32 mingw64 ; 
+do
+  for lib in zlib gettext boost cairo pixman freetype fontconfig bzip2 expat pthreads libgnurx tre wpcap ; 
+  do
+    yum -y install ${M}-${lib}
+    yum -y install ${M}-${lib}-static
+  done
+done
+
+
 echo 
 echo "Now performing a yum update to update system packages"
 yum -y update
+
+echo 
+echo "Now installing packages which need to be installed manually"
+wget http://www.freedesktop.org/software/fontconfig/release/fontconfig-2.10.92.tar.gz
+tar xfz fontconfig-2.10.92.tar.gz
+cd fontconfig-2.10.92
+mingw32-configure
+make ; make install ; make clean
+mingw64-configure
+make ; make install ; make clean
 
 echo ================================================================
 echo ================================================================

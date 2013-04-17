@@ -10,6 +10,7 @@
 
 #include "config.h"
 
+#include "be13_api/utils.h"
 #include "plot_view.h"
 #ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
@@ -299,8 +300,13 @@ void one_page_report::render_pass::render_header()
     end_of_content += title_line_space * 4;
     // quick stats
     //// date range
-    struct tm start = *localtime(&report.earliest.tv_sec);
-    struct tm stop = *localtime(&report.latest.tv_sec);
+    time_t tstart = report.earliest.tv_sec;
+    struct tm start;
+    localtime_r(&tstart,&start);
+
+    time_t tstop = report.latest.tv_sec;
+    struct tm stop;
+    localtime_r(&tstop,&stop);
     formatted = ssprintf("Date range: %04d-%02d-%02d %02d:%02d:%02d -- %04d-%02d-%02d %02d:%02d:%02d",
             1900 + start.tm_year, 1 + start.tm_mon, start.tm_mday,
             start.tm_hour, start.tm_min, start.tm_sec,
