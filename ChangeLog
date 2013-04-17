@@ -1,3 +1,7 @@
+2013-04-17  Simson Garfinkel  <simsong@mncrnpsedu.local>
+
+	* src/iptree.h (template): changed inc() to add()
+
 2013-03-30  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/scan_tcpdemux.cpp (scan_tcpdemux): added -S tcp_timeout 

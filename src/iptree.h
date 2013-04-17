@@ -149,7 +149,7 @@ private:;
             return s;
         }
         /** Increment this node by the given amount */
-        void inc(TYPE val) { tsum+=val;}           // increment
+        void add(TYPE val) { tsum+=val;}           // increment
 
     }; /* end of node class */
     class node *root;                  
@@ -200,14 +200,16 @@ public:
     /****************************************************************
      *** cache
      ****************************************************************/
-    class ncache {
+    class cache_element {
     public:
-        ncache():addr(),ptr(){};
-        const uint8_t addr[ADDRBYTES];
+        cache_element(const uint8_t addr_[ADDRBYTES],node *p):addr(),ptr(p){
+            memcpy(addr,addr_,ADDRBYTES);
+        }
+        uint8_t addr[ADDRBYTES];
         node *ptr;                      // 0 means cache entry is not in use
     };
-    enum {ncache_size=8};
-    typedef std::vector<ncache> cache_t;
+    enum {cache_maxsize=8};
+    typedef std::vector<cache_element> cache_t;
     cache_t cache;
     size_t cachenext;                   // which cache element to evict next
 
@@ -235,7 +237,7 @@ public:
         /* remove tnode from the cache if it is present */
         if(tnode){
             cache_remove(tnode);
-            return tnode->trim(*this);
+            return tnode->trim(this);
         }
         return 0;
     }
@@ -381,9 +383,25 @@ void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
 
     u_int addr_bits = addrlen * 8;  // in bits
     node *ptr = root;               // start at the root
+    
+    /* check the cache first */
+    for(size_t i = 0; i<cache.size(); i++){
+        if(memcmp(cache[i].addr,addr,addrlen)==0){
+            cache[i].ptr->add(val);
+            return;
+        }
+    }
+
+    
     for(u_int depth=0;depth<=addr_bits;depth++){
         if(depth==addr_bits){       // reached end of address
-            ptr->inc(val);          // increment this node (and all of its descendants 
+            ptr->add(val);          // increment this node (and all of its descendants 
+
+            /* Add to the cache */
+            if(cache.size() >= cache_maxsize){
+                cache.erase(cache.begin()); // remove the first element
+            }
+            cache.push_back(cache_element(addr,ptr)); // add to the end
             return;                 // we are a terminal node; return
         }
         /* Not a terminal node, so go down a level based on the next bit,
