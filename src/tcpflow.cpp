@@ -86,10 +86,10 @@ static void usage()
         std::cout << "   -a: do ALL post-processing.\n";
         std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
         std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
-        std::cout << "   -e: output each flow in alternating colors\n";
         std::cout << "   -f: maximum number of file descriptors to use\n";
         std::cout << "   -h: print this help message (-hh for more help)\n";
         std::cout << "   -i: network interface on which to listen\n";
+        std::cout << "   -J: output each flow in alternating colors (note change!)\n";
         std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
         std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
         std::cout << "   -p: don't use promiscuous mode\n";
@@ -108,7 +108,7 @@ static void usage()
         std::cout << "   -T{t} : filename template (-hh for options; default "
                   << flow::filename_template << ")\n";
         std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
-        info_scanners(false,scanners_builtin,'E','x');
+        info_scanners(false,scanners_builtin,'e','x');
 
         std::cout << "Console output options:\n";
         std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
@@ -416,7 +416,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DeE:F:f:Hhi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:De:E:F:f:Hhi:JlL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -456,11 +456,7 @@ int main(int argc, char *argv[])
             demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
 	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
             break;
-	case 'e':
-	    demux.opt.use_color  = 1;
-	    DEBUG(10) ("using colors");
-	    break;
-        case 'E': scanners_enable(optarg); break;
+        case 'e': scanners_enable(optarg); break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){
@@ -486,6 +482,10 @@ int main(int argc, char *argv[])
 	    break;
         }
 	case 'i': device = optarg; break;
+	case 'J':
+	    demux.opt.use_color  = 1;
+	    DEBUG(10) ("using colors");
+	    break;
         case 'l': trailing_input_list = true; break;
 	case 'L': lockname = optarg; break;
 	case 'm':
@@ -521,7 +521,7 @@ int main(int argc, char *argv[])
 	case 'X': reportfilename = optarg;break;
 	case 'Z': demux.opt.gzip_decompress = 0; break;
 	case 'H':
-            info_scanners(true,scanners_builtin,'E','x');
+            info_scanners(true,scanners_builtin,'e','x');
             didhelp = true;
             break;
 	case 'h': case '?':

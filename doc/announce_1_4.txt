@@ -12,6 +12,11 @@ Completely rewritten TCP implementation that:
   retransmissions. If they do not match they are put in new transcript
   files.
 
+Incompatiable Changes:
+
+* -e (alternate colors of console output) has been renamed -J
+  so that -e and -E can be used in a manner consistent with bulk_extractor 
+
 Completely rewritten HTTP parser
 
 * Handles multiple HTTP objects per connections
@@ -55,3 +60,16 @@ You can download version 1.4.0, both source and precompiled windows binaries,
 from:
 
 https://github.com/simsong/tcpflow/downloads
+
+
+
+(what we didn't get to)
+The following is scheduled for release 1.5:
+
+* Full handling of radiotap files
+
+* Passive DNS implementation
+
+* top-100 connection map
+
+
