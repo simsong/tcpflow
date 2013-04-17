@@ -24,7 +24,7 @@
 #endif
 
 int iphtest=0;
-size_t iphtrim=0;
+size_t iphprune=0;
 
 scanner_info::config_t be_config; // system configuration
 
@@ -77,9 +77,9 @@ static void usage()
     switch(++usage_count){
     case 1:
         std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
-        std::cout << "usage: " << progname << " [-aBcCDhpsv] [-b max_bytes] [-d debug_level] [-f max_fds]\n";
-        std::cout << "      [-i iface] [-L semlock] [-r file] [-R file] [-w file] [-o outdir] [-X xmlfile]\n";
-        std::cout << "      [-m min_bytes] [-F[ct]] [expression]\n\n";
+        std::cout << "usage: " << progname << " [-aBcCDhpsvVZ] [-b max_bytes] [-d debug_level] [-E scanner] [-f max_fds] [-F[ct]] \n";
+        std::cout << "      [-i iface] [-L semlock] [-m min_bytes] [-o outdir] [-r file] [-R file] [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
+        std::cout << "      [expression]\n\n";
         std::cout << "   -a: do ALL post-processing.\n";
         std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
         std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
@@ -636,7 +636,7 @@ int main(int argc, char *argv[])
 
     datalink_tdelta = atoi(be_config["tdelta"].c_str()); // specify the time delta
     iphtest         = atoi(be_config["iphtest"].c_str()); // get iphtesting
-    iphtrim     = atoi(be_config["iphtrim"].c_str()); // get iphtrim
+    iphprune     = atoi(be_config["iphprune"].c_str()); // get iphprune
 
     if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 

@@ -1,3 +1,7 @@
+2013-04-16  Simson Garfinkel  <simsong@Mucha.local>
+
+	* src/iptree.h: changed 'trim' to 'prune' for correct terminology.
+
 2013-03-30  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/scan_tcpdemux.cpp (scan_tcpdemux): added -S tcp_timeout 

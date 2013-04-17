@@ -78,7 +78,6 @@ Additional features:
 
 * Full support for the bulk_extractor plug-in system
 
-HTTP module:
 
 
 You can download version 1.4.0, both source and precompiled windows binaries,

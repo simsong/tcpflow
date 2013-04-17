@@ -1,12 +1,14 @@
-.\"$Id: tcpflow.1.in,v 1.5 2001/02/26 23:01:30 jelson Exp $"
-.TH tcpflow 1 "15 Jan 2011" "tcpflow @VERSION@" "tcpflow @VERSION@"
+.\"edit the file tcpflow.1.in, not tcpflow.1"
+.\""
+.\""
+.TH tcpflow 1 "2013-04-13" "tcpflow @VERSION@" "tcpflow @VERSION@"
 .SH NAME
 tcpflow \- TCP flow recorder 
 .SH SYNOPSIS
 .na
 .B tcpflow
 [\c
-.BI \-BcCehPpsv\fR\c
+.BI \-aBcCDhpsvVZ\fR\c
 ]
 [\c
 .BI \-b \ max_bytes\fR\c
@@ -15,10 +17,25 @@ tcpflow \- TCP flow recorder
 .BI \-d \ debug_level\fR\c
 ]
 [\c
+.BI \-E \ scanner\fR\c
+]
+[\c
 .BI \-f \ max_fds\fR\c
 ]
 [\c
+.BI \-F[output\ format]\fR\c
+]
+[\c
 .BI \-i \ iface\fR\c
+]
+[\c
+.BI \-L \ semlock\fR\c
+]
+[\c
+.BI \-m \ minskip\fR\c
+]
+[\c
+.BI \-o \ outdir\fR\c
 ]
 [\c
 .BI \-r \ file1.pcap\fR\c
@@ -27,16 +44,16 @@ tcpflow \- TCP flow recorder
 .BI \-R \ file0.pcap\fR\c
 ]
 [\c
-.BI \-m \ minskip\fR\c
+.BI \-T[filenamee\ template]\fR\c
+]
+[\c
+.BI \-w file\fR\c
+]
+[\c
+.BI -x\ scanner\fR\c
 ]
 [\c
 .BI \-X \ file.xml\fR\c
-]
-[\c
-.BI \-F[output format]\fR\c
-]
-[\c
-.BI \-T[filenamee template]\fR\c
 ]
 [\c
 .BI expression\fR\c
