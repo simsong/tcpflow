@@ -64,6 +64,8 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
 
     if(sp.phase==scanner_params::PHASE_SHUTDOWN){
 #ifdef HAVE_LIBCAIRO
+        std::cerr << "cache_hits: " << th_one_page->src_tree.cache_hits << "\n";
+        std::cerr << "cache_misses: " << th_one_page->src_tree.cache_misses << "\n";
 	th_shutdown(sp);
 #endif
     }

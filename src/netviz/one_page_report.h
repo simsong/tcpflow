@@ -103,6 +103,7 @@ private:
     port_histogram dst_port_histogram;
     packetfall pfall;
     net_map netmap;
+public:
     iptree src_tree;
     iptree dst_tree;
     std::map<uint16_t, uint16_t> port_aliases;

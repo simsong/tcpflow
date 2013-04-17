@@ -171,14 +171,12 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
 
 void one_page_report::render(const string &outdir)
 {
-    cairo_t *cr;
-    cairo_surface_t *surface;
     string fname = outdir + "/" + filename;
 
-    surface = cairo_pdf_surface_create(fname.c_str(),
+    cairo_surface_t *surface = cairo_pdf_surface_create(fname.c_str(),
 				 bounds.width,
 				 bounds.height);
-    cr = cairo_create(surface);
+    cairo_t *cr = cairo_create(surface);
 
     double pad_size = bounds.width * page_margin_factor;
     plot_view::bounds_t pad_bounds(bounds.x + pad_size,
