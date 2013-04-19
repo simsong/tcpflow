@@ -385,6 +385,13 @@ public:
         dump(os,histogram);
         return os;
     }
+
+    /* dump the stats */
+    std::ostream & dump_stats(std::ostream &os) const {
+        os << "cache_hits: " << cache_hits << "\n";
+        os << "cache_misses: " << cache_misses << "\n";
+        return os;
+    }
 };
 
 

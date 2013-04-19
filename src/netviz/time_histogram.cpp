@@ -13,8 +13,6 @@
 
 #include "time_histogram.h"
 
-using namespace std;
-
 time_histogram::time_histogram() :
     histograms(), best_fit_index(0), earliest_ts(), latest_ts(), sum(0)
 {
@@ -35,7 +33,7 @@ const float time_histogram::underflow_pad_factor = 0.1;
 // will be created per entry in this vector.  Each value must have a greater
 // value of seconds than the previous
 const vector<time_histogram::span_params> time_histogram::spans = time_histogram::build_spans();
-const time_histogram::bucket time_histogram::empty_bucket;
+const time_histogram::bucket time_histogram::empty_bucket; // an empty bucket
 const unsigned int time_histogram::F_NON_TCP = 0x01;
 
 void time_histogram::insert(const struct timeval &ts, const port_t port, const count_t count,
@@ -67,17 +65,16 @@ void time_histogram::condense(double factor)
     const histogram_map &original = histograms.at(best_fit_index);
     histogram_map condensed(span_params(original.span.usec, (uint64_t) ((double) original.span.bucket_count / factor)));
 
-    for(map<timescale_off_t, bucket>::const_iterator it = original.buckets.begin();
-            it != original.buckets.end(); it++) {
+    for(histogram_map::buckets_t::const_iterator it = original.buckets.begin(); it != original.buckets.end(); it++) {
 
-        const bucket &bkt = it->second;
+        bucket &bkt = *(it->second);
         uint64_t recons_usec = it->first * original.bucket_width + original.base_time;
+
         struct timeval reconstructed_ts;
         reconstructed_ts.tv_usec = (time_t) (recons_usec % (1000LL * 1000LL));
         reconstructed_ts.tv_sec = (time_t) (recons_usec / (1000LL * 1000LL));
 
-        for(map<port_t, count_t>::const_iterator jt = bkt.counts.begin();
-                jt != bkt.counts.end(); jt++) {
+        for(bucket::counts_t::const_iterator jt = bkt.counts.begin(); jt != bkt.counts.end(); jt++) {
             condensed.insert(reconstructed_ts, jt->first, jt->second);
         }
         condensed.insert(reconstructed_ts, 0, bkt.portless_count, F_NON_TCP);
@@ -108,16 +105,16 @@ time_t time_histogram::end_date() const
 
 uint64_t time_histogram::tallest_bar() const
 {
-    return histograms.at(best_fit_index).greatest_bucket_sum;
+    return histograms.at(best_fit_index).greatest_bucket_sum();
 }
 
-const time_histogram::bucket &time_histogram::at(timescale_off_t index) const {
-    const map<timescale_off_t, bucket> &hgram = histograms.at(best_fit_index).buckets;
-    map<timescale_off_t, bucket>::const_iterator bkt = hgram.find(index);
+const time_histogram::bucket &time_histogram::at(uint32_t index) const {
+    const histogram_map::buckets_t hgram = histograms.at(best_fit_index).buckets;
+    histogram_map::buckets_t::const_iterator bkt = hgram.find(index);
     if(bkt == hgram.end()) {
         return empty_bucket;
     }
-    return bkt->second;
+    return *(bkt->second);
 }
 
 size_t time_histogram::size() const
@@ -128,40 +125,38 @@ size_t time_histogram::size() const
 // calculate the number of buckets if this were a non-sparse data structure like a vector
 size_t time_histogram::non_sparse_size() const
 {
-    map<timescale_off_t, bucket> buckets = histograms.at(best_fit_index).buckets;
-
-    map<timescale_off_t, bucket>::const_iterator least = buckets.begin();
-    map<timescale_off_t, bucket>::const_reverse_iterator most = buckets.rbegin();
+    histogram_map::buckets_t buckets = histograms.at(best_fit_index).buckets;
+    histogram_map::buckets_t::const_iterator least = buckets.begin();
     if(least == buckets.end()) {
         return 0;
     }
+    histogram_map::buckets_t::const_reverse_iterator most = buckets.rbegin();
     return most->first - least->first + 1;
 }
 
-map<time_histogram::timescale_off_t, time_histogram::bucket>::const_iterator
-        time_histogram::begin() const
+time_histogram::histogram_map::buckets_t::const_iterator time_histogram::begin() const
 {
     return histograms.at(best_fit_index).buckets.begin();
 }
-map<time_histogram::timescale_off_t, time_histogram::bucket>::const_iterator
-        time_histogram::end() const
+time_histogram::histogram_map::buckets_t::const_iterator time_histogram::end() const
 {
     return histograms.at(best_fit_index).buckets.end();
 }
-map<time_histogram::timescale_off_t, time_histogram::bucket>::const_reverse_iterator
-        time_histogram::rbegin() const
+time_histogram::histogram_map::buckets_t::const_reverse_iterator time_histogram::rbegin() const
 {
     return histograms.at(best_fit_index).buckets.rbegin();
 }
-map<time_histogram::timescale_off_t, time_histogram::bucket>::const_reverse_iterator
-        time_histogram::rend() const
+time_histogram::histogram_map::buckets_t::const_reverse_iterator time_histogram::rend() const
 {
     return histograms.at(best_fit_index).buckets.rend();
 }
 
-vector<time_histogram::span_params> time_histogram::build_spans()
+/* This should be rewritten, because currently it is building a bunch of spans and then returning a vector which has to be copied.
+ * It's very inefficient.
+ */
+time_histogram::span_params_vector_t time_histogram::build_spans()
 {
-    vector<span_params> output;
+    span_params_vector_t output;
 
     output.push_back(span_params(
                 1000LL * 1000LL * 60LL, // minute
@@ -191,43 +186,31 @@ vector<time_histogram::span_params> time_histogram::build_spans()
     return output;
 }
 
-// time histogram map
+
+
+
+/*
+ * Insert into the time_histogram.
+ *
+ * This is optimized to be as fast as possible, so we compute the sums as necessary when generating the histogram.
+ */
 
 bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_t port, const count_t count,
         const unsigned int flags)
 {
-    uint64_t raw_time = ts.tv_sec * (1000LL * 1000LL) + ts.tv_usec;
-    if(base_time == 0) {
-        base_time = raw_time - (bucket_width * (span.bucket_count * underflow_pad_factor));
-    }
-
-    timescale_off_t target_index = (raw_time - base_time) / bucket_width;
+    uint32_t target_index = scale_timeval(ts);
 
     if(target_index >= span.bucket_count) {
-        return true;
+        return true;                    // overflow; will cause this histogram to be shut down
     }
 
-    sum += count;
-
-    bucket &target = buckets[target_index];
-    target.increment(port, count, flags);
-
-    if(target.sum > greatest_bucket_sum) {
-        greatest_bucket_sum = target.sum;
+    buckets_t::iterator it = buckets.find(target_index);
+    if(it==buckets.end()){
+        buckets[target_index] = new bucket();
     }
+    buckets[target_index]->increment(port, count, flags);
 
     return false;
 }
 
-// time histogram bucket
 
-inline void time_histogram::bucket::increment(port_t port, count_t delta, unsigned int flags)
-{
-    if(flags & F_NON_TCP) {
-        portless_count += delta;
-    }
-    else {
-        counts[port] += delta;
-    }
-    sum += delta;
-}

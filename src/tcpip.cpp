@@ -375,7 +375,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	DEBUG(25)("%s: insert(0,%d); lseek(%d,0,SEEK_SET) out_of_order_count=%"PRId64,
 		  flow_pathname.c_str(), insert_bytes,
 		  fd,out_of_order_count);
-        /* right now we don't know how to deal with this issue --- */
+
+        /* TK: If we have seen packets, everything in the recon set needs to be shifted as well.*/
         if(seen){
             delete seen;
             seen = 0;

@@ -14,10 +14,8 @@
 
 #include "time_histogram_view.h"
 
-using namespace std;
-
 time_histogram_view::time_histogram_view(const time_histogram &histogram_,
-        const map<time_histogram::port_t, rgb_t> &port_colors_, const rgb_t &default_color_,
+        const colormap_t &port_colors_, const rgb_t &default_color_,
         const rgb_t &cdf_color_) :
     histogram(histogram_), port_colors(port_colors_), default_color(default_color_),
     cdf_color(cdf_color_)
@@ -188,23 +186,22 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     double bar_allocation = bounds.width / (double) bars; // bar width with spacing
     double bar_width = bar_allocation / bar_space_factor; // bar width as rendered
     double bar_leading_pad = (bar_allocation - bar_width) / 2.0;
-    map<time_histogram::timescale_off_t, time_histogram::bucket>::const_iterator it =
-        histogram.begin();
+    time_histogram::histogram_map::buckets_t::const_iterator it = histogram.begin();
 
     if(it == histogram.end()) {
         return;
     }
 
-    time_histogram::timescale_off_t first_offset = it->first;
+    uint32_t first_offset = it->first;
     double tallest_bar = (double) histogram.tallest_bar();
 
     for(; it != histogram.end(); it++) {
-        double bar_height = (double) it->second.sum / tallest_bar * bounds.height;
+        double bar_height = (double) it->second->sum() / tallest_bar * bounds.height;
         double bar_x = bounds.x + (it->first - first_offset) * bar_allocation + bar_leading_pad;
         double bar_y = bounds.y + (bounds.height - bar_height);
         bounds_t bar_bounds(bar_x, bar_y, bar_width, bar_height);
 
-        bucket_view bar(it->second, port_colors, default_color);
+        bucket_view bar(*it->second, port_colors, default_color);
 
         bar.render(cr, bar_bounds);
     }
@@ -215,7 +212,7 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     cairo_move_to(cr, bounds.x, bounds.y + bounds.height);
     for(size_t ii = 0; ii < bars; ii++) {
         const time_histogram::bucket bkt = histogram.at(ii + first_offset);
-        accumulator += (double) bkt.sum / histogram_sum;
+        accumulator += (double) bkt.sum() / histogram_sum;
 
         double x = bounds.x + ii * bar_allocation;
         double next_x = x + bar_allocation;
@@ -276,15 +273,14 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
     double height_accumulator = 0.0;
     rgb_t next_color = default_color;
 
-    for(map<time_histogram::port_t, time_histogram::count_t>::const_iterator it =
-                bucket.counts.begin();
+    for(map<time_histogram::port_t, time_histogram::count_t>::const_iterator it = bucket.counts.begin();
             it != bucket.counts.end();) {
 
-        double height = bounds.height * ((double) it->second / (double) bucket.sum);
+        double height = bounds.height * ((double) it->second / (double) bucket.sum());
 
         // on first section, preload the first color as the 'next' color
         if(it == bucket.counts.begin()) {
-            map<time_histogram::port_t, rgb_t>::const_iterator color_pair = color_map.find(it->first);
+            colormap_t::const_iterator color_pair = color_map.find(it->first);
             if(color_pair != color_map.end()) {
                 next_color = color_pair->second;
             }
@@ -298,7 +294,7 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
         // next consolidate this section with the next if the colors match
         it++;
         if(it != bucket.counts.end()) {
-            map<time_histogram::port_t, rgb_t>::const_iterator color_pair = color_map.find(it->first);
+            colormap_t::const_iterator color_pair = color_map.find(it->first);
             if(color_pair != color_map.end()) {
                 next_color = color_pair->second;
             }
@@ -323,7 +319,7 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
 
     // non-TCP packets
     if(bucket.portless_count > 0) {
-        double height = bounds.height * ((double) bucket.portless_count / (double) bucket.sum);
+        double height = bounds.height * ((double) bucket.portless_count / (double) bucket.sum());
         cairo_set_source_rgb(cr, blank_bar_line_color.r, blank_bar_line_color.g, blank_bar_line_color.b);
         double offset = blank_bar_line_width / 2;
         cairo_set_line_width(cr, blank_bar_line_width);

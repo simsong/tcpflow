@@ -1,3 +1,7 @@
+/**
+ * address histogram class.
+ */
+
 #ifndef ADDRESS_HISTOGRAM_H
 #define ADDRESS_HISTOGRAM_H
 
