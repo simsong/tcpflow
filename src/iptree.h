@@ -152,7 +152,7 @@ private:;
     }; /* end of node class */
     class node *root;                  
     enum {root_depth=0,
-          maxnodes_default=10000,
+          maxnodes_default=1000000,
           max_histogram_depth=128,
           ipv4_bits=32,
           ipv6_bits=128,
