@@ -21,13 +21,16 @@ public:
     const iptree::addr_elem &at(size_t index) const;
     size_t size() const;
     uint64_t ingest_count() const;
-    std::vector<iptree::addr_elem>::const_iterator begin() const;
-    std::vector<iptree::addr_elem>::const_iterator end() const;
-    std::vector<iptree::addr_elem>::const_reverse_iterator rbegin() const;
-    std::vector<iptree::addr_elem>::const_reverse_iterator rend() const;
+
+    typedef std::vector<iptree::addr_elem> ipt_addrs;
+
+    ipt_addrs::const_iterator begin() const;
+    ipt_addrs::const_iterator end() const;
+    ipt_addrs::const_reverse_iterator rbegin() const;
+    ipt_addrs::const_reverse_iterator rend() const;
 
 private:
-    std::vector<iptree::addr_elem> buckets;
+    ipt_addrs buckets;
     uint64_t datagrams_ingested;
 };
 

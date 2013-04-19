@@ -70,7 +70,7 @@ void address_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     unsigned int index = 0;
 
     double cdf_last_x = bounds.x, cdf_last_y = bounds.y + data_bounds.height;
-    for(vector<iptree::addr_elem>::const_iterator it = histogram.begin();
+    for(address_histogram::ipt_addrs::const_iterator it = histogram.begin();
             it != histogram.end(); it++) {
 	double bar_height = (((double) it->count) / ((double) greatest)) * data_bounds.height;
 
@@ -115,7 +115,7 @@ void address_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     }
     index = 0;
     // labels must be done after the fact to avoid awkward interaction with the CDF
-    for(vector<iptree::addr_elem>::const_iterator it = histogram.begin();
+    for(address_histogram::ipt_addrs::const_iterator it = histogram.begin();
             it != histogram.end(); it++) {
 	double bar_height = (((double) it->count) / ((double) greatest)) * data_bounds.height;
         double bar_x = data_bounds.x + (index * offset_unit + space_width);

@@ -60,22 +60,22 @@ one_page_report::one_page_report() :
     packet_count(0), byte_count(0), earliest(), latest(),
     transport_counts(), packet_histogram(), src_port_histogram(),
     dst_port_histogram(), pfall(), netmap(), src_tree(), dst_tree(),
-    port_aliases(), port_color_map()
+    port_aliases(), port_colormap()
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
 
-    port_color_map[PORT_HTTP] = color_blue;
-    port_color_map[PORT_HTTP_ALT_0] = color_blue;
-    port_color_map[PORT_HTTP_ALT_1] = color_blue;
-    port_color_map[PORT_HTTP_ALT_2] = color_blue;
-    port_color_map[PORT_HTTP_ALT_3] = color_blue;
-    port_color_map[PORT_HTTP_ALT_4] = color_blue;
-    port_color_map[PORT_HTTP_ALT_5] = color_blue;
-    port_color_map[PORT_HTTPS] = color_green;
-    port_color_map[PORT_SSH] = color_purple;
-    port_color_map[PORT_FTP_CONTROL] = color_red;
-    port_color_map[PORT_FTP_DATA] = color_red;
+    port_colormap[PORT_HTTP] = color_blue;
+    port_colormap[PORT_HTTP_ALT_0] = color_blue;
+    port_colormap[PORT_HTTP_ALT_1] = color_blue;
+    port_colormap[PORT_HTTP_ALT_2] = color_blue;
+    port_colormap[PORT_HTTP_ALT_3] = color_blue;
+    port_colormap[PORT_HTTP_ALT_4] = color_blue;
+    port_colormap[PORT_HTTP_ALT_5] = color_blue;
+    port_colormap[PORT_HTTPS] = color_green;
+    port_colormap[PORT_SSH] = color_purple;
+    port_colormap[PORT_FTP_CONTROL] = color_red;
+    port_colormap[PORT_FTP_DATA] = color_red;
 
     // build null alias map to avoid requiring special handling for unmapped ports
     for(int ii = 0; ii <= 65535; ii++) {
@@ -150,16 +150,15 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
 
     // if either the TCP source or destination is a pre-colored port, submit that
     // port to the time histogram
-    map<uint16_t, plot_view::rgb_t>::const_iterator
-            tcp_src_color = port_color_map.find(tcp_src),
-            tcp_dst_color = port_color_map.find(tcp_dst);
-    uint16_t packet_histogram_port = tcp_src;
+    port_colormap_t::const_iterator tcp_src_color = port_colormap.find(tcp_src);
+    port_colormap_t::const_iterator tcp_dst_color = port_colormap.find(tcp_dst);
+    in_port_t packet_histogram_port = tcp_src;
     // if dst is colored and src isn't; use dst instead
-    if(tcp_dst_color != port_color_map.end() && tcp_src_color == port_color_map.end()) {
+    if(tcp_dst_color != port_colormap.end() && tcp_src_color == port_colormap.end()) {
         packet_histogram_port = tcp_dst;
     }
     // if both are colored, alternate src and dst
-    else if(tcp_src_color != port_color_map.end() && tcp_dst_color != port_color_map.end() &&
+    else if(tcp_src_color != port_colormap.end() && tcp_dst_color != port_colormap.end() &&
             packet_count % 2 == 0) {
         packet_histogram_port = tcp_dst;
     }
@@ -186,24 +185,23 @@ void one_page_report::render(const string &outdir)
     // assign the top 4 source ports colors if they don't already have them
     vector<port_histogram::port_count>::const_iterator it = src_port_histogram.begin();
     for(size_t count = 0; count < port_colors_count && it != src_port_histogram.end(); it++) {
-        map<port_histogram::port_t, plot_view::rgb_t>::const_iterator color =
-                port_color_map.find(it->port);
-        if(color == port_color_map.end()) {
+        port_colormap_t::const_iterator color = port_colormap.find(it->port);
+        if(color == port_colormap.end()) {
             switch(count) {
                 case 0:
-                    port_color_map[it->port] = color_orange;
+                    port_colormap[it->port] = color_orange;
                     break;
                 case 1:
-                    port_color_map[it->port] = color_magenta;
+                    port_colormap[it->port] = color_magenta;
                     break;
                 case 2:
-                    port_color_map[it->port] = color_deep_purple;
+                    port_colormap[it->port] = color_deep_purple;
                     break;
                 case 3:
-                    port_color_map[it->port] = color_teal;
+                    port_colormap[it->port] = color_teal;
                     break;
                 default:
-                    port_color_map[it->port] = default_color;
+                    port_colormap[it->port] = default_color;
             }
             count++;
         }
@@ -218,7 +216,7 @@ void one_page_report::render(const string &outdir)
     if(condension_factor > 1.1) {
         packet_histogram.condense(condension_factor);
     }
-    time_histogram_view th_view(packet_histogram, port_color_map, default_color,
+    time_histogram_view th_view(packet_histogram, port_colormap, default_color,
             cdf_color);
     pass.render(th_view);
 
@@ -253,9 +251,9 @@ void one_page_report::render(const string &outdir)
     pass.render(src_ah_view, dst_ah_view);
 
     // port histograms
-    port_histogram_view sp_view(src_port_histogram, port_color_map, default_color,
+    port_histogram_view sp_view(src_port_histogram, port_colormap, default_color,
             cdf_color);
-    port_histogram_view dp_view(dst_port_histogram, port_color_map, default_color,
+    port_histogram_view dp_view(dst_port_histogram, port_colormap, default_color,
             cdf_color);
     if(src_port_histogram.size()) {
         sp_view.title = "Top Source Ports";

@@ -69,19 +69,19 @@ uint64_t address_histogram::ingest_count() const
     return datagrams_ingested;
 }
 
-std::vector<iptree::addr_elem>::const_iterator address_histogram::begin() const
+address_histogram::ipt_addrs::const_iterator address_histogram::begin() const
 {
     return buckets.begin();
 }
-std::vector<iptree::addr_elem>::const_iterator address_histogram::end() const
+address_histogram::ipt_addrs::const_iterator address_histogram::end() const
 {
     return buckets.end();
 }
-std::vector<iptree::addr_elem>::const_reverse_iterator address_histogram::rbegin() const
+address_histogram::ipt_addrs::const_reverse_iterator address_histogram::rbegin() const
 {
     return buckets.rbegin();
 }
-std::vector<iptree::addr_elem>::const_reverse_iterator address_histogram::rend() const
+address_histogram::ipt_addrs::const_reverse_iterator address_histogram::rend() const
 {
     return buckets.rend();
 }

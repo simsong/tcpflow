@@ -20,7 +20,7 @@
 using namespace std;
 
 port_histogram_view::port_histogram_view(port_histogram &histogram_,
-        const map<port_histogram::port_t, rgb_t> &color_map_, const rgb_t &default_color_,
+        const map<in_port_t, rgb_t> &color_map_, const rgb_t &default_color_,
         const rgb_t &cdf_color_) :
     histogram(histogram_), color_map(color_map_), default_color(default_color_),
     cdf_color(cdf_color_)
@@ -82,7 +82,7 @@ void port_histogram_view::render_data(cairo_t *cr, const plot_view::bounds_t &bo
         bounds_t bar_bounds(bar_x, bar_y, bar_width, bar_height);
 
         rgb_t bar_color = default_color;
-        map<port_histogram::port_t, rgb_t>::const_iterator color = color_map.find(it->port);
+        map<in_port_t, rgb_t>::const_iterator color = color_map.find(it->port);
         if(color != color_map.end()) {
             bar_color = color->second;
         }

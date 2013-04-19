@@ -20,26 +20,26 @@ class time_histogram {
 public:
     time_histogram();
 
-    typedef uint64_t count_t;           // counts in a slot
-    typedef uint16_t port_t;            // port number
+    //typedef uint64_t count_t;           // counts in a slot
+    //typedef uint16_t port_t;            // port number
     //typedef int32_t timescale_off_t;   // ordinal offset within the histogram
 
     // parameter for...?
     class span_params {
     public:
-        span_params(count_t usec_, count_t bucket_count_) :
+        span_params(uint64_t usec_, uint64_t bucket_count_) :
             usec(usec_), bucket_count(bucket_count_) {}
-        count_t usec;
-        count_t bucket_count;
+        uint64_t usec;
+        uint64_t bucket_count;
     };
     typedef std::vector<span_params> span_params_vector_t;
 
     // a bucket counts packets received in a given timeframe, organized by TCP port
     class bucket {
     public:
-        typedef std::map<port_t, count_t> counts_t;
+        typedef std::map<in_port_t, uint64_t> counts_t;
         bucket() : counts(), portless_count(){};
-        count_t sum() const {
+        uint64_t sum() const {
             /* this could be done with std::accumulate */
             uint64_t count = 0;
             for(counts_t::const_iterator it=counts.begin();it!=counts.end();it++){
@@ -48,8 +48,8 @@ public:
             return count;
         };
         counts_t counts;
-        count_t portless_count;
-        void increment(port_t port, count_t delta, unsigned int flags = 0x00) {
+        uint64_t portless_count;
+        void increment(in_port_t port, uint64_t delta, unsigned int flags = 0x00) {
             if(flags & F_NON_TCP) {
                 portless_count += delta;
             }
@@ -65,12 +65,12 @@ public:
         buckets_t buckets;
         histogram_map(span_params span_) :
             buckets(), span(span_), bucket_width(span.usec / span.bucket_count),
-            base_time(0), sum(0){}
+            base_time(0), insert_count(0){}
 
         span_params span;
         uint64_t bucket_width;          // in microseconds
         uint64_t base_time;             // microseconds since Jan 1, 1970; set on first call to scale_timeval
-        count_t sum;                    // of entire histogram
+        uint64_t insert_count;                   // of entire histogram
 
         uint64_t greatest_bucket_sum() const {
             uint64_t greatest = 0;
@@ -91,15 +91,15 @@ public:
         }
 
         // returns true if the insertion resulted in over/underflow
-        bool insert(const struct timeval &ts, const port_t port, const count_t count = 1,
+        bool insert(const struct timeval &ts, const in_port_t port, const uint64_t count = 1,
                 const unsigned int flags = 0x00);
     };
 
-    void insert(const struct timeval &ts, const port_t port, const count_t count = 1,
+    void insert(const struct timeval &ts, const in_port_t port, const uint64_t count = 1,
             const unsigned int flags = 0x00);
     void condense(double factor);
     uint64_t usec_per_bucket() const;
-    count_t packet_count() const;
+    uint64_t packet_count() const;
     time_t start_date() const;
     time_t end_date() const;
     uint64_t tallest_bar() const;
@@ -114,18 +114,20 @@ public:
     histogram_map::buckets_t::const_reverse_iterator rend() const;
     static span_params_vector_t build_spans();
 
+private:
+    std::vector<histogram_map> histograms;
+    uint32_t best_fit_index;
+    struct timeval earliest_ts, latest_ts;
+    uint64_t insert_count;
+
     /** configuration:
      */
     static const uint32_t bucket_count;
     static const float underflow_pad_factor;
     static const std::vector<span_params> spans; // in microseconds
     static const bucket empty_bucket;
+public:
     static const unsigned int F_NON_TCP;
-private:
-    std::vector<histogram_map> histograms;
-    uint32_t best_fit_index;
-    struct timeval earliest_ts, latest_ts;
-    count_t sum;
 };
 
 #endif

@@ -9,7 +9,7 @@
 
 class time_histogram_view : public plot_view {
 public:
-    typedef std::map<time_histogram::port_t, rgb_t> colormap_t;
+    typedef std::map<in_port_t, rgb_t> colormap_t;
     time_histogram_view(const time_histogram &histogram_,
             const colormap_t &port_colors_,
             const rgb_t &default_color_, const rgb_t &cdf_color_);

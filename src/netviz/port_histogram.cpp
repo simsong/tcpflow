@@ -60,25 +60,25 @@ uint64_t port_histogram::ingest_count() const
     return data_bytes_ingested;
 }
 
-vector<port_histogram::port_count>::const_iterator port_histogram::begin()
+port_histogram::port_count_vector::const_iterator port_histogram::begin()
 {
     refresh_buckets();
 
     return buckets.begin();
 }
-vector<port_histogram::port_count>::const_iterator port_histogram::end()
+port_histogram::port_count_vector::const_iterator port_histogram::end()
 {
     refresh_buckets();
 
     return buckets.end();
 }
-vector<port_histogram::port_count>::const_reverse_iterator port_histogram::rbegin()
+port_histogram::port_count_vector::const_reverse_iterator port_histogram::rbegin()
 {
     refresh_buckets();
 
     return buckets.rbegin();
 }
-vector<port_histogram::port_count>::const_reverse_iterator port_histogram::rend()
+port_histogram::port_count_vector::const_reverse_iterator port_histogram::rend()
 {
     refresh_buckets();
 
@@ -93,7 +93,7 @@ void port_histogram::refresh_buckets()
 
     buckets.clear();
 
-    for(map<uint16_t, uint64_t>::const_iterator it = port_counts.begin();
+    for(port_counts_t::const_iterator it = port_counts.begin();
             it != port_counts.end(); it++) {
         buckets.push_back(port_count(it->first, it->second));
     }

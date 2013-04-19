@@ -13,7 +13,7 @@ public:
         uint16_t port;
         uint64_t count;
     };
-    typedef uint16_t port_t;
+    //typedef uint16_t port_t;
 
     class descending_counts {
     public:
@@ -24,15 +24,19 @@ public:
     const port_count &at(size_t index);
     size_t size();
     uint64_t ingest_count() const;
-    std::vector<port_count>::const_iterator begin();
-    std::vector<port_count>::const_iterator end();
-    std::vector<port_count>::const_reverse_iterator rbegin();
-    std::vector<port_count>::const_reverse_iterator rend();
+
+    typedef std::vector<port_count> port_count_vector;
+
+    port_count_vector::const_iterator begin();
+    port_count_vector::const_iterator end();
+    port_count_vector::const_reverse_iterator rbegin();
+    port_count_vector::const_reverse_iterator rend();
 
     static const size_t bucket_count;
 
 private:
-    std::map<uint16_t, uint64_t> port_counts;
+    typedef std::map<in_port_t, uint64_t> port_counts_t;
+    port_counts_t port_counts;
     uint64_t data_bytes_ingested;
     std::vector<port_count> buckets;
     bool buckets_dirty;

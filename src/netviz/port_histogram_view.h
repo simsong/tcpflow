@@ -10,7 +10,7 @@
 class port_histogram_view : public plot_view {
 public:
     port_histogram_view(port_histogram &histogram_,
-            const std::map<port_histogram::port_t, rgb_t> &color_map_,
+            const std::map<in_port_t, rgb_t> &color_map_,
             const rgb_t &default_color, const rgb_t &cdf_color_);
 
     class bucket_view {
@@ -32,7 +32,7 @@ public:
     };
 
     port_histogram &histogram;
-    const std::map<port_histogram::port_t, rgb_t> &color_map;
+    const std::map<in_port_t, rgb_t> &color_map;
     const rgb_t &default_color;
     const rgb_t &cdf_color;
 

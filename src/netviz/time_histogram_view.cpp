@@ -273,8 +273,8 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
     double height_accumulator = 0.0;
     rgb_t next_color = default_color;
 
-    for(map<time_histogram::port_t, time_histogram::count_t>::const_iterator it = bucket.counts.begin();
-            it != bucket.counts.end();) {
+    // The loop below is a bit confusing
+    for(time_histogram::bucket::counts_t::const_iterator it = bucket.counts.begin(); it != bucket.counts.end();) {
 
         double height = bounds.height * ((double) it->second / (double) bucket.sum());
 
@@ -294,6 +294,7 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
         // next consolidate this section with the next if the colors match
         it++;
         if(it != bucket.counts.end()) {
+            /* This gets after every bar except the last bar */
             colormap_t::const_iterator color_pair = color_map.find(it->first);
             if(color_pair != color_map.end()) {
                 next_color = color_pair->second;
@@ -305,6 +306,7 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
             }
         }
 
+        /* this gets run after every bar */
         cairo_set_source_rgb(cr, color.r, color.g, color.b);
 
         // account for consolidated sections

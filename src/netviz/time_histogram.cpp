@@ -14,7 +14,7 @@
 #include "time_histogram.h"
 
 time_histogram::time_histogram() :
-    histograms(), best_fit_index(0), earliest_ts(), latest_ts(), sum(0)
+    histograms(), best_fit_index(0), earliest_ts(), latest_ts(), insert_count(0)
 {
     // zero value structs courtesy stackoverflow
     // http://stackoverflow.com/questions/6462093/reinitialize-timeval-struct
@@ -36,10 +36,10 @@ const vector<time_histogram::span_params> time_histogram::spans = time_histogram
 const time_histogram::bucket time_histogram::empty_bucket; // an empty bucket
 const unsigned int time_histogram::F_NON_TCP = 0x01;
 
-void time_histogram::insert(const struct timeval &ts, const port_t port, const count_t count,
+void time_histogram::insert(const struct timeval &ts, const in_port_t port, const uint64_t count,
         const unsigned int flags)
 {
-    sum++;
+    insert_count++;
     if(earliest_ts.tv_sec == 0 || (ts.tv_sec < earliest_ts.tv_sec ||
                 (ts.tv_sec == earliest_ts.tv_sec && ts.tv_usec < earliest_ts.tv_usec))) {
         earliest_ts = ts;
@@ -88,9 +88,9 @@ uint64_t time_histogram::usec_per_bucket() const
     return histograms.at(best_fit_index).bucket_width;
 }
 
-time_histogram::count_t time_histogram::packet_count() const
+uint64_t time_histogram::packet_count() const
 {
-    return histograms.at(best_fit_index).sum;
+    return histograms.at(best_fit_index).insert_count;
 }
 
 time_t time_histogram::start_date() const
@@ -195,7 +195,7 @@ time_histogram::span_params_vector_t time_histogram::build_spans()
  * This is optimized to be as fast as possible, so we compute the sums as necessary when generating the histogram.
  */
 
-bool time_histogram::histogram_map::insert(const struct timeval &ts, const port_t port, const count_t count,
+bool time_histogram::histogram_map::insert(const struct timeval &ts, const in_port_t port, const uint64_t count,
         const unsigned int flags)
 {
     uint32_t target_index = scale_timeval(ts);
