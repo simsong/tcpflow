@@ -2,54 +2,21 @@ Accomplished for 1.4:
 
 + update tcpip structure to indicate if a SYN was seen; If packets arrive before the beginning of the connection and a SYN was not seen, insert in the beginning of the file.
 + remove syn_set from store_packet. Make sure that it's called when we know the packet offset.
++ discover and create MIME objects.
++ Regression testing by randomizing packet order and making sure that the results are the same.
  
 ================================================================
 
-- discover and create MIME objects.
-- Run a subprocess when each file is opened or closed.
-- Regression testing by randomizing packet order and making sure that the results are the same.
 ================
-Here is my currently plan for the plugin approach:
+Here is an idea currently plan for the plugin approach:
 
 -Ps "command"   --- Run command at the start of each flow; pipe the flow to stdin
 -Pe "command"   --- Run command at the end of each flow; pipe the flow to stdin (from the file)
 -PE "command"  ---  Run command at the end of each flow, but do not pipe flow to stdin
 
-Substitution options for command:
-
-%t - time_t of the flow start
-%T - ISO8601 time for the flow start
-%s - source IP address
-%S - source Port
-%d - destination IP address
-%D - destination IP port
-%l - length of the flow (only useful for -Pe, of course)
-%f - filename of the flow 
-
 ================================================================
-PDF generation for reporting. Options for generating PDF files include:
-Question discussed:
-  http://stackoverflow.com/questions/58730/open-source-pdf-library-for-c-c-application
-  http://stackoverflow.com/questions/177/how-do-i-programmatically-create-a-pdf-in-my-net-application
-JagPDF - http://www.jagpdf.org - current version 1.4.0 (7 October 2009)
-Haru Free PDF Library - http://sourceforge.net/projects/libharu/ - 2011-06-14
-muPdf - http://mupdf.com
-PoDoFo - http://podofo.sourceforge.net - 0.9.1 - April 26th, 2011
-   - requires cppunit (optional)
-     freetype2
-     fontconfig (Linux/Unix only)
-     libjpeg (optional)
-     libtiff (optional)
-     libpng (optional)
-     Lua 5.1 (optional, only for podofoimpose Lua imposition plans)
-     zlib
+Other programs to look at:
 
-Cairo - http://en.wikipedia.org/wiki/Cairo_(graphics) 
-  - Generates more than PDFs!
-  - Support for hardware acceleration
-  - http://cairographics.org
-
-================================================================
  http://net.doit.wisc.edu/~plonka/FlowScan/ 
  http://ant.isi.edu/wiv2012/program.html
 ================
@@ -127,3 +94,6 @@ On retransmit:
 ================================================================
 tcpdemux.cpp: - explore elimination of unnecessary copy of flow() structure by creating a 'new flow'
 in tcpdemux::create_tcpip() and passing a pointer to the newly created. 
+================================================================
+Current crasher:
+run -o out-e4 -e netviz -x tcpdemux -r /corp/caida/packets/equinix-sanjose.dirA.20120606-235200.UTC.anon.pcap 
