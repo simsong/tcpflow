@@ -9,8 +9,9 @@
 
 class time_histogram_view : public plot_view {
 public:
+    typedef std::map<in_port_t, rgb_t> colormap_t;
     time_histogram_view(const time_histogram &histogram_,
-            const std::map<time_histogram::port_t, rgb_t> &port_colors_,
+            const colormap_t &port_colors_,
             const rgb_t &default_color_, const rgb_t &cdf_color_);
 
     class time_unit {
@@ -30,19 +31,19 @@ public:
     class bucket_view {
     public:
         bucket_view(const time_histogram::bucket &bucket_,
-                const std::map<time_histogram::port_t, rgb_t> &color_map_,
+                const colormap_t &color_map_,
                 const rgb_t &default_color_) :
             bucket(bucket_), color_map(color_map_), default_color(default_color_) {}
 
         const time_histogram::bucket &bucket;
-        const std::map<time_histogram::port_t, rgb_t> &color_map;
+        const colormap_t &color_map;
         const rgb_t &default_color;
 
         void render(cairo_t *cr, const bounds_t &bounds);
     };
 
     const time_histogram &histogram;
-    const std::map<time_histogram::port_t, rgb_t> port_colors;
+    const colormap_t port_colors;
     const rgb_t default_color;
     const rgb_t cdf_color;
 

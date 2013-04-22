@@ -7,8 +7,6 @@
  * #include this file after config.h (or whatever you are calling it)
  */
 
-/* TODO - cache addresses to nodes to avoid running the tree. */
-
 #ifndef IPTREE_H
 #define IPTREE_H
 
@@ -37,7 +35,7 @@ private:;
      * Each node tracks the sum that it currently has and its two children.
      * A node has pointers to the 0 and 1 children, as well as a sum for everything below.
      * A short address or prefix being tallied may result in BOTH a sum and one or more PTR values.
-     * If a node is trimmed, ptr0=ptr1=0 and tsum>0.  
+     * If a node is pruned, ptr0=ptr1=0 and tsum>0.  
      * If tsum>0 and ptr0=0 and ptr1=0, then the node cannot be extended.
      */
     class node {
@@ -50,7 +48,7 @@ private:;
         class node *ptr0;               // 0 bit next
         class node *ptr1;               // 1 bit next
     private:
-        TYPE    tsum;               // this node and children
+        TYPE    tsum;                   // this node and pruned children.
     public:
         /* copy is a deep copy */
         node(const iptreet::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
@@ -68,13 +66,13 @@ private:;
             return false;
         }
         /**
-         * Returns number of nodes trimmed.
+         * Returns number of nodes pruned.
          * But this is called on a node! 
          * So this *always* returns 1.
-         * If it is not, we have an implementation error, because trim() should not have been called.
+         * If it is not, we have an implementation error, because prune() should not have been called.
          */
-        int trim(class iptreet &tree){                    // trim this node
-            /* If trim() on a node is called, then both ptr0 and ptr1 nodes, if present,
+        int prune(class iptreet &tree){                    // prune this node
+            /* If prune() on a node is called, then both ptr0 and ptr1 nodes, if present,
              * must not have children.
              * Now delete those that we counted out
              */
@@ -95,35 +93,35 @@ private:;
             return 1;
         }
         /**
-         * Return the best node to trim:
+         * Return the best node to prune:
          * Possible outputs:
-         * case 1 - no node (if this is a terminal node, it can't be trimmed; should not have been called)
+         * case 1 - no node (if this is a terminal node, it can't be pruned; should not have been called)
          * case 2 - this node (if all of the children are terminal)
          * case 3 - the best node of the one child (if there is only one child)
          * case 4 - the of the non-terminal child (if one child is terminal and one is not)
          * case 5 - the better node of each child's best node.
          */
-        const node *best_to_trim(int *best_depth,int my_depth) const {
+        const node *best_to_prune(int *best_depth,int my_depth) const {
             assert(term()==0);          // case 1
             if (ptr0 && !ptr1 && ptr0->term()) {*best_depth=my_depth;return this;} // case 2
             if (ptr1 && !ptr0 && ptr1->term()) {*best_depth=my_depth;return this;} // case 2
             if (ptr0 && ptr0->term() && ptr1 && ptr1->term()) {*best_depth=my_depth;return this;} // case 2
-            if (ptr0 && !ptr1) return ptr0->best_to_trim(best_depth,my_depth+1); // case 3
-            if (ptr1 && !ptr0) return ptr1->best_to_trim(best_depth,my_depth+1); // case 3
+            if (ptr0 && !ptr1) return ptr0->best_to_prune(best_depth,my_depth+1); // case 3
+            if (ptr1 && !ptr0) return ptr1->best_to_prune(best_depth,my_depth+1); // case 3
 
-            if (ptr0->term() && !ptr1->term()) return ptr1->best_to_trim(best_depth,my_depth+1); // case 4
-            if (ptr1->term() && !ptr0->term()) return ptr0->best_to_trim(best_depth,my_depth+1); // case 4
+            if (ptr0->term() && !ptr1->term()) return ptr1->best_to_prune(best_depth,my_depth+1); // case 4
+            if (ptr1->term() && !ptr0->term()) return ptr0->best_to_prune(best_depth,my_depth+1); // case 4
 
             // case 5 - the better node of each child's best node.
             int ptr0_best_depth = my_depth;
-            const node *ptr0_best = ptr0->best_to_trim(&ptr0_best_depth,my_depth+1);
+            const node *ptr0_best = ptr0->best_to_prune(&ptr0_best_depth,my_depth+1);
             assert(ptr0_best!=0);       // There must be a best node!
 
             int ptr1_best_depth = my_depth;
-            const node *ptr1_best = ptr1->best_to_trim(&ptr1_best_depth,my_depth+1);
+            const node *ptr1_best = ptr1->best_to_prune(&ptr1_best_depth,my_depth+1);
             assert(ptr1_best!=0);       // There must be a best node!
 
-            // The better to trim of two children is the one with a lower sum.
+            // The better to prune of two children is the one with a lower sum.
             TYPE ptr0_best_sum = ptr0_best->sum();
             TYPE ptr1_best_sum = ptr1_best->sum();
             if(ptr0_best_sum < ptr1_best_sum) {*best_depth=ptr0_best_depth;return ptr0_best;}
@@ -149,7 +147,7 @@ private:;
             return s;
         }
         /** Increment this node by the given amount */
-        void inc(TYPE val) { tsum+=val;}           // increment
+        void add(TYPE val) { tsum+=val;}           // increment
 
     }; /* end of node class */
     class node *root;                  
@@ -183,10 +181,14 @@ public:
     virtual ~iptreet(){}                // required per compiler warnings
     /* copy is a deep copy */
     iptreet(const iptreet &n):root(n.root ? new node(*n.root) : 0),
-                              nodes(n.nodes),maxnodes(n.maxnodes),cache(),cachenext(){};
+                              nodes(n.nodes),maxnodes(n.maxnodes),cache(),cachenext(),cache_hits(),cache_misses(){};
 
     /* create an empty tree */
-    iptreet():root(new node()),nodes(0),maxnodes(maxnodes_default),cache(),cachenext(){};
+    iptreet():root(new node()),nodes(0),maxnodes(maxnodes_default),cache(),cachenext(),cache_hits(),cache_misses(){
+        for(size_t i=0;i<cache_size;i++){
+            cache.push_back(cache_element(0,0,0));
+        }
+    };
 
     /* size the tree; the number of nodes */
     size_t size() const {return nodes;};
@@ -200,16 +202,20 @@ public:
     /****************************************************************
      *** cache
      ****************************************************************/
-    class ncache {
+    class cache_element {
     public:
-        ncache():addr(),ptr(){};
-        const uint8_t addr[ADDRBYTES];
+        uint8_t addr[ADDRBYTES];
         node *ptr;                      // 0 means cache entry is not in use
+        cache_element(const uint8_t addr_[ADDRBYTES],size_t addrlen,node *p):addr(),ptr(p){
+            memcpy(addr,addr_,addrlen);
+        }
     };
-    enum {ncache_size=8};
-    typedef std::vector<ncache> cache_t;
+    enum {cache_size=4};
+    typedef std::vector<cache_element> cache_t;
     cache_t cache;
     size_t cachenext;                   // which cache element to evict next
+    uint64_t cache_hits;
+    uint64_t cache_misses;
 
     void cache_remove(const node *p){
         for(size_t i=0;i<cache.size();i++){
@@ -220,31 +226,49 @@ public:
         }
     }
 
+    ssize_t cache_search(const uint8_t *addr,size_t addrlen){
+        for(size_t i = 0; i<cache.size(); i++){
+            if(cache[i].ptr && memcmp(cache[i].addr,addr,addrlen)==0){
+                cache_hits++;
+                return i;
+            }
+        }
+        cache_misses++;
+        return -1;
+    }
+
+    void cache_replace(const uint8_t *addr,size_t addrlen,node *ptr) {
+        if(++cachenext>=cache.size()) cachenext = 0;
+        memcpy(cache[cachenext].addr,addr,addrlen);
+        cache[cachenext].ptr = ptr;
+    }
+
+
     /****************************************************************
-     *** trimming
+     *** pruning
      ****************************************************************/
 
-    /* trim the tree, starting at the root. Find the node to trim and then trim it.
-     * node that best_to_trim() returns a const pointer. But we want to modify it, so we
+    /* prune the tree, starting at the root. Find the node to prune and then prune it.
+     * node that best_to_prune() returns a const pointer. But we want to modify it, so we
      * do a const_cast (which is completely fine).
      */
-    int trim(){
-        if(root->term()) return 0;        // terminal nodes can't be trimmed
+    int prune(){
+        if(root->term()) return 0;        // terminal nodes can't be pruned
         int tdepth=0;
-        node *tnode = const_cast<node *>(root->best_to_trim(&tdepth,root_depth));
+        node *tnode = const_cast<node *>(root->best_to_prune(&tdepth,root_depth));
         /* remove tnode from the cache if it is present */
         if(tnode){
             cache_remove(tnode);
-            return tnode->trim(*this);
+            return tnode->prune(*this);
         }
         return 0;
     }
 
-    /* Simple implementation to trim the table to 90% of limit if at limit. Subclass to change behavior. */
-    void trim_if_greater(size_t limit){
+    /* Simple implementation to prune the table to 90% of limit if at limit. Subclass to change behavior. */
+    void prune_if_greater(size_t limit){
         if(nodes>=maxnodes){
             while(nodes > maxnodes * 9 / 10){ 
-                if(trim()==0) break;         
+                if(prune()==0) break;         
             }
         }
     }
@@ -361,6 +385,13 @@ public:
         dump(os,histogram);
         return os;
     }
+
+    /* dump the stats */
+    std::ostream & dump_stats(std::ostream &os) const {
+        os << "cache_hits: " << cache_hits << "\n";
+        os << "cache_misses: " << cache_misses << "\n";
+        return os;
+    }
 };
 
 
@@ -376,15 +407,25 @@ public:
 template <typename TYPE,size_t ADDRBYTES>
 void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
 {
-    trim_if_greater(maxnodes);
+    prune_if_greater(maxnodes);
     if(addrlen > ADDRBYTES) addrlen=ADDRBYTES;
 
     u_int addr_bits = addrlen * 8;  // in bits
+
     node *ptr = root;               // start at the root
+    
+    /* check the cache first */
+    ssize_t i = cache_search(addr,addrlen);
+    if(i>=0){
+        cache[i].ptr->add(val);
+        return;
+    }
+    
     for(u_int depth=0;depth<=addr_bits;depth++){
         if(depth==addr_bits){       // reached end of address
-            ptr->inc(val);          // increment this node (and all of its descendants 
-            return;                 // we are a terminal node; return
+            ptr->add(val);          // increment this node (and all of its descendants 
+            cache_replace(addr,addrlen,ptr);
+            return;
         }
         /* Not a terminal node, so go down a level based on the next bit,
          * extending if necessary.
