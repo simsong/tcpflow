@@ -1,3 +1,13 @@
+#
+# About the tests:
+#
+# test1.sh - 
+# test2.sh - 
+# test3.sh - 
+
+# About the test files:
+#
+
 EXTRA_DIST = test1.sh test1.pcap test2.pcap test3.pcap test4.pcap  \
 	test-pdfs.sh test-multifile.sh
 

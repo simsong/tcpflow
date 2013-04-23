@@ -65,6 +65,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
+uint64_t counter=0;
 /* DLT_RAW: just a raw IP packet, no encapsulation or link-layer
  * headers.  Used for PPP connections under some OSs including Linux
  * and IRIX. */
@@ -76,6 +77,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
     struct timeval tv;
     be13::packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
+    counter++;
     process_packet_info(pi);
 }
 

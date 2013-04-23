@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Create the files for the tcpflow website
+CORP=/corp/
 DEST=/var/www/digitalcorpora/tcpflow/demo
 TCPFLOW=../src/tcpflow
 TMP=/tmp/out$$
@@ -27,7 +28,7 @@ run()
   ls -l $DPDF $DPNG
 }
 
-run "-r /corp/nps/packets/2008-nitroba/nitroba.pcap"      nitroba.pdf
-run "-l /corp/nps/packets/2009-m57-patents/day*.zip"      m57-day.pdf
-run "-l /corp/nps/packets/2009-m57-patents/net-2009*.gz"  m57-net.pdf
+run "-r $CORP/nps/packets/2008-nitroba/nitroba.pcap"      nitroba.pdf
+run "-l $CORP/nps/packets/2009-m57-patents/net-2009*.gz"  m57-net.pdf
+run "-l $CORP/mitll/packets/ideval99/week?/*/outside*gz"  id99-outside.pdf
 
