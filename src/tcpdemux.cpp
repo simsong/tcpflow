@@ -298,19 +298,11 @@ void tcpdemux::save_flow(tcpip *tcp)
 
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include "iptree.h"
-iptree mytree;
-ip2tree my2tree;
 
 int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                           const u_char *tcp_data, uint32_t tcp_datalen,
                           const be13::packet_info &pi)
 {
-    if(iphtest==1){                     // mode 1 testing - when the tree gets 4000, drop it to 400
-        mytree.add(src.addr,family==AF_INET6 ? 16 : 4,1 );
-        mytree.add(dst.addr,family==AF_INET6 ? 16 : 4,1);
-        my2tree.add_pair(src.addr,dst.addr,family==AF_INET6 ? 16 : 4,1);
-    }
-
     if (tcp_datalen < sizeof(struct be13::tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment! (%u<%u)",
                   (u_int)tcp_datalen,(u_int)sizeof(struct be13::tcphdr));

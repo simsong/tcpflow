@@ -26,9 +26,6 @@
 #include "inet_ntop.c"
 #endif
 
-int iphtest=0;
-size_t iphprune=0;
-
 scanner_info::config_t be_config; // system configuration
 
 typedef struct {
@@ -641,9 +638,7 @@ int main(int argc, char *argv[])
     the_fs   = &fs;
     demux.fs = &fs;
 
-    datalink_tdelta = atoi(be_config["tdelta"].c_str()); // specify the time delta
-    iphtest         = atoi(be_config["iphtest"].c_str()); // get iphtesting
-    iphprune     = atoi(be_config["iphprune"].c_str()); // get iphprune
+    datalink_tdelta  = atoi(be_config["tdelta"].c_str()); // specify the time delta
 
     if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 

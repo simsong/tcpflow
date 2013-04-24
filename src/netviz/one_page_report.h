@@ -13,13 +13,6 @@
 
 class one_page_report {
 public:
-    std::string source_identifier;
-    std::string filename;
-    plot_view::bounds_t bounds;
-    double header_font_size;
-    double top_list_font_size;
-    unsigned int histogram_show_top_n_text;
-
     class transport_type {
     public:
         transport_type(uint16_t ethertype_, std::string name_) :
@@ -27,6 +20,19 @@ public:
         uint16_t ethertype;
         std::string name;
     };
+
+
+    typedef std::map<in_port_t, in_port_t> port_aliases_t;
+    typedef std::map<in_port_t, plot_view::rgb_t> port_colormap_t;
+    typedef std::vector<transport_type> transport_type_vector;
+
+    std::string source_identifier;
+    std::string filename;
+    plot_view::bounds_t bounds;
+    double header_font_size;
+    double top_list_font_size;
+    unsigned int histogram_show_top_n_text;
+
     // a single render event: content moves down a bounded cairo surface as
     // indicated by end_of_content between render method invocations
     class render_pass {
@@ -55,13 +61,13 @@ public:
     };
     friend class render_pass;
 
-    one_page_report();
+    one_page_report(int max_histogram_size);
 
     void ingest_packet(const be13::packet_info &pi);
     void render(const std::string &outdir);
     plot_view::rgb_t port_color(uint16_t port) const;
+    void dump(int debug);
 
-    typedef std::vector<transport_type> transport_type_vector;
     static transport_type_vector build_display_transports();
 
     static const unsigned int max_bars;
@@ -93,7 +99,6 @@ public:
     static const plot_view::rgb_t cdf_color;
 
 private:
-
     uint64_t packet_count;
     uint64_t byte_count;
     struct timeval earliest;
@@ -107,11 +112,9 @@ private:
 public:
     iptree src_tree;
     iptree dst_tree;
-    typedef std::map<in_port_t, in_port_t> port_aliases_t;
     port_aliases_t port_aliases;
-
-    typedef std::map<in_port_t, plot_view::rgb_t> port_colormap_t;
     port_colormap_t port_colormap;
+
 };
 
 #endif

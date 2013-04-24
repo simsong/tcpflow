@@ -146,5 +146,5 @@ public:
     int  process_pkt(const be13::packet_info &pi);
 };
 
-extern int iphtest;                     // for testing
+
 #endif

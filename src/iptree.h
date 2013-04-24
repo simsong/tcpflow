@@ -23,12 +23,18 @@
 #define IP4_ADDR_LEN 4
 #define IP6_ADDR_LEN 16
 
+/**
+ * the iptree.
+ *
+ * pruning a node means cutting off its leaves (the node remains in the tree).
+ */
+
 /* addrbytes is the number of bytes in the address */
 
 template <typename TYPE,size_t ADDRBYTES> class iptreet {
 private:;
     class not_impl: public std::exception {
-	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
+	virtual const char *what() const throw() { return "copying iptreet objects is not implemented."; }
     };
     /**
      * the node class.
@@ -37,6 +43,8 @@ private:;
      * A short address or prefix being tallied may result in BOTH a sum and one or more PTR values.
      * If a node is pruned, ptr0=ptr1=0 and tsum>0.  
      * If tsum>0 and ptr0=0 and ptr1=0, then the node cannot be extended.
+     * Nodes need to know their parent so that nodes found through the cache can be made dirty,
+     * which requires knowing their parents.
      */
     class node {
     private:
@@ -44,17 +52,19 @@ private:;
         node &operator=(const iptreet::node &that){
             throw not_impl();
         }
+        /* copy is no longer implemented, because it's hard to do with the parents */
+        node(const node &n){
+            throw not_impl();
+        }
     public:
+        class node *parent;
         class node *ptr0;               // 0 bit next
         class node *ptr1;               // 1 bit next
     private:
         TYPE    tsum;                   // this node and pruned children.
+        bool    dirty;                  // add() has been called and cached data is no longer valid
     public:
-        /* copy is a deep copy */
-        node(const iptreet::node &n):ptr0(n.ptr0 ? new node(*n.ptr0) : 0),
-                                     ptr1(n.ptr1 ? new node(*n.ptr1) : 0),
-                                     tsum(n.tsum) { }
-        node():ptr0(0),ptr1(0),tsum(){ }
+        node(node *p):parent(p),ptr0(0),ptr1(0),tsum(),dirty(false){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
             if(ptr0){ delete ptr0; ptr0 = 0; }
@@ -77,8 +87,10 @@ private:;
              * Now delete those that we counted out
              */
             if(ptr0){
-                assert(ptr0->term()); 
+                assert(ptr0->term());   // only prune terminal nodes
                 tsum += ptr0->tsum;
+                tree.cache_remove(ptr0); // remove it from the cache
+                tree.pruned++;
                 delete ptr0;
                 ptr0=0;
                 tree.nodes--;
@@ -86,14 +98,39 @@ private:;
             if(ptr1){
                 assert(ptr1->term()); 
                 tsum += ptr1->tsum;
+                tree.cache_remove(ptr1);
+                tree.pruned++;
                 delete ptr1;
                 ptr1=0;
                 tree.nodes--;
             }
             return 1;
         }
+
+        /** best describes the best node to prune */
+        class best {
+        private:
+            best &operator=(const iptreet::node::best &that){
+                throw not_impl();
+            }
+        public:
+            const node *best_node;
+            int depth;
+            best(const node *best_node_,int depth_):
+                best_node(best_node_),depth(depth_){}
+            best(const best &b):best_node(b.best_node),depth(b.depth){ }
+            virtual ~best(){
+                best_node=0;
+                depth=0;
+            }
+            std::ostream & dump(std::ostream &os) const {
+                os << "node=" << best_node << " depth=" << depth << " ";
+                return os;
+            }
+        };
+
         /**
-         * Return the best node to prune:
+         * Return the best node to prune (the node with the leaves to remove)
          * Possible outputs:
          * case 1 - no node (if this is a terminal node, it can't be pruned; should not have been called)
          * case 2 - this node (if all of the children are terminal)
@@ -101,37 +138,33 @@ private:;
          * case 4 - the of the non-terminal child (if one child is terminal and one is not)
          * case 5 - the better node of each child's best node.
          */
-        const node *best_to_prune(int *best_depth,int my_depth) const {
+            
+        class best best_to_prune(int my_depth) const {
             assert(term()==0);          // case 1
-            if (ptr0 && !ptr1 && ptr0->term()) {*best_depth=my_depth;return this;} // case 2
-            if (ptr1 && !ptr0 && ptr1->term()) {*best_depth=my_depth;return this;} // case 2
-            if (ptr0 && ptr0->term() && ptr1 && ptr1->term()) {*best_depth=my_depth;return this;} // case 2
-            if (ptr0 && !ptr1) return ptr0->best_to_prune(best_depth,my_depth+1); // case 3
-            if (ptr1 && !ptr0) return ptr1->best_to_prune(best_depth,my_depth+1); // case 3
+            if (ptr0 && ptr0->term() && !ptr1)  return best(this,my_depth); // case 2
+            if (ptr1 && ptr1->term() && !ptr0 ) return best(this,my_depth); // case 2
+            if (ptr0 && ptr0->term() && ptr1 && ptr1->term()) return best(this,my_depth); // case 2
+            if (ptr0 && !ptr1) return ptr0->best_to_prune(my_depth+1); // case 3
+            if (ptr1 && !ptr0) return ptr1->best_to_prune(my_depth+1); // case 3
 
-            if (ptr0->term() && !ptr1->term()) return ptr1->best_to_prune(best_depth,my_depth+1); // case 4
-            if (ptr1->term() && !ptr0->term()) return ptr0->best_to_prune(best_depth,my_depth+1); // case 4
+            if (ptr0->term() && !ptr1->term()) return ptr1->best_to_prune(my_depth+1); // case 4
+            if (ptr1->term() && !ptr0->term()) return ptr0->best_to_prune(my_depth+1); // case 4
 
             // case 5 - the better node of each child's best node.
-            int ptr0_best_depth = my_depth;
-            const node *ptr0_best = ptr0->best_to_prune(&ptr0_best_depth,my_depth+1);
-            assert(ptr0_best!=0);       // There must be a best node!
-
-            int ptr1_best_depth = my_depth;
-            const node *ptr1_best = ptr1->best_to_prune(&ptr1_best_depth,my_depth+1);
-            assert(ptr1_best!=0);       // There must be a best node!
+            best ptr0_best = ptr0->best_to_prune(my_depth+1);
+            best ptr1_best = ptr1->best_to_prune(my_depth+1);
 
             // The better to prune of two children is the one with a lower sum.
-            TYPE ptr0_best_sum = ptr0_best->sum();
-            TYPE ptr1_best_sum = ptr1_best->sum();
-            if(ptr0_best_sum < ptr1_best_sum) {*best_depth=ptr0_best_depth;return ptr0_best;}
-            if(ptr1_best_sum < ptr0_best_sum) {*best_depth=ptr1_best_depth;return ptr1_best;}
+            TYPE ptr0_best_sum = ptr0_best.best_node->sum();
+            TYPE ptr1_best_sum = ptr1_best.best_node->sum();
+            if(ptr0_best_sum < ptr1_best_sum) return ptr0_best;
+            if(ptr1_best_sum < ptr0_best_sum) return ptr1_best;
             
             // If they are equal, it's the one that's deeper
-            if(ptr0_best_depth > ptr1_best_depth) {*best_depth=ptr0_best_depth;return ptr0_best;}
-            *best_depth = ptr1_best_depth;
+            if(ptr0_best.depth > ptr1_best.depth) return ptr0_best;
             return ptr1_best;
         }
+
         /** The nodesum is the sum of just the node.
          * This exists purely because tsum is a private variable.
          */
@@ -147,12 +180,23 @@ private:;
             return s;
         }
         /** Increment this node by the given amount */
-        void add(TYPE val) { tsum+=val;}           // increment
+        void add(TYPE val) {
+            tsum+=val;                  // increment
+            set_dirty();
+        }          
+
+        void set_dirty() {              // make us dirty and our parent dirty
+            if(dirty==false){
+                dirty = true;
+                if(parent && parent->dirty==false){
+                    parent->set_dirty();    // recurses to the root or the first dirty node.
+                } 
+            }
+        }
 
     }; /* end of node class */
     class node *root;                  
     enum {root_depth=0,
-          maxnodes_default=1000000,
           max_histogram_depth=128,
           ipv4_bits=32,
           ipv6_bits=128,
@@ -161,7 +205,8 @@ private:;
 protected:
     size_t     nodes;                   // nodes in tree
     size_t     maxnodes;                // how many will we tolerate?
-
+    uint64_t   ctr_added;                   // how many were added
+    uint64_t   pruned;
 public:
 
 
@@ -181,10 +226,11 @@ public:
     virtual ~iptreet(){}                // required per compiler warnings
     /* copy is a deep copy */
     iptreet(const iptreet &n):root(n.root ? new node(*n.root) : 0),
-                              nodes(n.nodes),maxnodes(n.maxnodes),cache(),cachenext(),cache_hits(),cache_misses(){};
+                              nodes(n.nodes),maxnodes(n.maxnodes),ctr_added(),pruned(),cache(),cachenext(),cache_hits(),cache_misses(){};
 
     /* create an empty tree */
-    iptreet():root(new node()),nodes(0),maxnodes(maxnodes_default),cache(),cachenext(),cache_hits(),cache_misses(){
+    iptreet(int maxnodes_):root(new node(0)),nodes(0),maxnodes(maxnodes_),
+                           ctr_added(),pruned(),cache(),cachenext(),cache_hits(),cache_misses(){
         for(size_t i=0;i<cache_size;i++){
             cache.push_back(cache_element(0,0,0));
         }
@@ -254,11 +300,10 @@ public:
      */
     int prune(){
         if(root->term()) return 0;        // terminal nodes can't be pruned
-        int tdepth=0;
-        node *tnode = const_cast<node *>(root->best_to_prune(&tdepth,root_depth));
+        class node::best b = root->best_to_prune(root_depth);
+        node *tnode = const_cast<node *>(b.best_node);
         /* remove tnode from the cache if it is present */
         if(tnode){
-            cache_remove(tnode);
             return tnode->prune(*this);
         }
         return 0;
@@ -432,14 +477,16 @@ void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
          */
         if(bit(addr,depth)==0){
             if(ptr->ptr0==0){
-                ptr->ptr0 = new node();
+                ptr->ptr0 = new node(ptr);
                 nodes++;
+                ctr_added++;
             }
             ptr = ptr->ptr0;
         } else {
             if(ptr->ptr1==0){
-                ptr->ptr1 = new node(); 
+                ptr->ptr1 = new node(ptr); 
                 nodes++;
+                ctr_added++;
             }
             ptr = ptr->ptr1;
         }
@@ -461,7 +508,7 @@ public:
         *depth2 = (depth)/2;
     }
 
-    ip2tree(){}
+    ip2tree(int maxnodes_):iptreet<uint64_t,32>(maxnodes_){}
     virtual ~ip2tree(){};
     /* str requires more work */
     static std::string ip2str(const uint8_t *addr,size_t addrlen,size_t depth){

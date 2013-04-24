@@ -53,13 +53,13 @@ const plot_view::rgb_t one_page_report::color_yellow(0.99, 1.00, 0.00);
 const plot_view::rgb_t one_page_report::color_light_orange(1.00, 0.73, 0.00);
 const plot_view::rgb_t one_page_report::cdf_color(0.00, 0.00, 0.00);
 
-one_page_report::one_page_report() : 
+one_page_report::one_page_report(int max_histogram_size) : 
     source_identifier(), filename("report.pdf"),
     bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
     top_list_font_size(8.0), histogram_show_top_n_text(3),
     packet_count(0), byte_count(0), earliest(), latest(),
     transport_counts(), packet_histogram(), src_port_histogram(),
-    dst_port_histogram(), pfall(), netmap(), src_tree(), dst_tree(),
+    dst_port_histogram(), pfall(), netmap(), src_tree(max_histogram_size), dst_tree(max_histogram_size),
     port_aliases(), port_colormap()
 {
     earliest = (struct timeval) { 0 };
@@ -221,9 +221,8 @@ void one_page_report::render(const string &outdir)
     pass.render(th_view);
 
     if(getenv("DEBUG")) {
-    pass.render_map();
-
-    pass.render_packetfall();
+        pass.render_map();
+        pass.render_packetfall();
     }
 
     // address histograms
@@ -530,4 +529,12 @@ vector<one_page_report::transport_type> one_page_report::build_display_transport
     v.push_back(transport_type(ETHERTYPE_VLAN, "VLAN"));
     return v;
 }
+
+void one_page_report::dump(int dbg)
+{
+    if(dbg){
+        std::cerr << "src_tree:\n" << src_tree << "\n" << "dst_tree:\n" << dst_tree << "\n";
+    }
+}
+
 #endif
