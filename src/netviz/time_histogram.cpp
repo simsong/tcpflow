@@ -39,7 +39,7 @@ const unsigned int time_histogram::F_NON_TCP = 0x01;
 void time_histogram::insert(const struct timeval &ts, const in_port_t port, const uint64_t count,
         const unsigned int flags)
 {
-    insert_count++;
+    insert_count += count;
     if(earliest_ts.tv_sec == 0 || (ts.tv_sec < earliest_ts.tv_sec ||
                 (ts.tv_sec == earliest_ts.tv_sec && ts.tv_usec < earliest_ts.tv_usec))) {
         earliest_ts = ts;
@@ -209,6 +209,8 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const in_po
         buckets[target_index] = new bucket();
     }
     buckets[target_index]->increment(port, count, flags);
+
+    insert_count += count;
 
     return false;
 }
