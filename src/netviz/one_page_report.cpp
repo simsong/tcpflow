@@ -214,7 +214,8 @@ void one_page_report::render(const string &outdir)
     // time histogram
     double condension_factor = (double) packet_histogram.non_sparse_size() / (double) max_bars;
     if(condension_factor > 1.1) {
-        packet_histogram.condense(condension_factor);
+        // condense only by whole numbers to avoid messing up bar labels
+        packet_histogram.condense(((int) condension_factor) + 1);
     }
     time_histogram_view th_view(packet_histogram, port_colormap, default_color,
             cdf_color);

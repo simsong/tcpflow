@@ -18,7 +18,7 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
         const colormap_t &port_colors_, const rgb_t &default_color_,
         const rgb_t &cdf_color_) :
     histogram(histogram_), port_colors(port_colors_), default_color(default_color_),
-    cdf_color(cdf_color_)
+    cdf_color(cdf_color_), bar_time_unit(), bar_time_value()
 {
     title = "";
     subtitle = "";
@@ -40,6 +40,8 @@ const vector<time_histogram_view::si_prefix> time_histogram_view::si_prefixes =
         time_histogram_view::build_si_prefixes();
 const double time_histogram_view::blank_bar_line_width = 0.25;
 const time_histogram_view::rgb_t time_histogram_view::blank_bar_line_color(0.0, 0.0, 0.0);
+const double time_histogram_view::bar_label_font_size = 60.0;
+const double time_histogram_view::bar_label_width_factor = 0.8;
 
 void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
 {
@@ -127,20 +129,18 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
             ss << " (<1 second intervals)";
         }
         else if(bar_interval >= 1) {
-            string interval_name;
-            uint64_t interval_value = 0;
             for(vector<time_unit>::const_iterator it = time_units.begin();
                     it != time_units.end(); it++) {
                 
                 if(it + 1 == time_units.end() || bar_interval < (it+1)->seconds) {
-                    interval_name = it->name;
-                    interval_value = bar_interval / it->seconds;
+                    bar_time_unit = it->name;
+                    bar_time_value = bar_interval / it->seconds;
                     break;
                 }
 
             }
 
-            ss << " (" << interval_value << " " << interval_name << " intervals)";
+            ss << " (" << bar_time_value << " " << bar_time_unit << " intervals)";
         }
         x_label = ss.str();
     }
@@ -206,7 +206,32 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         bar.render(cr, bar_bounds);
     }
 
-    // CDF
+    unsigned bar_label_numeric = 0;
+    // choose initial bar value
+    if(bar_time_unit.length() > 0) {
+        time_t start = histogram.start_date();
+        struct tm start_time = *localtime(&start);
+        if(bar_time_unit == SECOND_NAME) {
+            bar_label_numeric = start_time.tm_sec;
+        }
+        else if(bar_time_unit == MINUTE_NAME) {
+            bar_label_numeric = start_time.tm_min;
+        }
+        else if(bar_time_unit == HOUR_NAME) {
+            bar_label_numeric = start_time.tm_hour;
+        }
+        else if(bar_time_unit == DAY_NAME) {
+            bar_label_numeric = start_time.tm_wday;
+        }
+        else if(bar_time_unit == MONTH_NAME) {
+            bar_label_numeric = start_time.tm_mon;
+        }
+        else if(bar_time_unit == YEAR_NAME) {
+            bar_label_numeric = start_time.tm_year;
+        }
+    }
+
+    // CDF and bar labels
     double accumulator = 0.0;
     double histogram_sum = (double) histogram.packet_count();
     cairo_move_to(cr, bounds.x, bounds.y + bounds.height);
@@ -226,23 +251,74 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
             cairo_line_to(cr, x, y);
         }
         cairo_line_to(cr, next_x, y);
+
+        // draw bar label
+        if(bar_time_unit.length() > 0) {
+            string bar_label = next_bar_label(bar_time_unit, bar_label_numeric, bar_time_value);
+            cairo_set_font_size(cr, bar_label_font_size);
+            cairo_text_extents_t label_extents;
+            cairo_text_extents(cr, bar_label.c_str(), &label_extents);
+            // don't be wider than the bar
+            double target_width = bar_width * bar_label_width_factor;
+            if(label_extents.width > target_width) {
+                cairo_set_font_size(cr, bar_label_font_size * (target_width / label_extents.width));
+                cairo_text_extents(cr, bar_label.c_str(), &label_extents);
+            }
+            double label_x = x + ((bar_allocation - label_extents.width) / 2.0);
+            double label_y = bounds.y + bounds.height + 1.5 * label_extents.height;
+            cairo_move_to(cr, label_x, label_y);
+            cairo_show_text(cr, bar_label.c_str());
+
+            // move back to appropriate place for next CDF step
+            cairo_move_to(cr, next_x, y);
+        }
     }
     cairo_set_source_rgb(cr, cdf_color.r, cdf_color.g, cdf_color.b);
     cairo_set_line_width(cr, cdf_line_width);
     cairo_stroke(cr);
 }
 
+// create a new bar label based on numeric_label, then increment numeric_label
+// by delta example: when invoked with ("day", 0, 2), "S" for sunday is
+// returned and numeric_label is updated to 2 which will return "T" for tuesday
+// next time
+string time_histogram_view::next_bar_label(const string &unit, unsigned &numeric_label, int delta)
+{
+    string output;
+    if(unit == SECOND_NAME || unit == MINUTE_NAME) {
+        output = ssprintf("%02d", numeric_label);
+        numeric_label = (numeric_label + delta) % 60;
+    }
+    else if(unit == HOUR_NAME) {
+        output = ssprintf("%02d", numeric_label);
+        numeric_label = (numeric_label + delta) % 24;
+    }
+    else if(unit == DAY_NAME) {
+        output = ssprintf("%d", numeric_label);
+        numeric_label = (numeric_label + delta) % 7;
+    }
+    else if(unit == MONTH_NAME) {
+        output = ssprintf("%d", numeric_label + 1);
+        numeric_label = (numeric_label + delta) % 12;
+    }
+    else if(unit == YEAR_NAME) {
+        output = ssprintf("%04d", numeric_label);
+        numeric_label = (numeric_label + delta);
+    }
+    return output;
+}
+
 vector<time_histogram_view::time_unit> time_histogram_view::build_time_units()
 {
     vector<time_unit> output;
 
-    output.push_back(time_unit("second", 1L));
-    output.push_back(time_unit("minute", 60L));
-    output.push_back(time_unit("hour", 60L * 60L));
-    output.push_back(time_unit("day", 60L * 60L * 24L));
-    output.push_back(time_unit("week", 60L * 60L * 24L * 7L));
-    output.push_back(time_unit("month", 60L * 60L * 24L * 30L));
-    output.push_back(time_unit("year", 60L * 60L * 24L * 365L));
+    output.push_back(time_unit(SECOND_NAME, 1L));
+    output.push_back(time_unit(MINUTE_NAME, 60L));
+    output.push_back(time_unit(HOUR_NAME, 60L * 60L));
+    output.push_back(time_unit(DAY_NAME, 60L * 60L * 24L));
+    output.push_back(time_unit(WEEK_NAME, 60L * 60L * 24L * 7L));
+    output.push_back(time_unit(MONTH_NAME, 60L * 60L * 24L * 30L));
+    output.push_back(time_unit(YEAR_NAME, 60L * 60L * 24L * 365L));
 
     return output;
 }

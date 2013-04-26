@@ -45,6 +45,7 @@ public:
             for(counts_t::const_iterator it=counts.begin();it!=counts.end();it++){
                 count += it->second;
             }
+            count += portless_count;
             return count;
         };
         counts_t counts;

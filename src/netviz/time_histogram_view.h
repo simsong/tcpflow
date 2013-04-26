@@ -7,6 +7,14 @@
 #include "plot_view.h"
 #include "time_histogram.h"
 
+#define SECOND_NAME "second"
+#define MINUTE_NAME "minute"
+#define HOUR_NAME "hour"
+#define DAY_NAME "day"
+#define WEEK_NAME "week"
+#define MONTH_NAME "month"
+#define YEAR_NAME "year"
+
 class time_histogram_view : public plot_view {
 public:
     typedef std::map<in_port_t, rgb_t> colormap_t;
@@ -54,9 +62,17 @@ public:
     static const std::vector<si_prefix> si_prefixes;
     static const double blank_bar_line_width;
     static const rgb_t blank_bar_line_color;
+    static const double bar_label_font_size;
+    static const double bar_label_width_factor;
 
     void render(cairo_t *cr, const bounds_t &bounds);
     void render_data(cairo_t *cr, const bounds_t &bounds);
+    static std::string next_bar_label(const std::string &unit, unsigned &numeric_label, int delta);
+
+private:
+    // for labelling purposes, a bar is <value> <unit>s wide
+    std::string bar_time_unit;
+    uint32_t bar_time_value;
 
     static std::vector<time_unit> build_time_units();
     static std::vector<si_prefix> build_si_prefixes();
