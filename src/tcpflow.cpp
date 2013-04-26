@@ -77,7 +77,7 @@ static void usage()
     switch(++usage_count){
     case 1:
         std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
-        std::cout << "usage: " << progname << " [-aBcCDhpsvVZ] [-b max_bytes] [-d debug_level] [-E scanner] [-f max_fds] [-F[ct]] \n";
+        std::cout << "usage: " << progname << " [-aBcCDhpsvVZ] [-b max_bytes] [-d debug_level] [-[eE] scanner] [-f max_fds] [-F[ct]] \n";
         std::cout << "      [-i iface] [-L semlock] [-m min_bytes] [-o outdir] [-r file] [-R file] [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
         std::cout << "      [expression]\n\n";
         std::cout << "   -a: do ALL post-processing.\n";
@@ -94,7 +94,6 @@ static void usage()
         std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
         std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
         std::cout << "   -w file: write packets not processed to file\n";
-        std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
         std::cout << "   -v: verbose operation equivalent to -d 10\n";
         std::cout << "   -V: print version number and exit\n";
         std::cout << "   -o  outdir   : specify output directory (default '.')\n";
@@ -105,6 +104,10 @@ static void usage()
         std::cout << "   -T{t} : filename template (-hh for options; default "
                   << flow::filename_template << ")\n";
         std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
+
+        std::cout << "\nControl of Scanners:\n";
+        std::cout << "   -E scanner   - turn off all scanners except scanner\n";
+        std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
         info_scanners(false,scanners_builtin,'e','x');
 
         std::cout << "Console output options:\n";
@@ -413,7 +416,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:De:E:F:f:Hhi:JlL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:Hhi:JlL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -453,7 +456,13 @@ int main(int argc, char *argv[])
             demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
 	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
             break;
-        case 'e': scanners_enable(optarg); break;
+	case 'E':
+	    scanners_disable_all();
+	    scanners_enable(optarg);
+	    break;
+        case 'e':
+            scanners_enable(optarg);
+            break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){

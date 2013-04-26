@@ -36,12 +36,6 @@ address_histogram::address_histogram(const iptree &tree) :
         partial_sort(addresses.begin(), addresses.begin() + bucket_count,
                 addresses.end(), iptree_node_comparator());
     }
-
-    if(debug>100){
-        std::cout << "address_histogram:\n";
-        tree.dump(std::cout,addresses);
-    }
-
     buckets.clear();
 
     vector<iptree::addr_elem>::const_iterator it = addresses.begin();

@@ -81,6 +81,7 @@ private:;
         class node *ptr0;               // 0 bit next
         class node *ptr1;               // 1 bit next
     private:
+    public:;
         TYPE    tsum;                   // this node and pruned children.
 
         /* Caching system */
@@ -93,80 +94,87 @@ private:;
             if(ptr0){ delete ptr0; ptr0 = 0; }
             if(ptr1){ delete ptr1; ptr1 = 0; }
         };
-        // a node is terminal if tsum>0 and both ptrs are 0.
-        bool term() const {             
+        // a node is leaf if tsum>0 and both ptrs are 0.
+        bool isLeaf() const {             
             if(tsum>0 && ptr0==0 && ptr1==0) return true;
             return false;
         }
         /**
-         * Returns number of nodes pruned.
-         * But this is called on a node! 
-         * So this *always* returns 1.
-         * If it is not, we have an implementation error, because prune() should not have been called.
+         * prune():
+         * Cut this node's children off the tree.
+         * Returns the number removed, which should be larger than 0 (or we shouldn't have been called).
          */
         int prune(class iptreet &tree){                    // prune this node
+            //std::cerr << "prune " << this << " ptr0= " << ptr0 << " ptr1=" << ptr1 << " parent= " << parent << "\n";
             /* If prune() on a node is called, then both ptr0 and ptr1 nodes, if present,
              * must not have children.
              * Now delete those that we counted out
              */
+            int removed = 0;
             if(ptr0){
-                assert(ptr0->term());   // only prune terminal nodes
+                assert(ptr0->isLeaf());   // only prune leaf nodes
                 tsum += ptr0->tsum;
                 tree.cache_remove(ptr0); // remove it from the cache
                 tree.pruned++;
                 delete ptr0;
                 ptr0=0;
                 tree.nodes--;
+                removed++;
             }
             if(ptr1){
-                assert(ptr1->term()); 
+                assert(ptr1->isLeaf()); 
                 tsum += ptr1->tsum;
                 tree.cache_remove(ptr1);
                 tree.pruned++;
                 delete ptr1;
                 ptr1=0;
                 tree.nodes--;
+                removed++;
             }
-            return 1;
+            assert(removed>0);
+            assert(isLeaf());           // I am now a leaf!
+            set_dirty();                // should be able to just set parent
+            //std::cerr << "   parent dirty=" << parent->dirty << "  this=" << this << " isLeaf()=" << isLeaf() << "\n";
+            //if(parent){
+            //parent->dirty=true; // parent is dirty, but no need to propigate it up
+            //}
+            return removed;
         }
 
         /**
          * Return the best node to prune (the node with the leaves to remove)
          * Possible outputs:
-         * case 1 - no node (if this is a terminal node, it can't be pruned; should not have been called)
-         * case 2 - this node (if all of the children are terminal)
+         * case 1 - no node (if this is a leaf node, it can't be pruned; should not have been called)
+         * case 2 - this node (if all of the children are leaf)
          * case 3 - the best node of the one child (if there is only one child)
-         * case 4 - the of the non-terminal child (if one child is terminal and one is not)
+         * case 4 - the of the non-leaf child (if one child is leaf and one is not)
          * case 5 - the better node of each child's best node.
          */
             
         class best best_to_prune(int my_depth) const {
-            assert(term()==0);          // case 1
             if(dirty==false){
                 return cached_best;     // haven't changed, so return
             }
             dirty = false;              // we will be cleaning
-            if (ptr0 && ptr0->term() && !ptr1){
+            // case 1 - this is a leaf; it was an error to call best_to_prune
+            assert(isLeaf()==0);          
+            // case 2 - our only children are leaves; this is the best node
+            if ((ptr0==0 || ptr0->isLeaf()) &&
+                (ptr1==0 || ptr1->isLeaf())){
                 return cached_best = best(this,my_depth); // case 2
             }
-            if (ptr1 && ptr1->term() && !ptr0 ){
-                return cached_best = best(this,my_depth); // case 2
-            }
-            if (ptr0 && ptr0->term() && ptr1 && ptr1->term()){
-                return cached_best = best(this,my_depth); // case 2
-            }
-            if (ptr0 && !ptr1){
-                return cached_best = ptr0->best_to_prune(my_depth+1); // case 3
-            }
-            if (ptr1 && !ptr0){
+            // case 3 - one of our children is a node and not a leaf,
+            //        - and the other is a child or not present.
+            //        - The best to prune is the child's best
+
+            if ((ptr0==0 || ptr0->isLeaf()) &&
+                (ptr1!=0 && !ptr1->isLeaf())){
                 return cached_best = ptr1->best_to_prune(my_depth+1); // case 3
             }
 
-            if (ptr0->term() && !ptr1->term()){
-                return cached_best = ptr1->best_to_prune(my_depth+1); // case 4
-            }
-            if (ptr1->term() && !ptr0->term()){
-                return cached_best = ptr0->best_to_prune(my_depth+1); // case 4
+            if ((ptr1==0 || ptr1->isLeaf()) &&
+                (ptr0!=0 && !ptr0->isLeaf())){
+                return cached_best = ptr0->best_to_prune(my_depth+1); // case 3
             }
 
             // case 5 - the better node of each child's best node.
@@ -318,10 +326,9 @@ public:
      * do a const_cast (which is completely fine).
      */
     int prune(){
-        if(root->term()) return 0;        // terminal nodes can't be pruned
+        if(root->isLeaf()) return 0;        // leaf nodes can't be pruned
         class node::best b = root->best_to_prune(root_depth);
         node *tnode = const_cast<node *>(b.best_node);
-        /* remove tnode from the cache if it is present */
         if(tnode){
             return tnode->prune(*this);
         }
@@ -331,8 +338,8 @@ public:
     /* Simple implementation to prune the table to 90% of limit if at limit. Subclass to change behavior. */
     void prune_if_greater(size_t limit){
         if(nodes>=maxnodes){
-            while(nodes > maxnodes * 9 / 10){ 
-                if(prune()==0) break;         
+            while(nodes > maxnodes ){ 
+                if(prune()==0) break;
             }
         }
     }
@@ -367,7 +374,7 @@ public:
 
     /** get a histogram of the tree, and starting at a particular node 
      * The histogram is reported for every node that has a sum.
-     * This is terminal nodes and intermediate nodes.
+     * This is leaf nodes and inleafediate nodes.
      * This means that there must be a way for converting TYPE(count) to a boolean.
      *
      * @param depth - tracks current depth (in bits) into address.
@@ -434,28 +441,25 @@ public:
         char buf[128];
         return std::string(inet_ntop(AF_INET6,a,buf,sizeof(buf)));
     }
-    /* dump a histogram ; largely for debugging */
-    std::ostream & dump(std::ostream &os,const histogram_t &histogram) const {
-        os << "nodes: " << nodes << "  histogram size: " << histogram.size() << "\n";
-        for(size_t i=0;i<histogram.size();i++){
-            os << histogram.at(i).str() << "  count=" << histogram.at(i).count << "\n";
-        }
+    /* dump the stats */
+    std::ostream & dump_stats(std::ostream &os) const {
+        os << "nodes: " << nodes << "  maxnodes: " << maxnodes << " ctr_added: " << ctr_added << " pruned: " << pruned << "\n";
+        os << "cache_hits: " << cache_hits << "\n";
+        os << "cache_misses: " << cache_misses << "\n";
         return os;
     }
     /* dump the tree; largely for debugging */
     std::ostream & dump(std::ostream &os) const {
         histogram_t histogram;
         get_histogram(histogram);
-        dump(os,histogram);
+        dump_stats(os);
+        os << "histogram size: " << histogram.size() << "\n";
+        for(size_t i=0;i<histogram.size();i++){
+            os << histogram.at(i).str() << "  count=" << histogram.at(i).count << "\n";
+        }
         return os;
     }
 
-    /* dump the stats */
-    std::ostream & dump_stats(std::ostream &os) const {
-        os << "cache_hits: " << cache_hits << "\n";
-        os << "cache_misses: " << cache_misses << "\n";
-        return os;
-    }
 };
 
 
@@ -476,7 +480,6 @@ void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
 
     u_int addr_bits = addrlen * 8;  // in bits
 
-    node *ptr = root;               // start at the root
     
     /* check the cache first */
     ssize_t i = cache_search(addr,addrlen);
@@ -484,14 +487,24 @@ void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
         cache[i].ptr->add(val);
         return;
     }
-    
+
+    /* descend the radix tree until we run out of bits, or we have a
+       node with no pointers and a non-zero sum.
+     */
+
+    node *ptr = root;               // start at the root
     for(u_int depth=0;depth<=addr_bits;depth++){
         if(depth==addr_bits){       // reached end of address
             ptr->add(val);          // increment this node (and all of its descendants 
             cache_replace(addr,addrlen,ptr);
             return;
         }
-        /* Not a terminal node, so go down a level based on the next bit,
+        if((ptr->tsum > 0) && (ptr->ptr0==0) && (ptr->ptr1==0)){
+            ptr->add(val);
+            cache_replace(addr,addrlen,ptr);
+            return;
+        }
+        /* Not a leaf node, so go down a level based on the next bit,
          * extending if necessary.
          */
         if(bit(addr,depth)==0){

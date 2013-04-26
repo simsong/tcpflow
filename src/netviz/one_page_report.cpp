@@ -536,7 +536,7 @@ vector<one_page_report::transport_type> one_page_report::build_display_transport
 void one_page_report::dump(int dbg)
 {
     if(dbg){
-        std::cerr << "src_tree:\n" << src_tree << "\n" << "dst_tree:\n" << dst_tree << "\n";
+        std::cout << "src_tree:\n" << src_tree << "\n" << "dst_tree:\n" << dst_tree << "\n";
     }
 }
 
