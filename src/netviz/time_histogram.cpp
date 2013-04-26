@@ -39,14 +39,8 @@ const unsigned int time_histogram::F_NON_TCP = 0x01;
 void time_histogram::insert(const struct timeval &ts, const in_port_t port, const uint64_t count,
         const unsigned int flags)
 {
-    insert_count += count;
-    if(earliest_ts.tv_sec == 0 || (ts.tv_sec < earliest_ts.tv_sec ||
-                (ts.tv_sec == earliest_ts.tv_sec && ts.tv_usec < earliest_ts.tv_usec))) {
-        earliest_ts = ts;
-    }
-    if(ts.tv_sec > latest_ts.tv_sec || (ts.tv_sec == latest_ts.tv_sec && ts.tv_usec > latest_ts.tv_usec)) {
-        latest_ts = ts;
-    }
+    bool accepted = false;  // if none of the histogram maps accept the packet,
+                            // don't count it as earliest or latest
     for(vector<histogram_map>::iterator it = histograms.begin() + best_fit_index;
             it != histograms.end(); it++) {
         bool overflowed = it->insert(ts, port, count, flags);
@@ -54,6 +48,20 @@ void time_histogram::insert(const struct timeval &ts, const in_port_t port, cons
         // granular histogram, downgrade granularity by one step
         if(overflowed && best_fit_index < histograms.size() - 1) {
             best_fit_index++;
+        }
+        if(!overflowed) {
+            accepted = true;
+        }
+    }
+
+    if(accepted) {
+        insert_count += count;
+        if(earliest_ts.tv_sec == 0 || (ts.tv_sec < earliest_ts.tv_sec ||
+                    (ts.tv_sec == earliest_ts.tv_sec && ts.tv_usec < earliest_ts.tv_usec))) {
+            earliest_ts = ts;
+        }
+        if(ts.tv_sec > latest_ts.tv_sec || (ts.tv_sec == latest_ts.tv_sec && ts.tv_usec > latest_ts.tv_usec)) {
+            latest_ts = ts;
         }
     }
 }
@@ -200,8 +208,8 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const in_po
 {
     uint32_t target_index = scale_timeval(ts);
 
-    if(target_index >= span.bucket_count) {
-        return true;                    // overflow; will cause this histogram to be shut down
+    if(target_index >= span.bucket_count || target_index == (uint32_t) -1) {
+        return true;                    // overflow or underflow; will cause this histogram to be shut down
     }
 
     buckets_t::iterator it = buckets.find(target_index);
