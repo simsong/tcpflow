@@ -374,32 +374,34 @@ void one_page_report::render_pass::render_text_line(string text,
 
 void one_page_report::render_pass::render(time_histogram_view &view)
 {
-    plot_view::bounds_t bounds(surface_bounds.x, surface_bounds.y + end_of_content, surface_bounds.width,
-            packet_histogram_height);
+    plot_view::bounds_t bnds(surface_bounds.x,
+                             surface_bounds.y + end_of_content,
+                             surface_bounds.width,
+                             packet_histogram_height);
 
-    view.render(surface, bounds);
+    view.render(surface, bnds);
 
-    end_of_content += bounds.height * histogram_pad_factor_y;
+    end_of_content += bnds.height * histogram_pad_factor_y;
 }
 
 void one_page_report::render_pass::render_packetfall()
 {
-    plot_view::bounds_t bounds(surface_bounds.x, surface_bounds.y + end_of_content, surface_bounds.width,
+    plot_view::bounds_t bnds(surface_bounds.x, surface_bounds.y + end_of_content, surface_bounds.width,
             packet_histogram_height);
 
-    report.pfall.render(surface, bounds);
+    report.pfall.render(surface, bnds);
 
-    end_of_content += bounds.height * histogram_pad_factor_y;
+    end_of_content += bnds.height * histogram_pad_factor_y;
 }
 
 void one_page_report::render_pass::render_map()
 {
-    plot_view::bounds_t bounds(surface_bounds.x,
+    plot_view::bounds_t bnds(surface_bounds.x,
             surface_bounds.y + end_of_content, surface_bounds.width, packet_histogram_height);
 
-    report.netmap.render(surface, bounds);
+    report.netmap.render(surface, bnds);
 
-    end_of_content += bounds.height * histogram_pad_factor_y;
+    end_of_content += bnds.height * histogram_pad_factor_y;
 }
 
 void one_page_report::render_pass::render(address_histogram_view &left, address_histogram_view &right)

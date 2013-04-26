@@ -50,7 +50,7 @@ public:
         double r;
         double g;
         double b;
-        static const double epsilon = 1.0 / 256.0;
+        static const double epsilon;    // 1/256.0 (not inline due to -Wgnu)
     };
 
     class legend_entry_t {

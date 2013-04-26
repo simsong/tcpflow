@@ -47,6 +47,26 @@ private:;
      * which requires knowing their parents.
      */
     class node {
+        /** best describes the best node to prune */
+    public:
+        class best {
+        public:
+            best &operator=(const best &that){
+                best_node  = that.best_node;
+                depth = that.depth;
+                return *this;
+            }
+            const node *best_node;
+            int depth;
+            best():best_node(0),depth(-1){}; // don't use this one
+            best(const node *best_node_,int depth_): best_node(best_node_),depth(depth_){}
+            best(const best &b):best_node(b.best_node),depth(b.depth){ }
+            virtual ~best(){}
+            friend std::ostream & operator<<(std::ostream &os,best const & foo) {
+                os << "node=" << foo.best_node << " depth=" << foo.depth << " ";
+                return os;
+            }
+        };
     private:
         /* Assignment is not implemented */
         node &operator=(const iptreet::node &that){
@@ -62,9 +82,12 @@ private:;
         class node *ptr1;               // 1 bit next
     private:
         TYPE    tsum;                   // this node and pruned children.
-        bool    dirty;                  // add() has been called and cached data is no longer valid
+
+        /* Caching system */
+        mutable bool    dirty;                  // add() has been called and cached data is no longer valid
+        mutable best    cached_best;
     public:
-        node(node *p):parent(p),ptr0(0),ptr1(0),tsum(),dirty(false){ }
+        node(node *p):parent(p),ptr0(0),ptr1(0),tsum(),dirty(false),cached_best(){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
             if(ptr0){ delete ptr0; ptr0 = 0; }
@@ -107,28 +130,6 @@ private:;
             return 1;
         }
 
-        /** best describes the best node to prune */
-        class best {
-        private:
-            best &operator=(const iptreet::node::best &that){
-                throw not_impl();
-            }
-        public:
-            const node *best_node;
-            int depth;
-            best(const node *best_node_,int depth_):
-                best_node(best_node_),depth(depth_){}
-            best(const best &b):best_node(b.best_node),depth(b.depth){ }
-            virtual ~best(){
-                best_node=0;
-                depth=0;
-            }
-            std::ostream & dump(std::ostream &os) const {
-                os << "node=" << best_node << " depth=" << depth << " ";
-                return os;
-            }
-        };
-
         /**
          * Return the best node to prune (the node with the leaves to remove)
          * Possible outputs:
@@ -141,28 +142,46 @@ private:;
             
         class best best_to_prune(int my_depth) const {
             assert(term()==0);          // case 1
-            if (ptr0 && ptr0->term() && !ptr1)  return best(this,my_depth); // case 2
-            if (ptr1 && ptr1->term() && !ptr0 ) return best(this,my_depth); // case 2
-            if (ptr0 && ptr0->term() && ptr1 && ptr1->term()) return best(this,my_depth); // case 2
-            if (ptr0 && !ptr1) return ptr0->best_to_prune(my_depth+1); // case 3
-            if (ptr1 && !ptr0) return ptr1->best_to_prune(my_depth+1); // case 3
+            if(dirty==false){
+                return cached_best;     // haven't changed, so return
+            }
+            dirty = false;              // we will be cleaning
+            if (ptr0 && ptr0->term() && !ptr1){
+                return cached_best = best(this,my_depth); // case 2
+            }
+            if (ptr1 && ptr1->term() && !ptr0 ){
+                return cached_best = best(this,my_depth); // case 2
+            }
+            if (ptr0 && ptr0->term() && ptr1 && ptr1->term()){
+                return cached_best = best(this,my_depth); // case 2
+            }
+            if (ptr0 && !ptr1){
+                return cached_best = ptr0->best_to_prune(my_depth+1); // case 3
+            }
+            if (ptr1 && !ptr0){
+                return cached_best = ptr1->best_to_prune(my_depth+1); // case 3
+            }
 
-            if (ptr0->term() && !ptr1->term()) return ptr1->best_to_prune(my_depth+1); // case 4
-            if (ptr1->term() && !ptr0->term()) return ptr0->best_to_prune(my_depth+1); // case 4
+            if (ptr0->term() && !ptr1->term()){
+                return cached_best = ptr1->best_to_prune(my_depth+1); // case 4
+            }
+            if (ptr1->term() && !ptr0->term()){
+                return cached_best = ptr0->best_to_prune(my_depth+1); // case 4
+            }
 
             // case 5 - the better node of each child's best node.
             best ptr0_best = ptr0->best_to_prune(my_depth+1);
             best ptr1_best = ptr1->best_to_prune(my_depth+1);
 
-            // The better to prune of two children is the one with a lower sum.
+            // The better to prune of two children is the one with a lower sum,
+            // or the one that is deeper if they have the same sum.
             TYPE ptr0_best_sum = ptr0_best.best_node->sum();
             TYPE ptr1_best_sum = ptr1_best.best_node->sum();
-            if(ptr0_best_sum < ptr1_best_sum) return ptr0_best;
-            if(ptr1_best_sum < ptr0_best_sum) return ptr1_best;
-            
-            // If they are equal, it's the one that's deeper
-            if(ptr0_best.depth > ptr1_best.depth) return ptr0_best;
-            return ptr1_best;
+            if(ptr0_best_sum < ptr1_best_sum ||
+               (ptr0_best_sum == ptr1_best_sum && ptr0_best.depth > ptr1_best.depth)){
+                return cached_best = ptr0_best;
+               }
+            return cached_best = ptr1_best;
         }
 
         /** The nodesum is the sum of just the node.

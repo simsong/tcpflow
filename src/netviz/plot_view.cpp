@@ -16,6 +16,7 @@
 
 #include <math.h>
 
+const double plot_view::rgb_t::epsilon = 1.0 / 256.0;
 const double plot_view::text_line_base_width = 0.05;
 const double plot_view::span_arrow_angle = M_PI / 4.0;
 const double plot_view::span_stop_angle = M_PI / 2.0;
