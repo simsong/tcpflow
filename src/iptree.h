@@ -45,6 +45,9 @@ private:;
      * If tsum>0 and ptr0=0 and ptr1=0, then the node cannot be extended.
      * Nodes need to know their parent so that nodes found through the cache can be made dirty,
      * which requires knowing their parents.
+     *
+     * Note: currently we get a slightly different answer when the pruning cache is enabled.
+     * Not sure why. It's probably not worth fixing at the moment.
      */
     class node {
         /** best describes the best node to prune */
@@ -52,18 +55,18 @@ private:;
         class best {
         public:
             best &operator=(const best &that){
-                best_node  = that.best_node;
+                ptr  = that.ptr;
                 depth = that.depth;
                 return *this;
             }
-            const node *best_node;
+            const node *ptr;
             int depth;
-            best():best_node(0),depth(-1){}; // don't use this one
-            best(const node *best_node_,int depth_): best_node(best_node_),depth(depth_){}
-            best(const best &b):best_node(b.best_node),depth(b.depth){ }
+            best():ptr(0),depth(-1){}; // don't use this one
+            best(const node *ptr_,int depth_): ptr(ptr_),depth(depth_){}
+            best(const best &b):ptr(b.ptr),depth(b.depth){ }
             virtual ~best(){}
             friend std::ostream & operator<<(std::ostream &os,best const & foo) {
-                os << "node=" << foo.best_node << " depth=" << foo.depth << " ";
+                os << "node=" << foo.ptr << " depth=" << foo.depth << " ";
                 return os;
             }
         };
@@ -152,8 +155,8 @@ private:;
          */
             
         class best best_to_prune(int my_depth) const {
-            if(dirty==false){
-                return cached_best;     // haven't changed, so return
+            if(dirty==false && cached_best.ptr){
+                //return cached_best;     // haven't changed, so return
             }
             dirty = false;              // we will be cleaning
             // case 1 - this is a leaf; it was an error to call best_to_prune
@@ -183,8 +186,8 @@ private:;
 
             // The better to prune of two children is the one with a lower sum,
             // or the one that is deeper if they have the same sum.
-            TYPE ptr0_best_sum = ptr0_best.best_node->sum();
-            TYPE ptr1_best_sum = ptr1_best.best_node->sum();
+            TYPE ptr0_best_sum = ptr0_best.ptr->sum();
+            TYPE ptr1_best_sum = ptr1_best.ptr->sum();
             if(ptr0_best_sum < ptr1_best_sum ||
                (ptr0_best_sum == ptr1_best_sum && ptr0_best.depth > ptr1_best.depth)){
                 return cached_best = ptr0_best;
@@ -328,7 +331,7 @@ public:
     int prune(){
         if(root->isLeaf()) return 0;        // leaf nodes can't be pruned
         class node::best b = root->best_to_prune(root_depth);
-        node *tnode = const_cast<node *>(b.best_node);
+        node *tnode = const_cast<node *>(b.ptr);
         if(tnode){
             return tnode->prune(*this);
         }
@@ -338,7 +341,7 @@ public:
     /* Simple implementation to prune the table to 90% of limit if at limit. Subclass to change behavior. */
     void prune_if_greater(size_t limit){
         if(nodes>=maxnodes){
-            while(nodes > maxnodes ){ 
+            while(nodes > (maxnodes * 9) / 10){ 
                 if(prune()==0) break;
             }
         }
