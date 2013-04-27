@@ -64,15 +64,20 @@ public:
     static const rgb_t blank_bar_line_color;
     static const double bar_label_font_size;
     static const double bar_label_width_factor;
+    static const rgb_t bar_label_normal_color;
+    static const rgb_t bar_label_highlight_color;
 
     void render(cairo_t *cr, const bounds_t &bounds);
     void render_data(cairo_t *cr, const bounds_t &bounds);
-    static std::string next_bar_label(const std::string &unit, unsigned &numeric_label, int delta);
+    static std::string next_bar_label(const std::string &unit, unsigned &numeric_label, unsigned delta,
+            rgb_t &label_color);
 
 private:
     // for labelling purposes, a bar is <value> <unit>s wide
     std::string bar_time_unit;
     uint32_t bar_time_value;
+    // if the bar time unit isn't exact, we can't label bars because they'll drift
+    uint32_t bar_time_remainder;
 
     static std::vector<time_unit> build_time_units();
     static std::vector<si_prefix> build_si_prefixes();

@@ -177,8 +177,8 @@ time_histogram::span_params_vector_t time_histogram::build_spans()
                 1000LL * 1000LL * 60LL * 60LL * 24LL * 30LL * 12LL, // year
                 360)); // 360 1 day buckets
     output.push_back(span_params(
-                1000LL * 1000LL * 60LL * 60LL * 24LL * 30LL * 12LL * 10LL, // decade
-                514)); // 514 7.004 day (~week) buckets
+                1000LL * 1000LL * 60LL * 60LL * 24LL * 3598LL, // approximate decade
+                514)); // 514 1 week buckets
     output.push_back(span_params(
                 1000LL * 1000LL * 60LL * 60LL * 24LL * 30LL * 12LL * 50LL, // semicentury
                 200)); // 200 3 month intervals
