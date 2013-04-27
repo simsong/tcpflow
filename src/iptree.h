@@ -328,7 +328,7 @@ public:
      * node that best_to_prune() returns a const pointer. But we want to modify it, so we
      * do a const_cast (which is completely fine).
      */
-    int prune(){
+    int prune_best_node(){
         if(root->isLeaf()) return 0;        // leaf nodes can't be pruned
         class node::best b = root->best_to_prune(root_depth);
         node *tnode = const_cast<node *>(b.ptr);
@@ -338,12 +338,11 @@ public:
         return 0;
     }
 
-    /* Simple implementation to prune the table to 90% of limit if at limit. Subclass to change behavior. */
-    void prune_if_greater(size_t limit){
-        if(nodes>=maxnodes){
-            while(nodes > (maxnodes * 9) / 10){ 
-                if(prune()==0) break;
-            }
+    /* Simple implementation to prune the table if over the limit.
+     */
+    void prune_if_needed(){
+        while(nodes > maxnodes){
+            if(prune_best_node()==0) return; // cannot prune
         }
     }
 
@@ -478,7 +477,7 @@ public:
 template <typename TYPE,size_t ADDRBYTES>
 void iptreet<TYPE,ADDRBYTES>::add(const uint8_t *addr,size_t addrlen,TYPE val)
 {
-    prune_if_greater(maxnodes);
+    prune_if_needed();
     if(addrlen > ADDRBYTES) addrlen=ADDRBYTES;
 
     u_int addr_bits = addrlen * 8;  // in bits

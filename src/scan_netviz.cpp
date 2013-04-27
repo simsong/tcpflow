@@ -15,9 +15,15 @@
 #ifdef HAVE_LIBCAIRO
 #include "netviz/one_page_report.h"
 
+/* These control the size of the iptable histogram
+ * and whether or not it is dumped. The histogram should be kept
+ * either small enough that it is not expensive to maintain, or large
+ * enough so that it never needs to be pruned.
+ */
+
 #define HISTOGRAM_SIZE "netviz_histogram_size"
 #define HISTOGRAM_DUMP "netviz_histogram_dump"
-#define DEFAULT_MAX_HISTOGRAM_SIZE 1000000
+#define DEFAULT_MAX_HISTOGRAM_SIZE 1000 
 
 static one_page_report *report=0;
 static void netviz_process_packet(void *user,const be13::packet_info &pi)
@@ -50,16 +56,17 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
         histogram_dump = atoi(sp.info->config[HISTOGRAM_DUMP].c_str());
         int max_histogram_size = atoi(sp.info->config[HISTOGRAM_SIZE].c_str());
         if(max_histogram_size<=0) max_histogram_size = DEFAULT_MAX_HISTOGRAM_SIZE;
-        std::cout << "max_histogram_size=" << max_histogram_size <<"\n";
         report = new one_page_report(max_histogram_size);
 #endif	
     }
 
     if(sp.phase==scanner_params::PHASE_SHUTDOWN){
 #ifdef HAVE_LIBCAIRO
-        report->src_tree.dump_stats(std::cout);
         assert(report!=0);
-        report->dump(histogram_dump);
+        if(histogram_dump){
+            report->src_tree.dump_stats(std::cout);
+            report->dump(histogram_dump);
+        }
         report->source_identifier = sp.fs.input_fname;
         report->render(sp.fs.outdir);
         delete report;
