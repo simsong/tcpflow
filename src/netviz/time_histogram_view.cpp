@@ -24,11 +24,11 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
     subtitle = "";
     pad_left_factor = 0.2;
     pad_top_factor = 0.1;
-    y_tick_font_size = 6.0;
+    y_tick_font_size = 5.0;
     right_tick_font_size = 6.0;
     x_axis_font_size = 8.0;
     x_axis_decoration = plot_view::AXIS_SPAN_STOP;
-    y_label = "packets";
+    y_label = "";
 }
 
 const uint8_t time_histogram_view::y_tick_count = 5;
@@ -176,7 +176,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
             continue;
         }
 
-        string label = ssprintf("%d%s", value, unit.prefix.c_str());
+        string label = ssprintf("%d %sB", value, unit.prefix.c_str());
 
 	y_tick_labels.push_back(label);
     }
@@ -204,10 +204,8 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
 
     for(; it != histogram.end(); it++) {
         double bar_height = (double) it->second->sum() / tallest_bar * bounds.height;
-
         double bar_x = bounds.x + (it->first - first_offset) * bar_allocation + bar_leading_pad;
         double bar_y = bounds.y + (bounds.height - bar_height);
-
         bounds_t bar_bounds(bar_x, bar_y, bar_width, bar_height);
 
         bucket_view bar(*it->second, port_colors, default_color);
@@ -216,7 +214,6 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     }
 
     unsigned bar_label_numeric = 0;
-
     // choose initial bar value
     if(bar_time_unit.length() > 0) {
         time_t start = histogram.start_date();
@@ -441,10 +438,9 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
     rgb_t next_color = default_color;
 
     // The loop below is a bit confusing
-    const double bucket_sum = bucket.sum();   // won't change
     for(time_histogram::bucket::counts_t::const_iterator it = bucket.counts.begin(); it != bucket.counts.end();) {
 
-        double height = bounds.height * ((double) it->second / bucket_sum);
+        double height = bounds.height * ((double) it->second / (double) bucket.sum());
 
         // on first section, preload the first color as the 'next' color
         if(it == bucket.counts.begin()) {
