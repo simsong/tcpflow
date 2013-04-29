@@ -94,7 +94,7 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     }
 
     packet_count++;
-    byte_count += pi.ip_datalen;
+    byte_count += pi.pcap_hdr->len;
     transport_counts[pi.ether_type()]++; // should we handle VLANs?
 
     // break out TCP/IP info and feed child views
@@ -104,14 +104,14 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     if(pi.is_ip4()) {
         ip_ver = 4;
 
-        src_tree.add((uint8_t *) pi.ip_data + pi.ip4_src_off, IP4_ADDR_LEN, pi.ip_datalen);
-        dst_tree.add((uint8_t *) pi.ip_data + pi.ip4_dst_off, IP4_ADDR_LEN, pi.ip_datalen);
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip4_src_off, IP4_ADDR_LEN, pi.pcap_hdr->len);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip4_dst_off, IP4_ADDR_LEN, pi.pcap_hdr->len);
     }
     else if(pi.is_ip6()) {
         ip_ver = 6;
 
-        src_tree.add((uint8_t *) pi.ip_data + pi.ip6_src_off, IP6_ADDR_LEN, pi.ip_datalen);
-        dst_tree.add((uint8_t *) pi.ip_data + pi.ip6_dst_off, IP6_ADDR_LEN, pi.ip_datalen);
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip6_src_off, IP6_ADDR_LEN, pi.pcap_hdr->len);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip6_dst_off, IP6_ADDR_LEN, pi.pcap_hdr->len);
     }
     else {
         return;
@@ -164,8 +164,8 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     }
     packet_histogram.insert(pi.ts, packet_histogram_port);
 
-    src_port_histogram.increment(tcp_src, pi.ip_datalen);
-    dst_port_histogram.increment(tcp_dst, pi.ip_datalen);
+    src_port_histogram.increment(tcp_src, pi.pcap_hdr->len);
+    dst_port_histogram.increment(tcp_dst, pi.pcap_hdr->len);
 }
 
 void one_page_report::render(const string &outdir)
