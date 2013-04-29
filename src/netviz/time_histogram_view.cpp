@@ -240,13 +240,19 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     // create bar lables so an appropriate font size can be selected
     vector<string> bar_labels;
     vector<rgb_t> bar_label_colors;
+    // if bars are thinner than 10pt, thin out the bar labels appropriately
+    //int label_every_n_bars = max(1, (int) (10.0 / bar_allocation));
+    int label_every_n_bars = ((int) (10.0 / bar_allocation)) + 1;
     double widest_bar_label = 0;
     double tallest_bar_label = 0;
     cairo_set_font_size(cr, bar_label_font_size);
     for(size_t ii = 0; ii < bars; ii++) {
+        if(ii % label_every_n_bars != 0) {
+            continue;
+        }
         rgb_t bar_label_color;
-        string bar_label = next_bar_label(bar_time_unit, bar_label_numeric, bar_time_value,
-                bar_label_color);
+        string bar_label = next_bar_label(bar_time_unit, bar_label_numeric,
+                bar_time_value * label_every_n_bars, bar_label_color);
         cairo_text_extents_t label_extents;
         cairo_text_extents(cr, bar_label.c_str(), &label_extents);
         if(label_extents.width > widest_bar_label) {
@@ -268,6 +274,10 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         safe_bar_label_font_size *= factor;
         bar_label_descent *= factor;
     }
+    // if we're skipping bars for labelling, increase the label size appropriately
+    double label_size_multiplier = pow(1.2, (double) (label_every_n_bars - 1));
+    safe_bar_label_font_size *= label_size_multiplier;
+    bar_label_descent *= label_size_multiplier;
 
 
     // CDF and bar labels
@@ -292,9 +302,10 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         cairo_line_to(cr, next_x, y);
 
         // draw bar label
-        if(bar_time_unit.length() > 0 && bar_time_remainder == 0) {
-            string label = bar_labels.at(ii);
-            rgb_t color = bar_label_colors.at(ii);
+        if(bar_time_unit.length() > 0 && bar_time_remainder == 0 &&
+                ii % label_every_n_bars == 0) {
+            string label = bar_labels.at(ii / label_every_n_bars);
+            rgb_t color = bar_label_colors.at(ii / label_every_n_bars);
             cairo_set_font_size(cr, safe_bar_label_font_size);
             cairo_set_source_rgb(cr, color.r, color.g, color.b);
             cairo_text_extents_t label_extents;
