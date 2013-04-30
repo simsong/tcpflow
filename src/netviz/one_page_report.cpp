@@ -93,9 +93,10 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
         latest = pi.ts;
     }
 
+    size_t packet_length = pi.pcap_hdr->len;
     packet_count++;
-    byte_count += pi.pcap_hdr->len;
-    transport_counts[pi.ether_type()] += pi.pcap_hdr->len; // should we handle VLANs?
+    byte_count += packet_length;
+    transport_counts[pi.ether_type()] += packet_length; // should we handle VLANs?
 
     // break out TCP/IP info and feed child views
 
@@ -104,16 +105,17 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     if(pi.is_ip4()) {
         ip_ver = 4;
 
-        src_tree.add((uint8_t *) pi.ip_data + pi.ip4_src_off, IP4_ADDR_LEN, pi.pcap_hdr->len);
-        dst_tree.add((uint8_t *) pi.ip_data + pi.ip4_dst_off, IP4_ADDR_LEN, pi.pcap_hdr->len);
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip4_src_off, IP4_ADDR_LEN, packet_length);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip4_dst_off, IP4_ADDR_LEN, packet_length);
     }
     else if(pi.is_ip6()) {
         ip_ver = 6;
 
-        src_tree.add((uint8_t *) pi.ip_data + pi.ip6_src_off, IP6_ADDR_LEN, pi.pcap_hdr->len);
-        dst_tree.add((uint8_t *) pi.ip_data + pi.ip6_dst_off, IP6_ADDR_LEN, pi.pcap_hdr->len);
+        src_tree.add((uint8_t *) pi.ip_data + pi.ip6_src_off, IP6_ADDR_LEN, packet_length);
+        dst_tree.add((uint8_t *) pi.ip_data + pi.ip6_dst_off, IP6_ADDR_LEN, packet_length);
     }
     else {
+        packet_histogram.insert(pi.ts, 0, packet_length, time_histogram::F_NON_TCP);
         return;
     }
 
@@ -144,7 +146,7 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
     }
 
     if(!has_tcp) {
-        packet_histogram.insert(pi.ts, 0, 1, time_histogram::F_NON_TCP);
+        packet_histogram.insert(pi.ts, 0, packet_length, time_histogram::F_NON_TCP);
         return;
     }
 
@@ -162,10 +164,10 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
             packet_count % 2 == 0) {
         packet_histogram_port = tcp_dst;
     }
-    packet_histogram.insert(pi.ts, packet_histogram_port);
+    packet_histogram.insert(pi.ts, packet_histogram_port, packet_length);
 
-    src_port_histogram.increment(tcp_src, pi.pcap_hdr->len);
-    dst_port_histogram.increment(tcp_dst, pi.pcap_hdr->len);
+    src_port_histogram.increment(tcp_src, packet_length);
+    dst_port_histogram.increment(tcp_dst, packet_length);
 }
 
 void one_page_report::render(const string &outdir)
