@@ -85,7 +85,10 @@ public:
         uint32_t scale_timeval(const struct timeval &ts) {
             uint64_t raw_time = ts.tv_sec * (1000LL * 1000LL) + ts.tv_usec;
             if(base_time == 0) {
-                base_time = raw_time - (bucket_width * (span.bucket_count * underflow_pad_factor));
+                base_time = raw_time - (bucket_width * ((uint64_t)(span.bucket_count * underflow_pad_factor)));
+                // snap base time to nearest bucket_width to simplify bar labelling later
+                uint64_t unit = span.usec / span.bucket_count;
+                base_time = (base_time / unit) * unit;
             }
             if (raw_time < base_time) return -1; // underflow
             return (raw_time - base_time) / bucket_width;

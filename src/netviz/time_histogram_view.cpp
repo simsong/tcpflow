@@ -51,7 +51,9 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
     // create x label based on duration of capture
     //
     uint64_t bar_interval = histogram.usec_per_bucket() / (1000 * 1000);
-    time_t duration = histogram.end_date() - histogram.start_date();
+    // add a second to duration; considering a partial second a second makes
+    // edge cases look nicer
+    time_t duration = histogram.end_date() - histogram.start_date() + 1;
     if(histogram.packet_count() == 0) {
         x_label = "no packets received";
         x_axis_decoration = plot_view::AXIS_SPAN_STOP;
@@ -214,40 +216,54 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
     }
 
     unsigned bar_label_numeric = 0;
+    int distinct_label_count = 0;
     // choose initial bar value
     if(bar_time_unit.length() > 0) {
         time_t start = histogram.start_date();
         struct tm start_time = *localtime(&start);
         if(bar_time_unit == SECOND_NAME) {
             bar_label_numeric = start_time.tm_sec;
+            distinct_label_count = 60;
         }
         else if(bar_time_unit == MINUTE_NAME) {
             bar_label_numeric = start_time.tm_min;
+            distinct_label_count = 60;
         }
         else if(bar_time_unit == HOUR_NAME) {
             bar_label_numeric = start_time.tm_hour;
+            distinct_label_count = 24;
         }
         else if(bar_time_unit == DAY_NAME) {
             bar_label_numeric = start_time.tm_wday;
+            distinct_label_count = 7;
         }
         else if(bar_time_unit == MONTH_NAME) {
             bar_label_numeric = start_time.tm_mon;
+            distinct_label_count = 12;
         }
         else if(bar_time_unit == YEAR_NAME) {
             bar_label_numeric = start_time.tm_year;
         }
+        // snap label to same alignment of histogram bars
+        bar_label_numeric -= (bar_label_numeric % bar_time_value);
     }
     // create bar lables so an appropriate font size can be selected
     vector<string> bar_labels;
     vector<rgb_t> bar_label_colors;
     // if bars are thinner than 10pt, thin out the bar labels appropriately
-    //int label_every_n_bars = max(1, (int) (10.0 / bar_allocation));
     int label_every_n_bars = ((int) (10.0 / bar_allocation)) + 1;
+    unsigned label_bars_offset = 0;
+    // find the offset that will cause the '00' label to appear
+    if(distinct_label_count > 0) {
+        label_bars_offset = ((distinct_label_count - bar_label_numeric) %
+                (bar_time_value * label_every_n_bars)) / bar_time_value;
+    }
+    bar_label_numeric += (label_bars_offset * bar_time_value);
     double widest_bar_label = 0;
     double tallest_bar_label = 0;
     cairo_set_font_size(cr, bar_label_font_size);
     for(size_t ii = 0; ii < bars; ii++) {
-        if(ii % label_every_n_bars != 0) {
+        if(ii % label_every_n_bars != label_bars_offset) {
             continue;
         }
         rgb_t bar_label_color;
@@ -303,7 +319,7 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
 
         // draw bar label
         if(bar_time_unit.length() > 0 && bar_time_remainder == 0 &&
-                ii % label_every_n_bars == 0) {
+                ii % label_every_n_bars == label_bars_offset) {
             string label = bar_labels.at(ii / label_every_n_bars);
             rgb_t color = bar_label_colors.at(ii / label_every_n_bars);
             cairo_set_font_size(cr, safe_bar_label_font_size);
