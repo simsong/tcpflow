@@ -300,19 +300,16 @@ void tcpdemux::save_flow(tcpip *tcp)
 #include "iptree.h"
 
 int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
-                          const u_char *tcp_data, uint32_t tcp_datalen,
+                          const u_char *ip_data, uint32_t ip_payload_len,
                           const be13::packet_info &pi)
 {
-    if (tcp_datalen < sizeof(struct be13::tcphdr)) {
+    if (ip_payload_len < sizeof(struct be13::tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment! (%u<%u)",
-                  (u_int)tcp_datalen,(u_int)sizeof(struct be13::tcphdr));
+                  (u_int)ip_payload_len,(u_int)sizeof(struct be13::tcphdr));
 	return 0;
     }
 
-    struct be13::tcphdr *tcp_header = (struct be13::tcphdr *) tcp_data;
-
-    /* calculate the total length of the TCP header including options */
-    u_int tcp_header_len = tcp_header->th_off * 4;
+    struct be13::tcphdr *tcp_header = (struct be13::tcphdr *) ip_data;
 
     /* fill in the flow_addr structure with info that identifies this flow */
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),ntohs(tcp_header->th_dport),family);
@@ -322,11 +319,16 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     bool ack_set = IS_SET(tcp_header->th_flags, TH_ACK);
     bool fin_set = IS_SET(tcp_header->th_flags, TH_FIN);
 
-    /* recalculate the beginning of data and its length, moving past the
-     * TCP header
+    /* calculate the total length of the TCP header including options */
+    u_int tcp_header_len = tcp_header->th_off * 4;
+
+    /* Find the beginning of the tcp data.
      */
-    tcp_data   += tcp_header_len;
-    tcp_datalen -= tcp_header_len;
+    const u_char *tcp_data   = ip_data + tcp_header_len;
+    
+    /* figure out how much tcp data we have, taking into account tcp options */
+
+    size_t tcp_datalen = (ip_payload_len > tcp_header_len) ? (ip_payload_len - tcp_header_len) : 0;
 
     /* see if we have state about this flow; if not, create it */
     int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
@@ -362,7 +364,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                     close(fd);
                 }
                 DEBUG(60)("Packet matches saved flow. offset=%u len=%d filename=%s data match=%d\n",
-                          offset,tcp_datalen,it->second->saved_filename.c_str(),data_match);
+                          (u_int)offset,(u_int)tcp_datalen,it->second->saved_filename.c_str(),(u_int)data_match);
                 if(data_match) return 0;
             }
         }
@@ -444,7 +446,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 	}
 	if(tcp_datalen>0){
 	    tcp->violations++;
-	    DEBUG(1) ("TCP PROTOCOL VIOLATION: SYN with data! (length=%d)",tcp_datalen);
+	    DEBUG(1) ("TCP PROTOCOL VIOLATION: SYN with data! (length=%d)",(int)tcp_datalen);
 	}
     }
     if(tcp_datalen==0) DEBUG(50) ("got TCP segment with no data"); // seems pointless to notify
@@ -482,7 +484,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     }
 
     DEBUG(50)("fin_set=%d  seq=%u fin_count=%d  seq_count=%d len=%d isn=%u",
-            fin_set,seq,tcp->fin_count,tcp->syn_count,tcp_datalen,tcp->isn);
+              fin_set,seq,tcp->fin_count,tcp->syn_count,(int)tcp_datalen,tcp->isn);
     return 0;                           // successfully processed
 }
 #pragma GCC diagnostic warning "-Wcast-align"
@@ -506,8 +508,6 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     const struct be13::ip4 *ip_header = (struct be13::ip4 *) pi.ip_data;
-    u_int ip_header_len;
-    u_int ip_total_len;
 
     DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)pi.pcap_hdr->caplen,(int)pi.vlan(),(int)ip_header->ip_p);
     if(debug>200){
@@ -525,10 +525,10 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
      * ip_total_len after this, because we may have captured bytes
      * beyond the end of the packet (e.g. ethernet padding).
      */
-    ip_total_len = ntohs(ip_header->ip_len);
-    if (pi.ip_datalen < ip_total_len) {
+    size_t ip_len = ntohs(ip_header->ip_len);
+    if (pi.ip_datalen < ip_len) {
 	DEBUG(6) ("warning: captured only %ld bytes of %ld-byte IP datagram",
-		  (long) pi.ip_datalen, (long) ip_total_len);
+		  (long) pi.ip_datalen, (long) ip_len);
     }
 
     /* XXX - throw away everything but fragment 0; this version doesn't
@@ -540,16 +540,16 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     /* figure out where the IP header ends */
-    ip_header_len = ip_header->ip_hl * 4;
+    size_t ip_header_len = ip_header->ip_hl * 4;
 
     /* make sure there's some data */
-    if (ip_header_len > ip_total_len) {
+    if (ip_header_len > ip_len) {
 	DEBUG(6) ("received truncated IP datagram!");
 	return -1;
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    uint16_t ip_payload_len = ip_total_len - ip_header_len;
+    uint16_t ip_payload_len = ip_len - ip_header_len;
     ipaddr src(ip_header->ip_src.addr);
     ipaddr dst(ip_header->ip_dst.addr);
     return process_tcp(src, dst, AF_INET,
