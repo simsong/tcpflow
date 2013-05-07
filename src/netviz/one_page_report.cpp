@@ -179,6 +179,10 @@ void one_page_report::render(const string &outdir)
 				 bounds.height);
     cairo_t *cr = cairo_create(surface);
 
+    //
+    // Configure views
+    //
+
     double pad_size = bounds.width * page_margin_factor;
     plot_view::bounds_t pad_bounds(bounds.x + pad_size,
             bounds.y + pad_size, bounds.width - pad_size * 2,
@@ -208,10 +212,6 @@ void one_page_report::render(const string &outdir)
             count++;
         }
     }
-
-    render_pass pass(*this, cr, pad_bounds);
-
-    pass.render_header();
     
     // time histogram
     double condension_factor = (double) packet_histogram.non_sparse_size() / (double) max_bars;
@@ -221,12 +221,6 @@ void one_page_report::render(const string &outdir)
     }
     time_histogram_view th_view(packet_histogram, port_colormap, default_color,
             cdf_color);
-    pass.render(th_view);
-
-    if(getenv("DEBUG")) {
-        pass.render_map();
-        pass.render_packetfall();
-    }
 
     // address histograms
     // histograms are built from iptree here
@@ -250,7 +244,6 @@ void one_page_report::render(const string &outdir)
     }
     dst_ah_view.bar_color = default_color;
     dst_ah_view.cdf_color = cdf_color;
-    pass.render(src_ah_view, dst_ah_view);
 
     // port histograms
     port_histogram_view sp_view(src_port_histogram, port_colormap, default_color,
@@ -269,6 +262,20 @@ void one_page_report::render(const string &outdir)
     else {
         dp_view.title = "No Destination Ports";
     }
+
+    //
+    // run configured views through render pass
+    //
+
+    render_pass pass(*this, cr, pad_bounds);
+
+    pass.render_header();
+    pass.render(th_view);
+    if(getenv("DEBUG")) {
+        pass.render_map();
+        pass.render_packetfall();
+    }
+    pass.render(src_ah_view, dst_ah_view);
     pass.render(sp_view, dp_view);
 
     // cleanup
