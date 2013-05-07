@@ -33,7 +33,7 @@ const vector<one_page_report::transport_type> one_page_report::display_transport
 // ratio constants
 const double one_page_report::page_margin_factor = 0.05;
 const double one_page_report::line_space_factor = 0.25;
-const double one_page_report::histogram_pad_factor_y = 1.0;
+const double one_page_report::histogram_pad_factor_y = 1.1;
 const double one_page_report::address_histogram_width_divisor = 2.2;
 // size constants
 const double one_page_report::packet_histogram_height = 100.0;
