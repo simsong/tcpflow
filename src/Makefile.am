@@ -56,6 +56,8 @@ NETVIZ = \
 	netviz/packetfall.h \
 	netviz/net_map.cpp \
 	netviz/net_map.h \
+	netviz/legend_view.cpp \
+	netviz/legend_view.h \
 	netviz/one_page_report.cpp \
 	netviz/one_page_report.h
 

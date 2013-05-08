@@ -139,5 +139,10 @@ inline bool operator!=(const plot_view::rgb_t &a, const plot_view::rgb_t &b)
     return !(a == b);
 }
 
+inline bool operator<(const plot_view::rgb_t &a, const plot_view::rgb_t &b)
+{
+    return a.r < b.r || a.g < b.g || a.b < b.b;
+}
+
 #endif
 #endif

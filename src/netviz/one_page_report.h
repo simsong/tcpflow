@@ -10,6 +10,7 @@
 #include "packetfall.h"
 #include "net_map.h"
 #include "iptree.h"
+#include "legend_view.h"
 
 class one_page_report {
 public:
@@ -51,6 +52,7 @@ public:
         void render(time_histogram_view &view);
         void render(address_histogram_view &left, address_histogram_view &right);
         void render(port_histogram_view &left, port_histogram_view &right);
+        void render(const legend_view &view);
         void render_map();
         void render_packetfall();
 
@@ -74,6 +76,7 @@ public:
     static const unsigned int port_colors_count;
     // string constants
     static const std::string title_version;
+    static const std::string generic_legend_format;
     static const transport_type_vector display_transports;
     // ratio constants
     static const double page_margin_factor;
@@ -84,6 +87,7 @@ public:
     static const double packet_histogram_height;
     static const double address_histogram_height;
     static const double port_histogram_height;
+    static const double legend_height;
     // color constants
     static const plot_view::rgb_t default_color;
     static const plot_view::rgb_t color_orange;
@@ -104,6 +108,7 @@ private:
     struct timeval earliest;
     struct timeval latest;
     std::map<uint32_t, uint64_t> transport_counts;
+    legend_view::entries_t color_labels;
     time_histogram packet_histogram;
     port_histogram src_port_histogram;
     port_histogram dst_port_histogram;

@@ -28,6 +28,7 @@ const unsigned int one_page_report::max_bars = 100;
 const unsigned int one_page_report::port_colors_count = 4;
 // string constants
 const string one_page_report::title_version = PACKAGE_NAME " " PACKAGE_VERSION;
+const string one_page_report::generic_legend_format = "Port %d";
 const vector<one_page_report::transport_type> one_page_report::display_transports =
         one_page_report::build_display_transports();
 // ratio constants
@@ -39,6 +40,7 @@ const double one_page_report::address_histogram_width_divisor = 2.2;
 const double one_page_report::packet_histogram_height = 100.0;
 const double one_page_report::address_histogram_height = 125.0;
 const double one_page_report::port_histogram_height = 100.0;
+const double one_page_report::legend_height = 16.0;
 // color constants
 const plot_view::rgb_t one_page_report::default_color(0.67, 0.67, 0.67);
 const plot_view::rgb_t one_page_report::color_orange(1.00, 0.47, 0.00);
@@ -58,13 +60,14 @@ one_page_report::one_page_report(int max_histogram_size) :
     bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
     top_list_font_size(8.0), histogram_show_top_n_text(3),
     packet_count(0), byte_count(0), earliest(), latest(),
-    transport_counts(), packet_histogram(), src_port_histogram(),
+    transport_counts(), color_labels(), packet_histogram(), src_port_histogram(),
     dst_port_histogram(), pfall(), netmap(), src_tree(max_histogram_size), dst_tree(max_histogram_size),
     port_aliases(), port_colormap()
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
 
+    color_labels.push_back(legend_view::entry_t(color_blue, "HTTP", PORT_HTTP));
     port_colormap[PORT_HTTP] = color_blue;
     port_colormap[PORT_HTTP_ALT_0] = color_blue;
     port_colormap[PORT_HTTP_ALT_1] = color_blue;
@@ -72,8 +75,11 @@ one_page_report::one_page_report(int max_histogram_size) :
     port_colormap[PORT_HTTP_ALT_3] = color_blue;
     port_colormap[PORT_HTTP_ALT_4] = color_blue;
     port_colormap[PORT_HTTP_ALT_5] = color_blue;
+    color_labels.push_back(legend_view::entry_t(color_green, "HTTPS", PORT_HTTPS));
     port_colormap[PORT_HTTPS] = color_green;
+    color_labels.push_back(legend_view::entry_t(color_purple, "SSH", PORT_SSH));
     port_colormap[PORT_SSH] = color_purple;
+    color_labels.push_back(legend_view::entry_t(color_red, "FTP", PORT_FTP_DATA));
     port_colormap[PORT_FTP_CONTROL] = color_red;
     port_colormap[PORT_FTP_DATA] = color_red;
 
@@ -193,25 +199,31 @@ void one_page_report::render(const string &outdir)
     for(size_t count = 0; count < port_colors_count && it != src_port_histogram.end(); it++) {
         port_colormap_t::const_iterator color = port_colormap.find(it->port);
         if(color == port_colormap.end()) {
+            string label = ssprintf(generic_legend_format.c_str(), it->port);
             switch(count) {
                 case 0:
+                    color_labels.push_back(legend_view::entry_t(color_orange, label, it->port));
                     port_colormap[it->port] = color_orange;
                     break;
                 case 1:
+                    color_labels.push_back(legend_view::entry_t(color_magenta, label, it->port));
                     port_colormap[it->port] = color_magenta;
                     break;
                 case 2:
+                    color_labels.push_back(legend_view::entry_t(color_deep_purple, label, it->port));
                     port_colormap[it->port] = color_deep_purple;
                     break;
                 case 3:
+                    color_labels.push_back(legend_view::entry_t(color_teal, label, it->port));
                     port_colormap[it->port] = color_teal;
                     break;
                 default:
-                    port_colormap[it->port] = default_color;
+                    break;
             }
             count++;
         }
     }
+    sort(color_labels.begin(), color_labels.end());
     
     // time histogram
     double condension_factor = (double) packet_histogram.non_sparse_size() / (double) max_bars;
@@ -221,6 +233,9 @@ void one_page_report::render(const string &outdir)
     }
     time_histogram_view th_view(packet_histogram, port_colormap, default_color,
             cdf_color);
+
+    // color legend
+    legend_view lg_view(color_labels);
 
     // address histograms
     // histograms are built from iptree here
@@ -271,6 +286,7 @@ void one_page_report::render(const string &outdir)
 
     pass.render_header();
     pass.render(th_view);
+    pass.render(lg_view);
     if(getenv("DEBUG")) {
         pass.render_map();
         pass.render_packetfall();
@@ -530,6 +546,15 @@ void one_page_report::render_pass::render(port_histogram_view &left, port_histog
 
     end_of_content += max(left_bounds.height, right_bounds.height) *
         (histogram_pad_factor_y - 1.0);
+}
+
+void one_page_report::render_pass::render(const legend_view &view)
+{
+    plot_view::bounds_t view_bounds(surface_bounds.x, surface_bounds.y + end_of_content,
+            surface_bounds.width, legend_height);
+    view.render(surface, view_bounds);
+
+    end_of_content += legend_height;
 }
 
 vector<one_page_report::transport_type> one_page_report::build_display_transports()
