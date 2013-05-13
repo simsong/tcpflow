@@ -15,6 +15,9 @@
 
 #include "legend_view.h"
 
+using namespace std;
+
+const string legend_view::empty_legend_label = "No TCP";
 const double legend_view::base_font_size = 6.0;
 const double legend_view::chip_length = 8.0;
 const double legend_view::chip_label_space = 4.0;
@@ -26,6 +29,9 @@ const plot_view::rgb_t legend_view::border_color(0.67, 0.67, 0.67);
 void legend_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) const
 {
     double font_size = base_font_size;
+    if(entries.size() == 0) {
+        font_size *= 2.0;
+    }
     cairo_set_font_size(cr, font_size);
 
     double tallest = 0.0;
@@ -40,6 +46,12 @@ void legend_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) const
         if(extents.height > tallest) {
             tallest = extents.height;
         }
+    }
+    if(entries.size() == 0) {
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, empty_legend_label.c_str(), &extents);
+        total_width += extents.width;
+        tallest = extents.height;
     }
 
     double chip_y = bounds.y + ((bounds.height - chip_length) / 2.0);
@@ -67,6 +79,15 @@ void legend_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) const
         cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
         cairo_move_to(cr, x, label_y);
         cairo_show_text(cr, it->label.c_str());
+        x += extents.width + inter_item_space;
+    }
+    if(entries.size() == 0) {
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, empty_legend_label.c_str(), &extents);
+
+        cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+        cairo_move_to(cr, x, label_y);
+        cairo_show_text(cr, empty_legend_label.c_str());
         x += extents.width + inter_item_space;
     }
 }

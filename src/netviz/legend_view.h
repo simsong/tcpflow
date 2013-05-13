@@ -21,6 +21,7 @@ public:
 
     void render(cairo_t *cr, const plot_view::bounds_t &bounds) const;
 
+    static const std::string empty_legend_label;
     static const double base_font_size;
     static const double chip_length;
     static const double chip_label_space;
