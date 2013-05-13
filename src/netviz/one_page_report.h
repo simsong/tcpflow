@@ -108,6 +108,7 @@ private:
     struct timeval earliest;
     struct timeval latest;
     std::map<uint32_t, uint64_t> transport_counts;
+    std::map<uint16_t, bool> ports_in_time_histogram;
     legend_view::entries_t color_labels;
     time_histogram packet_histogram;
     port_histogram src_port_histogram;

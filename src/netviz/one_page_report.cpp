@@ -59,15 +59,15 @@ one_page_report::one_page_report(int max_histogram_size) :
     source_identifier(), filename("report.pdf"),
     bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
     top_list_font_size(8.0), histogram_show_top_n_text(3),
-    packet_count(0), byte_count(0), earliest(), latest(),
-    transport_counts(), color_labels(), packet_histogram(), src_port_histogram(),
-    dst_port_histogram(), pfall(), netmap(), src_tree(max_histogram_size), dst_tree(max_histogram_size),
-    port_aliases(), port_colormap()
+    packet_count(0), byte_count(0), earliest(), latest(), transport_counts(),
+    ports_in_time_histogram(), color_labels(), packet_histogram(),
+    src_port_histogram(), dst_port_histogram(), pfall(), netmap(),
+    src_tree(max_histogram_size), dst_tree(max_histogram_size), port_aliases(),
+    port_colormap()
 {
     earliest = (struct timeval) { 0 };
     latest = (struct timeval) { 0 };
 
-    color_labels.push_back(legend_view::entry_t(color_blue, "HTTP", PORT_HTTP));
     port_colormap[PORT_HTTP] = color_blue;
     port_colormap[PORT_HTTP_ALT_0] = color_blue;
     port_colormap[PORT_HTTP_ALT_1] = color_blue;
@@ -75,11 +75,8 @@ one_page_report::one_page_report(int max_histogram_size) :
     port_colormap[PORT_HTTP_ALT_3] = color_blue;
     port_colormap[PORT_HTTP_ALT_4] = color_blue;
     port_colormap[PORT_HTTP_ALT_5] = color_blue;
-    color_labels.push_back(legend_view::entry_t(color_green, "HTTPS", PORT_HTTPS));
     port_colormap[PORT_HTTPS] = color_green;
-    color_labels.push_back(legend_view::entry_t(color_purple, "SSH", PORT_SSH));
     port_colormap[PORT_SSH] = color_purple;
-    color_labels.push_back(legend_view::entry_t(color_red, "FTP", PORT_FTP_DATA));
     port_colormap[PORT_FTP_CONTROL] = color_red;
     port_colormap[PORT_FTP_DATA] = color_red;
 
@@ -170,6 +167,8 @@ void one_page_report::ingest_packet(const be13::packet_info &pi)
             packet_count % 2 == 0) {
         packet_histogram_port = tcp_dst;
     }
+    // record that this port appears in the histogram for legend building purposes
+    ports_in_time_histogram[packet_histogram_port] = true;
     packet_histogram.insert(pi.ts, packet_histogram_port, packet_length);
 
     src_port_histogram.increment(tcp_src, packet_length);
@@ -194,6 +193,25 @@ void one_page_report::render(const string &outdir)
             bounds.y + pad_size, bounds.width - pad_size * 2,
             bounds.height - pad_size * 2);
 
+    // iff a colored common port appears in the time histogram, add its color to the legend
+    if(ports_in_time_histogram[PORT_HTTP] ||
+            ports_in_time_histogram[PORT_HTTP_ALT_0] ||
+            ports_in_time_histogram[PORT_HTTP_ALT_1] ||
+            ports_in_time_histogram[PORT_HTTP_ALT_2] ||
+            ports_in_time_histogram[PORT_HTTP_ALT_3] ||
+            ports_in_time_histogram[PORT_HTTP_ALT_4] ||
+            ports_in_time_histogram[PORT_HTTP_ALT_5]) {
+        color_labels.push_back(legend_view::entry_t(color_blue, "HTTP", PORT_HTTP));
+    }
+    if(ports_in_time_histogram[PORT_HTTPS]) {
+        color_labels.push_back(legend_view::entry_t(color_green, "HTTPS", PORT_HTTPS));
+    }
+    if(ports_in_time_histogram[PORT_SSH]) {
+        color_labels.push_back(legend_view::entry_t(color_purple, "SSH", PORT_SSH));
+    }
+    if(ports_in_time_histogram[PORT_FTP_DATA] || ports_in_time_histogram[PORT_FTP_CONTROL]) {
+        color_labels.push_back(legend_view::entry_t(color_red, "FTP", PORT_FTP_DATA));
+    }
     // assign the top 4 source ports colors if they don't already have them
     vector<port_histogram::port_count>::const_iterator it = src_port_histogram.begin();
     for(size_t count = 0; count < port_colors_count && it != src_port_histogram.end(); it++) {
@@ -202,19 +220,27 @@ void one_page_report::render(const string &outdir)
             string label = ssprintf(generic_legend_format.c_str(), it->port);
             switch(count) {
                 case 0:
-                    color_labels.push_back(legend_view::entry_t(color_orange, label, it->port));
+                    if(ports_in_time_histogram[it->port]) {
+                        color_labels.push_back(legend_view::entry_t(color_orange, label, it->port));
+                    }
                     port_colormap[it->port] = color_orange;
                     break;
                 case 1:
-                    color_labels.push_back(legend_view::entry_t(color_magenta, label, it->port));
+                    if(ports_in_time_histogram[it->port]) {
+                        color_labels.push_back(legend_view::entry_t(color_magenta, label, it->port));
+                    }
                     port_colormap[it->port] = color_magenta;
                     break;
                 case 2:
-                    color_labels.push_back(legend_view::entry_t(color_deep_purple, label, it->port));
+                    if(ports_in_time_histogram[it->port]) {
+                        color_labels.push_back(legend_view::entry_t(color_deep_purple, label, it->port));
+                    }
                     port_colormap[it->port] = color_deep_purple;
                     break;
                 case 3:
-                    color_labels.push_back(legend_view::entry_t(color_teal, label, it->port));
+                    if(ports_in_time_histogram[it->port]) {
+                        color_labels.push_back(legend_view::entry_t(color_teal, label, it->port));
+                    }
                     port_colormap[it->port] = color_teal;
                     break;
                 default:
