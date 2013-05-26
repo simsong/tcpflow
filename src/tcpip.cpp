@@ -225,10 +225,51 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 #endif
 
     if (demux.opt.use_color) fputs(dir==dir_cs ? color[1] : color[2], stdout);
-    if (demux.opt.suppress_header == 0) printf("%s: ", flow_pathname.c_str());
+    if (demux.opt.suppress_header == 0){
+        if(flow_pathname.size()==0) flow_pathname = myflow.filename(0);
+        printf("%s: ", flow_pathname.c_str());
+        if(demux.opt.output_hex) putchar('\n');
+    }
 
     size_t written = 0;
-    if(demux.opt.output_strip_nonprint){
+    if(demux.opt.output_hex){
+        const size_t bytes_per_line = 32;
+        size_t max_spaces = 0;
+        for(u_int i=0;i<length;i+=bytes_per_line){
+            size_t spaces=0;
+            
+            /* Print the offset */
+            char b[64];
+            int count = snprintf(b,sizeof(b),"%04x: ",(int)i);
+            fwrite(b,1,count,stdout);
+            spaces += count;
+            
+            /* Print the hext bytes */
+            for(size_t j=0;j<bytes_per_line && i+j<length ;j++){
+                unsigned char ch = data[i+j];
+                fprintf(stdout,"%02x",ch);  spaces += 2;
+                if(j%2==1){
+                    fputc(' ',stdout);
+                    spaces += 1;
+                }
+            }
+            /* space out to where the ASCII region is */
+            if(spaces>max_spaces) max_spaces=spaces;
+            for(;spaces<max_spaces;spaces++){
+                fputc(' ',stdout);
+            }
+            putchar(' ');
+            /* Print the ascii */
+            for(size_t j=0;j<bytes_per_line && i+j<length;j++){
+                unsigned char ch = data[i+j];
+                if(ch>=' ' && ch<='~') fputc(ch,stdout);
+                else fputc('.',stdout);
+            }
+            fputc('\n',stdout);
+        }
+        written = length;               // just fake it.
+    }
+    else if(demux.opt.output_strip_nonprint){
 	for(const u_char *cc = data;cc<data+length;cc++){
 	    if(isprint(*cc) || (*cc=='\n') || (*cc=='\r')){
 		written += fputc(*cc,stdout);

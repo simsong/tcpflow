@@ -82,6 +82,10 @@ where the contents of the above file would be data transmitted from
 host 192.168.101.102 port 2345, to host 10.11.12.13 port 45103.
 .SH OPTIONS
 .TP
+.B \-a
+Enable all processing. Same as 
+.B \-e all.
+.TP
 .B \-B
 Force binary output even when printing to console with 
 .B -C 
@@ -106,6 +110,17 @@ When outputting to the console each flow will be output in different colors
 (blue for client to server flows, red for server to client flows, green for undecided flows).
 .B -s
 ).
+.TP
+.B \-E name
+Disable all scanners and then enable scanner
+.B name
+.TP
+.B \-e name
+Enable scanner 
+.B name
+. The special scanner 
+.B all
+enables all scanners.
 .TP
 .B \-d
 Debug level.  Set the level of debugging messages printed to stderr to

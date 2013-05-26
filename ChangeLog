@@ -1,12 +1,17 @@
-<<<<<<< HEAD
+2013-05-26  Basic  <simsong@Mucha.local>
+
+	* src/tcpip.cpp (tcpip::print_packet): implemented hex dump
+
+	* src/scan_netviz.cpp (scan_netviz): disabled by default for now.
+
+	* src/tcpip.cpp (tcpip::print_packet): now prints 'filename' with console output (wasn't working due to bug).
+
 2013-04-17  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
 	* src/iptree.h (template): changed inc() to add()
-=======
 2013-04-16  Simson Garfinkel  <simsong@Mucha.local>
 
 	* src/iptree.h: changed 'trim' to 'prune' for correct terminology.
->>>>>>> 10dc073a4398c6d1c6b7f57c29f76d6692236165
 
 2013-03-30  Simson Garfinkel  <simsong@Mucha.local>
 
