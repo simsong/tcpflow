@@ -95,3 +95,4 @@ src/iphtest-nitroba-1000.txt
 src/iphtest-nitroba-10000.txt
 test-driver
 tests/*.pdf
+*.trs
