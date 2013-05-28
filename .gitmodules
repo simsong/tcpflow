@@ -4,3 +4,6 @@
 [submodule "src/be13_api"]
 	path = src/be13_api
 	url = git://github.com/simsong/be13_api.git
+[submodule "src/dfxml"]
+	path = src/dfxml
+	url = https://github.com/simsong/dfxml.git

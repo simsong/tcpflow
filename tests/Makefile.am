@@ -4,7 +4,7 @@
 # test1.sh - 
 # test2.sh - 
 # test3.sh - 
-
+#
 # About the test files:
 #
 
@@ -22,7 +22,6 @@ CLEANFILES = \
 	out/2001:6f8:102d::2d0:9ff:fee3:e8de.59201-2001:6f8:900:7c0::2.00080 \
 	out/2001:6f8:900:7c0::2.00080-2001:6f8:102d::2d0:9ff:fee3:e8de.59201 \
 	out/report.xml 
-
 
 clean:
 	@echo Erase any left over trace files

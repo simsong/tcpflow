@@ -454,10 +454,8 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
     if(sp.phase==scanner_params::PHASE_STARTUP){
         sp.info->name  = "http";
         sp.info->flags = scanner_info::SCANNER_DISABLED; // default disabled
-        http_cmd = sp.info->config[HTTP_CMD];
-        if(sp.info->config[HTTP_ALERT_FD].size()>0){
-            http_alert_fd = atoi(sp.info->config[HTTP_ALERT_FD].c_str());
-        }
+        sp.info->get_config(HTTP_CMD,&http_cmd,"Command to execute on each HTTP attachment");
+        sp.info->get_config(HTTP_ALERT_FD,&http_alert_fd,"File descriptor to send information about completed HTTP attachments");
         return;         /* No feature files created */
     }
 

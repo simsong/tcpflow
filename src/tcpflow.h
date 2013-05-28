@@ -300,8 +300,6 @@ inline const timeval &tvshift(struct timeval &tv,const struct timeval &tv_)
 
 /* util.cpp - utility functions */
 extern int debug;
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
-std::vector<std::string> split(const std::string &s, char delim);
 std::string ssprintf(const char *fmt,...);
 std::string comma_number_string(int64_t input);
 void mkdirs_for_path(std::string path); // creates any directories necessary for the path

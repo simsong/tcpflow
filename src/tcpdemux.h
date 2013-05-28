@@ -18,7 +18,8 @@
  */
 
 #include "pcap_writer.h"
-#include "md5.h"
+#include "dfxml/src/dfxml_writer.h"
+#include "dfxml/src/hash_t.h"
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 #include <queue>
@@ -94,7 +95,7 @@ public:
     std::string outdir;                 /* output directory */
     uint64_t    flow_counter;           // how many flows have we seen?
     uint64_t    packet_counter;         // monotomically increasing 
-    xml         *xreport;               // DFXML output file
+    dfxml_writer  *xreport;               // DFXML output file
     pcap_writer *pwriter;               // where we should write packets
     unsigned int max_open_flows;        // how large did it ever get?
     unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux

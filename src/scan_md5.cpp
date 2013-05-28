@@ -6,9 +6,12 @@
  */
 
 #include "config.h"
+#include "bulk_extractor_i.h"
+#include "dfxml/src/hash_t.h"
+
 #include <iostream>
 #include <sys/types.h>
-#include "bulk_extractor_i.h"
+
 
 extern "C"
 void  scan_md5(const class scanner_params &sp,const recursion_control_block &rcb)
@@ -26,10 +29,14 @@ void  scan_md5(const class scanner_params &sp,const recursion_control_block &rcb
         return;     /* No feature files created */
     }
 
+#ifdef HAVE_EVP_GET_DIGESTBYNAME
     if(sp.phase==scanner_params::PHASE_SCAN){
 	static const std::string hash0("<hashdigest type='MD5'>");
 	static const std::string hash1("</hashdigest>");
-	if(sp.sbufxml) (*sp.sbufxml) << hash0 << sp.sbuf.md5().hexdigest() << hash1;
+	if(sp.sbufxml){
+            (*sp.sbufxml) << hash0 << md5_generator::hash_buf(sp.sbuf.buf,sp.sbuf.bufsize).hexdigest() << hash1;
+        }
 	return;
     }
+#endif
 }
