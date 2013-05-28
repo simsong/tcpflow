@@ -154,7 +154,7 @@ void tcpdemux::post_process(tcpip *tcp)
         if(tcp->fd>=0){
             sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,pos0_t(tcp->flow_pathname),tcp->fd);
             if(sbuf){
-                process_sbuf(scanner_params(scanner_params::PHASE_SCAN,*sbuf,*(fs),&xmladd));
+                be13::plugin::process_sbuf(scanner_params(scanner_params::PHASE_SCAN,*sbuf,*(fs),&xmladd));
                 delete sbuf;
                 sbuf = 0;
             }
@@ -294,7 +294,7 @@ void tcpdemux::save_flow(tcpip *tcp)
  * print the packet or store it.
  */
 
-#define IS_SET(vector, flag) ((vector) & (flag))
+#define FLAG_SET(vector, flag) ((vector) & (flag))
 
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include "iptree.h"
@@ -315,9 +315,9 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),ntohs(tcp_header->th_dport),family);
 
     be13::tcp_seq seq  = ntohl(tcp_header->th_seq);
-    bool syn_set = IS_SET(tcp_header->th_flags, TH_SYN);
-    bool ack_set = IS_SET(tcp_header->th_flags, TH_ACK);
-    bool fin_set = IS_SET(tcp_header->th_flags, TH_FIN);
+    bool syn_set = FLAG_SET(tcp_header->th_flags, TH_SYN);
+    bool ack_set = FLAG_SET(tcp_header->th_flags, TH_ACK);
+    bool fin_set = FLAG_SET(tcp_header->th_flags, TH_FIN);
 
     /* calculate the total length of the TCP header including options */
     u_int tcp_header_len = tcp_header->th_off * 4;

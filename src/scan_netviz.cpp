@@ -53,9 +53,10 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
 	sp.info->author= "Mike Shick";
 	sp.info->packet_user = 0;
 	sp.info->packet_cb = netviz_process_packet;
-        histogram_dump = atoi(sp.info->config[HISTOGRAM_DUMP].c_str());
-        int max_histogram_size = atoi(sp.info->config[HISTOGRAM_SIZE].c_str());
-        if(max_histogram_size<=0) max_histogram_size = DEFAULT_MAX_HISTOGRAM_SIZE;
+        sp.info->get_config(HISTOGRAM_DUMP,&histogram_dump,"Dumps the histogram");
+        int max_histogram_size = DEFAULT_MAX_HISTOGRAM_SIZE;
+
+        sp.info->get_config(HISTOGRAM_SIZE,&max_histogram_size,"Maximum histogram size");
         report = new one_page_report(max_histogram_size);
 #endif	
     }

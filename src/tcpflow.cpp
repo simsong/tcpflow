@@ -10,15 +10,21 @@
 #define __MAIN_C__
 
 #include "tcpflow.h"
+
+
 #include "tcpip.h"
 #include "tcpdemux.h"
 #include "bulk_extractor_i.h"
 #include "iptree.h"
+
+#include "be13_api/utils.h"
+
 #include <string>
 #include <vector>
-
 #include <sys/types.h>
 #include <dirent.h>
+
+
 
 /* bring in inet_ntop if it is not present */
 #define ETH_ALEN 6
@@ -26,7 +32,8 @@
 #include "inet_ntop.c"
 #endif
 
-scanner_info::config_t be_config; // system configuration
+
+scanner_info::scanner_config be_config; // system configuration
 
 typedef struct {
     const char *name;
@@ -108,7 +115,7 @@ static void usage()
         std::cout << "\nControl of Scanners:\n";
         std::cout << "   -E scanner   - turn off all scanners except scanner\n";
         std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
-        info_scanners(false,scanners_builtin,'e','x');
+        be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
 
         std::cout << "Console output options:\n";
         std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
@@ -152,7 +159,7 @@ static void usage()
  * Create the dfxml output
  */
 
-static void dfxml_create(class xml &xreport,const std::string &command_line)
+static void dfxml_create(class dfxml_writer &xreport,const std::string &command_line)
 {
     xreport.push("dfxml","xmloutputversion='1.0'");
     xreport.push("metadata",
@@ -189,11 +196,11 @@ void replace(std::string &str,const std::string &from,const std::string &to)
 
 /* These must be global variables so they are available in the signal handler */
 feature_recorder_set *the_fs = 0;
-xml *xreport = 0;
+dfxml_writer *xreport = 0;
 void terminate(int sig)
 {
     DEBUG(1) ("terminating");
-    phase_shutdown(*the_fs,*xreport);	// give plugins a chance to do a clean shutdown
+    be13::plugin::phase_shutdown(*the_fs);	// give plugins a chance to do a clean shutdown
     exit(0); /* libpcap uses onexit to clean up */
 }
 
@@ -397,7 +404,7 @@ int main(int argc, char *argv[])
     std::vector<std::string> Rfiles;	// files for finishing
     std::vector<std::string> rfiles;	// files to read
     tcpdemux &demux = *tcpdemux::getInstance();			// the demux object we will be using.
-    std::string command_line = xml::make_command_line(argc,argv);
+    std::string command_line = dfxml_writer::make_command_line(argc,argv);
     std::string opt_unk_packets;
     bool opt_quiet = false;
 
@@ -421,7 +428,7 @@ int main(int argc, char *argv[])
 	case 'a':
 	    demux.opt.post_processing = true;
 	    demux.opt.opt_md5 = true;
-	    scanners_enable_all();
+            be13::plugin::scanners_enable_all();
 	    break;
 
 	case 'A': 
@@ -457,11 +464,11 @@ int main(int argc, char *argv[])
 	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
             break;
 	case 'E':
-	    scanners_disable_all();
-	    scanners_enable(optarg);
+	    be13::plugin::scanners_disable_all();
+	    be13::plugin::scanners_enable(optarg);
 	    break;
         case 'e':
-            scanners_enable(optarg);
+            be13::plugin::scanners_enable(optarg);
             break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
@@ -512,7 +519,7 @@ int main(int argc, char *argv[])
 		    std::cerr << "Invalid paramter: " << optarg << "\n";
 		    exit(1);
 		}
-		be_config[params[0]] = params[1];
+		be_config.namevals[params[0]] = params[1];
 		continue;
 	    }
 
@@ -523,11 +530,11 @@ int main(int argc, char *argv[])
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
-	case 'x': scanners_disable(optarg);break;
+	case 'x': be13::plugin::scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
 	case 'Z': demux.opt.gzip_decompress = 0; break;
 	case 'H':
-            info_scanners(true,scanners_builtin,'e','x');
+            be13::plugin::info_scanners(true,true,scanners_builtin,'e','x');
             didhelp = true;
             break;
 	case 'h': case '?':
@@ -551,9 +558,9 @@ int main(int argc, char *argv[])
     argv += optind;
 
     /* Load all the scanners and enable the ones we care about */
-    if(demux.opt.opt_md5) scanners_enable("md5");
-    load_scanners(scanners_builtin,be_config);
-    scanners_process_commands();
+    if(demux.opt.opt_md5) be13::plugin::scanners_enable("md5");
+    be13::plugin::load_scanners(scanners_builtin,be_config);
+    be13::plugin::scanners_process_commands();
 
     /* If there is no report filename, call it report.xml in the output directory */
     if( reportfilename.size()==0 ){
@@ -618,7 +625,7 @@ int main(int argc, char *argv[])
 
     /* report file specified? */
     if(reportfilename.size()>0){
-	xreport = new xml(reportfilename,false);
+	xreport = new dfxml_writer(reportfilename,false);
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
     }
@@ -631,10 +638,13 @@ int main(int argc, char *argv[])
         demux.save_unk_packets(opt_unk_packets,input_fname);
     }
 
+    scanner_info si;
+    si.config = &be_config;
+
     /* Debug prefix set? */
-    if(be_config.find("debug-prefix") != be_config.end()){
-        init_debug(be_config["debug-prefix"].c_str(),0);
-    }
+    std::string debug_prefix=progname;
+    si.get_config("debug-prefix",&debug_prefix,"Prefix for debug output");
+    init_debug(debug_prefix.c_str(),0);
 
     argc -= optind;
     argv += optind;
@@ -642,12 +652,12 @@ int main(int argc, char *argv[])
     DEBUG(10) ("%s version %s ", PACKAGE_NAME, PACKAGE_VERSION);
 
     feature_file_names_t feature_file_names;
-    enable_feature_recorders(feature_file_names);
+    be13::plugin::get_scanner_feature_file_names(feature_file_names);
     feature_recorder_set fs(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir,false);
     the_fs   = &fs;
     demux.fs = &fs;
 
-    datalink_tdelta  = atoi(be_config["tdelta"].c_str()); // specify the time delta
+    si.get_config("tdelta",&datalink_tdelta,"Time offset for packets");
 
     if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
 
@@ -685,7 +695,7 @@ int main(int argc, char *argv[])
     DEBUG(2)("Flows seen:                         %d",(int)demux.flow_counter);
 
     demux.close_all_fd();
-    phase_shutdown(fs,*xreport);
+    be13::plugin::phase_shutdown(fs);
     
     /*
      * Note: funny formats below are a result of mingw problems with PRId64.

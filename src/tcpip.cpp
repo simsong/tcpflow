@@ -54,7 +54,7 @@ void tcpip::dump_seen()
     }
 }
 
-void tcpip::dump_xml(class xml *xreport,const std::string &xmladd)
+void tcpip::dump_xml(class dfxml_writer *xreport,const std::string &xmladd)
 {
     static const std::string fileobject_str("fileobject");
     static const std::string filesize_str("filesize");
@@ -67,8 +67,8 @@ void tcpip::dump_xml(class xml *xreport,const std::string &xmladd)
     xreport->xmlout(filesize_str,last_byte);
 	
     std::stringstream attrs;
-    attrs << "startime='" << xml::to8601(myflow.tstart) << "' ";
-    attrs << "endtime='"  << xml::to8601(myflow.tlast)  << "' ";
+    attrs << "startime='" << dfxml_writer::to8601(myflow.tstart) << "' ";
+    attrs << "endtime='"  << dfxml_writer::to8601(myflow.tlast)  << "' ";
     attrs << "src_ipn='"  << myflow.src << "' ";
     attrs << "dst_ipn='"  << myflow.dst << "' ";
     if(myflow.has_mac_daddr()) attrs << "mac_daddr='" << macaddr(myflow.mac_daddr) << "' ";

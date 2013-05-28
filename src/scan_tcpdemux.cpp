@@ -43,7 +43,7 @@ void  scan_tcpdemux(const class scanner_params &sp,const recursion_control_block
 	sp.info->packet_user = tcpdemux::getInstance();
 	sp.info->packet_cb = packet_handler;
         
-        tcpdemux::getInstance()->tcp_timeout = atoi(sp.info->config["tcp_timeout"].c_str());
+        sp.info->get_config("tcp_timeout",&tcpdemux::getInstance()->tcp_timeout,"Timeout for TCP connections");
 
         return;     /* No feature files created */
     }

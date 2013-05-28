@@ -12,6 +12,9 @@ AC_CONFIG_HEADER([src/config.h])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
+m4_include([src/dfxml/src/dfxml_configure.m4])
+m4_include([src/be13_api/be13_configure.m4])
+
 # Endian check is required for MD5 implementation
 AC_C_BIGENDIAN
 
@@ -185,32 +188,13 @@ AC_CHECK_FUNCS([regcomp tre_regcomp tre_version])
 
 
 ################################################################
-# Bulk_extractor plugin support
-AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h tsk3/libtsk3.h unistd.h sys/stat.h])
-AC_CHECK_FUNCS([isxdigit ishexnumber])
-
-################################################################
-# DFXML support
-AC_CHECK_HEADERS([sys/cdefs.h sys/resource.h pwd.h sys/utsname.h regex.h])
-AC_CHECK_FUNCS([fork localtime_r getuid gethostname getwpuid getrusage mkstemp vasprintf regcomp])
-
-# Determine UTC date offset
-CPPFLAGS="$CPPFLAGS -DUTC_OFFSET=`date +%z`"
-
-# Do we have the CPUID instruction?
-AC_TRY_COMPILE([#define cpuid(id) __asm__( "cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(id), "b"(0), "c"(0), "d"(0))],
-			[unsigned long eax, ebx, ecx, edx;cpuid(0);],
-			have_cpuid=yes,
-			have_cpuid=no)
-if test "$have_cpuid" = yes; then
- AC_DEFINE(HAVE_ASM_CPUID, 1, [define to 1 if __asm__ CPUID is available])
-fi
-
-# Does GCC have the diagnostic pragma?
-AC_TRY_COMPILE([#pragma GCC diagnostic ignored "-Wredundant-decls"],
-    	       [],
-	       AC_DEFINE([GNUC_HAS_DIAGNOSTIC_PRAGMA],[1],[GCC supports #pragma GCC diagnostic]),
-	       )
+## OpenSSL Support (required for AFFLIB and hash_t )
+AC_CHECK_HEADERS([openssl/aes.h openssl/bio.h openssl/evp.h openssl/hmac.h openssl/md5.h openssl/pem.h openssl/rand.h openssl/rsa.h openssl/sha.h openssl/pem.h openssl/x509.h])
+AC_CHECK_LIB([crypto],[EVP_get_digestbyname])	# if crypto is available, get it
+AC_CHECK_LIB([md],[MD5])                        # if libmd is available, get it 
+AC_CHECK_LIB([ssl],[SSL_library_init],,
+     AC_MSG_ERROR([OpenSSL developer library 'libssl-dev' or 'openssl-devel' not installed]))
+AC_CHECK_FUNCS([MD5_Init EVP_get_digestbyname])
 
 ################################################################
 # PTHREAD support
