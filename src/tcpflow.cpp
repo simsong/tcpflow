@@ -84,8 +84,10 @@ static void usage()
     switch(++usage_count){
     case 1:
         std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
-        std::cout << "usage: " << progname << " [-aBcCDhpsvVZ] [-b max_bytes] [-d debug_level] [-[eE] scanner] [-f max_fds] [-F[ct]] \n";
-        std::cout << "      [-i iface] [-L semlock] [-m min_bytes] [-o outdir] [-r file] [-R file] [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
+        std::cout << "usage: " << progname << " [-aBcCDhJpsvVZ] [-b max_bytes] [-d debug_level] \n";
+        std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
+        std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] \n";
+        std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
         std::cout << "      [expression]\n\n";
         std::cout << "   -a: do ALL post-processing.\n";
         std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
@@ -100,9 +102,9 @@ static void usage()
         std::cout << "   -q: quiet mode - do not print warnings\n";
         std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
         std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
-        std::cout << "   -w file: write packets not processed to file\n";
         std::cout << "   -v: verbose operation equivalent to -d 10\n";
         std::cout << "   -V: print version number and exit\n";
+        std::cout << "   -w file: write packets not processed to file\n";
         std::cout << "   -o  outdir   : specify output directory (default '.')\n";
         std::cout << "   -X  filename : DFXML output to filename\n";
         std::cout << "   -m  bytes    : specifies skip that starts a new stream (default "
