@@ -1,3 +1,7 @@
+2013-06-11  Basic  <simsong@Mucha.local>
+
+	* doc/tcpflow.1.in (std): removed explaination of filtering expressions
+
 2013-05-26  Basic  <simsong@Mucha.local>
 
 	* src/tcpip.cpp (tcpip::print_packet): implemented hex dump
