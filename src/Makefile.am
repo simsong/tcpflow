@@ -6,6 +6,9 @@ AM_CPPFLAGS = -I${top_srcdir}/src/be13_api
 include dfxml/src/Makefile.defs
 include be13_api/Makefile.defs
 
+# http://stackoverflow.com/questions/11438613/conditional-subdir-objects
+AUTOMAKE_OPTIONS = subdir-objects
+
 NETVIZ = \
 	netviz/plot_view.cpp \
 	netviz/plot_view.h \
