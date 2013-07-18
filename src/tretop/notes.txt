@@ -1,0 +1,5 @@
+ http://www.iijlab.net/~kjc/papers/aguri.ps.gz
+
+  http://search.cpan.org/~plonka/Net-Patricia-1.014/Patricia.pm
+
+  https://www.usenix.org/legacy/events/lisa00/plonka.html
