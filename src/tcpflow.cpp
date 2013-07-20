@@ -94,6 +94,7 @@ static void usage()
         std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
         std::cout << "   -f: maximum number of file descriptors to use\n";
         std::cout << "   -h: print this help message (-hh for more help)\n";
+        std::cout << "   -H: print detailed information about each scanner\n";
         std::cout << "   -i: network interface on which to listen\n";
         std::cout << "   -J: output each flow in alternating colors (note change!)\n";
         std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
@@ -562,7 +563,7 @@ int main(int argc, char *argv[])
     /* Load all the scanners and enable the ones we care about */
     if(demux.opt.opt_md5) be13::plugin::scanners_enable("md5");
     be13::plugin::load_scanners(scanners_builtin,be_config);
-    be13::plugin::scanners_process_commands();
+    be13::plugin::scanners_process_enable_disable_commands();
 
     /* If there is no report filename, call it report.xml in the output directory */
     if( reportfilename.size()==0 ){

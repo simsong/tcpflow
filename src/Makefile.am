@@ -48,7 +48,7 @@ WIFI = 	wifi_datalink.cpp \
 
 
 tcpflow_SOURCES = \
-	$(DFXML) $(NETVIZ) $(BE13_API) $(WIFI) \
+	$(DFXML_WRITER) $(NETVIZ) $(BE13_API) $(WIFI) \
 	datalink.cpp flow.cpp \
 	tcpflow.cpp \
 	tcpip.h tcpip.cpp \
