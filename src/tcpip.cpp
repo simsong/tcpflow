@@ -277,7 +277,16 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 	}
     }
     else {
+    	if(demux.opt.output_hex){
+	for(unsigned int cc=0;cc<length;cc++){
+		char auxbuffer[3];
+		sprintf(auxbuffer,"%.2X",data[cc]);
+		written += fwrite(auxbuffer,1,2,stdout)/2;
+		}
+	}	
+	else{
 	written = fwrite(data,1,length,stdout);
+	}
     }
     if(length != written) std::cerr << "\nwrite error to stdout\n";
 
