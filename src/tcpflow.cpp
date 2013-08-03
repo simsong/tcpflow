@@ -392,6 +392,7 @@ static void process_infile(const std::string &expression,const char *device,cons
 int main(int argc, char *argv[])
 {
     bool didhelp = false;
+    feature_recorder::set_main_threadid();
 #ifdef BROKEN
     std::cerr << "WARNING: YOU ARE USING AN EXPERIMENTAL VERSION OF TCPFLOW \n";
     std::cerr << "THAT DOES NOT WORK PROPERLY. PLEASE USE A RELEASE DOWNLOADED\n";
