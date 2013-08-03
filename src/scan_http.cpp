@@ -465,6 +465,7 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
             /* Smells enough like HTTP to try parsing */
             /* Set up callbacks */
             http_parser_settings scan_http_parser_settings;
+            memset(&scan_http_parser_settings,0,sizeof(scan_http_parser_settings)); // in the event that new callbacks get created
             scan_http_parser_settings.on_message_begin          = scan_http_cbo::scan_http_cb_on_message_begin;
             scan_http_parser_settings.on_url                    = scan_http_cbo::scan_http_cb_on_url;
             scan_http_parser_settings.on_header_field           = scan_http_cbo::scan_http_cb_on_header_field;
