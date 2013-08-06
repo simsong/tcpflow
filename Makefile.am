@@ -42,7 +42,6 @@ RELEASE_SSH  = $(RELEASE_USER)$(RELEASE_HOST):$(RELEASE_LOC)
 
 
 release:
-	make check_release_version
 	make dist
 	make distcheck
 	make the_release
