@@ -1,3 +1,12 @@
+/*
+ * This file is part of tcpflow by Simson Garfinkel <simsong@acm.org>.
+ * Originally by Will Glynn <will@willglynn.com>.
+ *
+ * This source code is under the GNU Public License (GPL) version 3.
+ * See COPYING for details.
+ *
+ */
+
 #include "mime_map.h"
 
 #include <algorithm>
