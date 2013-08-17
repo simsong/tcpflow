@@ -11,25 +11,35 @@ Be sure you have the necessary precursors:
 
     # yum -y install git gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel zlib-devel
 
-Download the sources with git, run bootstrap.sh, configure and make:
+Download the release from http://digitalcorpora.org/downloads/tcpflow/.  Compile and install with:
+
+    ./configure
+    make
+    sudo make install
+
+If you want do download the development tree with git, be sure to do a *complete* checkout with `--recursive` and then run `bootstrap.sh`, `configure` and `make`:
 
     git clone --recursive https://github.com/simsong/tcpflow.git
     cd tcpflow
     sh bootstrap.sh
+    ./configure
+    make
+    sudo make install  
 
 
 To download and compile for Amazon AMI:
-   ssh ec2-user@<your ec2 instance>
-   sudo bash yum -y install git make gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel zlib-devel
-   git clone --recursive https://github.com/simsong/tcpflow.git
-   sh bootstrap.sh
+
+    ssh ec2-user@<your ec2 instance>
+    sudo bash yum -y install git make gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel zlib-devel
+    git clone --recursive https://github.com/simsong/tcpflow.git
+    sh bootstrap.sh
 
 
 To Compile for Windows with mingw on Fedora Core:
-
-Be sure that mingw is installed, then 
-
-
+    
+    yum -y install mingw64-gcc mingw64-gcc-c++ mingw64-boost mingw64-cairo mingw64-zlib
+    mingw64-configure
+    make
 
 
 
