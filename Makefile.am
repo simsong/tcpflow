@@ -71,6 +71,10 @@ winrelease:
 	zip $(FN).zip tcpflow*.exe
 
 
+pull:
+	git pull
+	(cd src/dfxml;git pull)
+	(cd src/be13_api;git pull)
 #
 # END OF AFFLIB RELEASE SYSTEM
 #
