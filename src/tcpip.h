@@ -129,10 +129,16 @@ public:
 	if (this->family > b.family) return false;
 	return false;    /* they are equal! */
     }
+
+    std::string str() const {
+        std::stringstream s;
+        s << "flow[" << src << ":" << sport << "->" << dst << ":" << dport << "]";
+        return s.str();
+    }
 };
 
 inline std::ostream & operator <<(std::ostream &os,const flow_addr &f)  {
-    os << "flow[" << f.src << ":" << f.sport << "->" << f.dst << ":" << f.dport << "]";
+    os << f.str();
     return os;
 }
 
@@ -288,8 +294,8 @@ public:;
     /* State information for the flow being reconstructed */
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
-    be13::tcp_seq	isn;			// Flow's initial sequence number
-    be13::tcp_seq	nsn;			// fd - expected next sequence number 
+    be13::tcp_seq isn;			// Flow's initial sequence number
+    be13::tcp_seq nsn;			// fd - expected next sequence number 
     uint32_t	syn_count;		// number of SYNs seen
     uint32_t    fin_count;              // number of FINs received
     uint32_t    fin_size;               // length of stream as determined when fin is sent

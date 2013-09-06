@@ -17,8 +17,6 @@
 #pragma GCC diagnostic ignored "-Weffc++"
 #pragma GCC diagnostic ignored "-Wshadow"
 
-static int ct=0;
-
 
 /* Create a new tcp object.
  * 
@@ -120,12 +118,6 @@ tcpip::~tcpip()
  */
 void tcpip::close_file()
 {
-    ct++;
-    //std::cerr << "close_file0 " << ct << " " << *this << "\n";
-    if(ct==122){
-        //std::cerr << "ct==122\n";
-    }
-
     if (fd>=0){
 	struct timeval times[2];
 	times[0] = myflow.tstart;
@@ -152,7 +144,6 @@ void tcpip::close_file()
 	fd = -1;
     }
     demux.open_flows.erase(this);           // we are no longer open
-    //std::cerr << "close_file1 " << *this << "\n";
 }
 
 /*
@@ -163,7 +154,6 @@ void tcpip::close_file()
 
 int tcpip::open_file()
 {
-    ct++;
     if(fd<0){
         //std::cerr << "open_file0 " << ct << " " << *this << "\n";
         /* If we don't have a filename, create the flow */
