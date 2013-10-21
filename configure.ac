@@ -23,6 +23,12 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
 
+AC_LANG_PUSH(C++)
+# use C++11 mode if available; HAVE_CXX11 is defined in config.h if so.  Don't
+# use the GNU C++11 extensions for portability's sake (noext).
+AX_CXX_COMPILE_STDCXX_11(noext, optional)
+AC_LANG_POP()
+
 ################################################################
 ## See if we are running on mingw
 # http://osdir.com/ml/gnu.mingw.devel/2003-09/msg00040.html
