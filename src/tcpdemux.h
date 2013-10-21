@@ -20,8 +20,28 @@
 #include "pcap_writer.h"
 #include "dfxml/src/dfxml_writer.h"
 #include "dfxml/src/hash_t.h"
-#include <tr1/unordered_map>
+#if defined(HAVE_UNORDERED_MAP)
+# include <unordered_map>
+# undef HAVE_TR1_UNORDERED_MAP           // be sure we don't use it
+#else
+# if defined(HAVE_TR1_UNORDERED_MAP)
+#  include <tr1/unordered_map>
+# else
+#  error Requires <unordered_map> or <tr1/unordered_map>
+# endif
+#endif
+
+#if defined(HAVE_UNORDERED_SET)
+#include <unordered_set>
+#undef HAVE_TR1_UNORDERED_SET           // be sure we don't use it
+#else
+#if defined(HAVE_TR1_UNORDERED_SET)
 #include <tr1/unordered_set>
+#else
+#error Requires <unordered_set> or <tr1/unordered_set>
+#endif
+#endif
+
 #include <queue>
 
 
@@ -53,10 +73,18 @@ private:
         bool operator() (const flow_addr &x, const flow_addr &y) const { return x==y;}
     } flow_addr_key_eq;
 
+#ifdef HAVE_TR1_UNORDERED_MAP
     typedef std::tr1::unordered_set<class tcpip *> tcpset;
-    typedef std::vector<class saved_flow *> saved_flows_t; // needs to be ordered
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
+#else
+    typedef std::unordered_set<class tcpip *> tcpset;
+    typedef std::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
+    typedef std::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
+#endif
+    typedef std::vector<class saved_flow *> saved_flows_t; // needs to be ordered
+
+
     tcpdemux();
 public:
     static uint32_t tcp_timeout;

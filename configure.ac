@@ -12,9 +12,6 @@ AC_CONFIG_HEADER([src/config.h])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
-m4_include([src/dfxml/src/dfxml_configure.m4])
-m4_include([src/be13_api/be13_configure.m4])
-
 # Endian check is required for MD5 implementation
 AC_C_BIGENDIAN
 
@@ -143,8 +140,8 @@ WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
     -Woverloaded-virtual -Wsign-promo \
     -funit-at-a-time"
 
-if test x$CXX != "xclang++" ; then
-  # -Wstrict-null-sentinel is not supported under clang
+if test x$CXX != "xclang++" && `uname -s` != 'Darwin' ; then
+  # -Wstrict-null-sentinel is not supported under clang or under Darwin's gcc
   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
 fi
 
@@ -167,6 +164,16 @@ do
 done
 unset option
 AC_LANG_POP()    
+
+################################################################
+## bring in includes
+################################################################
+
+m4_include([src/dfxml/src/dfxml_configure.m4])
+m4_include([src/be13_api/be13_configure.m4])
+
+
+
 
 #
 # ZLIB is required for decompressing
