@@ -709,8 +709,8 @@ int main(int argc, char *argv[])
     /*
      * Note: funny formats below are a result of mingw problems with PRId64.
      */
-    const std::string total_flow_processed("Total flows processed: %"PRId64);
-    const std::string total_packets_processed("Total packets processed: %"PRId64);
+    const std::string total_flow_processed("Total flows processed: %" PRId64);
+    const std::string total_packets_processed("Total packets processed: %" PRId64);
     
     DEBUG(2)(total_flow_processed.c_str(),demux.flow_counter);
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);

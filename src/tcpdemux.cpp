@@ -366,7 +366,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                 if(fd>0){
                     char *buf = (char *)malloc(tcp_datalen);
                     if(buf){
-                        DEBUG(100)("lseek(fd,%"PRId64",SEEK_SET)",(int64_t)(offset));
+                        DEBUG(100)("lseek(fd,%" PRId64 ",SEEK_SET)",(int64_t)(offset));
                         lseek(fd,offset,SEEK_SET);
                         ssize_t r = read(fd,buf,tcp_datalen);
                         data_match = (r==(ssize_t)tcp_datalen) && memcmp(buf,tcp_data,tcp_datalen)==0;
