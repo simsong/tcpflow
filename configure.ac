@@ -9,6 +9,7 @@ AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
 AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
 AC_CONFIG_HEADER([src/config.h])
+AM_PROG_CC_C_O
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 

@@ -4,6 +4,10 @@
  * with up to 2^16 different values on each bar.
  *
  * Times are stored as 64-bit microseconds since January 1, 1970
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
  * 
  * History:
  * 2013-01-01 - Initial version by Mike Shick
