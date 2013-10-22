@@ -187,6 +187,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #define ETHERTYPE_MPLS_MULTI    0x8848
 #endif
 
+#pragma GCC diagnostic ignored "-Wcast-align"
 void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;

@@ -530,7 +530,12 @@ int main(int argc, char *argv[])
 	case 's':
             demux.opt.output_strip_nonprint = 1; DEBUG(10) ("converting non-printable characters to '.'");
             break;
-	case 'T': flow::filename_template = optarg;break;
+	case 'T':
+            flow::filename_template = optarg;
+            if(flow::filename_template.find("%c")==string::npos){
+                flow::filename_template += std::string("%C%c"); // append %C%c if not present
+            }
+            break;
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
