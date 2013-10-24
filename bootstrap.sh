@@ -10,7 +10,17 @@ then
   git submodule update
 fi
 ## The new way:
-autoreconf -f
+# have automake do an initial population iff necessary
+if [ ! -e config.guess -o ! -e config.sub -o ! -e install-sh -o ! -e missing ]; then
+    /bin/rm -rf aclocal.m4
+    autoheader -f
+    aclocal -I m4
+    autoconf -f
+    automake --add-missing --copy
+else
+    autoreconf -f
+fi
+echo be sure to run ./configure
 ## The old way:
 
 # /bin/rm -rf aclocal.m4

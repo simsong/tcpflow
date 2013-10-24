@@ -20,7 +20,6 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_DEFINE([tcpflow],1,[We are compiling tcpflow])
 
 # Programs we will be using
-AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
 
