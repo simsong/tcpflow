@@ -1,3 +1,13 @@
+/**
+ * one_page_report.h: 
+ * Show map of network traffic by host
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ *
+ */
+
 #ifndef ONE_PAGE_REPORT_H
 #define ONE_PAGE_REPORT_H
 #include "plot_view.h"

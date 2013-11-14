@@ -1,3 +1,10 @@
+/*
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ */
+
+
 #ifndef LEGEND_VIEW_H
 #define LEGEND_VIEW_H
 

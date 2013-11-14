@@ -1,3 +1,13 @@
+/**
+ * port_histogram.h: 
+ * Show packets received vs port
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ *
+ */
+
 #ifndef PORT_HISTOGRAM_H
 #define PORT_HISTOGRAM_H
 

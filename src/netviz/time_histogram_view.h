@@ -1,3 +1,14 @@
+/**
+ * time_histogram_view.h: 
+ * Make fancy time histograms
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ *
+ */
+
+
 #ifndef TIME_HISTOGRAM_VIEW_H
 #define TIME_HISTOGRAM_VIEW_H
 

@@ -359,7 +359,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	 * or else we never saw a SYN and we got the ISN wrong.
 	 */
 	if(syn_count>0){
-	    DEBUG(2)("packet received with offset %"PRId64"; ignoring",offset);
+	    DEBUG(2)("packet received with offset %" PRId64 "; ignoring",offset);
 	    violations++;
 	    return;
 	}
@@ -403,7 +403,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	pos = 0;
 	nsn = isn+1;
 	out_of_order_count++;
-	DEBUG(25)("%s: insert(0,%d); lseek(%d,0,SEEK_SET) out_of_order_count=%"PRId64,
+	DEBUG(25)("%s: insert(0,%d); lseek(%d,0,SEEK_SET) out_of_order_count=%" PRId64,
 		  flow_pathname.c_str(), insert_bytes,
 		  fd,out_of_order_count);
 
@@ -418,14 +418,14 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     if (offset != pos) {
 	if(fd>=0) lseek(fd,(off_t)delta,SEEK_CUR);
 	if(delta<0) out_of_order_count++; // only increment for backwards seeks
-	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) offset=%"PRId64" pos=%"PRId64" out_of_order_count=%"PRId64,
+	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) offset=%" PRId64 " pos=%" PRId64 " out_of_order_count=%" PRId64,
 		  flow_pathname.c_str(), fd,(int)delta,offset,pos,out_of_order_count);
 	pos += delta;			// where we are now
 	nsn += delta;			// what we expect the nsn to be now
     }
     
     /* write the data into the file */
-    DEBUG(25) ("%s: %s write %ld bytes @%"PRId64,
+    DEBUG(25) ("%s: %s write %ld bytes @%" PRId64,
                flow_pathname.c_str(),
                fd>=0 ? "will" : "won't",
                (long) wlength, offset);
@@ -437,7 +437,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	}
 	if(wlength != length){
 	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
-            DEBUG(100)("   lseek(%"PRId64",SEEK_CUR)=%"PRId64,(int64_t)(length-wlength),(int64_t)p);
+            DEBUG(100)("   lseek(%" PRId64 ",SEEK_CUR)=%" PRId64,(int64_t)(length-wlength),(int64_t)p);
 	}
     }
 
@@ -452,7 +452,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 
     if(debug>=100){
         uint64_t rpos = lseek(fd,(off_t)0,SEEK_CUR);
-        DEBUG(100)("    pos=%"PRId64"  lseek(fd,0,SEEK_CUR)=%"PRId64,pos,rpos);
+        DEBUG(100)("    pos=%" PRId64 "  lseek(fd,0,SEEK_CUR)=%" PRId64,pos,rpos);
         assert(pos==rpos);
     }
 

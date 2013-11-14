@@ -405,6 +405,7 @@ static size_t extract_header_length(u_int16_t fc)
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#pragma GCC diagnostic ignored "-Wcast-align"
 void handle_llc(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
 {
     if (len < 7) {

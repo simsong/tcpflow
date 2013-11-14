@@ -11,6 +11,7 @@ AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
 AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
 AC_CONFIG_HEADER([src/config.h])
+AM_PROG_CC_C_O
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
@@ -21,12 +22,15 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_DEFINE([tcpflow],1,[We are compiling tcpflow])
 
 # Programs we will be using
-AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
 
-m4_include([src/dfxml/src/dfxml_configure.m4])
-m4_include([src/be13_api/be13_configure.m4])
+# use C++11 mode if available; HAVE_CXX11 is defined in config.h if so.  Don't
+# use the GNU C++11 extensions for portability's sake (noext).
+AC_LANG_PUSH(C++)
+AX_CXX_COMPILE_STDCXX_11(noext, optional)
+AC_LANG_POP()
+
 
 ################################################################
 ## See if we are running on mingw
@@ -145,8 +149,8 @@ WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
     -Woverloaded-virtual -Wsign-promo \
     -funit-at-a-time"
 
-if test x$CXX != "xclang++" ; then
-  # -Wstrict-null-sentinel is not supported under clang
+if test x$CXX != "xclang++" && `uname -s` != 'Darwin' ; then
+  # -Wstrict-null-sentinel is not supported under clang or under Darwin's gcc
   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
 fi
 
@@ -169,6 +173,16 @@ do
 done
 unset option
 AC_LANG_POP()    
+
+################################################################
+## bring in includes
+################################################################
+
+m4_include([src/dfxml/src/dfxml_configure.m4])
+m4_include([src/be13_api/be13_configure.m4])
+
+
+
 
 #
 # ZLIB is required for decompressing

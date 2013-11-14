@@ -1,3 +1,13 @@
+/**
+ * net_map.h: 
+ * Show map of network traffic by host
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ *
+ */
+
 #ifndef NET_MAP_H
 #define NET_MAP_H
 

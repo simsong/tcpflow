@@ -47,7 +47,6 @@ void flow::usage()
 
 std::string flow::filename(uint32_t connection_count)
 {
-    bool used_cc=false;
     std::stringstream ss;
 
     /* Add the outdir */
@@ -127,11 +126,9 @@ std::string flow::filename(uint32_t connection_count)
 		break;
 	    case 'C': // 'c' if connection_count >0
 		if(connection_count>0) ss << "c";
-                used_cc = true;
 		break;
 	    case 'c': // connection_count if connection_count >0
 		if(connection_count>0) ss << connection_count;
-                used_cc = true;
 		break;
 	    case '#': // always output connection count
 		ss << connection_count;
@@ -146,10 +143,6 @@ std::string flow::filename(uint32_t connection_count)
 	    }
 	    if(buf[0]) ss << buf;
 	}
-    }
-    if(used_cc==false){
-        std::cerr << "filename template MUST include %c or %C\n";
-        exit(1);
     }
     return ss.str();
 }
