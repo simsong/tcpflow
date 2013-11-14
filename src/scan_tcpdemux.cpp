@@ -20,7 +20,7 @@
 #include "bulk_extractor_i.h"
 
 
-/** callback called by process_packet_info()
+/** callback called by process_packet()
  */ 
 static void packet_handler(void *user,const be13::packet_info &pi)
 {

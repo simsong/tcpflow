@@ -20,10 +20,10 @@
 #include "pcap_writer.h"
 #include "dfxml/src/dfxml_writer.h"
 #include "dfxml/src/hash_t.h"
-#include <tr1/unordered_map>
-#include <tr1/unordered_set>
 #include <queue>
 
+#include <tr1/unordered_map>
+#include <tr1/unordered_set>
 
 /**
  * the tcp demultiplixer

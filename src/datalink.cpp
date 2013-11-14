@@ -11,7 +11,7 @@
  *
  * This file contains datalink handlers which are called by the pcap callback.
  * The purpose of each handler is to make a packet_info() object and then call
- * process_packet_info. The packet_info() object contains both the original
+ * process_packet. The packet_info() object contains both the original
  * MAC-layer (with some of the fields broken out) and the packet data layer.
  */
 
@@ -61,7 +61,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
     struct timeval tv;
     be13::packet_info pi(DLT_NULL,h,p,tvshift(tv,h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
@@ -78,7 +78,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     struct timeval tv;
     be13::packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
     counter++;
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 
 /* Ethernet datalink handler; used by all 10 and 100 mbit/sec
@@ -121,7 +121,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
-        be13::plugin::process_packet_info(pi);
+        be13::plugin::process_packet(pi);
         break;
 
 #ifdef ETHERTYPE_ARP
@@ -171,7 +171,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     struct timeval tv;
     be13::packet_info pi(DLT_PPP,h,p,tvshift(tv,h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 
 
@@ -226,7 +226,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     
     struct timeval tv;
     be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN + mpls_sz, caplen - SLL_HDR_LEN);
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 #endif
 

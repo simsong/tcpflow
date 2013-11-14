@@ -79,7 +79,7 @@ public:
 
         be13::packet_info pi(DLT_IEEE802_11,(const pcap_pkthdr *)0,(const u_char *)0,tvshift(tv,t),rest,len);
         printf("pi.ip_version=%d\n",pi.ip_version());
-        be13::plugin::process_packet_info(pi);
+        be13::plugin::process_packet(pi);
     }
     void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
         if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
@@ -91,7 +91,7 @@ public:
         /* TK1: Does the pcap header make sense? */
         /* TK2: How do we get and preserve the the three MAC addresses? */
         be13::packet_info pi(DLT_IEEE802_11,(const pcap_pkthdr *)0,(const u_char *)0,tvshift(tv,t),rest,len);
-        be13::plugin::process_packet_info(pi);
+        be13::plugin::process_packet(pi);
     }
 
     /* This implementation only cares about beacons, so that's all we record */

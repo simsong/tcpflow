@@ -1,4 +1,6 @@
 #                                               -*- Autoconf -*- 
+# tcpflow configure.ac
+#
 # Process this file with autoconf to produce a configure script. 
 # Order is largely irrevellant, although it must start with AC_INIT and end with AC_OUTPUT 
 # See http://autotoolset.sourceforge.net/tutorial.html 
@@ -12,9 +14,6 @@ AC_CONFIG_HEADER([src/config.h])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
-m4_include([src/dfxml/src/dfxml_configure.m4])
-m4_include([src/be13_api/be13_configure.m4])
-
 # Endian check is required for MD5 implementation
 AC_C_BIGENDIAN
 
@@ -25,6 +24,9 @@ AC_DEFINE([tcpflow],1,[We are compiling tcpflow])
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
+
+m4_include([src/dfxml/src/dfxml_configure.m4])
+m4_include([src/be13_api/be13_configure.m4])
 
 ################################################################
 ## See if we are running on mingw
