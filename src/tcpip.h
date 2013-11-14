@@ -269,20 +269,8 @@ private:
     /*** Begin Effective C++ error suppression                ***
      *** This class does not implement assignment or copying. ***
      ***/
-    class not_impl: public std::exception {
-	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
-    };
-    tcpip(const tcpip &t) __attribute__((__noreturn__)) : demux(t.demux),myflow(),dir(),isn(),nsn(),
-        syn_count(),fin_count(), fin_size(), pos(),
-        flow_pathname(),fd(),file_created(),
-        seen(),
-        last_byte(),                    // highest byte processed
-        last_packet_number(),
-        out_of_order_count(),
-        violations(){
-	throw new not_impl();
-    }
-    tcpip &operator=(const tcpip &that) { throw new not_impl(); }
+    tcpip(const tcpip &t);
+    tcpip &operator=(const tcpip &that);
     /*** End Effective C++ error suppression */
 
 public:;

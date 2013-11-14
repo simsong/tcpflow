@@ -41,19 +41,9 @@
  * This is a singleton class; we only need a single demultiplexer.
  */
 class tcpdemux {
-private:
-    class not_impl: public std::exception {
-        virtual const char *what() const throw() {
-            return "copying tcpdemux objects is not implemented.";
-        }
-    };
-    tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),pwriter(),
-        max_open_flows(),max_fds(),flow_map(),open_flows(),saved_flow_map(),saved_flows(),start_new_connections(),opt(),fs(){
-        throw new not_impl();
-    }
-    tcpdemux &operator=(const tcpdemux &that){
-        throw new not_impl();
-    }
+    /* These are not implemented */
+    tcpdemux(const tcpdemux &t);
+    tcpdemux &operator=(const tcpdemux &that);
 
     /* see http://mikecvet.wordpress.com/tag/hashing/ */
     typedef struct {

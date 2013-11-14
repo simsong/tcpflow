@@ -1,3 +1,4 @@
+#error don't use this file
 
 /**
  * Include this header in applications using wifipcap.

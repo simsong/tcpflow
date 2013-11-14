@@ -1564,7 +1564,6 @@ static void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const 
 // We don't use them here. They may not work anymore
 
 #ifdef STANDALONE
-
 Wifipcap::Wifipcap(const char* const *filenames, int nfiles, bool verbose) :
     descr(NULL), verbose(verbose), startTime(TIME_NONE), 
     lastPrintTime(TIME_NONE), packetsProcessed(0)
@@ -1585,18 +1584,21 @@ Wifipcap::Wifipcap(const char *name, bool live, bool verbose) :
 
 bool Wifipcap::InitNext()
 {
-    if (morefiles.size() < 1)
+    if (morefiles.size() < 1){
 	return false;
-    if (descr)
-	pcap_close(descr);
+    }
+    if (descr) {
+        pcap_close(descr);
+    }
     Init(morefiles.front(), false);
     morefiles.pop_front();
     return true;
 }
 
 void Wifipcap::Init(const char *name, bool live) {
-    if (verbose)
+    if (verbose){
 	cerr << "wifipcap: initializing '" << name << "'" << endl;
+    }
 
     if (!live) {
 #ifdef _WIN32
@@ -1611,7 +1613,7 @@ void Wifipcap::Init(const char *name, bool live) {
 	bool bzip = !strcmp(name+slen-4, ".bz2");
 	
 	char cmd[256];
-	if (gzip)
+	if (gzip) 
 	    sprintf(cmd, "zcat %s", name);
 	else if (bzip)
 	    sprintf(cmd, "bzcat %s", name);

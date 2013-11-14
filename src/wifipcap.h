@@ -1,8 +1,8 @@
-
 /**
  * Include this header in applications using wifipcap.
- * Some code (c) Jeffrey Pang <jeffpang@cs.cmu.edu>. Released under GPL.
- * Modified by Simson Garfinkel
+ * Released under GPL.
+ * Some code (c) Jeffrey Pang <jeffpang@cs.cmu.edu>.
+ * Substantially modified by Simson Garfinkel
  */
 
 #ifndef _WIFIPCAP_H_
@@ -15,8 +15,6 @@
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-
-
 
 /**
  * Applications should implement a subclass of this interface and pass
@@ -52,11 +50,8 @@
  * The entry function is usually called X_print(...).
  */
 
-class WifipcapCallbacks {
-public:;
-/** 48-bit MACs in 64-bits is strangely needed for ieee include files.
- * Oh well.
- */
+struct WifipcapCallbacks {
+    /** 48-bit MACs in 64-bit ints */
     struct MAC {          
         uint64_t val;
         MAC():val() {}
@@ -149,8 +144,6 @@ public:;
 #pragma pack(pop)
 #endif
 
-
- public:
     WifipcapCallbacks(){};
     virtual ~WifipcapCallbacks(){};
 
@@ -169,7 +162,7 @@ public:;
     virtual void HandleRadiotap(const struct timeval& t, struct radiotap_hdr *hdr, const u_char *rest, int len) {}
 
     // 802.11 MAC (see ieee802_11.h)
-
+    //
     // This method is called for every 802.11 frame just before the
     // specific functions below are called. This allows you to have
     // one entry point to easily do something with all 802.11 packets.
@@ -245,19 +238,9 @@ extern std::ostream& operator<<(std::ostream& out, const struct in_addr& ip);
  *    wp->Run(new MyCallbacks());
  */
 class Wifipcap {
-    class not_impl: public std::exception {
-        virtual const char *what() const throw() {
-            return "copying Wifipcap objects is not implemented.";
-        }
-    };
-    Wifipcap(const Wifipcap &t) __attribute__((__noreturn__)):descr(),datalink(),morefiles(),verbose(),
-        startTime(),lastPrintTime(),packetsProcessed() {
-        throw new not_impl();
-    }
-    Wifipcap &operator=(const Wifipcap &that){
-        throw new not_impl();
-    }
-
+    // these are not implemented
+    Wifipcap(const Wifipcap &t);
+    Wifipcap &operator=(const Wifipcap &that);
  public:
     /**
      * Utility functions for 802.11 fields.
@@ -269,9 +252,8 @@ class Wifipcap {
         static const char *MgmtStatusCode2Txt(uint v);
         static const char *MgmtReasonCode2Txt(uint v);
     };
-
     struct PcapUserData {
-        Wifipcap *wcap;
+        Wifipcap          *wcap;
         WifipcapCallbacks *cbs;
     };
 
@@ -289,7 +271,9 @@ class Wifipcap {
      * gzipped trace and will pipe it through zcat before parsing it.
      * @param live true if reading from a device, otherwise a trace
      */
-    Wifipcap():descr(),datalink(),morefiles(),verbose(),startTime(),lastPrintTime(),packetsProcessed(){}; 
+    Wifipcap():descr(),datalink(),morefiles(),verbose(),startTime(),lastPrintTime(),packetsProcessed(){
+        std::cerr << "Wifipcap()\n";
+    }; 
     Wifipcap(const char *name, bool live = false, bool verbose = false);
     
     /**
@@ -298,9 +282,6 @@ class Wifipcap {
     Wifipcap(const char* const *names, int nfiles, bool verbose = false);
 
     virtual ~Wifipcap(){
-#ifdef STANDALONE
-        if(descr) pcap_close(descr);
-#endif
     };
 
     /**
@@ -323,22 +304,13 @@ class Wifipcap {
      */
     void Run(WifipcapCallbacks *cbs, int maxpkts = 0);
 
-#ifdef STANDALONE
-    struct pcap_t *GetPcap() { return descr; }
-#endif
     int    GetDataLink() { return datalink; }
 
  private:
-    void Init(const char *name, bool live);
-    bool InitNext();
-
-#ifdef STANDALONE
-    char errbuf[PCAP_ERRBUF_SIZE];
-    struct pcap_t* descr;
-#else
+    void  Init(const char *name, bool live);
+    bool  InitNext();
     void *descr;
-#endif
-    int datalink;
+    int   datalink;
     std::list<const char *> morefiles;
 
  public:

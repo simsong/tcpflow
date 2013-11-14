@@ -248,12 +248,12 @@ dlt_handler_t handlers[] = {
     { dl_ethernet, DLT_IEEE802 },
     { dl_ppp,      DLT_PPP },
 #ifdef DLT_LINUX_SLL
-    { dl_linux_sll,DLT_LINUX_SLL },
+    { dl_linux_sll,        DLT_LINUX_SLL },
 #endif
 #ifndef WIN32
     { dl_ieee802_11_radio, DLT_IEEE802_11 },
     { dl_ieee802_11_radio, DLT_IEEE802_11_RADIO },
-    { dl_prism, DLT_PRISM_HEADER},
+    { dl_prism,            DLT_PRISM_HEADER},
 #endif
     { NULL, 0 }
 };

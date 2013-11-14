@@ -4,7 +4,6 @@
  * it maintains some 802.11 specific databases.
  */ 
 
-
 #ifndef WIN32
 
 #include "tcpflow.h"
@@ -119,26 +118,32 @@ public:
 };
 
 /* Entrance point */
-static Wifipcap *wcap = 0;
-static Wifipcap::PcapUserData data;
+//static Wifipcap wcap;
+//static Wifipcap::PcapUserData data;
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    if(wcap==0){
-        wcap = new Wifipcap();
-        data.wcap = wcap;
-        data.cbs  = new TFWC();
-    }
-    Wifipcap::dl_ieee802_11_radio(reinterpret_cast<u_char *>(&data),h,p);
+    std::cerr << "wifi sniffing not implemented yet\n";
+#if 0
+     if(wcap==0){
+         wcap = new Wifipcap();
+         data.wcap = wcap;
+         data.cbs  = new TFWC();
+     }
+     Wifipcap::dl_ieee802_11_radio(reinterpret_cast<u_char *>(&data),h,p);
+#endif
 }    
 
 void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    std::cerr << "wifi sniffing not implemented yet\n";
+#if 0
     if(wcap==0){
         wcap = new Wifipcap();
         data.wcap = wcap;
         data.cbs  = new TFWC();
     }
     Wifipcap::dl_prism(reinterpret_cast<u_char *>(&data),h,p);
+#endif
 }    
 
         
