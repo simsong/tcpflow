@@ -1,4 +1,3 @@
-
 /**
  * 
  * This file is part of tcpflow. Originally by Jeremy Elson
@@ -7,12 +6,14 @@
  * Initial Release: 7 April 1999.
  *
  * This source code is under the GNU Public License (GPL).  See
- * LICENSE for details.
+ * COPYING for details.
  *
  * This file contains datalink handlers which are called by the pcap callback.
  * The purpose of each handler is to make a packet_info() object and then call
  * process_packet. The packet_info() object contains both the original
  * MAC-layer (with some of the fields broken out) and the packet data layer.
+ *
+ * For wifi datalink handlers, please see datalink_wifi.cpp
  */
 
 #include "tcpflow.h"
@@ -47,18 +48,12 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    /* One of the symptoms of a broken DLT_NULL is that this value is
-     * not set correctly, so we don't check for it -- instead, just
-     * assume everything is IP.  --JE 20 April 1999
-     */
-#ifndef DLT_NULL_BROKEN
     /* make sure this is AF_INET */
     if (family != AF_INET && family != AF_INET6) {
 	DEBUG(6)("warning: received null frame with unknown type (type 0x%x) (AF_INET=%x; AF_INET6=%x)",
 		 family,AF_INET,AF_INET6);
 	return;
     }
-#endif
     struct timeval tv;
     be13::packet_info pi(DLT_NULL,h,p,tvshift(tv,h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
     be13::plugin::process_packet(pi);

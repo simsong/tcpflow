@@ -34,6 +34,9 @@
  *	@(#)tcp.h	8.1 (Berkeley) 6/10/93
  */
 
+#ifndef TCP_H
+#define TCP_H
+
 typedef	u_int32_t	tcp_seq;
 /*
  * TCP header.
@@ -123,3 +126,4 @@ struct tcp_hdr_t {
 
     //std::list<tcp_opt_t> opts;
 };
+#endif

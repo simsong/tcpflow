@@ -343,18 +343,6 @@ static void process_infile(const std::string &expression,const char *device,cons
 	handler = find_handler(dlt, device);
     }
 
-    /* If DLT_NULL is "broken", giving *any* expression to the pcap
-     * library when we are using a device of type DLT_NULL causes no
-     * packets to be delivered.  In this case, we use no expression, and
-     * print a warning message if there is a user-specified expression
-     */
-#ifdef DLT_NULL_BROKEN
-    if (dlt == DLT_NULL && expression != ""){
-	DEBUG(1)("warning: DLT_NULL (loopback device) is broken on your system;");
-	DEBUG(1)("         filtering does not work.  Recording *all* packets.");
-    }
-#endif /* DLT_NULL_BROKEN */
-
     DEBUG(20) ("filter expression: '%s'",expression.c_str());
 
     /* install the filter expression in libpcap */

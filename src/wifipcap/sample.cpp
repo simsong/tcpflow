@@ -2,92 +2,84 @@
 #include <iostream>
 #include "wifipcap.h"
 
-using namespace std;
+//using namespace std;
 
 class TestCB : public WifipcapCallbacks
 {
 private:
     bool fcs_ok;
 public:
-	/*
-    void PacketBegin(const struct timeval& t, const u_char *pkt, int len, int origlen)
-    {
-	cout << t << " {" << endl;
+    virtual void PacketBegin(const struct timeval& t, const u_char *pkt, int len, int origlen) {
+	//cout << t << " {" << endl;
     }
-    void PacketEnd()
-    {
-	cout << "}" << endl;
+    virtual void PacketEnd()    {
+	//cout << "}" << endl;
     }
-	*/
  
-    bool Check80211FCS() { return true; }
+    virtual bool Check80211FCS() { return true; }
 
-    void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) 
-    {
+    virtual void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len)     {
 	if (!fcs_ok) {
-	    cout << "  " << "802.11 data:\t" 
+            std::cout << "  " << "802.11 data:\t" 
 		 << hdr->sa << " -> " 
 		 << hdr->da << "\t" 
-		 << len << endl;
+                      << len << std::endl;
 	}
     }
-    void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) 
+    virtual void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) 
     {
 	if (!fcs_ok) {
-	    cout << "  " << "802.11 data:\t" 
+            std::cout << "  " << "802.11 data:\t" 
 		 << hdr->sa << " -> " 
 		 << hdr->da << "\t" 
-		 << len << endl;
+                      << len << std::endl;
 	}
     }
 
-    void Handle80211(const struct timeval& t, u_int16_t fc, const MAC& sa, const MAC& da, const MAC& ra, const MAC& ta, bool fcs_ok) {
-	this->fcs_ok = fcs_ok;
-    }
+//    virtual void Handle80211(const struct timeval& t, u_int16_t fc, const MAC& sa, const MAC& da,
+//                             const MAC& ra, const MAC& ta, bool fcs_ok_) {
+//	this->fcs_ok = fcs_ok_;
+//    }
 
-	void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, int len) {
-		cout << " Ethernet: " << hdr->sa << " -> " << hdr->da << endl;
-	}
+    virtual void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, int len) {
+        std::cout << " Ethernet: " << hdr->sa << " -> " << hdr->da << std::endl;
+    }
     
-    void Handle80211MgmtProbeRequest(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body)
-    {
+    virtual void Handle80211MgmtProbeRequest(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body) {
 	if (!fcs_ok) {
-	    cout << "  " << "802.11 mgmt:\t" 
+	    std::cout << "  " << "802.11 mgmt:\t" 
 		 << hdr->sa << "\tprobe\t\"" 
-		 << body->ssid.ssid << "\"" << endl;
+		 << body->ssid.ssid << "\"" << std::endl;
 	}
     }
 
-    void Handle80211MgmtBeacon(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body)
-    {
+    virtual void Handle80211MgmtBeacon(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body)    {
 	if (!fcs_ok) {
-	    cout << "  " << "802.11 mgmt:\t" 
+	    std::cout << "  " << "802.11 mgmt:\t" 
 		 << hdr->sa << "\tbeacon\t\"" 
-		 << body->ssid.ssid << "\"" << endl;
+		 << body->ssid.ssid << "\"" << std::endl;
 	}
     }
 
-    void HandleTCP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, int len)
-    {
+    virtual void HandleTCP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, int len) {
 	if (ip4h && hdr)
-	    cout << "  " << "tcp/ip:     \t" 
+	    std::cout << "  " << "tcp/ip:     \t" 
 		 << ip4h->src << ":" << hdr->sport << " -> " 
 		 << ip4h->dst << ":" << hdr->dport 
-		 << "\t" << ip4h->len << endl;
+		 << "\t" << ip4h->len << std::endl;
 	else
-	    cout << "  " << "tcp/ip:     \t" << "[truncated]" << endl;
+	    std::cout << "  " << "tcp/ip:     \t" << "[truncated]" << std::endl;
     }   
 
-	void HandleUDP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, int len)
-	{
-		if (ip4h && hdr)
-			cout << "  " << "udp/ip:     \t" 
+    virtual void HandleUDP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, int len)	{
+        if (ip4h && hdr)
+            std::cout << "  " << "udp/ip:     \t" 
 		 << ip4h->src << ":" << hdr->sport << " -> " 
 		 << ip4h->dst << ":" << hdr->dport 
-		 << "\t" << ip4h->len << endl;
-		else
-			cout << " " << "udp/ip:     \t" << "[truncated]" << endl;
-	}
+		 << "\t" << ip4h->len << std::endl;
+        else
+            std::cout << " " << "udp/ip:     \t" << "[truncated]" << std::endl;
+    }
 };
 
 /**

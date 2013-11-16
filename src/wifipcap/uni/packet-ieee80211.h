@@ -27,6 +27,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifndef UNI_PACKET_IEEE80211_H
+#define UNI_PACKET_IEEE80211_H
+
 void capture_ieee80211 (const guchar *, int, int, packet_counts *);
 void capture_ieee80211_datapad (const guchar *, int, int, packet_counts *);
 void capture_ieee80211_fixed (const guchar *, int, int, packet_counts *);
@@ -59,3 +62,4 @@ typedef struct _wlan_hdr {
 #define WLANCAP_MAGIC_COOKIE_BASE 0x80211000
 #define WLANCAP_MAGIC_COOKIE_V1 0x80211001
 #define WLANCAP_MAGIC_COOKIE_V2 0x80211002
+#endif

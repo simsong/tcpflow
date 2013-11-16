@@ -68,7 +68,7 @@ public:
         /* TK1: Does the pcap header make sense? */
         /* TK2: How do we get and preserve the the three MAC addresses? */
 
-        printf("DATA_HDRLEN=%d  DATA_WDS_HDRLEN=%d\n",DATA_HDRLEN,DATA_WDS_HDRLEN);
+// printf("DATA_HDRLEN=%d  DATA_WDS_HDRLEN=%d\n",DATA_HDRLEN,DATA_WDS_HDRLEN);
 
         sbuf_t sb(pos0_t(),rest,len,len,0);
         sb.hex_dump(std::cout);
@@ -122,7 +122,7 @@ public:
 //static Wifipcap::PcapUserData data;
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    std::cerr << "wifi sniffing not implemented yet\n";
+
 #if 0
      if(wcap==0){
          wcap = new Wifipcap();

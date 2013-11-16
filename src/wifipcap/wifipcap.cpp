@@ -4,8 +4,6 @@
  * 2013-03-15: Substantially modified by Simson Garfinkel for inclusion into tcpflow
  **********************************************************************/
 
-#ifndef WIN32
-
 #include "config.h"		// pull in HAVE_ defines
 
 #include <iostream>
@@ -28,62 +26,36 @@
 #include <unistd.h>
 #endif
 
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#ifdef HAVE_PCAP_PCAP_H
-#include <pcap/pcap.h>
-#endif
-#pragma GCC diagnostic warning "-Wredundant-decls"
+//#pragma GCC diagnostic ignored "-Wredundant-decls"
+//#ifdef HAVE_PCAP_PCAP_H
+//#include <pcap/pcap.h>
+//#endif
+//#pragma GCC diagnostic warning "-Wredundant-decls"
 
-
+#pragma GCC diagnostic ignored "-Wcast-align"
 
 #include "wifipcap.h"
 
 #include "cpack.h"
-#include "uni/extract.h"
-#include "uni/oui.h"
-#include "uni/ethertype.h"
+#include "extract.h"
+#include "oui.h"
+#include "ethertype.h"
+#include "icmp.h"
+#include "ipproto.h"
 
 /* wifipcap uses a MAC class which is somewhat lame, but works */
 
-WifipcapCallbacks::MAC::MAC(const uint8_t *ether):
-    val(((((((((((((uint64_t) (ether[0]))
-                  << 8) | ether[1])
-                << 8) | ether[2])
-              << 8) | ether[3])
-            << 8) | ether[4])
-          << 8) | ether[5])) {}
+WifipcapCallbacks::MAC WifipcapCallbacks::MAC::broadcast(0xffffffffffffULL);
+WifipcapCallbacks::MAC WifipcapCallbacks::MAC::null((uint64_t)0);
+int WifipcapCallbacks::MAC::print_fmt(MAC::PRINT_FMT_COLON);
 
-WifipcapCallbacks::MAC::MAC(uint64_t v) : val(v) {}
-WifipcapCallbacks::MAC::MAC(const char *str):val() {
-    int o[6];
-    int ret = sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
-		     &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
-    if (ret != 6) {
-	ret = sscanf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
-                     &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
-        
-	if (ret != 6) {
-	    std::cerr << "bad mac address: " << str << std::endl;
-	    val = 0;
-	    return;
-	}
-    }
-    
-    val = ((((((((((((uint64_t) (o[0]))
-		    << 8) | o[1])
-		  << 8) | o[2])
-		<< 8) | o[3])
-	      << 8) | o[4])
-	    << 8) | o[5]);
-}
 
-WifipcapCallbacks::MAC::MAC(const MAC& o) : val(o.val) { }
-WifipcapCallbacks::MAC WifipcapCallbacks::MAC::broadcast = WifipcapCallbacks::MAC(0xffffffffffffULL);
-WifipcapCallbacks::MAC WifipcapCallbacks::MAC::null = MAC((uint64_t)0);
-int WifipcapCallbacks::MAC::print_fmt = WifipcapCallbacks::MAC::PRINT_FMT_COLON;
+//WifipcapCallbacks::MAC WifipcapCallbacks::MAC::broadcast = WifipcapCallbacks::MAC(0xffffffffffffULL);
+//WifipcapCallbacks::MAC WifipcapCallbacks::MAC::null = MAC((uint64_t)0);
+//int WifipcapCallbacks::MAC::print_fmt = WifipcapCallbacks::MAC::PRINT_FMT_COLON;
 
 std::ostream& operator<<(std::ostream& out, const WifipcapCallbacks::MAC& mac) {
-    const char *fmt = MAC::print_fmt == MAC::PRINT_FMT_COLON ? 
+    const char *fmt = WifipcapCallbacks::MAC::print_fmt == WifipcapCallbacks::MAC::PRINT_FMT_COLON ? 
 	"%02x:%02x:%02x:%02x:%02x:%02x" :
 	"%02x%02x%02x%02x%02x%02x";
     char buf[24];
@@ -266,58 +238,58 @@ static const char * data_subtype_text[] = {
  *      x^5 + x^4 + x^2 + x + 1
  */
 const uint32_t crc32_ccitt_table[256] = {
-        0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419,
-        0x706af48f, 0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4,
-        0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07,
-        0x90bf1d91, 0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de,
-        0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7, 0x136c9856,
-        0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9,
-        0xfa0f3d63, 0x8d080df5, 0x3b6e20c8, 0x4c69105e, 0xd56041e4,
-        0xa2677172, 0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b,
-        0x35b5a8fa, 0x42b2986c, 0xdbbbc9d6, 0xacbcf940, 0x32d86ce3,
-        0x45df5c75, 0xdcd60dcf, 0xabd13d59, 0x26d930ac, 0x51de003a,
-        0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423, 0xcfba9599,
-        0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924,
-        0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d, 0x76dc4190,
-        0x01db7106, 0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f,
-        0x9fbfe4a5, 0xe8b8d433, 0x7807c9a2, 0x0f00f934, 0x9609a88e,
-        0xe10e9818, 0x7f6a0dbb, 0x086d3d2d, 0x91646c97, 0xe6635c01,
-        0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e, 0x6c0695ed,
-        0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950,
-        0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3,
-        0xfbd44c65, 0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2,
-        0x4adfa541, 0x3dd895d7, 0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a,
-        0x346ed9fc, 0xad678846, 0xda60b8d0, 0x44042d73, 0x33031de5,
-        0xaa0a4c5f, 0xdd0d7cc9, 0x5005713c, 0x270241aa, 0xbe0b1010,
-        0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f,
-        0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17,
-        0x2eb40d81, 0xb7bd5c3b, 0xc0ba6cad, 0xedb88320, 0x9abfb3b6,
-        0x03b6e20c, 0x74b1d29a, 0xead54739, 0x9dd277af, 0x04db2615,
-        0x73dc1683, 0xe3630b12, 0x94643b84, 0x0d6d6a3e, 0x7a6a5aa8,
-        0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1, 0xf00f9344,
-        0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb,
-        0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a,
-        0x67dd4acc, 0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5,
-        0xd6d6a3e8, 0xa1d1937e, 0x38d8c2c4, 0x4fdff252, 0xd1bb67f1,
-        0xa6bc5767, 0x3fb506dd, 0x48b2364b, 0xd80d2bda, 0xaf0a1b4c,
-        0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55, 0x316e8eef,
-        0x4669be79, 0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236,
-        0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe,
-        0xb2bd0b28, 0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31,
-        0x2cd99e8b, 0x5bdeae1d, 0x9b64c2b0, 0xec63f226, 0x756aa39c,
-        0x026d930a, 0x9c0906a9, 0xeb0e363f, 0x72076785, 0x05005713,
-        0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38, 0x92d28e9b,
-        0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21, 0x86d3d2d4, 0xf1d4e242,
-        0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1,
-        0x18b74777, 0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c,
-        0x8f659eff, 0xf862ae69, 0x616bffd3, 0x166ccf45, 0xa00ae278,
-        0xd70dd2ee, 0x4e048354, 0x3903b3c2, 0xa7672661, 0xd06016f7,
-        0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc, 0x40df0b66,
-        0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
-        0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605,
-        0xcdd70693, 0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8,
-        0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b,
-        0x2d02ef8d
+    0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419,
+    0x706af48f, 0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4,
+    0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07,
+    0x90bf1d91, 0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de,
+    0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7, 0x136c9856,
+    0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9,
+    0xfa0f3d63, 0x8d080df5, 0x3b6e20c8, 0x4c69105e, 0xd56041e4,
+    0xa2677172, 0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b,
+    0x35b5a8fa, 0x42b2986c, 0xdbbbc9d6, 0xacbcf940, 0x32d86ce3,
+    0x45df5c75, 0xdcd60dcf, 0xabd13d59, 0x26d930ac, 0x51de003a,
+    0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423, 0xcfba9599,
+    0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924,
+    0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d, 0x76dc4190,
+    0x01db7106, 0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f,
+    0x9fbfe4a5, 0xe8b8d433, 0x7807c9a2, 0x0f00f934, 0x9609a88e,
+    0xe10e9818, 0x7f6a0dbb, 0x086d3d2d, 0x91646c97, 0xe6635c01,
+    0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e, 0x6c0695ed,
+    0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950,
+    0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3,
+    0xfbd44c65, 0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2,
+    0x4adfa541, 0x3dd895d7, 0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a,
+    0x346ed9fc, 0xad678846, 0xda60b8d0, 0x44042d73, 0x33031de5,
+    0xaa0a4c5f, 0xdd0d7cc9, 0x5005713c, 0x270241aa, 0xbe0b1010,
+    0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f,
+    0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17,
+    0x2eb40d81, 0xb7bd5c3b, 0xc0ba6cad, 0xedb88320, 0x9abfb3b6,
+    0x03b6e20c, 0x74b1d29a, 0xead54739, 0x9dd277af, 0x04db2615,
+    0x73dc1683, 0xe3630b12, 0x94643b84, 0x0d6d6a3e, 0x7a6a5aa8,
+    0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1, 0xf00f9344,
+    0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb,
+    0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a,
+    0x67dd4acc, 0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5,
+    0xd6d6a3e8, 0xa1d1937e, 0x38d8c2c4, 0x4fdff252, 0xd1bb67f1,
+    0xa6bc5767, 0x3fb506dd, 0x48b2364b, 0xd80d2bda, 0xaf0a1b4c,
+    0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55, 0x316e8eef,
+    0x4669be79, 0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236,
+    0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe,
+    0xb2bd0b28, 0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31,
+    0x2cd99e8b, 0x5bdeae1d, 0x9b64c2b0, 0xec63f226, 0x756aa39c,
+    0x026d930a, 0x9c0906a9, 0xeb0e363f, 0x72076785, 0x05005713,
+    0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38, 0x92d28e9b,
+    0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21, 0x86d3d2d4, 0xf1d4e242,
+    0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1,
+    0x18b74777, 0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c,
+    0x8f659eff, 0xf862ae69, 0x616bffd3, 0x166ccf45, 0xa00ae278,
+    0xd70dd2ee, 0x4e048354, 0x3903b3c2, 0xa7672661, 0xd06016f7,
+    0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc, 0x40df0b66,
+    0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
+    0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605,
+    0xcdd70693, 0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8,
+    0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b,
+    0x2d02ef8d
 };
 
 #define CRC32_CCITT_SEED    0xFFFFFFFF
@@ -331,13 +303,13 @@ uint32_t crc32_ccitt(const uint8_t *buf, size_t len)
 
 uint32_t crc32_ccitt_seed(const uint8_t *buf, size_t len, uint32_t seed)
 {
-  uint32_t crc32 = seed;
+    uint32_t crc32 = seed;
 
-  for (unsigned int i = 0; i < len; i++){
-    crc32 = crc32_ccitt_table[(crc32 ^ buf[i]) & 0xff] ^ (crc32 >> 8);
-  }
+    for (unsigned int i = 0; i < len; i++){
+        crc32 = crc32_ccitt_table[(crc32 ^ buf[i]) & 0xff] ^ (crc32 >> 8);
+    }
 
-  return ( ~crc32 );
+    return ( ~crc32 );
 }
 
 /*
@@ -351,28 +323,23 @@ uint32_t crc32_ccitt_seed(const uint8_t *buf, size_t len, uint32_t seed)
  */
 uint32_t crc32_802(const unsigned char *buf, size_t len)
 {
-  uint32_t c_crc;
+    uint32_t c_crc;
 
-  c_crc = crc32_ccitt(buf, len);
+    c_crc = crc32_ccitt(buf, len);
 
-  /* Byte reverse. */
-  c_crc = ((unsigned char)(c_crc>>0)<<24) |
-    ((unsigned char)(c_crc>>8)<<16) |
-    ((unsigned char)(c_crc>>16)<<8) |
-    ((unsigned char)(c_crc>>24)<<0);
+    /* Byte reverse. */
+    c_crc = ((unsigned char)(c_crc>>0)<<24) |
+        ((unsigned char)(c_crc>>8)<<16) |
+        ((unsigned char)(c_crc>>16)<<8) |
+        ((unsigned char)(c_crc>>24)<<0);
 
-  return ( c_crc );
+    return ( c_crc );
 }
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
 
 /* Translate Ethernet address, as seen in struct ether_header, to type MAC. */
-static inline MAC ether2MAC(const uint8_t * ether)
-{
-    return MAC(ether);
-}
-
 /* Extract header length. */
 static size_t extract_header_length(u_int16_t fc)
 {
@@ -400,6 +367,613 @@ static size_t extract_header_length(u_int16_t fc)
 	return (FC_TO_DS(fc) && FC_FROM_DS(fc)) ? 30 : 24;
     default:
 	return 0;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+/* These tcp optinos do not have the size octet */
+#define ZEROLENOPT(o) ((o) == TCPOPT_EOL || (o) == TCPOPT_NOP)
+
+void parse_tcp_opts(std::list<tcp_opt_t>& opts, const u_char *cp, u_int hlen)
+{
+
+    if (hlen == 0) 
+	return;
+
+    register u_int i, opt, datalen;
+    register u_int len;
+
+    //putchar(' ');
+    //ch = '<';
+    while (hlen > 0) {
+	tcp_opt_t tcpopt;
+
+	//putchar(ch);
+	//TCHECK(*cp);
+	opt = *cp++;
+	if (ZEROLENOPT(opt))
+	    len = 1;
+	else {
+	    //TCHECK(*cp);
+	    len = *cp++;	/* total including type, len */
+	    if (len < 2 || len > hlen)
+		// stop processing on bad opt
+		break;
+	    --hlen;		/* account for length byte */
+	}
+	--hlen;			/* account for type byte */
+	datalen = 0;
+
+/* Bail if "l" bytes of data are not left or were not captured  */
+#define LENCHECK(l) { if ((l) > hlen) break; }
+
+	tcpopt.type = opt;
+	tcpopt.data_raw = cp;
+
+	switch (opt) {
+
+	case TCPOPT_MAXSEG:
+	    //(void)printf("mss");
+	    datalen = 2;
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", EXTRACT_16BITS(cp));
+	    tcpopt.data.mss = EXTRACT_16BITS(cp);
+	    break;
+	    
+	case TCPOPT_EOL:
+	    //(void)printf("eol");
+	    break;
+	    
+	case TCPOPT_NOP:
+	    //(void)printf("nop");
+	    break;
+	    
+	case TCPOPT_WSCALE:
+	    //(void)printf("wscale");
+	    datalen = 1;
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", *cp);
+	    tcpopt.data.wscale = *cp;
+	    break;
+	    
+	case TCPOPT_SACKOK:
+	    //(void)printf("sackOK");
+	    break;
+	    
+	case TCPOPT_SACK:
+	    datalen = len - 2;
+	    if (datalen % 8 != 0) {
+		//(void)printf("malformed sack");
+	    } else {
+		u_int32_t s, e;
+		
+		//(void)printf("sack %d ", datalen / 8);
+		for (i = 0; i < datalen; i += 8) {
+		    LENCHECK(i + 4);
+		    s = EXTRACT_32BITS(cp + i);
+		    LENCHECK(i + 8);
+		    e = EXTRACT_32BITS(cp + i + 4);
+		    /* XXX leave application to do this translation?
+                       if (threv) {
+                       s -= thseq;
+                       e -= thseq;
+                       } else {
+                       s -= thack;
+                       e -= thack;
+                       }
+                       (void)printf("{%u:%u}", s, e);
+		    */
+		    tcpopt.data_sack.push_back(std::pair<u_int32_t,u_int32_t>(s,e));
+		}
+	    }
+	    break;
+	    
+	case TCPOPT_ECHO:
+	    //(void)printf("echo");
+	    datalen = 4;
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", EXTRACT_32BITS(cp));
+	    tcpopt.data.echo = EXTRACT_32BITS(cp);
+	    break;
+	    
+	case TCPOPT_ECHOREPLY:
+	    //(void)printf("echoreply");
+	    datalen = 4;
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", EXTRACT_32BITS(cp));
+	    tcpopt.data.echoreply = EXTRACT_32BITS(cp);
+	    break;
+	    
+	case TCPOPT_TIMESTAMP:
+	    //(void)printf("timestamp");
+	    datalen = 8;
+	    //LENCHECK(4);
+	    //(void)printf(" %u", EXTRACT_32BITS(cp));
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", EXTRACT_32BITS(cp + 4));
+	    tcpopt.data.timestamp.tsval = EXTRACT_32BITS(cp);
+	    tcpopt.data.timestamp.tsecr = EXTRACT_32BITS(cp + 4);
+	    break;
+	    
+	case TCPOPT_CC:
+	    //(void)printf("cc");
+	    datalen = 4;
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", EXTRACT_32BITS(cp));
+	    tcpopt.data.cc = EXTRACT_32BITS(cp);
+	    break;
+	    
+	case TCPOPT_CCNEW:
+	    //(void)printf("ccnew");
+	    datalen = 4;
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", EXTRACT_32BITS(cp));
+	    tcpopt.data.ccnew = EXTRACT_32BITS(cp);
+	    break;
+	    
+	case TCPOPT_CCECHO:
+	    //(void)printf("ccecho");
+	    datalen = 4;
+	    LENCHECK(datalen);
+	    //(void)printf(" %u", EXTRACT_32BITS(cp));
+	    tcpopt.data.ccecho = EXTRACT_32BITS(cp);
+	    break;
+	    
+	case TCPOPT_SIGNATURE:
+	    //(void)printf("md5:");
+	    datalen = TCP_SIGLEN;
+	    LENCHECK(datalen);
+	    for (i = 0; i < TCP_SIGLEN; ++i)
+		//(void)printf("%02x", cp[i]);
+		tcpopt.data.signature[i] = cp[i];
+	    break;
+	    
+	default:
+	    //(void)printf("opt-%u:", opt);
+	    datalen = len - 2;
+	    /*
+              for (i = 0; i < datalen; ++i) {
+              LENCHECK(i);
+              (void)printf("%02x", cp[i]);
+              }
+	    */
+	    break;
+	}
+	
+	/* Account for data printed */
+	cp += datalen;
+	hlen -= datalen;
+	
+	/* Check specification against observed length */
+	//++datalen;			/* option octet */
+	//if (!ZEROLENOPT(opt))
+	//    ++datalen;		/* size octet */
+	//if (datalen != len)
+	//    (void)printf("[len %d]", len);
+	//ch = ',';
+
+	tcpopt.len = datalen;
+	opts.push_back(tcpopt);
+
+	if (opt == TCPOPT_EOL)
+	    break;
+    }
+    //putchar('>');
+
+}
+
+void
+handle_tcp(const struct timeval& t, WifipcapCallbacks *cbs, 
+	   const u_char *bp, u_int length,
+	   struct ip4_hdr_t *ip4h, struct ip6_hdr_t *ip6h, int fragmented)
+{
+    struct tcphdr *tp;
+    tp = (struct tcphdr *)bp;
+    int hlen;
+
+    // truncated header
+    if (length < sizeof(*tp)) {
+	cbs->HandleTCP(t, ip4h, ip6h, NULL, NULL, 0, bp, length);
+	return;
+    }
+
+    hlen = TH_OFF(tp) * 4;
+
+    // bad header length || missing tcp options
+    if (hlen < (int)sizeof(*tp) || length < (int)sizeof(*tp) || hlen > (int)length) {
+	cbs->HandleTCP(t, ip4h, ip6h, NULL, NULL, 0, bp, length);
+	return;
+    }
+
+    tcp_hdr_t hdr;
+    hdr.sport = EXTRACT_16BITS(&tp->th_sport);
+    hdr.dport = EXTRACT_16BITS(&tp->th_dport);
+    hdr.seq = EXTRACT_32BITS(&tp->th_seq);
+    hdr.ack = EXTRACT_32BITS(&tp->th_ack);
+    hdr.dataoff = TH_OFF(tp) * 4;
+    hdr.flags = tp->th_flags;
+    hdr.win = EXTRACT_16BITS(&tp->th_win);
+    hdr.cksum = EXTRACT_16BITS(&tp->th_sum);
+    hdr.urgptr = EXTRACT_16BITS(&tp->th_urp);
+
+    //parse_tcp_opts(hdr.opts, bp+sizeof(*tp), hlen-sizeof(*tp));
+
+    cbs->HandleTCP(t, ip4h, ip6h, &hdr, hlen==sizeof(*tp)?NULL:bp+sizeof(*tp), hlen-sizeof(*tp), bp+hlen, length-hlen);
+}
+
+void
+handle_udp(const struct timeval& t, WifipcapCallbacks *cbs, 
+	   const u_char *bp, u_int length,
+	   struct ip4_hdr_t *ip4h, struct ip6_hdr_t *ip6h, int fragmented)
+{
+    struct udphdr *uh;
+    uh = (struct udphdr *)bp;
+
+    if (length < sizeof(struct udphdr)) {
+	// truncated udp header
+	cbs->HandleUDP(t, ip4h, ip6h, NULL, bp, length);
+	return;
+    }
+
+    udp_hdr_t hdr;
+    hdr.sport = EXTRACT_16BITS(&uh->uh_sport);
+    hdr.dport = EXTRACT_16BITS(&uh->uh_dport);
+    hdr.len   = EXTRACT_16BITS(&uh->uh_ulen);
+    hdr.cksum = EXTRACT_16BITS(&uh->uh_sum);
+
+    cbs->HandleUDP(t, ip4h, ip6h, &hdr, bp+sizeof(struct udphdr), length-sizeof(struct udphdr));
+}
+
+void
+handle_icmp(const struct timeval& t, WifipcapCallbacks *cbs, 
+	    const u_char *bp, u_int length,
+	    struct ip4_hdr_t *ip4h, struct ip6_hdr_t *ip6h, int fragmented)
+{
+    struct icmp *dp;
+    dp = (struct icmp *)bp;
+
+    if (length < 4) {
+	// truncated icmp header
+	cbs->HandleICMP(t, ip4h, ip6h, -1, -1, bp, length);
+	return;
+    }
+
+    cbs->HandleICMP(t, ip4h, ip6h, dp->icmp_type, dp->icmp_code, bp+4, length-4);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len);
+void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len);
+
+struct ip_print_demux_state {
+    struct ip *ip;
+    const u_char *cp;
+    u_int   len, off;
+    u_char  nh;
+    int     advance;
+};
+
+void
+ip_demux(const struct timeval& t, WifipcapCallbacks *cbs, ip4_hdr_t *hdr, struct ip_print_demux_state *ipds, int len)
+{
+    //struct protoent *proto;
+
+//again:
+    switch (ipds->nh) {
+    case IPPROTO_TCP:
+        /* pass on the MF bit plus the offset to detect fragments */
+        handle_tcp(t, cbs, ipds->cp, ipds->len, hdr, NULL,
+                   ipds->off & (IP_MF|IP_OFFMASK));
+        break;
+		
+    case IPPROTO_UDP:
+        /* pass on the MF bit plus the offset to detect fragments */
+        handle_udp(t, cbs, ipds->cp, ipds->len, hdr, NULL,
+                   ipds->off & (IP_MF|IP_OFFMASK));
+        break;
+		
+    case IPPROTO_ICMP:
+        /* pass on the MF bit plus the offset to detect fragments */
+        handle_icmp(t, cbs, ipds->cp, ipds->len, hdr, NULL,
+                    ipds->off & (IP_MF|IP_OFFMASK));
+        break;
+		
+    case IPPROTO_IPV4:
+        /* DVMRP multicast tunnel (ip-in-ip encapsulation) */
+        //handle_ip(t, cbs, ipds->cp, ipds->len);
+        //break;
+    case IPPROTO_IPV6:
+        /* ip6-in-ip encapsulation */
+        //handle_ip6(t, cbs, ipds->cp, ipds->len);
+        //break;
+	    
+        ///// Jeff: XXX Some day handle these maybe (see tcpdump code)
+    case IPPROTO_AH:
+        /*
+          ipds->nh = *ipds->cp;
+          ipds->advance = ah_print(ipds->cp);
+          if (ipds->advance <= 0)
+          break;
+          ipds->cp += ipds->advance;
+          ipds->len -= ipds->advance;
+          goto again;
+        */
+    case IPPROTO_ESP:
+    {
+        /*
+          int enh, padlen;
+          ipds->advance = esp_print(ndo, ipds->cp, ipds->len,
+          (const u_char *)ipds->ip,
+          &enh, &padlen);
+          if (ipds->advance <= 0)
+          break;
+          ipds->cp += ipds->advance;
+          ipds->len -= ipds->advance + padlen;
+          ipds->nh = enh & 0xff;
+          goto again;
+        */
+    }
+    case IPPROTO_IPCOMP:
+    {
+        /*
+          int enh;
+          ipds->advance = ipcomp_print(ipds->cp, &enh);
+          if (ipds->advance <= 0)
+          break;
+          ipds->cp += ipds->advance;
+          ipds->len -= ipds->advance;
+          ipds->nh = enh & 0xff;
+          goto again;
+        */
+    }
+    case IPPROTO_SCTP:
+        /*
+          sctp_print(ipds->cp, (const u_char *)ipds->ip, ipds->len);
+          break;
+        */
+    case IPPROTO_DCCP:
+        /*
+          dccp_print(ipds->cp, (const u_char *)ipds->ip, ipds->len);
+          break;
+        */	
+    case IPPROTO_PIGP:
+        /*
+         * XXX - the current IANA protocol number assignments
+         * page lists 9 as "any private interior gateway
+         * (used by Cisco for their IGRP)" and 88 as
+         * "EIGRP" from Cisco.
+         *
+         * Recent BSD <netinet/in.h> headers define
+         * IP_PROTO_PIGP as 9 and IP_PROTO_IGRP as 88.
+         * We define IP_PROTO_PIGP as 9 and
+         * IP_PROTO_EIGRP as 88; those names better
+         * match was the current protocol number
+         * assignments say.
+         */
+        /*
+          igrp_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
+          break;
+        */
+    case IPPROTO_EIGRP:
+        /*
+          eigrp_print(ipds->cp, ipds->len);
+          break;
+        */
+    case IPPROTO_ND:
+        /*
+          ND_PRINT((ndo, " nd %d", ipds->len));
+          break;
+        */
+    case IPPROTO_EGP:
+        /*
+          egp_print(ipds->cp, ipds->len);
+          break;
+        */
+    case IPPROTO_OSPF:
+        /*
+          ospf_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
+          break;
+        */
+    case IPPROTO_IGMP:
+        /*
+          igmp_print(ipds->cp, ipds->len);
+          break;
+        */
+    case IPPROTO_RSVP:
+        /*
+          rsvp_print(ipds->cp, ipds->len);
+          break;
+        */
+    case IPPROTO_GRE:
+        /* do it */
+        /*
+          gre_print(ipds->cp, ipds->len);
+          break;
+        */
+    case IPPROTO_MOBILE:
+        /*
+          mobile_print(ipds->cp, ipds->len);
+          break;
+        */
+    case IPPROTO_PIM:
+        /*
+          pim_print(ipds->cp,  ipds->len);
+          break;
+        */
+    case IPPROTO_VRRP:
+        /*
+          vrrp_print(ipds->cp, ipds->len, ipds->ip->ip_ttl);
+          break;
+        */
+    case IPPROTO_PGM:
+        /*
+          pgm_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
+          break;
+        */
+
+    default:
+        /*
+          if ((proto = getprotobynumber(ipds->nh)) != NULL)
+          ND_PRINT((ndo, " %s", proto->p_name));
+          else
+          ND_PRINT((ndo, " ip-proto-%d", ipds->nh));
+          ND_PRINT((ndo, " %d", ipds->len));
+        */
+        cbs->HandleL3Unknown(t, hdr, NULL, ipds->cp, ipds->len);
+	    
+        break;
+    }
+}
+
+void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+{
+    struct ip_print_demux_state  ipd;
+    struct ip_print_demux_state *ipds=&ipd;
+    u_int hlen;
+
+    // truncated (in fact, nothing!)
+    if (len == 0) {
+	cbs->HandleIP(t, NULL, NULL, 0, ptr, len);
+	return;
+    }
+
+    ipds->ip = (struct ip *)ptr;
+    if (IP_V(ipds->ip) != 4) {
+	if (IP_V(ipds->ip) == 6) {
+	    // wrong link-layer encap!
+	    handle_ip6(t, cbs, ptr, len);
+	    return;
+	}
+    }
+    if (len < sizeof (struct ip)) {
+	// truncated!
+	cbs->HandleIP(t, NULL, NULL, 0, ptr, len);
+	return;
+    }
+    hlen = IP_HL(ipds->ip) * 4;
+    ipds->len = EXTRACT_16BITS(&ipds->ip->ip_len);
+    if (len < (int)ipds->len) {
+	// truncated IP
+	// this is ok, we'll just report the truncation later
+    }
+    if (ipds->len < hlen) {
+	// missing some ip options!
+	cbs->HandleIP(t, NULL, NULL, 0, ptr, len);
+    }
+    
+    ipds->len -= hlen;
+    
+    ipds->off = EXTRACT_16BITS(&ipds->ip->ip_off);
+
+    struct ip4_hdr_t hdr;
+    hdr.ver      = IP_V(ipds->ip);
+    hdr.hlen     = IP_HL(ipds->ip) * 4;
+    hdr.tos      = ipds->ip->ip_tos;
+    hdr.len      = EXTRACT_16BITS(&ipds->ip->ip_len);
+    hdr.id       = EXTRACT_16BITS(&ipds->ip->ip_id);
+    hdr.df       = (bool)((ipds->off & IP_DF) != 0);
+    hdr.mf       = (bool)((ipds->off & IP_MF) != 0);
+    hdr.fragoff  = (ipds->off & IP_OFFMASK);
+    hdr.ttl      = ipds->ip->ip_ttl;
+    hdr.proto    = ipds->ip->ip_p;
+    hdr.cksum    = EXTRACT_16BITS(&ipds->ip->ip_sum);
+    hdr.src      = ipds->ip->ip_src;
+    hdr.dst      = ipds->ip->ip_dst;
+
+    cbs->HandleIP(t, &hdr, hlen==sizeof(struct ip)?NULL:ptr+sizeof(struct ip), hlen-sizeof(struct ip), ptr+hlen, len-hlen);
+    
+    /*
+     * If this is fragment zero, hand it to the next higher
+     * level protocol.
+     */
+    if ((ipds->off & 0x1fff) == 0) {
+	ipds->cp = (const u_char *)ipds->ip + hlen;
+	ipds->nh = ipds->ip->ip_p;
+	
+	ip_demux(t, cbs, &hdr, ipds, len);
+    } else {
+	// This is a fragment of a previous packet. can't demux it
+	return;
+    }
+}
+
+void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+{
+    const struct ip6_hdr *ip6;
+    if (len < sizeof (struct ip6_hdr)) {
+	cbs->HandleIP6(t, NULL, ptr, len);
+	return;
+    }
+    ip6 = (const struct ip6_hdr *)ptr;
+
+    ip6_hdr_t hdr;
+    memcpy(&hdr, ip6, sizeof(hdr));
+    hdr.ip6_plen = EXTRACT_16BITS(&ip6->ip6_plen);
+    hdr.ip6_flow = EXTRACT_32BITS(&ip6->ip6_flow);
+
+    cbs->HandleIP6(t, &hdr, ptr+sizeof(hdr), len-sizeof(hdr));
+
+    int nh = ip6->ip6_nxt;
+    switch(nh) {
+    case IPPROTO_TCP:
+	handle_tcp(t, cbs, ptr+sizeof(ip6_hdr), len-sizeof(ip6_hdr), 
+		   NULL, &hdr, 0);
+	break;
+    case IPPROTO_UDP:
+	handle_udp(t, cbs, ptr+sizeof(ip6_hdr), len-sizeof(ip6_hdr), 
+		   NULL, &hdr, 0);
+	break;
+    default:
+	cbs->HandleL3Unknown(t, NULL, &hdr, 
+			     ptr+sizeof(ip6_hdr), len-sizeof(ip6_hdr));
+	break;
+    }
+}
+
+void handle_arp(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+{
+    struct arp_pkthdr *ap;
+    //u_short pro, hrd, op;
+
+    if (len < sizeof(struct arp_pkthdr)) {
+	cbs->HandleARP(t, NULL, ptr, len);
+	return;
+    }
+
+    ap = (struct arp_pkthdr *)ptr;
+    cbs->HandleARP(t, ap, ptr+ARP_HDRLEN, len-ARP_HDRLEN);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void handle_ether(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+{
+    WifipcapCallbacks::ether_hdr_t hdr;
+
+    hdr.da = WifipcapCallbacks::MAC::ether2MAC(ptr);
+    hdr.sa = WifipcapCallbacks::MAC::ether2MAC(ptr+6);
+    hdr.type = EXTRACT_16BITS(ptr + 12);
+
+    ptr += 14;
+    len -= 14;
+
+    cbs->HandleEthernet(t, &hdr, ptr, len);
+
+    switch (hdr.type) {
+    case ETHERTYPE_IP:
+	handle_ip(t, cbs, ptr, len);
+	return;
+    case ETHERTYPE_IPV6:
+	handle_ip6(t, cbs, ptr, len);
+	return;
+    case ETHERTYPE_ARP:
+	handle_arp(t, cbs, ptr, len);
+	return;
+    default:
+	cbs->HandleL2Unknown(t, hdr.type, ptr, len);
+	return;
     }
 }
 
@@ -441,7 +1015,7 @@ void handle_wep(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
     // Jeff: XXX handle TKIP/CCMP ? how can we demultiplex different
     // protection protocols?
 
-    struct wep_hdr_t hdr;
+    struct WifipcapCallbacks::wep_hdr_t hdr;
     u_int32_t iv;
 
     if (len < IEEE802_11_IV_LEN + IEEE802_11_KID_LEN) {
@@ -515,8 +1089,7 @@ const char *Wifipcap::WifiUtil::MgmtReasonCode2Txt(uint v) {
 // Jeff: HACK -- tcpdump uses a global variable to check truncation
 #define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= len) 
 
-static void
-parse_elements(struct mgmt_body_t *pbody, const u_char *p, int offset, int len)
+void WifipcapCallbacks::parse_elements(struct WifipcapCallbacks::mgmt_body_t *pbody, const u_char *p, int offset, int len)
 {
     /*
      * We haven't seen any elements yet.
@@ -655,8 +1228,8 @@ parse_elements(struct mgmt_body_t *pbody, const u_char *p, int offset, int len)
  * Print Handle functions for the management frame types
  *********************************************************************************/
 
-static int
-handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -686,8 +1259,7 @@ handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt
     return 1;
 }
 
-static int
-handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int WifipcapCallbacks::handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -712,8 +1284,8 @@ handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const stru
     return 1;
 }
 
-static int
-handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len, bool reassoc = false)
+int
+WifipcapCallbacks::handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len, bool reassoc)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -747,8 +1319,8 @@ handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const str
     return 1;
 }
 
-static int
-handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -776,15 +1348,15 @@ handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const st
     return 1;
 }
 
-static int
-handle_reassoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_reassoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     /* Same as a Association Reponse */
     return handle_assoc_response(t, cbs, pmh, p, len, true);
 }
 
-static int
-handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -802,8 +1374,8 @@ handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const stru
     return 1;
 }
 
-static int
-handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -833,8 +1405,8 @@ handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const str
     return 1;
 }
 
-static int
-handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     /* the frame body for ATIM is null. */
 
@@ -843,8 +1415,8 @@ handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_h
     return 1;
 }
 
-static int
-handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t  pbody;
 
@@ -865,8 +1437,8 @@ handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mg
     return 1;
 }
 
-static int
-handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -915,8 +1487,8 @@ handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_h
     return 1;
 }
 
-static int
-handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -957,8 +1529,8 @@ handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt
  * NOTE — this function and all that it calls should be handled as methods in WifipcapCallbacks
  */
  
-static int
-decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, int len)
+int
+WifipcapCallbacks::decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, int len)
 {
     switch (FC_SUBTYPE(fc)) {
     case ST_ASSOC_REQUEST:
@@ -997,15 +1569,15 @@ decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, 
     }
 }
 
-static
-int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok)
+int WifipcapCallbacks::decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs,
+                                         const u_char * ptr, int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok)
 {
     mgmt_header_t hdr;
     u_int16_t seq_ctl;
 
-    hdr.da    = ether2MAC(ptr + 4);
-    hdr.sa    = ether2MAC(ptr + 10);
-    hdr.bssid = ether2MAC(ptr + 16);
+    hdr.da    = MAC::ether2MAC(ptr + 4);
+    hdr.sa    = MAC::ether2MAC(ptr + 10);
+    hdr.bssid = MAC::ether2MAC(ptr + 16);
 
     hdr.duration = EXTRACT_LE_16BITS(ptr+2);
 
@@ -1026,8 +1598,8 @@ int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_c
     return 0;
 }
 
-static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
-                             const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
+int WifipcapCallbacks::decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
+                                         const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
 {
     u_int16_t du = EXTRACT_LE_16BITS(ptr+2);        //duration
 
@@ -1057,9 +1629,9 @@ static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
 	hdr.duration = du;
 	hdr.seq = seq;
 	hdr.frag = frag;
-	hdr.sa = ether2MAC(ptr + 16);
-	hdr.da = ether2MAC(ptr + 4);
-	hdr.bssid = ether2MAC(ptr + 10);
+	hdr.sa =  MAC::ether2MAC(ptr + 16);
+	hdr.da =  MAC::ether2MAC(ptr + 4);
+	hdr.bssid =  MAC::ether2MAC(ptr + 10);
 	cbs->Handle80211(t, fc, hdr.sa, hdr.da, MAC::null, MAC::null, ptr, len, fcs_ok);
 	cbs->Handle80211DataFromAP(t, &hdr, ptr+DATA_HDRLEN, len-DATA_HDRLEN);
 	hdrlen = DATA_HDRLEN;
@@ -1070,9 +1642,9 @@ static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
 	hdr.duration = du;
 	hdr.seq = seq;
 	hdr.frag = frag;
-	hdr.sa = ether2MAC(ptr + 10);
-	hdr.da = ether2MAC(ptr + 16);
-	hdr.bssid = ether2MAC(ptr + 4);
+	hdr.sa =  MAC::ether2MAC(ptr + 10);
+	hdr.da =  MAC::ether2MAC(ptr + 16);
+	hdr.bssid =  MAC::ether2MAC(ptr + 4);
 	cbs->Handle80211(t, fc, hdr.sa, hdr.da, MAC::null, MAC::null, ptr, len, fcs_ok);
 	cbs->Handle80211DataToAP(t, &hdr, ptr+DATA_HDRLEN, len-DATA_HDRLEN);
 	hdrlen = DATA_HDRLEN;
@@ -1083,10 +1655,10 @@ static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
 	hdr.duration = du;
 	hdr.seq = seq;
 	hdr.frag = frag;
-	hdr.ra = ether2MAC(ptr+4);
-	hdr.ta = ether2MAC(ptr+10);
-	hdr.da = ether2MAC(ptr+16);
-	hdr.da = ether2MAC(ptr+24);
+	hdr.ra =  MAC::ether2MAC(ptr+4);
+	hdr.ta =  MAC::ether2MAC(ptr+10);
+	hdr.da =  MAC::ether2MAC(ptr+16);
+	hdr.da =  MAC::ether2MAC(ptr+24);
 	cbs->Handle80211(t, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len, fcs_ok);
 	cbs->Handle80211DataWDS(t, &hdr, ptr+DATA_WDS_HDRLEN, len-DATA_WDS_HDRLEN);
 	hdrlen = DATA_WDS_HDRLEN;
@@ -1103,7 +1675,7 @@ static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
     return 0;
 }
 
-static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
+int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
 {
     u_int16_t du = EXTRACT_LE_16BITS(ptr+2);        //duration
 
@@ -1112,8 +1684,8 @@ static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, co
 	ctrl_ps_poll_t hdr;
 	hdr.fc = fc;
 	hdr.aid = du;
-	hdr.bssid = ether2MAC(ptr+4);
-	hdr.ta = ether2MAC(ptr+10);
+	hdr.bssid =  MAC::ether2MAC(ptr+4);
+	hdr.ta =  MAC::ether2MAC(ptr+10);
 	cbs->Handle80211(t, fc, MAC::null, MAC::null, MAC::null, hdr.ta, ptr, len, fcs_ok);
 	cbs->Handle80211CtrlPSPoll(t, &hdr);
 	break;
@@ -1122,8 +1694,8 @@ static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, co
 	ctrl_rts_t hdr;
 	hdr.fc = fc;
 	hdr.duration = du;
-	hdr.ra = ether2MAC(ptr+4);
-	hdr.ta = ether2MAC(ptr+10);
+	hdr.ra =  MAC::ether2MAC(ptr+4);
+	hdr.ta =  MAC::ether2MAC(ptr+10);
 	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, hdr.ta, ptr, len, fcs_ok);
 	cbs->Handle80211CtrlRTS(t, &hdr);
 	break;
@@ -1132,7 +1704,7 @@ static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, co
 	ctrl_cts_t hdr;
 	hdr.fc = fc;
 	hdr.duration = du;
-	hdr.ra = ether2MAC(ptr+4);
+	hdr.ra =  MAC::ether2MAC(ptr+4);
 	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
 	cbs->Handle80211CtrlCTS(t, &hdr);
 	break;
@@ -1141,7 +1713,7 @@ static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, co
 	ctrl_ack_t hdr;
 	hdr.fc = fc;
 	hdr.duration = du;
-	hdr.ra = ether2MAC(ptr+4);
+	hdr.ra =  MAC::ether2MAC(ptr+4);
 	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
 	cbs->Handle80211CtrlAck(t, &hdr);
 	break;
@@ -1150,8 +1722,8 @@ static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, co
 	ctrl_end_t hdr;
 	hdr.fc = fc;
 	hdr.duration = du;
-	hdr.ra = ether2MAC(ptr+4);
-	hdr.bssid = ether2MAC(ptr+10);
+	hdr.ra =  MAC::ether2MAC(ptr+4);
+	hdr.bssid =  MAC::ether2MAC(ptr+10);
 	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
 	cbs->Handle80211CtrlCFEnd(t, &hdr);
 	break;
@@ -1160,8 +1732,8 @@ static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, co
 	ctrl_end_ack_t hdr;
 	hdr.fc = fc;
 	hdr.duration = du;
-	hdr.ra = ether2MAC(ptr+4);
-	hdr.bssid = ether2MAC(ptr+10);
+	hdr.ra =  MAC::ether2MAC(ptr+4);
+	hdr.bssid =  MAC::ether2MAC(ptr+10);
 	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
 	cbs->Handle80211CtrlEndAck(t, &hdr);
 	break;
@@ -1180,7 +1752,7 @@ static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, co
 #define	roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
 #endif
 
-void handle_80211(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, size_t len, int pad = 0) 
+void WifipcapCallbacks::handle_80211(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, size_t len, int pad) 
 {
     if (len < 2) {
 	cbs->Handle80211(t, 0, MAC::null, MAC::null, MAC::null, MAC::null, packet, len, false);
@@ -1432,7 +2004,7 @@ print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCal
     return 0;
 }
 
-static void handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p, u_int caplen)
+void WifipcapCallbacks::handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p, u_int caplen)
 {
 #define	BITNO_32(x) (((x) >> 16) ? 16 + BITNO_16((x) >> 16) : BITNO_16((x)))
 #define	BITNO_16(x) (((x) >> 8) ? 8 + BITNO_8((x) >> 8) : BITNO_8((x)))
@@ -1519,9 +2091,9 @@ done:;
     handle_80211(t, cbs, p+len, caplen-len);
 }
 
-static void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
+void WifipcapCallbacks::handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
 {
-   WifipcapCallbacks::prism2_pkthdr hdr;
+    WifipcapCallbacks::prism2_pkthdr hdr;
 
     /* get the fields */
     hdr.host_time 	= EXTRACT_LE_32BITS(packet+32);
@@ -1535,9 +2107,9 @@ static void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const 
     hdr.istx		= EXTRACT_LE_32BITS(packet+128);
     cbs->HandlePrism(t, &hdr, packet + 144, len - 144);
     handle_80211(t,cbs,packet+144,len-144);
- }
+}
 
-/* static */ void Wifipcap::dl_prism(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
+void Wifipcap::dl_prism(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
 {
     PcapUserData *data = reinterpret_cast<PcapUserData *>(user);
     WifipcapCallbacks *cbs = data->cbs;
@@ -1545,42 +2117,23 @@ static void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const 
     if(header->caplen < 144) return;    // prism header
 
     cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    handle_prism(header->ts,cbs,packet+144,header->caplen-144);
+    WifipcapCallbacks::handle_prism(header->ts,cbs,packet+144,header->caplen-144);
     cbs->PacketEnd();
 }
 
-/* static */ void Wifipcap::dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
+void Wifipcap::dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
 {
     PcapUserData *data = reinterpret_cast<PcapUserData *>(user);
     WifipcapCallbacks *cbs = data->cbs;
 
     cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    handle_radiotap(header->ts, cbs, packet, header->caplen);
+    WifipcapCallbacks::handle_radiotap(header->ts, cbs, packet, header->caplen);
     cbs->PacketEnd();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// These were used for the standalone program. 
-// We don't use them here. They may not work anymore
-
-#ifdef STANDALONE
-Wifipcap::Wifipcap(const char* const *filenames, int nfiles, bool verbose) :
-    descr(NULL), verbose(verbose), startTime(TIME_NONE), 
-    lastPrintTime(TIME_NONE), packetsProcessed(0)
-{
-    for (int i=0; i<nfiles; i++) {
-	morefiles.push_back(filenames[i]);
-    }
-    InitNext();
-}
 
 /* None of these are used in tcpflow */
-Wifipcap::Wifipcap(const char *name, bool live, bool verbose) :
-    descr(NULL), verbose(verbose), startTime(TIME_NONE), 
-    lastPrintTime(TIME_NONE), packetsProcessed(0)
-{
-    Init(name, live);
-}
 
 bool Wifipcap::InitNext()
 {
@@ -1597,12 +2150,12 @@ bool Wifipcap::InitNext()
 
 void Wifipcap::Init(const char *name, bool live) {
     if (verbose){
-	cerr << "wifipcap: initializing '" << name << "'" << endl;
+        std::cerr << "wifipcap: initializing '" << name << "'" << std::endl;
     }
 
     if (!live) {
 #ifdef _WIN32
-	cerr << "Trace replay is unsupported in windows." << endl;
+	std::cerr << "Trace replay is unsupported in windows." << std::endl;
 	exit(1);
 #else
 	// mini hack: handle gziped files since all our traces are in
@@ -1613,6 +2166,7 @@ void Wifipcap::Init(const char *name, bool live) {
 	bool bzip = !strcmp(name+slen-4, ".bz2");
 	
 	char cmd[256];
+	char errbuf[256];
 	if (gzip) 
 	    sprintf(cmd, "zcat %s", name);
 	else if (bzip)
@@ -1636,6 +2190,7 @@ void Wifipcap::Init(const char *name, bool live) {
         }
 #endif
     } else {
+	char errbuf[256];
 	descr = pcap_open_live(name,BUFSIZ,1,-1,errbuf);
         if(descr == NULL) {
             printf("pcap_open_live(): %s\n", errbuf);
@@ -1658,7 +2213,7 @@ void Wifipcap::Init(const char *name, bool live) {
 const char *Wifipcap::SetFilter(const char *filter)
 {
     struct bpf_program fp;
-    bpf_u_int32 netp;
+    bpf_u_int32 netp=PCAP_NETMASK_UNKNOWN;
 
     if(pcap_compile(descr,&fp,(char *)filter,0,netp) == -1) { 
 	return "Error calling pcap_compile"; 
@@ -1671,6 +2226,73 @@ const char *Wifipcap::SetFilter(const char *filter)
     return NULL;
 }
 
+
+void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
+{
+    WifipcapCallbacks::prism2_pkthdr hdr;
+
+    hdr.host_time 	= EXTRACT_LE_32BITS(packet+32);
+    hdr.mac_time 	= EXTRACT_LE_32BITS(packet+44);
+    hdr.channel 	= EXTRACT_LE_32BITS(packet+56);
+    hdr.rssi 		= EXTRACT_LE_32BITS(packet+68);
+    hdr.sq 		= EXTRACT_LE_32BITS(packet+80);
+    hdr.signal  	= EXTRACT_LE_32BITS(packet+92);
+    hdr.noise   	= EXTRACT_LE_32BITS(packet+104);
+    hdr.rate		= EXTRACT_LE_32BITS(packet+116)/2;
+    hdr.istx		= EXTRACT_LE_32BITS(packet+128);
+
+    cbs->HandlePrism(t, &hdr, packet + 144, len - 144);
+}
+
+
+
+void handle_packet(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
+{
+    Wifipcap::PcapUserData *data = reinterpret_cast<Wifipcap::PcapUserData *>(user);
+    Wifipcap *wcap = data->wcap;
+    WifipcapCallbacks *cbs = data->cbs;
+
+    if (wcap->startTime == TIME_NONE) {
+	wcap->startTime = header->ts;
+	wcap->lastPrintTime = header->ts;
+    }
+    if (header->ts.tv_sec > wcap->lastPrintTime.tv_sec + Wifipcap::PRINT_TIME_INTERVAL) {
+	if (wcap->verbose) {
+	    int hours = (header->ts.tv_sec - wcap->startTime.tv_sec)/3600;
+	    int days  = hours/24;
+	    int left  = hours%24;
+	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10lld pkts\n", 
+		    days, left, wcap->packetsProcessed);
+	}
+	wcap->lastPrintTime = header->ts;
+    }
+    wcap->packetsProcessed++;
+
+    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
+    int frameOffset = 0;
+    int frameLen = header->caplen;
+    printf("header_type=%d\n",data->header_type);
+    if (data->header_type == DLT_PRISM_HEADER) {
+	handle_prism(header->ts, cbs, packet, header->caplen);
+	frameOffset += 144;
+	frameLen -= 144;
+        WifipcapCallbacks::handle_80211(header->ts, cbs, packet + frameOffset, frameLen);
+    } else if (data->header_type == DLT_IEEE802_11_RADIO) {
+        WifipcapCallbacks::handle_radiotap(header->ts, cbs, packet + frameOffset, header->caplen);
+    } else if (data->header_type == DLT_IEEE802_11) {
+        WifipcapCallbacks::handle_80211(header->ts, cbs, packet + frameOffset, frameLen);
+    } else if (data->header_type == DLT_EN10MB) {
+	// plain old ethernet
+        handle_ether(header->ts, cbs, packet, frameLen);
+    } else {
+	// try handling it as default IP assuming framing is ethernet 
+	// (this is for testing)
+        handle_ip(header->ts, cbs, packet+14, frameLen-14);
+    }
+    cbs->PacketEnd();
+}
+
+
 void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
 {
     /* NOTE: This needs to be fixed so that the correct handle_packet is called  */
@@ -1678,58 +2300,9 @@ void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
     packetsProcessed = 0;
     
     do {
-	PcapUserData data;
-	data.wcap = this;
-	data.cbs = cbs;
+	PcapUserData data(this,cbs,DLT_IEEE802_11_RADIO);
 	pcap_loop(descr, maxpkts > 0 ? maxpkts - packetsProcessed : 0,
 		  handle_packet, reinterpret_cast<u_char *>(&data));
     } while ( InitNext() );
 }
 
-/**
- * usage: test <pcap_trace_file>
- */
-int main(int argc, char **argv)
-{
-    if (argc == 1) {
-        pcap_if_t *alldevs;
-        pcap_if_t *d;
-        int i=0;
-        char errbuf[PCAP_ERRBUF_SIZE];
-        
-        /* Retrieve the device list from the local machine */
-        if (pcap_findalldevs(&alldevs, errbuf) == -1) {
-            fprintf(stderr,"Error in pcap_findalldevs_ex: %s\n", errbuf);
-            exit(1);
-        }
-        
-        /* Print the list */
-        for(d= alldevs; d != NULL; d= d->next) {
-            printf("%d. %s", ++i, d->name);
-            if (d->description)
-                printf(" (%s)\n", d->description);
-            else
-                printf(" (No description available)\n");
-        }
-        
-        if (i == 0) {
-            printf("\nNo interfaces found! Make sure WinPcap is installed.\n");
-            return 1;
-        }
-        
-        /* We don't need any more the device list. Free it */
-        pcap_freealldevs(alldevs);
-	return 1;
-    }
-
-    bool live = argc == 3 && atoi(argv[2]) == 1;
-    Wifipcap *wcap = new Wifipcap(argv[1], live);
-    wcap->Run(new TestCB());
-    return 0;
-}
-
-#endif
-
-#endif
-
-///////////////////////////////////////////////////////////////////////////////

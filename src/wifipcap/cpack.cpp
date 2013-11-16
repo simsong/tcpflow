@@ -35,7 +35,7 @@
 #include <string.h>
 
 #include "cpack.h"
-#include "uni/extract.h"
+#include "extract.h"
 
 static u_int8_t *
 cpack_next_boundary(u_int8_t *buf, u_int8_t *p, size_t alignment)

@@ -14,6 +14,9 @@
  * Original code by Hannes Gredler (hannes@juniper.net)
  */
 
+#ifndef UNI_OUT_H
+#define UNI_OUT_H
+
 extern struct tok oui_values[];
 extern struct tok smi_values[];
 
@@ -76,3 +79,4 @@ extern struct tok smi_values[];
 #define SMI_THE3GPP                  10415
 #define SMI_GEMTEK_SYSTEMS           10529
 #define SMI_WIFI_ALLIANCE            14122
+#endif

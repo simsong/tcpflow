@@ -33,8 +33,9 @@
  * Mike Kershaw (dragorn@kismetwireless.net)
  */
 
-#ifndef IEEE80211RADIOTAP_H
-#define IEEE80211RADIOTAP_H
+#ifndef UNI_IEEE802_11_RADIO_H
+#define UNI_IEEE802_11_RADIO_H
+
 
 #include <stdint.h>
 

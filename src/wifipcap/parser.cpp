@@ -11,18 +11,30 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 using namespace std;
 
 #include "wifipcap.h"
-#include "ieee802_11_radio.h"
-#include "cpack.h"
 
-struct PcapUserData {
-    Wifipcap *wcap;
-    WifipcapCallbacks *cbs;
-    int header_type;
-};
+#pragma GCC diagnostic ignored "-Wcast-align"
+
+
+#include "ether.h"
+#include "ethertype.h"
+#include "oui.h"
+#include "ipproto.h"
+#include "extract.h"
+#include "icmp.h"
+#include "tcp.h"
+#include "util.h"
+//#include "arp.h"
+#include "uni/ieee802_11.h"
+#include "uni/ieee802_11_radio.h"
+#include "uni/llc.h"
+
+//#include "ieee802_11_radio.h"
+#include "cpack.h"
 
 /*max length of an IEEE 802.11 packet*/
 #ifndef MAX_LEN_80211
@@ -675,7 +687,7 @@ void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
     ip6 = (const struct ip6_hdr *)ptr;
 
     ip6_hdr_t hdr;
-    memcpy(&hdr, ip6, sizeof(&hdr));
+    memcpy(&hdr, ip6, sizeof(hdr));
     hdr.ip6_plen = EXTRACT_16BITS(&ip6->ip6_plen);
     hdr.ip6_flow = EXTRACT_32BITS(&ip6->ip6_flow);
 
@@ -716,7 +728,7 @@ void handle_arp(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
 
 void handle_ether(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
 {
-    ether_hdr_t hdr;
+    WifipcapCallbacks::ether_hdr_t hdr;
 
     hdr.da = ether2MAC(ptr);
     hdr.sa = ether2MAC(ptr+6);
@@ -809,6 +821,7 @@ void handle_wep(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
 
     cbs->HandleWEP(t, &hdr, ptr, len);
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -854,17 +867,17 @@ static const char *reason_text[] = {
 };
 #define NUM_REASONS	(sizeof reason_text / sizeof reason_text[0])
 
-const char *WifiUtil::MgmtAuthAlg2Txt(int v) {
+const char *Wifipcap::WifiUtil::MgmtAuthAlg2Txt(uint v) {
     return v < NUM_AUTH_ALGS ? auth_alg_text[v] : "Unknown";
 }
-const char *WifiUtil::MgmtStatusCode2Txt(int v) {
+const char *Wifipcap::WifiUtil::MgmtStatusCode2Txt(uint v) {
     return v < NUM_STATUSES ? status_text[v] : "Reserved";
 }
-const char *WifiUtil::MgmtReasonCode2Txt(int v) {
+const char *Wifipcap::WifiUtil::MgmtReasonCode2Txt(uint v) {
     return v < NUM_REASONS ? reason_text[v] : "Reserved";
 }
 
-const char *WifiUtil::EtherType2Txt(int t) {
+const char *Wifipcap::WifiUtil::EtherType2Txt(uint t) {
     return tok2str(ethertype_values,"Unknown", t);
 }
 
@@ -1289,7 +1302,6 @@ handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt
 	pbody.reason_code = EXTRACT_LE_16BITS(p);
 	offset += IEEE802_11_REASON_LEN;
 
-	/*
 	reason = (pbody.reason_code < NUM_REASONS)
 			? reason_text[pbody.reason_code]
 			: "Reserved";
@@ -1299,7 +1311,6 @@ handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt
 	} else {
 		printf(" (%s): %s", etheraddr_string(pmh->sa), reason);
 	}
-	*/
 	cbs->Handle80211MgmtDeauth(t, pmh, &pbody);
 
 	return 1;
@@ -1536,7 +1547,7 @@ int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_c
     return 0;
 }
 
-extern guint32 crc32_802(const guint8 *buf, guint len);
+//extern guint32 crc32_802(const guint8 *buf, guint len);
 
 #ifndef roundup2
 #define	roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
@@ -1599,23 +1610,6 @@ void handle_80211(const struct timeval& t, WifipcapCallbacks *cbs, const u_char 
 	cbs->Handle80211Unknown(t, fc, packet, len);
 	return;
     }
-}
-
-void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
-{
-    prism2_pkthdr hdr;
-
-    hdr.host_time 	= EXTRACT_LE_32BITS(packet+32);
-    hdr.mac_time 	= EXTRACT_LE_32BITS(packet+44);
-    hdr.channel 	= EXTRACT_LE_32BITS(packet+56);
-    hdr.rssi 		= EXTRACT_LE_32BITS(packet+68);
-    hdr.sq 		= EXTRACT_LE_32BITS(packet+80);
-    hdr.signal  	= EXTRACT_LE_32BITS(packet+92);
-    hdr.noise   	= EXTRACT_LE_32BITS(packet+104);
-    hdr.rate		= EXTRACT_LE_32BITS(packet+116)/2;
-    hdr.istx		= EXTRACT_LE_32BITS(packet+128);
-
-    cbs->HandlePrism(t, &hdr, packet + 144, len - 144);
 }
 
 static int
@@ -1893,53 +1887,6 @@ out:
 #undef BITNO_4
 #undef BITNO_2
 #undef BIT
-}
-
-void handle_packet(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
-{
-    PcapUserData *data = reinterpret_cast<PcapUserData *>(user);
-    Wifipcap *wcap = data->wcap;
-    WifipcapCallbacks *cbs = data->cbs;
-
-#if 0
-    if (wcap->startTime == TIME_NONE) {
-	wcap->startTime = header->ts;
-	wcap->lastPrintTime = header->ts;
-    }
-    if (header->ts.tv_sec > wcap->lastPrintTime.tv_sec + Wifipcap::PRINT_TIME_INTERVAL) {
-	if (wcap->verbose) {
-	    int hours = (header->ts.tv_sec - wcap->startTime.tv_sec)/3600;
-	    int days  = hours/24;
-	    int left  = hours%24;
-	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10d pkts\n", 
-		    days, left, wcap->packetsProcessed);
-	}
-	wcap->lastPrintTime = header->ts;
-    }
-    wcap->packetsProcessed++;
-#endif
-
-    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    int frameOffset = 0;
-    int frameLen = header->caplen;
-    if (data->header_type == DLT_PRISM_HEADER) {
-	handle_prism(header->ts, cbs, packet, header->caplen);
-	frameOffset += 144;
-	frameLen -= 144;
-	handle_80211(header->ts, cbs, packet + frameOffset, frameLen);
-    } else if (data->header_type == DLT_IEEE802_11_RADIO) {
-	handle_radiotap(header->ts, cbs, packet + frameOffset, header->caplen);
-    } else if (data->header_type == DLT_IEEE802_11) {
-	handle_80211(header->ts, cbs, packet + frameOffset, frameLen);
-    } else if (data->header_type == DLT_EN10MB) {
-	// plain old ethernet
-	handle_ether(header->ts, cbs, packet, frameLen);
-    } else {
-	// try handling it as default IP assuming framing is ethernet 
-	// (this is for testing)
-	handle_ip(header->ts, cbs, packet+14, frameLen-14);
-    }
-    cbs->PacketEnd();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

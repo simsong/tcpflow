@@ -9,6 +9,7 @@ typedef unsigned short uint16_t;
 typedef unsigned long long uint64_t;
 #endif
 
+#if 0
 struct MAC {
     uint64_t val;
     MAC() {}
@@ -36,6 +37,7 @@ struct MAC {
 
 std::ostream& operator<<(std::ostream& out, const MAC& mac);
 std::ostream& operator<<(std::ostream& out, const struct in_addr& ip);
+#endif
 
 char *va(const char *format, ...);
 

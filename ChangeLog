@@ -1,3 +1,7 @@
+2013-11-15  Basic  <simsong@Mucha.local>
+
+	* src/datalink.cpp (dl_null): removed DLT_NULL_BROKEN; it's not needed anymore.
+
 2013-10-21  Man Page  <simsong@mncrnpsedu.local>
 
 	* src/flow.cpp (flow::filename): Since some people don't understand what %c and %C do, they don't provide it. It is required, so now a %c is appended if it is not specified.

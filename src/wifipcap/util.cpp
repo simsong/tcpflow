@@ -1,4 +1,3 @@
-
 #include "os.h"
 #include <stdarg.h>
 #include <cstdlib>
@@ -13,69 +12,30 @@
 #endif
 #include "util.h"
 #include "ethertype.h"
+#include "wifipcap.h"
 
-MAC::MAC(const uint8_t *ether) {
-    val = ((((((((((((uint64_t) (ether[0]))
-		    << 8) | ether[1])
-		  << 8) | ether[2])
-		<< 8) | ether[3])
-	      << 8) | ether[4])
-	    << 8) | ether[5]);
-}
-MAC::MAC(uint64_t val) : val(val) {
-}
+//std::ostream& operator<<(std::ostream& out, const WifipcapCallbacks::MAC& mac) {
+//    const char *fmt = WifipcapCallbacks::MAC::print_fmt == WifipcapCallbacks::MAC::PRINT_FMT_COLON ? 
+//	"%02x:%02x:%02x:%02x:%02x:%02x" :
+//	"%02x%02x%02x%02x%02x%02x";
+//    char buf[24];
+//    sprintf(buf, fmt, 
+//	    (int)((mac.val>>40)&0xff),
+//	    (int)((mac.val>>32)&0xff),
+//	    (int)((mac.val>>24)&0xff),
+//	    (int)((mac.val>>16)&0xff),
+//	    (int)((mac.val>>8)&0xff),
+//	    (int)((mac.val)&0xff)
+//	    );
+//    out << buf;
+//    return out;
+//}
+//
 
-MAC::MAC(const char *str) {
-    int o[6];
-    int ret = sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
-		     &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
-    if (ret != 6) {
-	int ret = sscanf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
-			 &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
-
-	if (ret != 6) {
-	    std::cerr << "bad mac address: " << str << std::endl;
-	    val = 0;
-	    return;
-	}
-    }
-    
-    val = ((((((((((((uint64_t) (o[0]))
-		    << 8) | o[1])
-		  << 8) | o[2])
-		<< 8) | o[3])
-	      << 8) | o[4])
-	    << 8) | o[5]);
-}
-
-MAC::MAC(const MAC& o) : val(o.val) {
-}
-
-MAC MAC::broadcast = MAC(0xffffffffffffULL);
-MAC MAC::null = MAC((uint64_t)0);
-int MAC::print_fmt = MAC::PRINT_FMT_COLON;
-
-std::ostream& operator<<(std::ostream& out, const MAC& mac) {
-    const char *fmt = MAC::print_fmt == MAC::PRINT_FMT_COLON ? 
-	"%02x:%02x:%02x:%02x:%02x:%02x" :
-	"%02x%02x%02x%02x%02x%02x";
-    char buf[24];
-    sprintf(buf, fmt, 
-	    (int)((mac.val>>40)&0xff),
-	    (int)((mac.val>>32)&0xff),
-	    (int)((mac.val>>24)&0xff),
-	    (int)((mac.val>>16)&0xff),
-	    (int)((mac.val>>8)&0xff),
-	    (int)((mac.val)&0xff)
-	    );
-    out << buf;
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const struct in_addr& ip) {
-    out << inet_ntoa(ip);
-    return out;
-}
+//std::ostream& operator<<(std::ostream& out, const struct in_addr& ip) {
+//    out << inet_ntoa(ip);
+//    return out;
+//}
 
 char *va(const char *format, ...)
 {
@@ -94,6 +54,7 @@ char *va(const char *format, ...)
     return b;	
 }
 
+#if 0
 const struct tok ethertype_values[] = { 
     { ETHERTYPE_IP,		"IPv4" },
     { ETHERTYPE_MPLS,		"MPLS unicast" },
@@ -132,6 +93,7 @@ const struct tok ethertype_values[] = {
     { 0, NULL}
 };
 
+#endif
 /*
  * Convert a token value to a string; use "fmt" if not found.
  */

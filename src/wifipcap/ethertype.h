@@ -21,6 +21,9 @@
  * @(#) $Header: /home/cvs/wifitools/wifipcap/ethertype.h,v 1.1.1.1 2006/12/14 01:22:11 jpang Exp $ (LBL)
  */
 
+#ifndef UNI_ETHERTYPE_H
+#define UNI_ETHERTYPE_H
+
 /*
  * Ethernet types.
  *
@@ -141,3 +144,4 @@
 #endif
 
 extern const struct tok ethertype_values[];
+#endif
