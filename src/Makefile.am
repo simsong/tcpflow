@@ -42,11 +42,8 @@ WIFI = 	datalink_wifi.cpp \
 	wifipcap/wifipcap.h \
 	wifipcap/cpack.h \
 	wifipcap/cpack.cpp \
-	wifipcap/uni/ethertype.h \
-	wifipcap/uni/extract.h \
-	wifipcap/uni/ieee802_11_radio.h \
-	wifipcap/llc.h \
-	wifipcap/uni/oui.h 
+	wifipcap/llc.h 
+
 
 
 wifipcap_demo_SOURCES = \
@@ -76,11 +73,8 @@ wifipcap_demo_SOURCES = \
 	wifipcap/util.cpp \
 	wifipcap/util.h \
 	wifipcap/wifipcap.cpp \
-	wifipcap/wifipcap.h \
-	wifipcap/uni/ieee802_11.h \
-	wifipcap/uni/ieee802_11_radio.h \
-	wifipcap/uni/llc.h \
-	wifipcap/uni/packet-ieee80211.h 
+	wifipcap/wifipcap.h 
+
 
 
 
@@ -123,7 +117,6 @@ EXTRA_DIST =\
 	wifipcap/ipproto.h \
 	wifipcap/os.h \
 	wifipcap/oui.h \
-	wifipcap/parser.cpp \
 	wifipcap/prism.h \
 	wifipcap/radiotap.h \
 	wifipcap/sample.cpp \
@@ -133,8 +126,8 @@ EXTRA_DIST =\
 	wifipcap/util.cpp \
 	wifipcap/util.h \
 	wifipcap/wifipcap.cpp \
-	wifipcap/wifipcap.h \
-	wifipcap/wifipcap.h_old 
+	wifipcap/wifipcap.h 
+
 
 testiph: tcpflow
 	echo Testing the IP histogram

@@ -2271,7 +2271,6 @@ void handle_packet(u_char *user, const struct pcap_pkthdr *header, const u_char 
     cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
     int frameOffset = 0;
     int frameLen = header->caplen;
-    printf("header_type=%d\n",data->header_type);
     if (data->header_type == DLT_PRISM_HEADER) {
 	handle_prism(header->ts, cbs, packet, header->caplen);
 	frameOffset += 144;
@@ -2305,4 +2304,6 @@ void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
 		  handle_packet, reinterpret_cast<u_char *>(&data));
     } while ( InitNext() );
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
