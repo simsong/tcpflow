@@ -5,7 +5,6 @@ EXTRA_PROGRAMS = wifipcap_demo
 
 AM_CPPFLAGS = -I${top_srcdir}/src/be13_api -I${top_srcdir}/src/wifipcap
 
-
 include dfxml/src/Makefile.defs
 include be13_api/Makefile.defs
 
@@ -37,17 +36,18 @@ NETVIZ = \
 	netviz/one_page_report.h
 
 WIFI = 	datalink_wifi.cpp \
+	wifipcap/TimeVal.cpp \
+	wifipcap/TimeVal.h \
 	wifipcap/wifipcap.cpp \
 	wifipcap/wifipcap.h \
 	wifipcap/cpack.h \
 	wifipcap/cpack.cpp \
 	wifipcap/uni/ethertype.h \
 	wifipcap/uni/extract.h \
-	wifipcap/uni/ieee802_11.h \
 	wifipcap/uni/ieee802_11_radio.h \
-	wifipcap/uni/llc.h \
-	wifipcap/uni/oui.h \
-	wifipcap/uni/packet-ieee80211.h 
+	wifipcap/llc.h \
+	wifipcap/uni/oui.h 
+
 
 wifipcap_demo_SOURCES = \
 	wifipcap/TimeVal.cpp \

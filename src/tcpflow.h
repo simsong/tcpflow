@@ -76,6 +76,7 @@
 #include <cstdarg>
 #include <cerrno>
 #include <iostream>
+#include <iomanip>
 
 #include <fcntl.h>
 #include <assert.h>
@@ -318,13 +319,14 @@ extern "C" scanner_t scan_http;
 extern "C" scanner_t scan_tcpdemux;
 extern "C" scanner_t scan_netviz;
 
-/* extra << functions */
-inline std::ostream & operator <<(std::ostream &os,const struct timeval &tv)
+
+#ifndef HAVE_TIMEVAL_OUT
+#define HAVE_TIMEVAL_OUT
+inline std::ostream& operator<<(std::ostream& os, const struct timeval *t)
 {
-    os << "sec: " << tv.tv_sec << " usec: " << tv.tv_usec;
-    return os;
+    return os << t->tv_sec << "." << std::setw(6) << std::setfill('0') << t->tv_usec;
+    
 }
-
-
+#endif
 
 #endif /* __TCPFLOW_H__ */

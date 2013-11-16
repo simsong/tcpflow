@@ -29,9 +29,9 @@ using namespace std;
 #include "tcp.h"
 #include "util.h"
 //#include "arp.h"
-#include "uni/ieee802_11.h"
+//#include "uni/ieee802_11.h"
 #include "uni/ieee802_11_radio.h"
-#include "uni/llc.h"
+#include "llc.h"
 
 //#include "ieee802_11_radio.h"
 #include "cpack.h"
@@ -886,6 +886,7 @@ const char *Wifipcap::WifiUtil::EtherType2Txt(uint t) {
 // Jeff: HACK -- tcpdump uses a global variable to check truncation
 #define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= len) 
 
+#if 0
 static void
 parse_elements(struct mgmt_body_t *pbody, const u_char *p, int offset, int len)
 {
@@ -2014,5 +2015,6 @@ void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
 		  handle_packet, reinterpret_cast<u_char *>(&data));
     } while ( InitNext() );
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////

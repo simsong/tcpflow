@@ -19,7 +19,7 @@
 #include "extract.h"
 #include "prism.h"
 #include "radiotap.h"
-#include "ieee802_11.h"
+//#include "ieee802_11.h"
 #include "ether.h"
 #include "llc.h"
 #include "oui.h"
