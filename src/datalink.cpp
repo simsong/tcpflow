@@ -241,7 +241,7 @@ dlt_handler_t handlers[] = {
     { dl_raw,     101 },
     { dl_ethernet, DLT_EN10MB },
     { dl_ethernet, DLT_IEEE802 },
-    { dl_ppp,      DLT_PPP },
+    { dl_ppp,           DLT_PPP },
 #ifdef DLT_LINUX_SLL
     { dl_linux_sll,        DLT_LINUX_SLL },
 #endif

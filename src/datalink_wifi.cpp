@@ -4,8 +4,6 @@
  * it maintains some 802.11 specific databases.
  */ 
 
-#ifndef WIN32
-
 #include "tcpflow.h"
 #include "wifipcap.h"
 #include <algorithm>
@@ -15,10 +13,10 @@
 bool opt_enforce_80211_frame_checksum = true; // by default, only give good checksums
 
 /**
- * TFWC --- TCPFLOW callbacks for wifippcap
+ * TFCB --- TCPFLOW callbacks for wifippcap
  */
 
-class TFWC : public WifipcapCallbacks {
+class TFCB : public WifipcapCallbacks {
 private:
     bool fcs_ok;                        // framechecksum is okay!
     typedef pair<const WifipcapCallbacks::MAC *,const char *> mac_ssid_pair;
@@ -33,8 +31,9 @@ private:
     mac_ssids_seen_t mac_ssids_seen;
 
 public:
-    TFWC():fcs_ok(),mac_ssids_seen(){};
+    TFCB():fcs_ok(),mac_ssids_seen(){};
 
+#define DEBUG_WIFI
 #ifdef DEBUG_WIFI
     void PacketBegin(const struct timeval& t, const u_char *pkt, int len, int origlen) {
 	cout << t << " {" << endl;
@@ -67,8 +66,6 @@ public:
         struct timeval tv;
         /* TK1: Does the pcap header make sense? */
         /* TK2: How do we get and preserve the the three MAC addresses? */
-
-// printf("DATA_HDRLEN=%d  DATA_WDS_HDRLEN=%d\n",DATA_HDRLEN,DATA_WDS_HDRLEN);
 
         sbuf_t sb(pos0_t(),rest,len,len,0);
         sb.hex_dump(std::cout);
@@ -118,33 +115,18 @@ public:
 };
 
 /* Entrance point */
-//static Wifipcap wcap;
-//static Wifipcap::PcapUserData data;
+static Wifipcap wcap;
+static TFCB tfcb;
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-
-#if 0
-     if(wcap==0){
-         wcap = new Wifipcap();
-         data.wcap = wcap;
-         data.cbs  = new TFWC();
-     }
-     Wifipcap::dl_ieee802_11_radio(reinterpret_cast<u_char *>(&data),h,p);
-#endif
+    Wifipcap::PcapUserData data(&wcap,&tfcb,DLT_IEEE802_11_RADIO);
+    Wifipcap::dl_ieee802_11_radio(reinterpret_cast<u_char *>(&data),h,p);
 }    
 
 void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    std::cerr << "wifi sniffing not implemented yet\n";
-#if 0
-    if(wcap==0){
-        wcap = new Wifipcap();
-        data.wcap = wcap;
-        data.cbs  = new TFWC();
-    }
+    Wifipcap::PcapUserData data(&wcap,&tfcb,DLT_PRISM_HEADER);
     Wifipcap::dl_prism(reinterpret_cast<u_char *>(&data),h,p);
-#endif
 }    
 
         
-#endif

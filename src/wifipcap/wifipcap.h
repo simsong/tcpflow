@@ -692,6 +692,7 @@ public:
         static const char *MgmtReasonCode2Txt(uint v);
         static const char *EtherType2Txt(uint t);
     };
+
     struct PcapUserData  {
     PcapUserData(Wifipcap *wcap_,WifipcapCallbacks *cbs_,int header_type_):wcap(wcap_),cbs(cbs_),header_type(header_type_){};
         Wifipcap *wcap;
