@@ -81,7 +81,7 @@ if test x"${mingw}" == "xno" ; then
 fi
 
 if test -r /bin/uname.exe ; then
-  if test `uname -o` == "Msys" ; then
+  if test "`uname -o`" == "Msys" ; then
     AC_MSG_NOTICE([Compiling with Msys. Setting flags appropriately.])
     LIBS="$LIBS -lws2_32 -lgdi32"
     LDFLAGS="$LDFLAGS -Wl,--enable-auto-import"
@@ -149,9 +149,14 @@ WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
     -Woverloaded-virtual -Wsign-promo \
     -funit-at-a-time"
 
-if test x$CXX != "xclang++" && `uname -s` != 'Darwin' ; then
-  # -Wstrict-null-sentinel is not supported under clang or under Darwin's gcc
-  WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
+if $CXX -dM -E - < /dev/null | grep -q __clang__ ; then
+   AC_MSG_RESULT([Using clang])
+   clang='yes'
+ else
+   AC_MSG_RESULT([not using clang])   
+   clang='no'
+   # -Wstrict-null-sentinel is not supported under clang or under Darwin's gcc
+   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
 fi
 
 if test $mingw = "no" ; then
