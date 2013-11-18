@@ -644,8 +644,8 @@ handle_icmp(const struct timeval& t, WifipcapCallbacks *cbs,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len);
-void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len);
+void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len);
+void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len);
 
 struct ip_print_demux_state {
     struct ip *ip;
@@ -656,7 +656,7 @@ struct ip_print_demux_state {
 };
 
 void
-ip_demux(const struct timeval& t, WifipcapCallbacks *cbs, ip4_hdr_t *hdr, struct ip_print_demux_state *ipds, int len)
+ip_demux(const struct timeval& t, WifipcapCallbacks *cbs, ip4_hdr_t *hdr, struct ip_print_demux_state *ipds, u_int len)
 {
     //struct protoent *proto;
 
@@ -827,7 +827,7 @@ ip_demux(const struct timeval& t, WifipcapCallbacks *cbs, ip4_hdr_t *hdr, struct
     }
 }
 
-void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
 {
     struct ip_print_demux_state  ipd;
     struct ip_print_demux_state *ipds=&ipd;
@@ -854,7 +854,7 @@ void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *pt
     }
     hlen = IP_HL(ipds->ip) * 4;
     ipds->len = EXTRACT_16BITS(&ipds->ip->ip_len);
-    if (len < (int)ipds->len) {
+    if (len < ipds->len) {
 	// truncated IP
 	// this is ok, we'll just report the truncation later
     }
@@ -899,7 +899,7 @@ void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *pt
     }
 }
 
-void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
 {
     const struct ip6_hdr *ip6;
     if (len < sizeof (struct ip6_hdr)) {
@@ -932,7 +932,7 @@ void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
     }
 }
 
-void handle_arp(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+void handle_arp(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
 {
     struct arp_pkthdr *ap;
     //u_short pro, hrd, op;
@@ -948,7 +948,7 @@ void handle_arp(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void handle_ether(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+void handle_ether(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
 {
     WifipcapCallbacks::ether_hdr_t hdr;
 
@@ -980,7 +980,7 @@ void handle_ether(const struct timeval& t, WifipcapCallbacks *cbs, const u_char 
 ///////////////////////////////////////////////////////////////////////////////
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-void handle_llc(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+void handle_llc(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
 {
     if (len < 7) {
 	// truncated header!
@@ -1010,7 +1010,7 @@ void handle_llc(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p
     cbs->HandleLLC(t, &hdr, ptr, len);
 }
 
-void handle_wep(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, int len)
+void handle_wep(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
 {
     // Jeff: XXX handle TKIP/CCMP ? how can we demultiplex different
     // protection protocols?
@@ -1089,7 +1089,7 @@ const char *Wifipcap::WifiUtil::MgmtReasonCode2Txt(uint v) {
 // Jeff: HACK -- tcpdump uses a global variable to check truncation
 #define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= len) 
 
-void WifipcapCallbacks::parse_elements(struct WifipcapCallbacks::mgmt_body_t *pbody, const u_char *p, int offset, int len)
+void WifipcapCallbacks::parse_elements(struct WifipcapCallbacks::mgmt_body_t *pbody, const u_char *p, int offset, u_int len)
 {
     /*
      * We haven't seen any elements yet.
@@ -1229,7 +1229,7 @@ void WifipcapCallbacks::parse_elements(struct WifipcapCallbacks::mgmt_body_t *pb
  *********************************************************************************/
 
 int
-WifipcapCallbacks::handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1259,7 +1259,7 @@ WifipcapCallbacks::handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs
     return 1;
 }
 
-int WifipcapCallbacks::handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+int WifipcapCallbacks::handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1285,7 +1285,7 @@ int WifipcapCallbacks::handle_assoc_request(const struct timeval& t, WifipcapCal
 }
 
 int
-WifipcapCallbacks::handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len, bool reassoc)
+WifipcapCallbacks::handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len, bool reassoc)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1320,7 +1320,7 @@ WifipcapCallbacks::handle_assoc_response(const struct timeval& t, WifipcapCallba
 }
 
 int
-WifipcapCallbacks::handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1349,14 +1349,14 @@ WifipcapCallbacks::handle_reassoc_request(const struct timeval& t, WifipcapCallb
 }
 
 int
-WifipcapCallbacks::handle_reassoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_reassoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     /* Same as a Association Reponse */
     return handle_assoc_response(t, cbs, pmh, p, len, true);
 }
 
 int
-WifipcapCallbacks::handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1375,7 +1375,7 @@ WifipcapCallbacks::handle_probe_request(const struct timeval& t, WifipcapCallbac
 }
 
 int
-WifipcapCallbacks::handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1406,7 +1406,7 @@ WifipcapCallbacks::handle_probe_response(const struct timeval& t, WifipcapCallba
 }
 
 int
-WifipcapCallbacks::handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     /* the frame body for ATIM is null. */
 
@@ -1416,7 +1416,7 @@ WifipcapCallbacks::handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, 
 }
 
 int
-WifipcapCallbacks::handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t  pbody;
 
@@ -1438,7 +1438,7 @@ WifipcapCallbacks::handle_disassoc(const struct timeval& t, WifipcapCallbacks *c
 }
 
 int
-WifipcapCallbacks::handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1488,7 +1488,7 @@ WifipcapCallbacks::handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, 
 }
 
 int
-WifipcapCallbacks::handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1530,7 +1530,7 @@ WifipcapCallbacks::handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs
  */
  
 int
-WifipcapCallbacks::decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, int len)
+WifipcapCallbacks::decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, u_int len)
 {
     switch (FC_SUBTYPE(fc)) {
     case ST_ASSOC_REQUEST:
@@ -1570,7 +1570,7 @@ WifipcapCallbacks::decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *
 }
 
 int WifipcapCallbacks::decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs,
-                                         const u_char * ptr, int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok)
+                                         const u_char * ptr, u_int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok)
 {
     mgmt_header_t hdr;
     u_int16_t seq_ctl;
@@ -1599,7 +1599,7 @@ int WifipcapCallbacks::decode_mgmt_frame(const struct timeval& t, WifipcapCallba
 }
 
 int WifipcapCallbacks::decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
-                                         const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
+                                         const u_char * ptr, u_int len, u_int16_t fc, bool fcs_ok)
 {
     u_int16_t du = EXTRACT_LE_16BITS(ptr+2);        //duration
 
@@ -1675,7 +1675,7 @@ int WifipcapCallbacks::decode_data_frame(const struct timeval& t, WifipcapCallba
     return 0;
 }
 
-int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok)
+int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, u_int len, u_int16_t fc, bool fcs_ok)
 {
     u_int16_t du = EXTRACT_LE_16BITS(ptr+2);        //duration
 
@@ -2091,7 +2091,7 @@ done:;
     handle_80211(t, cbs, p+len, caplen-len);
 }
 
-void WifipcapCallbacks::handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
+void WifipcapCallbacks::handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, u_int len)
 {
     WifipcapCallbacks::prism2_pkthdr hdr;
 
@@ -2227,7 +2227,7 @@ const char *Wifipcap::SetFilter(const char *filter)
 }
 
 
-void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len)
+void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, u_int len)
 {
     WifipcapCallbacks::prism2_pkthdr hdr;
 

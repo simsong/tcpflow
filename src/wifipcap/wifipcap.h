@@ -471,6 +471,7 @@ struct WifipcapCallbacks {
     } __attribute__((__packed__));
 
     struct ether_hdr_t {
+        ether_hdr_t():sa(),da(),type(){};
         MAC sa, da;
         uint16_t type;
     };
@@ -540,13 +541,13 @@ struct WifipcapCallbacks {
      * @param len the length of the data captured
      * @param origlen the original length of the data (before truncated by pcap)
      */
-    virtual void PacketBegin(const struct timeval& t, const u_char *pkt, int len, int origlen) {}
+    virtual void PacketBegin(const struct timeval& t, const u_char *pkt, u_int len, int origlen) {}
     virtual void PacketEnd() {}
 
     // If a Prism or RadioTap packet is found, call these, and then call Handle80211()
 
-    virtual void HandlePrism(const struct timeval& t, struct prism2_pkthdr *hdr, const u_char *rest, int len) {}
-    virtual void HandleRadiotap(const struct timeval& t, struct radiotap_hdr *hdr, const u_char *rest, int len) {}
+    virtual void HandlePrism(const struct timeval& t, struct prism2_pkthdr *hdr, const u_char *rest, u_int len) {}
+    virtual void HandleRadiotap(const struct timeval& t, struct radiotap_hdr *hdr, const u_char *rest, u_int len) {}
 
     // 802.11 MAC (see ieee802_11.h)
     //
@@ -562,7 +563,7 @@ struct WifipcapCallbacks {
     // fcs_ok will be true if the frame had a valid fcs (frame
     // checksum) trailer and Check80211FCS() returns true.
     virtual void Handle80211(const struct timeval& t, u_int16_t fc, const MAC& sa, const MAC& da,
-                             const MAC& ra, const MAC& ta, const u_char *ptr, int len, bool fcs_ok) {}
+                             const MAC& ra, const MAC& ta, const u_char *ptr, u_int len, bool fcs_ok) {}
 
     // if this returns true, we'll check the fcs on every frame.
     // Note: if frames are truncated, the fcs check will fail, so you need
@@ -580,7 +581,7 @@ struct WifipcapCallbacks {
     virtual void Handle80211MgmtATIM(const struct timeval& t, const struct mgmt_header_t *hdr) {}
     virtual void Handle80211MgmtDisassoc(const struct timeval& t, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body) {}
     virtual void Handle80211MgmtAuth(const struct timeval& t, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body) {}
-    virtual void Handle80211MgmtAuthSharedKey(const struct timeval& t, const struct mgmt_header_t *hdr, const u_char *rest, int len) {}
+    virtual void Handle80211MgmtAuthSharedKey(const struct timeval& t, const struct mgmt_header_t *hdr, const u_char *rest, u_int len) {}
     virtual void Handle80211MgmtDeauth(const struct timeval& t, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body) {}
 
     // Control
@@ -592,29 +593,29 @@ struct WifipcapCallbacks {
     virtual void Handle80211CtrlEndAck(const struct timeval& t, const struct ctrl_end_ack_t *hdr) {}
     
     // Data
-    virtual void Handle80211DataIBSS(const struct timeval& t, const struct data_hdr_ibss_t *hdr, const u_char *rest, int len) {}
-    virtual void Handle80211DataFromAP(const struct timeval& t, const struct data_hdr_t *hdr, const u_char *rest, int len) {}
-    virtual void Handle80211DataToAP(const struct timeval& t, const struct data_hdr_t *hdr, const u_char *rest, int len) {}
-    virtual void Handle80211DataWDS(const struct timeval& t, const struct data_hdr_wds_t *hdr, const u_char *rest, int len) {}
+    virtual void Handle80211DataIBSS(const struct timeval& t, const struct data_hdr_ibss_t *hdr, const u_char *rest, u_int len) {}
+    virtual void Handle80211DataFromAP(const struct timeval& t, const struct data_hdr_t *hdr, const u_char *rest, u_int len) {}
+    virtual void Handle80211DataToAP(const struct timeval& t, const struct data_hdr_t *hdr, const u_char *rest, u_int len) {}
+    virtual void Handle80211DataWDS(const struct timeval& t, const struct data_hdr_wds_t *hdr, const u_char *rest, u_int len) {}
     
     // Erroneous Frames/Truncated Frames
-    virtual void Handle80211Unknown(const struct timeval& t, int fc, const u_char *rest, int len) {}
+    virtual void Handle80211Unknown(const struct timeval& t, int fc, const u_char *rest, u_int len) {}
 
     // LLC/SNAP (see llc.h)
 
-    virtual void HandleLLC(const struct timeval& t, const struct llc_hdr_t *hdr, const u_char *rest, int len) {}
-    virtual void HandleLLCUnknown(const struct timeval& t, const u_char *rest, int len) {}
-    virtual void HandleWEP(const struct timeval& t, const struct wep_hdr_t *hdr, const u_char *rest, int len) {}
+    virtual void HandleLLC(const struct timeval& t, const struct llc_hdr_t *hdr, const u_char *rest, u_int len) {}
+    virtual void HandleLLCUnknown(const struct timeval& t, const u_char *rest, u_int len) {}
+    virtual void HandleWEP(const struct timeval& t, const struct wep_hdr_t *hdr, const u_char *rest, u_int len) {}
 
     // for non-802.11 ethernet traces
-    virtual void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, int len) {}
+    virtual void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, u_int len) {}
 
     ///// Layer 2 (see arp.h, ip.h, ip6.h)
 
-    virtual void HandleARP(const struct timeval& t, const arp_pkthdr *hdr, const u_char *rest, int len) {}
-    virtual void HandleIP(const struct timeval& t, const ip4_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, int len) {}
-    virtual void HandleIP6(const struct timeval& t, const ip6_hdr_t *hdr, const u_char *rest, int len) {}
-    virtual void HandleL2Unknown(const struct timeval& t, uint16_t ether_type, const u_char *rest, int len) {}
+    virtual void HandleARP(const struct timeval& t, const arp_pkthdr *hdr, const u_char *rest, u_int len) {}
+    virtual void HandleIP(const struct timeval& t, const ip4_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, u_int len) {}
+    virtual void HandleIP6(const struct timeval& t, const ip6_hdr_t *hdr, const u_char *rest, u_int len) {}
+    virtual void HandleL2Unknown(const struct timeval& t, uint16_t ether_type, const u_char *rest, u_int len) {}
 
     ///// Layer 3 (see icmp.h, tcp.h, udp.h)
 
@@ -625,42 +626,42 @@ struct WifipcapCallbacks {
 
     // Jeff: XXX icmp callback will probably eventually change to
     // parse the entire icmp packet
-    virtual void HandleICMP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, int type, int code, const u_char *rest, int len) {}
-    virtual void HandleTCP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, int len) {}
-    virtual void HandleUDP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, int len) {}
-    virtual void HandleL3Unknown(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const u_char *rest, int len) {}
+    virtual void HandleICMP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, int type, int code, const u_char *rest, u_int len) {}
+    virtual void HandleTCP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, u_int len) {}
+    virtual void HandleUDP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, u_int len) {}
+    virtual void HandleL3Unknown(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const u_char *rest, u_int len) {}
 
-    static void parse_elements(struct WifipcapCallbacks::mgmt_body_t *pbody, const u_char *p, int offset, int len);
-    static int handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
-    static int handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
-    static int handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len, bool reassoc = false);
-    static int handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
+    static void parse_elements(struct WifipcapCallbacks::mgmt_body_t *pbody, const u_char *p, int offset, u_int len);
+    static int handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
+    static int handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
+    static int handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len, bool reassoc = false);
+    static int handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
-    static int handle_reassoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
-    static int handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
+    static int handle_reassoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
+    static int handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
-    static int handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
+    static int handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
-    static int handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
+    static int handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
-    static int handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
+    static int handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
-    static int handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
+    static int handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
-    static int handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, int len);
+    static int handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
 
-    static int decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, int len);
+    static int decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, u_int len);
 
     static int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs,
-                                 const u_char * ptr, int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok);
-    static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_ok);
+                                 const u_char * ptr, u_int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok);
+    static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, u_int len, u_int16_t fc, bool fcs_ok);
 
-    static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, int len, u_int16_t fc, bool fcs_);
+    static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, u_int len, u_int16_t fc, bool fcs_);
 
     static void handle_80211(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, size_t len, int pad = 0); 
     static void handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p, u_int caplen);
-    static void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, int len);
+    static void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, u_int len);
 };
 
 extern std::ostream& operator<<(std::ostream& out, const WifipcapCallbacks::MAC& mac);
@@ -718,7 +719,7 @@ public:
         std::cerr << "Wifipcap()\n";
     }; 
     Wifipcap(const char *name, bool live_ = false, bool verbose_ = false):
-        descr(NULL), verbose(verbose_), startTime(TIME_NONE), 
+        descr(NULL), datalink(),morefiles(),verbose(verbose_), startTime(TIME_NONE), 
         lastPrintTime(TIME_NONE), packetsProcessed(0) {
         Init(name, live_);
     }
@@ -727,7 +728,7 @@ public:
      * Initialize with nfiles. Will run on all of them in order.
      */
     Wifipcap(const char* const *names, int nfiles_, bool verbose_ = false):
-        descr(NULL), verbose(verbose_), startTime(TIME_NONE), 
+        descr(NULL), datalink(),morefiles(),verbose(verbose_), startTime(TIME_NONE), 
         lastPrintTime(TIME_NONE), packetsProcessed(0) {
         for (int i=0; i<nfiles_; i++) {
             morefiles.push_back(names[i]);

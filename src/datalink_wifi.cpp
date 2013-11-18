@@ -35,7 +35,7 @@ public:
 
 #define DEBUG_WIFI
 #ifdef DEBUG_WIFI
-    void PacketBegin(const struct timeval& t, const u_char *pkt, int len, int origlen) {
+    void PacketBegin(const struct timeval& t, const u_char *pkt, u_int len, int origlen) {
 	cout << t << " {" << endl;
     }
     void PacketEnd() {
@@ -45,18 +45,18 @@ public:
  
     bool Check80211FCS() { return opt_enforce_80211_frame_checksum; } // check the frame checksums
     void Handle80211(const struct timeval& t, u_int16_t fc, const MAC& sa, const MAC& da, const MAC& ra, const MAC& ta,
-                     const u_char *ptr, int len, bool flag) {
+                     const u_char *ptr, u_int len, bool flag) {
 	this->fcs_ok = flag;
     }
 
-    void HandleLLC(const struct timeval& t, const struct llc_hdr_t *hdr, const u_char *rest, int len) {
+    void HandleLLC(const struct timeval& t, const struct llc_hdr_t *hdr, const u_char *rest, u_int len) {
         if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
 #ifdef DEBUG_WIFI
         cout << "  " << "802.11 LLC :\t" << "len=" << len << endl;
 #endif
     }
 
-    void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
+    void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, u_int len) {
         if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
 #ifdef DEBUG_WIFI
         cout << hdr->sa;
@@ -77,7 +77,7 @@ public:
         printf("pi.ip_version=%d\n",pi.ip_version());
         be13::plugin::process_packet(pi);
     }
-    void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) {
+    void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, u_int len) {
         if (opt_enforce_80211_frame_checksum && !fcs_ok) return;
 #ifdef DEBUG_WIFI
         cout << "  " << "802.11 data to AP:\t" 
