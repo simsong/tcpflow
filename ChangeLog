@@ -1,3 +1,9 @@
+2013-11-17  Basic  <simsong@Mucha.local>
+
+	* configure.ac: updated to 1.4.2
+
+	* src/be13_api/be13_configure.m4: fixed so that it still compiles on MacOS 10.8.
+
 2013-11-15  Basic  <simsong@Mucha.local>
 
 	* src/datalink.cpp (dl_null): removed DLT_NULL_BROKEN; it's not needed anymore.

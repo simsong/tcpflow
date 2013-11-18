@@ -69,7 +69,6 @@ wifipcap_demo_SOURCES = \
 	wifipcap/tcp.h \
 	wifipcap/types.h \
 	wifipcap/udp.h \
-	wifipcap/uni \
 	wifipcap/util.cpp \
 	wifipcap/util.h \
 	wifipcap/wifipcap.cpp \
