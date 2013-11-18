@@ -6,7 +6,7 @@ class TestCB : public WifipcapCallbacks
 private:
     bool fcs_ok;
 public:
-    virtual void PacketBegin(const struct timeval& t, const u_char *pkt, int len, int origlen) {
+    virtual void PacketBegin(const struct timeval& t, const u_char *pkt, u_int len, int origlen) {
 	//cout << t << " {" << endl;
     }
     virtual void PacketEnd()    {
@@ -15,7 +15,7 @@ public:
  
     virtual bool Check80211FCS() { return true; }
 
-    virtual void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len)     {
+    virtual void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, u_int len)     {
 	if (!fcs_ok) {
             std::cout << "  " << "802.11 data:\t" 
                       << hdr->sa << " -> " 
@@ -23,7 +23,7 @@ public:
                       << len << std::endl;
 	}
     }
-    virtual void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, int len) 
+    virtual void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, u_int len) 
     {
 	if (!fcs_ok) {
             std::cout << "  " << "802.11 data:\t" 
@@ -34,7 +34,7 @@ public:
     }
 
 
-    virtual void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, int len) {
+    virtual void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, u_int len) {
         std::cout << " Ethernet: " << hdr->sa << " -> " << hdr->da << std::endl;
     }
     
@@ -54,7 +54,7 @@ public:
 	}
     }
 
-    virtual void HandleTCP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, int len) {
+    virtual void HandleTCP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, u_int len) {
 	if (ip4h && hdr)
 	    std::cout << "  " << "tcp/ip:     \t" 
                       << ip4h->src << ":" << hdr->sport << " -> " 
@@ -64,7 +64,7 @@ public:
 	    std::cout << "  " << "tcp/ip:     \t" << "[truncated]" << std::endl;
     }   
 
-    virtual void HandleUDP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, int len)	{
+    virtual void HandleUDP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, u_int len)	{
         if (ip4h && hdr)
             std::cout << "  " << "udp/ip:     \t" 
                       << ip4h->src << ":" << hdr->sport << " -> " 

@@ -89,7 +89,11 @@ struct tcphdr {
 #include <map>
 #include <list>
 
-struct tcp_opt_t {
+class tcp_opt_t {
+    tcp_opt_t &operator=(const tcp_opt_t &);       // not implemented
+public:
+    tcp_opt_t(const tcp_opt_t &t):type(t.type),len(t.len),data_raw(t.data_raw),data(t.data),data_sack(t.data_sack){};
+    tcp_opt_t():type(),len(),data_raw(),data(),data_sack(){};
     u_int type;
     u_int len;
     const u_char *data_raw;
