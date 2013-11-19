@@ -60,7 +60,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
-uint64_t counter=0;
+static uint64_t counter=0;
 /* DLT_RAW: just a raw IP packet, no encapsulation or link-layer
  * headers.  Used for PPP connections under some OSs including Linux
  * and IRIX. */

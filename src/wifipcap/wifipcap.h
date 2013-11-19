@@ -1,8 +1,8 @@
 /**
  * Include this header in applications using wifipcap.
- * Released under GPL.
- * Some code (c) Jeffrey Pang <jeffpang@cs.cmu.edu>.
- * Substantially modified by Simson Garfinkel
+ * Released under GPLv3.
+ * Some code (c) Jeffrey Pang <jeffpang@cs.cmu.edu>, 2003
+ *           (C) Simson Garfinkel <simsong@acm.org> 2012-
  */
 
 #ifndef _WIFIPCAP_H_
@@ -106,13 +106,12 @@
 /* RESERVED 			0xE  */
 /* RESERVED 			0xF  */
 
-
-#define	CTRL_PS_POLL	0xA
-#define	CTRL_RTS	0xB
-#define	CTRL_CTS	0xC
-#define	CTRL_ACK	0xD
-#define	CTRL_CF_END	0xE
-#define	CTRL_END_ACK	0xF
+#define	CTRL_PS_POLL            0xA
+#define	CTRL_RTS                0xB
+#define	CTRL_CTS                0xC
+#define	CTRL_ACK                0xD
+#define	CTRL_CF_END             0xE
+#define	CTRL_END_ACK            0xF
 
 #define	DATA_DATA		0x0
 #define	DATA_DATA_CF_ACK	0x1
@@ -152,6 +151,7 @@
 
 struct WifipcapCallbacks {
     /** 48-bit MACs in 64-bit ints */
+    static int debug;                   // prints callback before they are called
     struct MAC {          
         uint64_t val;
         MAC():val() {}
@@ -353,28 +353,45 @@ struct WifipcapCallbacks {
 #define	IV_PAD(iv)	(((iv) >> 24) & 0x3F)
 #define	IV_KEYID(iv)	(((iv) >> 30) & 0x03)
 
-    struct data_hdr_ibss_t {
+    struct mac_hdr_t {                 // unified 80211 header
+        mac_hdr_t():fc(),duration(),seq_ctl(),seq(),frag(),da(),sa(),ta(),ra(),bssid(){}
+        uint16_t fc;                    // frame control
+        uint16_t duration;
+        uint16_t seq_ctl;
+        uint16_t seq;                   // sequence number
+        uint8_t frag;                   // fragment number?
+        MAC da;                         // destination address // address1
+        MAC sa;                         // source address      // address2
+        MAC ta;                         // transmitter         // address3 
+        MAC ra;                         // receiver            // address4
+        MAC bssid;                      // BSSID
+        bool qos;                       // has quality of service
+    };
+        
+
+#if 0
+    struct data_hdr_ibss_t {          // 80211 Independent Basic Service Set - e.g. ad hoc mode
         data_hdr_ibss_t():fc(),duration(),seq(),frag(),fcs(){};
         u_int16_t fc;
         u_int16_t duration;
         u_int16_t seq;
-        u_int8_t frag;
-        u_int8_t fcs[4];
+        u_int8_t  frag;
+        u_int8_t  fcs[4];
     };
 
     struct data_hdr_t {
         data_hdr_t():fc(),duration(),seq(),frag(),sa(),da(),bssid(),fcs(){}
-        u_int16_t fc;
-        u_int16_t duration;
-        u_int16_t seq;
-        u_int8_t frag;
-        MAC sa;
-        MAC da;
-        MAC bssid;
-        u_int8_t fcs[4];
+        u_int16_t fc;                   // 
+        u_int16_t duration;             // ?
+        u_int16_t seq;                  // sequence #?
+        u_int8_t  frag;                 // fragment #?
+        MAC       sa;                   // sender address
+        MAC       da;                   // destination address
+        MAC       bssid;                // base station ID
+        u_int8_t  fcs[4];               // frame check sequence
     };
 
-    struct data_hdr_wds_t {
+    struct data_hdr_wds_t {             // 80211 Wireless Distribution System
         data_hdr_wds_t():fc(),duration(),seq(),frag(),ra(),ta(),sa(),da(),fcs(){}
         u_int16_t fc;
         u_int16_t duration;
@@ -386,6 +403,7 @@ struct WifipcapCallbacks {
         MAC da;
         u_int8_t fcs[4];
     };
+#endif
 
 #define	DATA_HDRLEN	(IEEE802_11_FC_LEN+IEEE802_11_DUR_LEN+          \
 			 IEEE802_11_SA_LEN+IEEE802_11_DA_LEN+           \
@@ -592,11 +610,13 @@ struct WifipcapCallbacks {
     virtual void Handle80211CtrlCFEnd(const struct timeval& t, const struct ctrl_end_t *hdr) {}
     virtual void Handle80211CtrlEndAck(const struct timeval& t, const struct ctrl_end_ack_t *hdr) {}
     
-    // Data
-    virtual void Handle80211DataIBSS(const struct timeval& t, const struct data_hdr_ibss_t *hdr, const u_char *rest, u_int len) {}
-    virtual void Handle80211DataFromAP(const struct timeval& t, const struct data_hdr_t *hdr, const u_char *rest, u_int len) {}
-    virtual void Handle80211DataToAP(const struct timeval& t, const struct data_hdr_t *hdr, const u_char *rest, u_int len) {}
-    virtual void Handle80211DataWDS(const struct timeval& t, const struct data_hdr_wds_t *hdr, const u_char *rest, u_int len) {}
+    // Data - Each data packet results in a call to Handle80211Data and one of the others
+    virtual void Handle80211Data(const struct timeval& t, u_int16_t fc, const struct mac_hdr_t &hdr,
+                                 const u_char *rest, u_int len, bool fcs_ok) {}
+    virtual void Handle80211DataIBSS(const struct timeval& t, const struct mac_hdr_t &hdr, const u_char *rest, u_int len) {}
+    virtual void Handle80211DataFromAP(const struct timeval& t, const struct mac_hdr_t &hdr, const u_char *rest, u_int len) {}
+    virtual void Handle80211DataToAP(const struct timeval& t, const struct mac_hdr_t &hdr, const u_char *rest, u_int len) {}
+    virtual void Handle80211DataWDS(const struct timeval& t, const struct mac_hdr_t &hdr, const u_char *rest, u_int len) {}
     
     // Erroneous Frames/Truncated Frames
     virtual void Handle80211Unknown(const struct timeval& t, int fc, const u_char *rest, u_int len) {}
@@ -655,6 +675,8 @@ struct WifipcapCallbacks {
 
     static int decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs,
                                  const u_char * ptr, u_int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok);
+    static void handle_llc(const struct timeval& t, WifipcapCallbacks *cbs,
+                          const WifipcapCallbacks::mac_hdr_t &hdr,const u_char *ptr, u_int len,u_int16_t fc, bool fcs_ok);
     static int decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, u_int len, u_int16_t fc, bool fcs_ok);
 
     static int decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, u_int len, u_int16_t fc, bool fcs_);
@@ -704,7 +726,9 @@ public:
     /** Packet handling callback
      *  @param user - pointer to a PcapUserData struct
      */
+    static void dl_prism(const PcapUserData &data, const struct pcap_pkthdr *header, const u_char * packet);
     static void dl_prism(u_char *user, const struct pcap_pkthdr *header, const u_char * packet);
+    static void dl_ieee802_11_radio(const PcapUserData &data, const struct pcap_pkthdr *header, const u_char * packet);
     static void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *header, const u_char * packet);
 
     /**

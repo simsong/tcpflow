@@ -1,5 +1,17 @@
+MAINTAINER
+==========
+Simson L. Garfinkel <simsong@acm.org>
+
+
+ACKNOWLEDGEMENTS
+================
+Thanks to:
+* Jeffrey Pang, for the radiotap implementation
+* Doug Madory, for the  Wifi parser
+* Jeremy Elson, for the original idea and initial tcp/ip implementation
+
 Title:   Wifipcap Library
-Authors: Jeff Pang <jeffpang@cs.cmu.edu>
+Authors: Jeff Pang, 
          Simson L. Garfinkel
 
 Description:

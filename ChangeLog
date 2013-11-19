@@ -1,5 +1,7 @@
 2013-11-18  Basic  <simsong@Mucha.local>
 
+	* src/wifipcap/wifipcap.cpp (WifipcapCallbacks::decode_data_frame): now calls Handle80211Data() for all data packets
+
 	* configure.ac: changes to test per Ryan Schmidt <notifications@github.com>
 
 2013-11-17  Basic  <simsong@Mucha.local>

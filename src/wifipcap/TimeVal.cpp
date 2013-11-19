@@ -36,7 +36,7 @@ copyright       : (C) 2003      Jeff Pang        ( jeffpang@cs.cmu.edu )
 #include <cstdio>
 #include "TimeVal.h"
 
-using namespace std;
+                  //using namespace std;
 
 TimeVal TIME_NONE = {0,0};
 

@@ -1,20 +1,21 @@
-New Primary Maintainer:
-  Simson L. Garfinkel <simsong@acm.org>
-  http://www.simson.net/
-
-Original author:
-  Jeremy Elson <jelson@circlemud.org>
-  http://www.circlemud.org/~jelson
+MAINTAINER
+==========
+Simson L. Garfinkel <simsong@acm.org>
 
 
-Contributions were made by:
+ACKNOWLEDGEMENTS
+================
+Thanks to:
+* Jeffrey Pang, for the radiotap implementation
+* Doug Madory, for the  Wifi parser
+* Jeremy Elson, for the original idea and initial tcp/ip implementation
 
--- Johnny Tevessen <j.tevessen@gmx.net>, for Linux systems still
-   using libc5.
+Additional and thanks:
 
--- Ross Golder <rossigee@bigfoot.com>, for a spec file for generating
-   tcpflow RPMs.
+* Johnny Tevessen <j.tevessen@gmx.net>, for Linux systems still using libc5.
 
--- Jose M. Alcaide <jose@we.lc.ehu.es>, patch for the -r option
+* Ross Golder <rossigee@bigfoot.com>, for a spec file for generating tcpflow RPMs.
+
+* Jose M. Alcaide <jose@we.lc.ehu.es>, patch for the -r option
 
 
