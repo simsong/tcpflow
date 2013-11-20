@@ -35,9 +35,6 @@
  *** include files first and disable pthread support.
  ***/
 #ifdef WIN32
-//#  include <winsock2.h>			// please include winsock2.h before windows.h
-//#  include <windows.h>
-//#  include <windowsx.h>
 #  undef HAVE_PTHREAD_H
 #  undef HAVE_SEMAPHORE_H
 #  undef HAVE_PTHREAD
@@ -84,6 +81,7 @@
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+
 
 // These are the required include files; they better be present
 #include <inttypes.h>			
@@ -318,6 +316,7 @@ extern "C" scanner_t scan_md5;
 extern "C" scanner_t scan_http;
 extern "C" scanner_t scan_tcpdemux;
 extern "C" scanner_t scan_netviz;
+extern "C" scanner_t scan_wifiviz;
 
 
 #ifndef HAVE_TIMEVAL_OUT

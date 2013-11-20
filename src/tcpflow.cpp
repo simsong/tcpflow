@@ -9,8 +9,9 @@
 
 #define __MAIN_C__
 
-#include "tcpflow.h"
+#include "config.h"
 
+#include "tcpflow.h"
 
 #include "tcpip.h"
 #include "tcpdemux.h"
@@ -23,6 +24,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
+
 
 
 
@@ -70,6 +72,7 @@ scanner_t *scanners_builtin[] = {
     scan_http,
     scan_netviz,
     scan_tcpdemux,
+    scan_wifiviz,
     0};
 
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
@@ -210,13 +213,15 @@ void terminate(int sig)
 #ifdef HAVE_FORK
 // transparent decompression for process_infile
 class inflater {
+    const std::string suffix;
+    const std::string invoc_format;
 public:
-    inflater(regex_t regex_, std::string invoc_format_) :
-        regex(regex_), invoc_format(invoc_format_) {}
+    inflater(const std::string &suffix_, const std::string &invoc_format_) :
+        suffix(suffix_), invoc_format(invoc_format_) {}
     // is this inflater appropriate for a given file?
     bool appropriate(const std::string &file_path) const
     {
-        return regexec(&regex, file_path.c_str(), (size_t) 0, NULL, 0) == 0;
+        return ends_with(file_path,suffix);
     }
     // invoke the inflater in a shell, and return the file descriptor to read the inflated file from
     int invoke(const std::string &file_path) const
@@ -251,30 +256,22 @@ public:
         close(pipe_fds[1]);
         return pipe_fds[0];
     }
-    regex_t regex;
-    std::string invoc_format;
 };
 
 static std::vector<inflater> build_inflaters()
 {
     std::vector<inflater> output;
-    regex_t re;
 
     // gzip
-    regcomp(&re, "\\.gz$", REG_EXTENDED);
-    output.push_back(inflater(re, "gunzip -c '%s'"));
+    output.push_back(inflater(".gz", "gunzip -c '%s'"));
     // zip
-    regcomp(&re, "\\.zip$", REG_EXTENDED);
-    output.push_back(inflater(re, "unzip -p '%s'"));
+    output.push_back(inflater(".zip", "unzip -p '%s'"));
     // bz2
-    regcomp(&re, "\\.bz2$", REG_EXTENDED);
-    output.push_back(inflater(re, "bunzip2 -c '%s'"));
+    output.push_back(inflater(".bz2", "bunzip2 -c '%s'"));
     // xz
-    regcomp(&re, "\\.xz$", REG_EXTENDED);
-    output.push_back(inflater(re, "unxz -c '%s'"));
+    output.push_back(inflater(".xz", "unxz -c '%s'"));
     // lzma
-    regcomp(&re, "\\.lzma$", REG_EXTENDED);
-    output.push_back(inflater(re, "unlzma -c '%s'"));
+    output.push_back(inflater(".lzma", "unlzma -c '%s'"));
 
     return output;
 }

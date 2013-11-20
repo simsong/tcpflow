@@ -37,22 +37,16 @@ void TFCB::Handle80211MgmtBeacon(const struct timeval& t, const mgmt_header_t *h
 #ifdef DEBUG_WIFI
     std::cerr << "  " << "802.11 mgmt: " << hdr->sa << " beacon " << body->ssid.ssid << "\"";
 #endif
-    mac_ssid bcn(hdr->sa,std::string(body->ssid.ssid,body->ssid.length));
+    mac_ssid bcn(hdr->sa,std::string(body->ssid.ssid));
     mac_to_ssid[bcn] += 1;
-    for(mac_ssid_map_t::const_iterator it=mac_to_ssid.begin();it!=mac_to_ssid.end();it++){
-        std::cerr << (*it).first.mac << " => " << (*it).first.ssid << " (" << (*it).second << ")\n";
-    }
-    std::cerr << "\n";
 }
 
 
 /* Entrance point */
 static Wifipcap wcap;
 TFCB theTFCB;
-static int counter=0;
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    printf("counter=%d\n",counter++);
     //WifipcapCallbacks::debug = 1;
     Wifipcap::PcapUserData data(&wcap,&theTFCB,DLT_IEEE802_11_RADIO);
     Wifipcap::dl_ieee802_11_radio(data,h,p);
