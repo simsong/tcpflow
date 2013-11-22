@@ -1,86 +1,78 @@
 #include <iostream>
 #include "wifipcap.h"
 
+/* Demonstration of how to process pcap packets with a simple callback class */
+
 class TestCB : public WifipcapCallbacks
 {
-private:
-    bool fcs_ok;
 public:
-    virtual void PacketBegin(const struct timeval& t, const u_char *pkt, u_int len, int origlen) {
-	//cout << t << " {" << endl;
+    TestCB(){}
+    virtual ~TestCB(){};
+    virtual const char *name() const {return "TestCB";} // override with your own name!
+    virtual void PacketBegin(const WifiPacket &p, const u_char *pkt, size_t len, int origlen)  const {
+        TimeVal t(p.header->ts);
+        std::cout << &t << " {";
     }
-    virtual void PacketEnd()    {
-	//cout << "}" << endl;
+    virtual void PacketEnd(const WifiPacket &p ) const   {
+        std::cout << "}" << std::endl;
     }
  
-    virtual bool Check80211FCS() { return true; }
+    virtual bool Check80211FCS(const WifiPacket &p ) const { return true; } // please calculate FCS
 
-    virtual void Handle80211DataFromAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, u_int len)     {
-	if (!fcs_ok) {
-            std::cout << "  " << "802.11 data:\t" 
+    virtual void Handle80211DataFromAP(const WifiPacket &p, const mac_hdr_t *hdr, const u_char *rest, u_int len) const     {
+        std::cout << "802.11 data:\t" 
                       << hdr->sa << " -> " 
                       << hdr->da << "\t" 
-                      << len << std::endl;
-	}
+                      << len ;
     }
-    virtual void Handle80211DataToAP(const struct timeval& t, const data_hdr_t *hdr, const u_char *rest, u_int len) 
+    virtual void Handle80211DataToAP(const WifiPacket &p, const mac_hdr_t *hdr, const u_char *rest, u_int len) const
     {
-	if (!fcs_ok) {
-            std::cout << "  " << "802.11 data:\t" 
-                      << hdr->sa << " -> " 
-                      << hdr->da << "\t" 
-                      << len << std::endl;
-	}
+        std::cout << "802.11 data:\t" 
+                  << hdr->sa << " -> " 
+                  << hdr->da << "\t" 
+                  << len ;
     }
 
 
-    virtual void HandleEthernet(const struct timeval& t, const ether_hdr_t *hdr, const u_char *rest, u_int len) {
-        std::cout << " Ethernet: " << hdr->sa << " -> " << hdr->da << std::endl;
-    }
-    
-    virtual void Handle80211MgmtProbeRequest(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body) {
-	if (!fcs_ok) {
-	    std::cout << "  " << "802.11 mgmt:\t" 
-                      << hdr->sa << "\tprobe\t\"" 
-                      << body->ssid.ssid << "\"" << std::endl;
-	}
+    virtual void Handle80211MgmtProbeRequest(const WifiPacket &p,  const mgmt_header_t *hdr, const mgmt_body_t *body) const {
+        std::cout << "802.11 mgmt:\t" 
+                  << hdr->sa << "\tprobe\t\"" 
+                  << body->ssid.ssid << "\"" ;
     }
 
-    virtual void Handle80211MgmtBeacon(const struct timeval& t, const mgmt_header_t *hdr, const mgmt_body_t *body)    {
-	if (!fcs_ok) {
-	    std::cout << "  " << "802.11 mgmt:\t" 
-                      << hdr->sa << "\tbeacon\t\"" 
-                      << body->ssid.ssid << "\"" << std::endl;
-	}
+    virtual void Handle80211MgmtBeacon(const WifiPacket &p,  const struct mgmt_header_t *hdr, const struct mgmt_body_t *body) const   {
+        std::cout << "802.11 mgmt:\t" 
+                  << hdr->sa << "\tbeacon\t\"" 
+                  << body->ssid.ssid << "\"" ;
     }
 
-    virtual void HandleTCP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, u_int len) {
+    virtual void HandleTCP(const WifiPacket &p,  const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, u_int len) const {
 	if (ip4h && hdr)
-	    std::cout << "  " << "tcp/ip:     \t" 
+	    std::cout << "tcp/ip:     \t" 
                       << ip4h->src << ":" << hdr->sport << " -> " 
                       << ip4h->dst << ":" << hdr->dport 
-                      << "\t" << ip4h->len << std::endl;
+                      << "\t" << ip4h->len ;
 	else
-	    std::cout << "  " << "tcp/ip:     \t" << "[truncated]" << std::endl;
+	    std::cout << "tcp/ip:     \t" << "[truncated]" ;
     }   
 
-    virtual void HandleUDP(const struct timeval& t, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, u_int len)	{
+    virtual void HandleUDP(const WifiPacket &p,  const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, u_int len) const {
         if (ip4h && hdr)
-            std::cout << "  " << "udp/ip:     \t" 
+            std::cout << "udp/ip:     \t" 
                       << ip4h->src << ":" << hdr->sport << " -> " 
                       << ip4h->dst << ":" << hdr->dport 
-                      << "\t" << ip4h->len << std::endl;
+                      << "\t" << ip4h->len ;
         else
-            std::cout << " " << "udp/ip:     \t" << "[truncated]" << std::endl;
+            std::cout << " " << "udp/ip:     \t" << "[truncated]" ;
     }
 };
+
 
 /**
  * usage: test <pcap_trace_file>
  */
 int main(int argc, char **argv)
 {
-#ifdef _WIN32
     if (argc == 1) {
         pcap_if_t *alldevs;
         pcap_if_t *d;
@@ -111,10 +103,10 @@ int main(int argc, char **argv)
         pcap_freealldevs(alldevs);
 	return 1;
     }
-#endif
 
     bool live = argc == 3 && atoi(argv[2]) == 1;
     Wifipcap *wcap = new Wifipcap(argv[1], live);
     wcap->Run(new TestCB());
     return 0;
 }
+

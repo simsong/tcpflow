@@ -38,21 +38,9 @@ NETVIZ = \
 WIFI = 	datalink_wifi.cpp \
 	wifipcap/TimeVal.cpp \
 	wifipcap/TimeVal.h \
-	wifipcap/wifipcap.cpp \
-	wifipcap/wifipcap.h \
-	wifipcap/cpack.h \
-	wifipcap/cpack.cpp \
-	wifipcap/llc.h 
-
-
-
-wifipcap_demo_SOURCES = \
-	wifipcap/TimeVal.cpp \
-	wifipcap/TimeVal.h \
 	wifipcap/arp.h \
 	wifipcap/cpack.cpp \
 	wifipcap/cpack.h \
-	wifipcap/cpack.o \
 	wifipcap/ether.h \
 	wifipcap/ethertype.h \
 	wifipcap/extract.h \
@@ -61,20 +49,17 @@ wifipcap_demo_SOURCES = \
 	wifipcap/ip.h \
 	wifipcap/ip6.h \
 	wifipcap/ipproto.h \
+	wifipcap/llc.h 
 	wifipcap/os.h \
 	wifipcap/oui.h \
 	wifipcap/prism.h \
 	wifipcap/radiotap.h \
-	wifipcap/sample.cpp \
 	wifipcap/tcp.h \
 	wifipcap/types.h \
 	wifipcap/udp.h \
-	wifipcap/util.cpp \
 	wifipcap/util.h \
 	wifipcap/wifipcap.cpp \
 	wifipcap/wifipcap.h 
-
-
 
 
 tcpflow_SOURCES = \

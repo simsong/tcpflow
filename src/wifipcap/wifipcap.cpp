@@ -42,13 +42,13 @@
 
 /* wifipcap uses a MAC class which is somewhat lame, but works */
 
-WifipcapCallbacks::MAC WifipcapCallbacks::MAC::broadcast(0xffffffffffffULL);
-WifipcapCallbacks::MAC WifipcapCallbacks::MAC::null((uint64_t)0);
-int WifipcapCallbacks::debug=0;
-int WifipcapCallbacks::MAC::print_fmt(MAC::PRINT_FMT_COLON);
+MAC MAC::broadcast(0xffffffffffffULL);
+MAC MAC::null((uint64_t)0);
+int WifiPacket::debug=0;
+int MAC::print_fmt(MAC::PRINT_FMT_COLON);
 
-std::ostream& operator<<(std::ostream& out, const WifipcapCallbacks::MAC& mac) {
-    const char *fmt = WifipcapCallbacks::MAC::print_fmt == WifipcapCallbacks::MAC::PRINT_FMT_COLON ? 
+std::ostream& operator<<(std::ostream& out, const MAC& mac) {
+    const char *fmt = MAC::print_fmt == MAC::PRINT_FMT_COLON ? 
 	"%02x:%02x:%02x:%02x:%02x:%02x" :
 	"%02x%02x%02x%02x%02x%02x";
     char buf[24];
@@ -74,7 +74,7 @@ struct tok {
     const char *s;		/* string */
 };
 
-const struct tok ethertype_values[] = { 
+static const struct tok ethertype_values[] = { 
     { ETHERTYPE_IP,		"IPv4" },
     { ETHERTYPE_MPLS,		"MPLS unicast" },
     { ETHERTYPE_MPLS_MULTI,	"MPLS multicast" },
@@ -230,7 +230,7 @@ static const char * data_subtype_text[] = {
  *  x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^8 + x^7 +
  *      x^5 + x^4 + x^2 + x + 1
  */
-const uint32_t crc32_ccitt_table[256] = {
+static const uint32_t crc32_ccitt_table[256] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419,
     0x706af48f, 0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4,
     0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07,
@@ -287,14 +287,14 @@ const uint32_t crc32_ccitt_table[256] = {
 
 #define CRC32_CCITT_SEED    0xFFFFFFFF
 
-uint32_t crc32_ccitt_seed(const uint8_t *buf, size_t len, uint32_t seed);
+static uint32_t crc32_ccitt_seed(const uint8_t *buf, size_t len, uint32_t seed);
 
-uint32_t crc32_ccitt(const uint8_t *buf, size_t len)
+static uint32_t crc32_ccitt(const uint8_t *buf, size_t len)
 {
     return ( crc32_ccitt_seed(buf, len, CRC32_CCITT_SEED) );
 }
 
-uint32_t crc32_ccitt_seed(const uint8_t *buf, size_t len, uint32_t seed)
+static uint32_t crc32_ccitt_seed(const uint8_t *buf, size_t len, uint32_t seed)
 {
     uint32_t crc32 = seed;
 
@@ -314,7 +314,7 @@ uint32_t crc32_ccitt_seed(const uint8_t *buf, size_t len, uint32_t seed)
  * or is fetching it big-endian and byte-swapping the CRC done
  * to cope with 802.x sending stuff out in reverse bit order?
  */
-uint32_t crc32_802(const unsigned char *buf, size_t len)
+static uint32_t crc32_802(const unsigned char *buf, size_t len)
 {
     uint32_t c_crc;
 
@@ -365,620 +365,14 @@ static size_t extract_header_length(u_int16_t fc)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/* These tcp optinos do not have the size octet */
-#define ZEROLENOPT(o) ((o) == TCPOPT_EOL || (o) == TCPOPT_NOP)
-
-void parse_tcp_opts(std::list<tcp_opt_t>& opts, const u_char *cp, u_int hlen)
-{
-
-    if (hlen == 0) 
-	return;
-
-    register u_int i, opt, datalen;
-    register u_int len;
-
-    //putchar(' ');
-    //ch = '<';
-    while (hlen > 0) {
-	tcp_opt_t tcpopt;
-
-	//putchar(ch);
-	//TCHECK(*cp);
-	opt = *cp++;
-	if (ZEROLENOPT(opt))
-	    len = 1;
-	else {
-	    //TCHECK(*cp);
-	    len = *cp++;	/* total including type, len */
-	    if (len < 2 || len > hlen)
-		// stop processing on bad opt
-		break;
-	    --hlen;		/* account for length byte */
-	}
-	--hlen;			/* account for type byte */
-	datalen = 0;
-
-/* Bail if "l" bytes of data are not left or were not captured  */
-#define LENCHECK(l) { if ((l) > hlen) break; }
-
-	tcpopt.type = opt;
-	tcpopt.data_raw = cp;
-
-	switch (opt) {
-
-	case TCPOPT_MAXSEG:
-	    //(void)printf("mss");
-	    datalen = 2;
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", EXTRACT_16BITS(cp));
-	    tcpopt.data.mss = EXTRACT_16BITS(cp);
-	    break;
-	    
-	case TCPOPT_EOL:
-	    //(void)printf("eol");
-	    break;
-	    
-	case TCPOPT_NOP:
-	    //(void)printf("nop");
-	    break;
-	    
-	case TCPOPT_WSCALE:
-	    //(void)printf("wscale");
-	    datalen = 1;
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", *cp);
-	    tcpopt.data.wscale = *cp;
-	    break;
-	    
-	case TCPOPT_SACKOK:
-	    //(void)printf("sackOK");
-	    break;
-	    
-	case TCPOPT_SACK:
-	    datalen = len - 2;
-	    if (datalen % 8 != 0) {
-		//(void)printf("malformed sack");
-	    } else {
-		u_int32_t s, e;
-		
-		//(void)printf("sack %d ", datalen / 8);
-		for (i = 0; i < datalen; i += 8) {
-		    LENCHECK(i + 4);
-		    s = EXTRACT_32BITS(cp + i);
-		    LENCHECK(i + 8);
-		    e = EXTRACT_32BITS(cp + i + 4);
-		    /* XXX leave application to do this translation?
-                       if (threv) {
-                       s -= thseq;
-                       e -= thseq;
-                       } else {
-                       s -= thack;
-                       e -= thack;
-                       }
-                       (void)printf("{%u:%u}", s, e);
-		    */
-		    tcpopt.data_sack.push_back(std::pair<u_int32_t,u_int32_t>(s,e));
-		}
-	    }
-	    break;
-	    
-	case TCPOPT_ECHO:
-	    //(void)printf("echo");
-	    datalen = 4;
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", EXTRACT_32BITS(cp));
-	    tcpopt.data.echo = EXTRACT_32BITS(cp);
-	    break;
-	    
-	case TCPOPT_ECHOREPLY:
-	    //(void)printf("echoreply");
-	    datalen = 4;
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", EXTRACT_32BITS(cp));
-	    tcpopt.data.echoreply = EXTRACT_32BITS(cp);
-	    break;
-	    
-	case TCPOPT_TIMESTAMP:
-	    //(void)printf("timestamp");
-	    datalen = 8;
-	    //LENCHECK(4);
-	    //(void)printf(" %u", EXTRACT_32BITS(cp));
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", EXTRACT_32BITS(cp + 4));
-	    tcpopt.data.timestamp.tsval = EXTRACT_32BITS(cp);
-	    tcpopt.data.timestamp.tsecr = EXTRACT_32BITS(cp + 4);
-	    break;
-	    
-	case TCPOPT_CC:
-	    //(void)printf("cc");
-	    datalen = 4;
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", EXTRACT_32BITS(cp));
-	    tcpopt.data.cc = EXTRACT_32BITS(cp);
-	    break;
-	    
-	case TCPOPT_CCNEW:
-	    //(void)printf("ccnew");
-	    datalen = 4;
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", EXTRACT_32BITS(cp));
-	    tcpopt.data.ccnew = EXTRACT_32BITS(cp);
-	    break;
-	    
-	case TCPOPT_CCECHO:
-	    //(void)printf("ccecho");
-	    datalen = 4;
-	    LENCHECK(datalen);
-	    //(void)printf(" %u", EXTRACT_32BITS(cp));
-	    tcpopt.data.ccecho = EXTRACT_32BITS(cp);
-	    break;
-	    
-	case TCPOPT_SIGNATURE:
-	    //(void)printf("md5:");
-	    datalen = TCP_SIGLEN;
-	    LENCHECK(datalen);
-	    for (i = 0; i < TCP_SIGLEN; ++i)
-		//(void)printf("%02x", cp[i]);
-		tcpopt.data.signature[i] = cp[i];
-	    break;
-	    
-	default:
-	    //(void)printf("opt-%u:", opt);
-	    datalen = len - 2;
-	    /*
-              for (i = 0; i < datalen; ++i) {
-              LENCHECK(i);
-              (void)printf("%02x", cp[i]);
-              }
-	    */
-	    break;
-	}
-	
-	/* Account for data printed */
-	cp += datalen;
-	hlen -= datalen;
-	
-	/* Check specification against observed length */
-	//++datalen;			/* option octet */
-	//if (!ZEROLENOPT(opt))
-	//    ++datalen;		/* size octet */
-	//if (datalen != len)
-	//    (void)printf("[len %d]", len);
-	//ch = ',';
-
-	tcpopt.len = datalen;
-	opts.push_back(tcpopt);
-
-	if (opt == TCPOPT_EOL)
-	    break;
-    }
-    //putchar('>');
-
-}
-
-void
-handle_tcp(const struct timeval& t, WifipcapCallbacks *cbs, 
-	   const u_char *bp, u_int length,
-	   struct ip4_hdr_t *ip4h, struct ip6_hdr_t *ip6h, int fragmented)
-{
-    struct tcphdr *tp;
-    tp = (struct tcphdr *)bp;
-    int hlen;
-
-    // truncated header
-    if (length < sizeof(*tp)) {
-	cbs->HandleTCP(t, ip4h, ip6h, NULL, NULL, 0, bp, length);
-	return;
-    }
-
-    hlen = TH_OFF(tp) * 4;
-
-    // bad header length || missing tcp options
-    if (hlen < (int)sizeof(*tp) || length < (int)sizeof(*tp) || hlen > (int)length) {
-	cbs->HandleTCP(t, ip4h, ip6h, NULL, NULL, 0, bp, length);
-	return;
-    }
-
-    tcp_hdr_t hdr;
-    hdr.sport = EXTRACT_16BITS(&tp->th_sport);
-    hdr.dport = EXTRACT_16BITS(&tp->th_dport);
-    hdr.seq = EXTRACT_32BITS(&tp->th_seq);
-    hdr.ack = EXTRACT_32BITS(&tp->th_ack);
-    hdr.dataoff = TH_OFF(tp) * 4;
-    hdr.flags = tp->th_flags;
-    hdr.win = EXTRACT_16BITS(&tp->th_win);
-    hdr.cksum = EXTRACT_16BITS(&tp->th_sum);
-    hdr.urgptr = EXTRACT_16BITS(&tp->th_urp);
-
-    //parse_tcp_opts(hdr.opts, bp+sizeof(*tp), hlen-sizeof(*tp));
-
-    cbs->HandleTCP(t, ip4h, ip6h, &hdr, hlen==sizeof(*tp)?NULL:bp+sizeof(*tp), hlen-sizeof(*tp), bp+hlen, length-hlen);
-}
-
-void
-handle_udp(const struct timeval& t, WifipcapCallbacks *cbs, 
-	   const u_char *bp, u_int length,
-	   struct ip4_hdr_t *ip4h, struct ip6_hdr_t *ip6h, int fragmented)
-{
-    struct udphdr *uh;
-    uh = (struct udphdr *)bp;
-
-    if (length < sizeof(struct udphdr)) {
-	// truncated udp header
-	cbs->HandleUDP(t, ip4h, ip6h, NULL, bp, length);
-	return;
-    }
-
-    udp_hdr_t hdr;
-    hdr.sport = EXTRACT_16BITS(&uh->uh_sport);
-    hdr.dport = EXTRACT_16BITS(&uh->uh_dport);
-    hdr.len   = EXTRACT_16BITS(&uh->uh_ulen);
-    hdr.cksum = EXTRACT_16BITS(&uh->uh_sum);
-
-    cbs->HandleUDP(t, ip4h, ip6h, &hdr, bp+sizeof(struct udphdr), length-sizeof(struct udphdr));
-}
-
-void
-handle_icmp(const struct timeval& t, WifipcapCallbacks *cbs, 
-	    const u_char *bp, u_int length,
-	    struct ip4_hdr_t *ip4h, struct ip6_hdr_t *ip6h, int fragmented)
-{
-    struct icmp *dp;
-    dp = (struct icmp *)bp;
-
-    if (length < 4) {
-	// truncated icmp header
-	cbs->HandleICMP(t, ip4h, ip6h, -1, -1, bp, length);
-	return;
-    }
-
-    cbs->HandleICMP(t, ip4h, ip6h, dp->icmp_type, dp->icmp_code, bp+4, length-4);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len);
-void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len);
-
-struct ip_print_demux_state {
-    struct ip *ip;
-    const u_char *cp;
-    u_int   len, off;
-    u_char  nh;
-    int     advance;
-};
-
-void
-ip_demux(const struct timeval& t, WifipcapCallbacks *cbs, ip4_hdr_t *hdr, struct ip_print_demux_state *ipds, u_int len)
-{
-    //struct protoent *proto;
-
-//again:
-    switch (ipds->nh) {
-    case IPPROTO_TCP:
-        /* pass on the MF bit plus the offset to detect fragments */
-        handle_tcp(t, cbs, ipds->cp, ipds->len, hdr, NULL,
-                   ipds->off & (IP_MF|IP_OFFMASK));
-        break;
-		
-    case IPPROTO_UDP:
-        /* pass on the MF bit plus the offset to detect fragments */
-        handle_udp(t, cbs, ipds->cp, ipds->len, hdr, NULL,
-                   ipds->off & (IP_MF|IP_OFFMASK));
-        break;
-		
-    case IPPROTO_ICMP:
-        /* pass on the MF bit plus the offset to detect fragments */
-        handle_icmp(t, cbs, ipds->cp, ipds->len, hdr, NULL,
-                    ipds->off & (IP_MF|IP_OFFMASK));
-        break;
-		
-    case IPPROTO_IPV4:
-        /* DVMRP multicast tunnel (ip-in-ip encapsulation) */
-        //handle_ip(t, cbs, ipds->cp, ipds->len);
-        //break;
-    case IPPROTO_IPV6:
-        /* ip6-in-ip encapsulation */
-        //handle_ip6(t, cbs, ipds->cp, ipds->len);
-        //break;
-	    
-        ///// Jeff: XXX Some day handle these maybe (see tcpdump code)
-    case IPPROTO_AH:
-        /*
-          ipds->nh = *ipds->cp;
-          ipds->advance = ah_print(ipds->cp);
-          if (ipds->advance <= 0)
-          break;
-          ipds->cp += ipds->advance;
-          ipds->len -= ipds->advance;
-          goto again;
-        */
-    case IPPROTO_ESP:
-    {
-        /*
-          int enh, padlen;
-          ipds->advance = esp_print(ndo, ipds->cp, ipds->len,
-          (const u_char *)ipds->ip,
-          &enh, &padlen);
-          if (ipds->advance <= 0)
-          break;
-          ipds->cp += ipds->advance;
-          ipds->len -= ipds->advance + padlen;
-          ipds->nh = enh & 0xff;
-          goto again;
-        */
-    }
-    case IPPROTO_IPCOMP:
-    {
-        /*
-          int enh;
-          ipds->advance = ipcomp_print(ipds->cp, &enh);
-          if (ipds->advance <= 0)
-          break;
-          ipds->cp += ipds->advance;
-          ipds->len -= ipds->advance;
-          ipds->nh = enh & 0xff;
-          goto again;
-        */
-    }
-    case IPPROTO_SCTP:
-        /*
-          sctp_print(ipds->cp, (const u_char *)ipds->ip, ipds->len);
-          break;
-        */
-    case IPPROTO_DCCP:
-        /*
-          dccp_print(ipds->cp, (const u_char *)ipds->ip, ipds->len);
-          break;
-        */	
-    case IPPROTO_PIGP:
-        /*
-         * XXX - the current IANA protocol number assignments
-         * page lists 9 as "any private interior gateway
-         * (used by Cisco for their IGRP)" and 88 as
-         * "EIGRP" from Cisco.
-         *
-         * Recent BSD <netinet/in.h> headers define
-         * IP_PROTO_PIGP as 9 and IP_PROTO_IGRP as 88.
-         * We define IP_PROTO_PIGP as 9 and
-         * IP_PROTO_EIGRP as 88; those names better
-         * match was the current protocol number
-         * assignments say.
-         */
-        /*
-          igrp_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
-          break;
-        */
-    case IPPROTO_EIGRP:
-        /*
-          eigrp_print(ipds->cp, ipds->len);
-          break;
-        */
-    case IPPROTO_ND:
-        /*
-          ND_PRINT((ndo, " nd %d", ipds->len));
-          break;
-        */
-    case IPPROTO_EGP:
-        /*
-          egp_print(ipds->cp, ipds->len);
-          break;
-        */
-    case IPPROTO_OSPF:
-        /*
-          ospf_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
-          break;
-        */
-    case IPPROTO_IGMP:
-        /*
-          igmp_print(ipds->cp, ipds->len);
-          break;
-        */
-    case IPPROTO_RSVP:
-        /*
-          rsvp_print(ipds->cp, ipds->len);
-          break;
-        */
-    case IPPROTO_GRE:
-        /* do it */
-        /*
-          gre_print(ipds->cp, ipds->len);
-          break;
-        */
-    case IPPROTO_MOBILE:
-        /*
-          mobile_print(ipds->cp, ipds->len);
-          break;
-        */
-    case IPPROTO_PIM:
-        /*
-          pim_print(ipds->cp,  ipds->len);
-          break;
-        */
-    case IPPROTO_VRRP:
-        /*
-          vrrp_print(ipds->cp, ipds->len, ipds->ip->ip_ttl);
-          break;
-        */
-    case IPPROTO_PGM:
-        /*
-          pgm_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
-          break;
-        */
-
-    default:
-        /*
-          if ((proto = getprotobynumber(ipds->nh)) != NULL)
-          ND_PRINT((ndo, " %s", proto->p_name));
-          else
-          ND_PRINT((ndo, " ip-proto-%d", ipds->nh));
-          ND_PRINT((ndo, " %d", ipds->len));
-        */
-        cbs->HandleL3Unknown(t, hdr, NULL, ipds->cp, ipds->len);
-	    
-        break;
-    }
-}
-
-void handle_ip(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
-{
-    struct ip_print_demux_state  ipd;
-    struct ip_print_demux_state *ipds=&ipd;
-    u_int hlen;
-
-    // truncated (in fact, nothing!)
-    if (len == 0) {
-	cbs->HandleIP(t, NULL, NULL, 0, ptr, len);
-	return;
-    }
-
-    ipds->ip = (struct ip *)ptr;
-    if (IP_V(ipds->ip) != 4) {
-	if (IP_V(ipds->ip) == 6) {
-	    // wrong link-layer encap!
-	    handle_ip6(t, cbs, ptr, len);
-	    return;
-	}
-    }
-    if (len < sizeof (struct ip)) {
-	// truncated!
-	cbs->HandleIP(t, NULL, NULL, 0, ptr, len);
-	return;
-    }
-    hlen = IP_HL(ipds->ip) * 4;
-    ipds->len = EXTRACT_16BITS(&ipds->ip->ip_len);
-    if (len < ipds->len) {
-	// truncated IP
-	// this is ok, we'll just report the truncation later
-    }
-    if (ipds->len < hlen) {
-	// missing some ip options!
-	cbs->HandleIP(t, NULL, NULL, 0, ptr, len);
-    }
-    
-    ipds->len -= hlen;
-    
-    ipds->off = EXTRACT_16BITS(&ipds->ip->ip_off);
-
-    struct ip4_hdr_t hdr;
-    hdr.ver      = IP_V(ipds->ip);
-    hdr.hlen     = IP_HL(ipds->ip) * 4;
-    hdr.tos      = ipds->ip->ip_tos;
-    hdr.len      = EXTRACT_16BITS(&ipds->ip->ip_len);
-    hdr.id       = EXTRACT_16BITS(&ipds->ip->ip_id);
-    hdr.df       = (bool)((ipds->off & IP_DF) != 0);
-    hdr.mf       = (bool)((ipds->off & IP_MF) != 0);
-    hdr.fragoff  = (ipds->off & IP_OFFMASK);
-    hdr.ttl      = ipds->ip->ip_ttl;
-    hdr.proto    = ipds->ip->ip_p;
-    hdr.cksum    = EXTRACT_16BITS(&ipds->ip->ip_sum);
-    hdr.src      = ipds->ip->ip_src;
-    hdr.dst      = ipds->ip->ip_dst;
-
-    cbs->HandleIP(t, &hdr, hlen==sizeof(struct ip)?NULL:ptr+sizeof(struct ip), hlen-sizeof(struct ip), ptr+hlen, len-hlen);
-    
-    /*
-     * If this is fragment zero, hand it to the next higher
-     * level protocol.
-     */
-    if ((ipds->off & 0x1fff) == 0) {
-	ipds->cp = (const u_char *)ipds->ip + hlen;
-	ipds->nh = ipds->ip->ip_p;
-	
-	ip_demux(t, cbs, &hdr, ipds, len);
-    } else {
-	// This is a fragment of a previous packet. can't demux it
-	return;
-    }
-}
-
-void handle_ip6(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
-{
-    const struct ip6_hdr *ip6;
-    if (len < sizeof (struct ip6_hdr)) {
-	cbs->HandleIP6(t, NULL, ptr, len);
-	return;
-    }
-    ip6 = (const struct ip6_hdr *)ptr;
-
-    ip6_hdr_t hdr;
-    memcpy(&hdr, ip6, sizeof(hdr));
-    hdr.ip6_plen = EXTRACT_16BITS(&ip6->ip6_plen);
-    hdr.ip6_flow = EXTRACT_32BITS(&ip6->ip6_flow);
-
-    cbs->HandleIP6(t, &hdr, ptr+sizeof(hdr), len-sizeof(hdr));
-
-    int nh = ip6->ip6_nxt;
-    switch(nh) {
-    case IPPROTO_TCP:
-	handle_tcp(t, cbs, ptr+sizeof(ip6_hdr), len-sizeof(ip6_hdr), 
-		   NULL, &hdr, 0);
-	break;
-    case IPPROTO_UDP:
-	handle_udp(t, cbs, ptr+sizeof(ip6_hdr), len-sizeof(ip6_hdr), 
-		   NULL, &hdr, 0);
-	break;
-    default:
-	cbs->HandleL3Unknown(t, NULL, &hdr, 
-			     ptr+sizeof(ip6_hdr), len-sizeof(ip6_hdr));
-	break;
-    }
-}
-
-void handle_arp(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
-{
-    struct arp_pkthdr *ap;
-    //u_short pro, hrd, op;
-
-    if (len < sizeof(struct arp_pkthdr)) {
-	cbs->HandleARP(t, NULL, ptr, len);
-	return;
-    }
-
-    ap = (struct arp_pkthdr *)ptr;
-    cbs->HandleARP(t, ap, ptr+ARP_HDRLEN, len-ARP_HDRLEN);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void handle_ether(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
-{
-    WifipcapCallbacks::ether_hdr_t hdr;
-
-    hdr.da = WifipcapCallbacks::MAC::ether2MAC(ptr);
-    hdr.sa = WifipcapCallbacks::MAC::ether2MAC(ptr+6);
-    hdr.type = EXTRACT_16BITS(ptr + 12);
-
-    ptr += 14;
-    len -= 14;
-
-    cbs->HandleEthernet(t, &hdr, ptr, len);
-
-    switch (hdr.type) {
-    case ETHERTYPE_IP:
-	handle_ip(t, cbs, ptr, len);
-	return;
-    case ETHERTYPE_IPV6:
-	handle_ip6(t, cbs, ptr, len);
-	return;
-    case ETHERTYPE_ARP:
-	handle_arp(t, cbs, ptr, len);
-	return;
-    default:
-	cbs->HandleL2Unknown(t, hdr.type, ptr, len);
-	return;
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 #pragma GCC diagnostic ignored "-Wcast-align"
-void WifipcapCallbacks::handle_llc(const struct timeval& t, WifipcapCallbacks *cbs,
-                                   const WifipcapCallbacks::mac_hdr_t &mac,const u_char *ptr, u_int len,u_int16_t fc, bool fcs_ok)
+void WifiPacket::handle_llc(const mac_hdr_t &mac,const u_char *ptr, size_t len,u_int16_t fc)
 {
     if (len < 7) {
 	// truncated header!
-	cbs->HandleLLC(t, NULL, ptr, len);
+	cbs->HandleLLC(*this,NULL, ptr, len);
 	return;
     }
 
@@ -1000,36 +394,36 @@ void WifipcapCallbacks::handle_llc(const struct timeval& t, WifipcapCallbacks *c
      */
 
     if(hdr.dsap==0xAA && hdr.ssap==0xAA){
-        cbs->HandleLLC(t,&hdr,ptr+8,len-8);
+        cbs->HandleLLC(*this,&hdr,ptr+8,len-8);
         return;
     }
 
     if (hdr.oui == OUI_ENCAP_ETHER || hdr.oui == OUI_CISCO_90) {
-        cbs->HandleLLC(t, &hdr, ptr+8, len-8);
+        cbs->HandleLLC(*this,&hdr, ptr+8, len-8);
         return;
     }
         
-    cbs->HandleLLCUnknown(t, ptr, len);
+    cbs->HandleLLCUnknown(*this,ptr, len);
 }
 
-void handle_wep(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *ptr, u_int len)
+void WifiPacket::handle_wep(const u_char *ptr, size_t len)
 {
     // Jeff: XXX handle TKIP/CCMP ? how can we demultiplex different
     // protection protocols?
 
-    struct WifipcapCallbacks::wep_hdr_t hdr;
+    struct wep_hdr_t hdr;
     u_int32_t iv;
 
     if (len < IEEE802_11_IV_LEN + IEEE802_11_KID_LEN) {
 	// truncated!
-	cbs->HandleWEP(t, NULL, ptr, len);
+	cbs->HandleWEP(*this,NULL, ptr, len);
 	return;
     }
     iv = EXTRACT_LE_32BITS(ptr);
     hdr.iv = IV_IV(iv);
     hdr.pad = IV_PAD(iv);
     hdr.keyid = IV_KEYID(iv);
-    cbs->HandleWEP(t, &hdr, ptr, len);
+    cbs->HandleWEP(*this,&hdr, ptr, len);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1091,7 +485,7 @@ const char *Wifipcap::WifiUtil::MgmtReasonCode2Txt(uint v) {
 // Jeff: HACK -- tcpdump uses a global variable to check truncation
 #define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= len) 
 
-void WifipcapCallbacks::parse_elements(struct WifipcapCallbacks::mgmt_body_t *pbody, const u_char *p, int offset, u_int len)
+void WifiPacket::parse_elements(struct mgmt_body_t *pbody, const u_char *p, int offset, size_t len)
 {
     /*
      * We haven't seen any elements yet.
@@ -1231,7 +625,7 @@ void WifipcapCallbacks::parse_elements(struct WifipcapCallbacks::mgmt_body_t *pb
  *********************************************************************************/
 
 int
-WifipcapCallbacks::handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_beacon( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1257,11 +651,11 @@ WifipcapCallbacks::handle_beacon(const struct timeval& t, WifipcapCallbacks *cbs
       CAPABILITY_ESS(pbody.capability_info) ? "ESS" : "IBSS");
       PRINT_DS_CHANNEL(pbody);
     */
-    cbs->Handle80211MgmtBeacon(t, pmh, &pbody);
+    cbs->Handle80211MgmtBeacon(*this, pmh, &pbody);
     return 1;
 }
 
-int WifipcapCallbacks::handle_assoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+int WifiPacket::handle_assoc_request( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1281,13 +675,12 @@ int WifipcapCallbacks::handle_assoc_request(const struct timeval& t, WifipcapCal
       PRINT_SSID(pbody);
       PRINT_RATES(pbody);
     */
-    cbs->Handle80211MgmtAssocRequest(t, pmh, &pbody);
+    cbs->Handle80211MgmtAssocRequest(*this, pmh, &pbody);
 
     return 1;
 }
 
-int
-WifipcapCallbacks::handle_assoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len, bool reassoc)
+int WifiPacket::handle_assoc_response( const struct mgmt_header_t *pmh, const u_char *p, size_t len, bool reassoc)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1314,15 +707,15 @@ WifipcapCallbacks::handle_assoc_response(const struct timeval& t, WifipcapCallba
       : "n/a"));
     */
     if (!reassoc)
-        cbs->Handle80211MgmtAssocResponse(t, pmh, &pbody);
+        cbs->Handle80211MgmtAssocResponse(*this, pmh, &pbody);
     else
-        cbs->Handle80211MgmtReassocResponse(t, pmh, &pbody);
+        cbs->Handle80211MgmtReassocResponse(*this, pmh, &pbody);
 
     return 1;
 }
 
 int
-WifipcapCallbacks::handle_reassoc_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_reassoc_request( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t pbody;
     int offset = 0;
@@ -1345,20 +738,20 @@ WifipcapCallbacks::handle_reassoc_request(const struct timeval& t, WifipcapCallb
       PRINT_SSID(pbody);
       printf(" AP : %s", etheraddr_string( pbody.ap ));
     */
-    cbs->Handle80211MgmtReassocRequest(t, pmh, &pbody);
+    cbs->Handle80211MgmtReassocRequest(*this, pmh, &pbody);
 
     return 1;
 }
 
 int
-WifipcapCallbacks::handle_reassoc_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_reassoc_response( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     /* Same as a Association Reponse */
-    return handle_assoc_response(t, cbs, pmh, p, len, true);
+    return handle_assoc_response(pmh, p, len, true);
 }
 
 int
-WifipcapCallbacks::handle_probe_request(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_probe_request( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1371,13 +764,13 @@ WifipcapCallbacks::handle_probe_request(const struct timeval& t, WifipcapCallbac
       PRINT_SSID(pbody);
       PRINT_RATES(pbody);
     */
-    cbs->Handle80211MgmtProbeRequest(t, pmh, &pbody);
+    cbs->Handle80211MgmtProbeRequest(*this, pmh, &pbody);
 
     return 1;
 }
 
 int
-WifipcapCallbacks::handle_probe_response(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_probe_response( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1402,23 +795,23 @@ WifipcapCallbacks::handle_probe_response(const struct timeval& t, WifipcapCallba
       PRINT_RATES(pbody);
       PRINT_DS_CHANNEL(pbody);
     */
-    cbs->Handle80211MgmtProbeResponse(t, pmh, &pbody);
+    cbs->Handle80211MgmtProbeResponse(*this, pmh, &pbody);
 
     return 1;
 }
 
 int
-WifipcapCallbacks::handle_atim(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_atim( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     /* the frame body for ATIM is null. */
 
-    cbs->Handle80211MgmtATIM(t, pmh);
+    cbs->Handle80211MgmtATIM(*this, pmh);
 
     return 1;
 }
 
 int
-WifipcapCallbacks::handle_disassoc(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_disassoc( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t  pbody;
 
@@ -1434,13 +827,13 @@ WifipcapCallbacks::handle_disassoc(const struct timeval& t, WifipcapCallbacks *c
       ? reason_text[pbody.reason_code]
       : "Reserved" );
     */
-    cbs->Handle80211MgmtDisassoc(t, pmh, &pbody);
+    cbs->Handle80211MgmtDisassoc(*this, pmh, &pbody);
 
     return 1;
 }
 
 int
-WifipcapCallbacks::handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_auth( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1484,13 +877,13 @@ WifipcapCallbacks::handle_auth(const struct timeval& t, WifipcapCallbacks *cbs, 
       : "n/a")
       : "");
     */
-    cbs->Handle80211MgmtAuth(t, pmh, &pbody);
+    cbs->Handle80211MgmtAuth(*this, pmh, &pbody);
 
     return 1;
 }
 
 int
-WifipcapCallbacks::handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs, const struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::handle_deauth( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t  pbody;
     int offset = 0;
@@ -1514,7 +907,7 @@ WifipcapCallbacks::handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs
       printf(" (%s): %s", etheraddr_string(pmh->sa), reason);
       }
     */
-    cbs->Handle80211MgmtDeauth(t, pmh, &pbody);
+    cbs->Handle80211MgmtDeauth(*this, pmh, &pbody);
 
     return 1;
 }
@@ -1532,48 +925,47 @@ WifipcapCallbacks::handle_deauth(const struct timeval& t, WifipcapCallbacks *cbs
  */
  
 int
-WifipcapCallbacks::decode_mgmt_body(const struct timeval& t, WifipcapCallbacks *cbs, u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, u_int len)
+WifiPacket::decode_mgmt_body(u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
-    if(WifipcapCallbacks::debug) std::cerr << "decode_mgmt_body FC_SUBTYPE(fc)="<<(int)FC_SUBTYPE(fc)<<" ";
+    if(debug) std::cerr << "decode_mgmt_body FC_SUBTYPE(fc)="<<(int)FC_SUBTYPE(fc)<<" ";
     switch (FC_SUBTYPE(fc)) {
     case ST_ASSOC_REQUEST:
-        return handle_assoc_request(t, cbs, pmh, p, len);
+        return handle_assoc_request(pmh, p, len);
     case ST_ASSOC_RESPONSE:
-        return handle_assoc_response(t, cbs, pmh, p, len);
+        return handle_assoc_response(pmh, p, len);
     case ST_REASSOC_REQUEST:
-        return handle_reassoc_request(t, cbs, pmh, p, len);
+        return handle_reassoc_request(pmh, p, len);
     case ST_REASSOC_RESPONSE:
-        return handle_reassoc_response(t, cbs, pmh, p, len);
+        return handle_reassoc_response(pmh, p, len);
     case ST_PROBE_REQUEST:
-        return handle_probe_request(t, cbs, pmh, p, len);
+        return handle_probe_request(pmh, p, len);
     case ST_PROBE_RESPONSE:
-        return handle_probe_response(t, cbs, pmh, p, len);
+        return handle_probe_response(pmh, p, len);
     case ST_BEACON:
-        return handle_beacon(t, cbs, pmh, p, len);
+        return handle_beacon(pmh, p, len);
     case ST_ATIM:
-        return handle_atim(t, cbs, pmh, p, len);
+        return handle_atim(pmh, p, len);
     case ST_DISASSOC:
-        return handle_disassoc(t, cbs, pmh, p, len);
+        return handle_disassoc(pmh, p, len);
     case ST_AUTH:
         if (len < 3) {
             return 0;
         }
         if ((p[0] == 0 ) && (p[1] == 0) && (p[2] == 0)) {
             //printf("Authentication (Shared-Key)-3 ");
-            cbs->Handle80211MgmtAuthSharedKey(t, pmh, p, len);
+            cbs->Handle80211MgmtAuthSharedKey(*this, pmh, p, len);
             return 0;
         }
-        return handle_auth(t, cbs, pmh, p, len);
+        return handle_auth(pmh, p, len);
     case ST_DEAUTH:
-        return handle_deauth(t, cbs, pmh, p, len);
+        return handle_deauth(pmh, p, len);
         break;
     default:
         return 0;
     }
 }
 
-int WifipcapCallbacks::decode_mgmt_frame(const struct timeval& t, WifipcapCallbacks *cbs,
-                                         const u_char * ptr, u_int len, u_int16_t fc, u_int8_t hdrlen, bool fcs_ok)
+int WifiPacket::decode_mgmt_frame(const u_char * ptr, size_t len, u_int16_t fc, u_int8_t hdrlen)
 {
     mgmt_header_t hdr;
     u_int16_t seq_ctl;
@@ -1589,22 +981,21 @@ int WifipcapCallbacks::decode_mgmt_frame(const struct timeval& t, WifipcapCallba
     hdr.seq   = COOK_SEQUENCE_NUMBER(seq_ctl);
     hdr.frag  = COOK_FRAGMENT_NUMBER(seq_ctl);
 
-    cbs->Handle80211(t, fc, hdr.sa, hdr.da, MAC::null, MAC::null, ptr, len, fcs_ok);
+    cbs->Handle80211(*this, fc, hdr.sa, hdr.da, MAC::null, MAC::null, ptr, len);
 
-    int ret = decode_mgmt_body(t, cbs, fc, &hdr, ptr+MGMT_HDRLEN, len-MGMT_HDRLEN);
+    int ret = decode_mgmt_body(fc, &hdr, ptr+MGMT_HDRLEN, len-MGMT_HDRLEN);
 
     if (ret==0) {
-	cbs->Handle80211Unknown(t, fc, ptr, len);
+	cbs->Handle80211Unknown(*this, fc, ptr, len);
 	return 0;
     }
 
     return 0;
 }
 
-int WifipcapCallbacks::decode_data_frame(const struct timeval& t, WifipcapCallbacks *cbs,
-                                         const u_char * ptr, u_int len, u_int16_t fc, bool fcs_ok)
+int WifiPacket::decode_data_frame(const u_char * ptr, size_t len, u_int16_t fc)
 {
-    WifipcapCallbacks::mac_hdr_t hdr;
+    mac_hdr_t hdr;
     hdr.fc       = fc;
     hdr.duration = EXTRACT_LE_16BITS(ptr+2);
     hdr.seq_ctl  = pletohs(ptr + 22);
@@ -1615,7 +1006,6 @@ int WifipcapCallbacks::decode_data_frame(const struct timeval& t, WifipcapCallba
         hdr.qos = 1;
     }
         
-
     size_t hdrlen=0;
 
     const MAC address1 = MAC::ether2MAC(ptr+4);
@@ -1630,24 +1020,24 @@ int WifipcapCallbacks::decode_data_frame(const struct timeval& t, WifipcapCallba
 	hdr.bssid = address3;
 	hdrlen = DATA_HDRLEN;
         if(hdr.qos) hdrlen+=2;
-        cbs->Handle80211(t, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len, fcs_ok);
-	cbs->Handle80211DataIBSS(t, hdr, ptr+hdrlen, len-hdrlen);
+        cbs->Handle80211( *this, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len);
+	cbs->Handle80211DataIBSS( *this, hdr, ptr+hdrlen, len-hdrlen);
     } else if (FC_TO_DS(fc)==0 && FC_FROM_DS(fc)) { /* from AP to STA */
         hdr.da = address1;
         hdr.bssid = address2;
         hdr.sa = address3;
 	hdrlen = DATA_HDRLEN;
         if(hdr.qos) hdrlen+=2;
-        cbs->Handle80211(t, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len, fcs_ok);
-	cbs->Handle80211DataFromAP(t, hdr, ptr+hdrlen, len-hdrlen);
+        cbs->Handle80211( *this, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len);
+	cbs->Handle80211DataFromAP( *this, hdr, ptr+hdrlen, len-hdrlen);
     } else if (FC_TO_DS(fc) && FC_FROM_DS(fc)==0) {	/* frame from STA to AP */
         hdr.bssid = address1;
         hdr.sa = address2;
         hdr.da = address3;
 	hdrlen = DATA_HDRLEN;
         if(hdr.qos) hdrlen+=2;
-        cbs->Handle80211(t, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len, fcs_ok);
-	cbs->Handle80211DataToAP(t, hdr, ptr+hdrlen, len-hdrlen);
+        cbs->Handle80211( *this, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len);
+	cbs->Handle80211DataToAP( *this, hdr, ptr+hdrlen, len-hdrlen);
     } else if (FC_TO_DS(fc) && FC_FROM_DS(fc)) {	/* WDS */
         const MAC address4 = MAC::ether2MAC(ptr+18);
         hdr.ra = address1;
@@ -1656,20 +1046,20 @@ int WifipcapCallbacks::decode_data_frame(const struct timeval& t, WifipcapCallba
         hdr.sa = address4;
         hdrlen = DATA_WDS_HDRLEN;
         if(hdr.qos) hdrlen+=2;
-        cbs->Handle80211(t, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len, fcs_ok);
-	cbs->Handle80211DataWDS(t, hdr, ptr+hdrlen, len-hdrlen);
+        cbs->Handle80211( *this, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len);
+	cbs->Handle80211DataWDS( *this, hdr, ptr+hdrlen, len-hdrlen);
     }
 
     /* Handle either the WEP or the link layer */
     if (FC_WEP(fc)) {
-        handle_wep(t, cbs, ptr+hdrlen, len-hdrlen-4 ); /* FCS */
+        handle_wep(ptr+hdrlen, len-hdrlen-4 ); /* FCS */
     } else {
-        handle_llc(t, cbs, hdr, ptr+hdrlen, len-hdrlen-4, fc, fcs_ok ); /* FCS */
+        handle_llc(hdr, ptr+hdrlen, len-hdrlen-4, fc); /* FCS */
     }
     return 0;
 }
 
-int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * ptr, u_int len, u_int16_t fc, bool fcs_ok)
+int WifiPacket::decode_ctrl_frame(const u_char * ptr, size_t len, u_int16_t fc)
 {
     u_int16_t du = EXTRACT_LE_16BITS(ptr+2);        //duration
 
@@ -1680,8 +1070,8 @@ int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallba
 	hdr.aid = du;
 	hdr.bssid =  MAC::ether2MAC(ptr+4);
 	hdr.ta =  MAC::ether2MAC(ptr+10);
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, MAC::null, hdr.ta, ptr, len, fcs_ok);
-	cbs->Handle80211CtrlPSPoll(t, &hdr);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, MAC::null, hdr.ta, ptr, len);
+	cbs->Handle80211CtrlPSPoll( *this, &hdr);
 	break;
     }
     case CTRL_RTS: {
@@ -1690,8 +1080,8 @@ int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallba
 	hdr.duration = du;
 	hdr.ra =  MAC::ether2MAC(ptr+4);
 	hdr.ta =  MAC::ether2MAC(ptr+10);
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, hdr.ta, ptr, len, fcs_ok);
-	cbs->Handle80211CtrlRTS(t, &hdr);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, hdr.ra, hdr.ta, ptr, len);
+	cbs->Handle80211CtrlRTS( *this, &hdr);
 	break;
     }
     case CTRL_CTS: {
@@ -1699,8 +1089,8 @@ int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallba
 	hdr.fc = fc;
 	hdr.duration = du;
 	hdr.ra =  MAC::ether2MAC(ptr+4);
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
-	cbs->Handle80211CtrlCTS(t, &hdr);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len);
+	cbs->Handle80211CtrlCTS( *this, &hdr);
 	break;
     }
     case CTRL_ACK: {
@@ -1708,8 +1098,8 @@ int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallba
 	hdr.fc = fc;
 	hdr.duration = du;
 	hdr.ra =  MAC::ether2MAC(ptr+4);
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
-	cbs->Handle80211CtrlAck(t, &hdr);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len);
+	cbs->Handle80211CtrlAck( *this, &hdr);
 	break;
     }
     case CTRL_CF_END: {
@@ -1718,8 +1108,8 @@ int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallba
 	hdr.duration = du;
 	hdr.ra =  MAC::ether2MAC(ptr+4);
 	hdr.bssid =  MAC::ether2MAC(ptr+10);
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
-	cbs->Handle80211CtrlCFEnd(t, &hdr);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len);
+	cbs->Handle80211CtrlCFEnd( *this, &hdr);
 	break;
     }
     case CTRL_END_ACK: {	
@@ -1728,13 +1118,13 @@ int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallba
 	hdr.duration = du;
 	hdr.ra =  MAC::ether2MAC(ptr+4);
 	hdr.bssid =  MAC::ether2MAC(ptr+10);
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len, fcs_ok);
-	cbs->Handle80211CtrlEndAck(t, &hdr);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, hdr.ra, MAC::null, ptr, len);
+	cbs->Handle80211CtrlEndAck( *this, &hdr);
 	break;
     }
     default: {
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, MAC::null, MAC::null, ptr, len, fcs_ok);
-	cbs->Handle80211Unknown(t, fc, ptr, len);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, MAC::null, MAC::null, ptr, len);
+	cbs->Handle80211Unknown( *this, fc, ptr, len);
 	return -1;
 	//add the case statements for QoS control frames once ieee802_11.h is updated
     }
@@ -1746,35 +1136,37 @@ int WifipcapCallbacks::decode_ctrl_frame(const struct timeval& t, WifipcapCallba
 #define	roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
 #endif
 
-void WifipcapCallbacks::handle_80211(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, size_t len, int pad) 
+void WifiPacket::handle_80211(const u_char * pkt, size_t len /* , int pad */)  
 {
-    if (WifipcapCallbacks::debug) std::cerr << "handle_80211(len= " << len << " ";
+    if (debug) std::cerr << "handle_80211(len= " << len << " ";
     if (len < 2) {
-	cbs->Handle80211(t, 0, MAC::null, MAC::null, MAC::null, MAC::null, packet, len, false);
-	cbs->Handle80211Unknown(t, -1, packet, len);
+	cbs->Handle80211( *this, 0, MAC::null, MAC::null, MAC::null, MAC::null, pkt, len);
+	cbs->Handle80211Unknown( *this, -1, pkt, len);
 	return;
     }
 
-    u_int16_t fc  = EXTRACT_LE_16BITS(packet);       //frame control
+    u_int16_t fc  = EXTRACT_LE_16BITS(pkt);       //frame control
     size_t hdrlen = extract_header_length(fc);
-    if (pad) {
-        hdrlen = roundup2(hdrlen, 4);
-    }
+    /*
+      if (pad) {
+      hdrlen = roundup2(hdrlen, 4);
+      }
+    */
 
-    if (WifipcapCallbacks::debug) std::cerr << "FC_TYPE(fc)= " << FC_TYPE(fc) << " ";
+    if (debug) std::cerr << "FC_TYPE(fc)= " << FC_TYPE(fc) << " ";
 
 
     if (len < IEEE802_11_FC_LEN || len < hdrlen) {
-	cbs->Handle80211Unknown(t, fc, packet, len);
+	cbs->Handle80211Unknown( *this, fc, pkt, len);
 	return;
     }
 
-    bool fcs_ok = false;
-    if (cbs->Check80211FCS()) {
+    fcs_ok = false;
+    if (cbs->Check80211FCS(*this)) {
 	if (len >= hdrlen + 4) {
 	    // assume fcs is last 4 bytes (?)
-	    u_int32_t fcs_sent = EXTRACT_32BITS(packet+len-4);
-	    u_int32_t fcs = crc32_802(packet, len-4);
+	    u_int32_t fcs_sent = EXTRACT_32BITS(pkt+len-4);
+	    u_int32_t fcs = crc32_802(pkt, len-4);
 
 	    /*
               if (fcs != fcs_sent) {
@@ -1790,26 +1182,25 @@ void WifipcapCallbacks::handle_80211(const struct timeval& t, WifipcapCallbacks 
     // fill in current_frame: type, sn
     switch (FC_TYPE(fc)) {
     case T_MGMT:
-	if(decode_mgmt_frame(t, cbs, packet, len, fc, hdrlen, fcs_ok)<0)
+	if(decode_mgmt_frame(pkt, len, fc, hdrlen)<0)
 	    return;
 	break;
     case T_DATA:
-	if(decode_data_frame(t, cbs, packet, len, fc, fcs_ok)<0)
+	if(decode_data_frame(pkt, len, fc)<0)
 	    return;
 	break;
     case T_CTRL:
-	if(decode_ctrl_frame(t, cbs, packet, len, fc, fcs_ok)<0)
+	if(decode_ctrl_frame(pkt, len, fc)<0)
 	    return;
 	break;
     default:
-	cbs->Handle80211(t, fc, MAC::null, MAC::null, MAC::null, MAC::null, packet, len, fcs_ok);
-	cbs->Handle80211Unknown(t, fc, packet, len);
+	cbs->Handle80211( *this, fc, MAC::null, MAC::null, MAC::null, MAC::null, pkt, len);
+	cbs->Handle80211Unknown( *this, fc, pkt, len);
 	return;
     }
 }
 
-static int
-print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCallbacks::radiotap_hdr *hdr)
+int WifiPacket::print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, radiotap_hdr *hdr)
 {
     union {
         int8_t		i8;
@@ -1884,13 +1275,13 @@ print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCal
          */
         //printf("[0x%08x] ", bit);
         fprintf(stderr, "wifipcap: unknown radiotap bit: %d (%d)\n", bit,IEEE80211_RADIOTAP_XCHANNEL);
-        return -1;
+        return  -1 ;
     }
 
     if (rc != 0) {
         //printf("[|802.11]");
         fprintf(stderr, "wifipcap: truncated radiotap header for bit: %d\n", bit);
-        return rc;
+        return  rc ;
     }
 
     switch (bit) {
@@ -1997,10 +1388,12 @@ print_radiotap_field(struct cpack_state *s, u_int32_t bit, int *pad, WifipcapCal
         hdr->data_retries = u.u8;
         break;
     }
-    return 0;
+    return  0 ;
 }
 
-void WifipcapCallbacks::handle_radiotap(const struct timeval& t, WifipcapCallbacks *cbs, const u_char *p, u_int caplen)
+
+
+void WifiPacket::handle_radiotap(const u_char *p,size_t caplen)
 {
 #define	BITNO_32(x) (((x) >> 16) ? 16 + BITNO_16((x) >> 16) : BITNO_16((x)))
 #define	BITNO_16(x) (((x) >> 8) ? 8 + BITNO_8((x) >> 8) : BITNO_8((x)))
@@ -2012,7 +1405,7 @@ void WifipcapCallbacks::handle_radiotap(const struct timeval& t, WifipcapCallbac
 
     // If caplen is too small, just give it a try and carry on.
     if (caplen < sizeof(struct ieee80211_radiotap_header)) {
-        cbs->HandleRadiotap(t, NULL, p, caplen);
+        cbs->HandleRadiotap( *this, NULL, p, caplen);
         return;
     }
 
@@ -2022,7 +1415,7 @@ void WifipcapCallbacks::handle_radiotap(const struct timeval& t, WifipcapCallbac
 
     if (caplen < len) {
         //printf("[|802.11]");
-        cbs->HandleRadiotap(t, NULL, p, caplen);
+        cbs->HandleRadiotap( *this, NULL, p, caplen);
         return;// caplen;
     }
     uint32_t *last_presentp=0;
@@ -2034,7 +1427,7 @@ void WifipcapCallbacks::handle_radiotap(const struct timeval& t, WifipcapCallbac
     /* are there more bitmap extensions than bytes in header? */
     if (IS_EXTENDED(last_presentp)) {
         //printf("[|802.11]");
-        cbs->HandleRadiotap(t, NULL, p, caplen);
+        cbs->HandleRadiotap( *this, NULL, p, caplen);
         return;// caplen;
     }
 
@@ -2043,11 +1436,11 @@ void WifipcapCallbacks::handle_radiotap(const struct timeval& t, WifipcapCallbac
     if (cpack_init(&cpacker, (u_int8_t*)iter, len - (iter - p)) != 0) {
         /* XXX */
         //printf("[|802.11]");
-        cbs->HandleRadiotap(t, NULL, p, caplen);
+        cbs->HandleRadiotap( *this, NULL, p, caplen);
         return;// caplen;
     }
 
-    WifipcapCallbacks::radiotap_hdr ohdr;
+    radiotap_hdr ohdr;
     memset(&ohdr, 0, sizeof(ohdr));
 	
     /* Assume no Atheros padding between 802.11 header and body */
@@ -2075,7 +1468,7 @@ void WifipcapCallbacks::handle_radiotap(const struct timeval& t, WifipcapCallbac
         }
     }
 done:;
-    cbs->HandleRadiotap(t, &ohdr, p, caplen);
+    cbs->HandleRadiotap( *this, &ohdr, p, caplen);
     //return len + ieee802_11_print(p + len, length - len, caplen - len, pad);
 #undef BITNO_32
 #undef BITNO_16
@@ -2083,66 +1476,106 @@ done:;
 #undef BITNO_4
 #undef BITNO_2
 #undef BIT
-    handle_80211(t, cbs, p+len, caplen-len);
+    handle_80211(p+len, caplen-len);
 }
 
-void WifipcapCallbacks::handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, u_int len)
+void WifiPacket::handle_prism(const u_char *pc, size_t len)
 {
-    WifipcapCallbacks::prism2_pkthdr hdr;
+    prism2_pkthdr hdr;
 
     /* get the fields */
-    hdr.host_time 	= EXTRACT_LE_32BITS(packet+32);
-    hdr.mac_time 	= EXTRACT_LE_32BITS(packet+44);
-    hdr.channel 	= EXTRACT_LE_32BITS(packet+56);
-    hdr.rssi 		= EXTRACT_LE_32BITS(packet+68);
-    hdr.sq 		= EXTRACT_LE_32BITS(packet+80);
-    hdr.signal  	= EXTRACT_LE_32BITS(packet+92);
-    hdr.noise   	= EXTRACT_LE_32BITS(packet+104);
-    hdr.rate		= EXTRACT_LE_32BITS(packet+116)/2;
-    hdr.istx		= EXTRACT_LE_32BITS(packet+128);
-    cbs->HandlePrism(t, &hdr, packet + 144, len - 144);
-    handle_80211(t,cbs,packet+144,len-144);
+    hdr.host_time 	= EXTRACT_LE_32BITS(pc+32);
+    hdr.mac_time 	= EXTRACT_LE_32BITS(pc+44);
+    hdr.channel 	= EXTRACT_LE_32BITS(pc+56);
+    hdr.rssi 		= EXTRACT_LE_32BITS(pc+68);
+    hdr.sq 		= EXTRACT_LE_32BITS(pc+80);
+    hdr.signal  	= EXTRACT_LE_32BITS(pc+92);
+    hdr.noise   	= EXTRACT_LE_32BITS(pc+104);
+    hdr.rate		= EXTRACT_LE_32BITS(pc+116)/2;
+    hdr.istx		= EXTRACT_LE_32BITS(pc+128);
+    cbs->HandlePrism( *this, &hdr, pc + 144, len - 144);
+    handle_80211(pc+144,len-144);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///
+/// handle_*:
+/// handle each of the packet types
+///
+
+void WifiPacket::handle_ether(const u_char *ptr, size_t len)
+{
+#if 0
+    ether_hdr_t hdr;
+
+    hdr.da = MAC::ether2MAC(ptr);
+    hdr.sa = MAC::ether2MAC(ptr+6);
+    hdr.type = EXTRACT_16BITS(ptr + 12);
+
+    ptr += 14;
+    len -= 14;
+
+    cbs->HandleEthernet(*this, &hdr, ptr, len);
+
+    switch (hdr.type) {
+    case ETHERTYPE_IP:
+	handle_ip(ptr, len);
+	return;
+    case ETHERTYPE_IPV6:
+	handle_ip6(ptr, len);
+	return;
+    case ETHERTYPE_ARP:
+	handle_arp( ptr, len);
+	return;
+    default:
+	cbs->HandleL2Unknown(*this, hdr.type, ptr, len);
+	return;
+    }
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/* These are all static functions */
+#if 0
 void Wifipcap::dl_prism(const PcapUserData &data, const struct pcap_pkthdr *header, const u_char * packet)
 {
     WifipcapCallbacks *cbs = data.cbs;
 
     if(header->caplen < 144) return;    // prism header
 
-    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    WifipcapCallbacks::handle_prism(header->ts,cbs,packet+144,header->caplen-144);
+    cbs->PacketBegin( packet, header->caplen, header->len);
+    handle_prism(cbs,packet+144,header->caplen-144);
     cbs->PacketEnd();
 }
 
 void Wifipcap::dl_prism(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
 {
     PcapUserData *data = reinterpret_cast<PcapUserData *>(user);
-    WifipcapCallbacks *cbs = data->cbs;
-
-    if(header->caplen < 144) return;    // prism header
-
-    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    WifipcapCallbacks::handle_prism(header->ts,cbs,packet+144,header->caplen-144);
-    cbs->PacketEnd();
+    Wifipcap::dl_prism(*data,header,packet);
 }
+#endif
 
-void Wifipcap::dl_ieee802_11_radio(const PcapUserData &data, const struct pcap_pkthdr *header, const u_char * packet)
+#if 0
+void Wifipcap::dl_ieee802_11_radio(const PcapUserData &data, const struct pcap_pkthdr *header,
+                                   const u_char * packet)
 {
-    WifipcapCallbacks *cbs = data.cbs;
-    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    WifipcapCallbacks::handle_radiotap(header->ts, cbs, packet, header->caplen);
-    cbs->PacketEnd();
+
+    data.cbs->PacketBegin( packet, header->caplen, header->len);
+    handle_radiotap(packet, header->caplen);
+    data.cbs->PacketEnd();
 }
+#endif
 
-void Wifipcap::dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
+void Wifipcap::dl_ieee802_11_radio(const u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
 {
-    PcapUserData *data = reinterpret_cast<PcapUserData *>(user);
-    WifipcapCallbacks *cbs = data->cbs;
+    const PcapUserData *data = reinterpret_cast<const PcapUserData *>(user);
+    WifiPacket pkt(data->cbs,data->header_type,header,packet);
 
-    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    WifipcapCallbacks::handle_radiotap(header->ts, cbs, packet, header->caplen);
-    cbs->PacketEnd();
+    data->cbs->PacketBegin(pkt,packet,header->caplen,header->len);
+    pkt.handle_radiotap(packet,header->caplen);
+    data->cbs->PacketEnd(pkt);
+
+    //Wifipcap::dl_ieee802_11_radio(*data,header,packet);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2224,6 +1657,75 @@ void Wifipcap::Init(const char *name, bool live) {
     }
 }
 
+
+
+
+/* object-oriented version of pcap callback. Called with the callbacks object,
+ * the DLT type, the header and the packet.
+ * This is the main packet processor.
+ * It records some stats and then dispatches to the appropriate callback.
+ */
+void Wifipcap::handle_packet(const WifipcapCallbacks *cbs,int header_type,
+                             const struct pcap_pkthdr *header, const u_char * packet) 
+{
+    /* Record start time if we don't have it */
+    if (startTime == TIME_NONE) {
+	startTime = header->ts;
+	lastPrintTime = header->ts;
+    }
+    /* Print stats if necessary */
+    if (header->ts.tv_sec > lastPrintTime.tv_sec + Wifipcap::PRINT_TIME_INTERVAL) {
+	if (verbose) {
+	    int hours = (header->ts.tv_sec - startTime.tv_sec)/3600;
+	    int days  = hours/24;
+	    int left  = hours%24;
+	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10lld pkts\n", 
+		    days, left, packetsProcessed);
+	}
+	lastPrintTime = header->ts;
+    }
+    packetsProcessed++;
+
+    /* Create the packet object and call the appropriate callbacks */
+    WifiPacket pkt(cbs,header_type,header,packet);
+
+    /* Notify callback */
+    cbs->PacketBegin(pkt, packet, header->caplen, header->len);
+    //int frameLen = header->caplen;
+    switch(header_type) {
+    case DLT_PRISM_HEADER:
+        pkt.handle_prism(packet,header->caplen);
+        break;
+    case DLT_IEEE802_11_RADIO:
+        pkt.handle_radiotap(packet,header->caplen);
+        break;
+    case DLT_IEEE802_11:
+        pkt.handle_80211(packet,header->caplen);
+        break;
+    case DLT_EN10MB:
+        pkt.handle_ether(packet,header->caplen);
+        break;
+    default:
+#if 0
+	// try handling it as default IP assuming framing is ethernet 
+	// (this is for testing)
+        pkt.handle_ip(packet,header->caplen);
+#endif
+        break;
+    }
+    cbs->PacketEnd(pkt);
+}
+
+
+/* The raw callback from pcap; jump back into the object-oriented domain */
+/* note: u_char *user may not be const according to spec */
+void Wifipcap::handle_packet_callback(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
+{
+    Wifipcap::PcapUserData *data = reinterpret_cast<Wifipcap::PcapUserData *>(user);
+    data->wcap->handle_packet(data->cbs,data->header_type,header,packet);
+}
+    
+
 const char *Wifipcap::SetFilter(const char *filter)
 {
     struct bpf_program fp;
@@ -2241,72 +1743,7 @@ const char *Wifipcap::SetFilter(const char *filter)
 }
 
 
-void handle_prism(const struct timeval& t, WifipcapCallbacks *cbs, const u_char * packet, u_int len)
-{
-    WifipcapCallbacks::prism2_pkthdr hdr;
-
-    hdr.host_time 	= EXTRACT_LE_32BITS(packet+32);
-    hdr.mac_time 	= EXTRACT_LE_32BITS(packet+44);
-    hdr.channel 	= EXTRACT_LE_32BITS(packet+56);
-    hdr.rssi 		= EXTRACT_LE_32BITS(packet+68);
-    hdr.sq 		= EXTRACT_LE_32BITS(packet+80);
-    hdr.signal  	= EXTRACT_LE_32BITS(packet+92);
-    hdr.noise   	= EXTRACT_LE_32BITS(packet+104);
-    hdr.rate		= EXTRACT_LE_32BITS(packet+116)/2;
-    hdr.istx		= EXTRACT_LE_32BITS(packet+128);
-
-    cbs->HandlePrism(t, &hdr, packet + 144, len - 144);
-}
-
-
-
-void handle_packet(u_char *user, const struct pcap_pkthdr *header, const u_char * packet)
-{
-    Wifipcap::PcapUserData *data = reinterpret_cast<Wifipcap::PcapUserData *>(user);
-    Wifipcap *wcap = data->wcap;
-    WifipcapCallbacks *cbs = data->cbs;
-
-    if (wcap->startTime == TIME_NONE) {
-	wcap->startTime = header->ts;
-	wcap->lastPrintTime = header->ts;
-    }
-    if (header->ts.tv_sec > wcap->lastPrintTime.tv_sec + Wifipcap::PRINT_TIME_INTERVAL) {
-	if (wcap->verbose) {
-	    int hours = (header->ts.tv_sec - wcap->startTime.tv_sec)/3600;
-	    int days  = hours/24;
-	    int left  = hours%24;
-	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10lld pkts\n", 
-		    days, left, wcap->packetsProcessed);
-	}
-	wcap->lastPrintTime = header->ts;
-    }
-    wcap->packetsProcessed++;
-
-    cbs->PacketBegin(header->ts, packet, header->caplen, header->len);
-    int frameOffset = 0;
-    int frameLen = header->caplen;
-    if (data->header_type == DLT_PRISM_HEADER) {
-	handle_prism(header->ts, cbs, packet, header->caplen);
-	frameOffset += 144;
-	frameLen -= 144;
-        WifipcapCallbacks::handle_80211(header->ts, cbs, packet + frameOffset, frameLen);
-    } else if (data->header_type == DLT_IEEE802_11_RADIO) {
-        WifipcapCallbacks::handle_radiotap(header->ts, cbs, packet + frameOffset, header->caplen);
-    } else if (data->header_type == DLT_IEEE802_11) {
-        WifipcapCallbacks::handle_80211(header->ts, cbs, packet + frameOffset, frameLen);
-    } else if (data->header_type == DLT_EN10MB) {
-	// plain old ethernet
-        handle_ether(header->ts, cbs, packet, frameLen);
-    } else {
-	// try handling it as default IP assuming framing is ethernet 
-	// (this is for testing)
-        handle_ip(header->ts, cbs, packet+14, frameLen-14);
-    }
-    cbs->PacketEnd();
-}
-
-
-void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
+void Wifipcap::Run(const WifipcapCallbacks *cbs, int maxpkts)
 {
     /* NOTE: This needs to be fixed so that the correct handle_packet is called  */
 
@@ -2315,9 +1752,10 @@ void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
     do {
 	PcapUserData data(this,cbs,DLT_IEEE802_11_RADIO);
 	pcap_loop(descr, maxpkts > 0 ? maxpkts - packetsProcessed : 0,
-		  handle_packet, reinterpret_cast<u_char *>(&data));
+		  Wifipcap::handle_packet_callback, reinterpret_cast<u_char *>(&data));
     } while ( InitNext() );
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 

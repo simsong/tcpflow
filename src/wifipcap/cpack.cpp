@@ -29,9 +29,6 @@
 
 #ifndef WIN32
 
-#include "tcpflow.h"
-
-#include <stdlib.h>
 #include <string.h>
 
 #include "cpack.h"
@@ -62,7 +59,7 @@ cpack_align_and_reserve(struct cpack_state *cs, size_t wordsize)
 
 	/* Too little space for wordsize bytes? */
 	if (next - cs->c_buf + wordsize > cs->c_len)
-		return NULL;
+		return 0;
 
 	return next;
 }

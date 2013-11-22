@@ -37,6 +37,7 @@
 //    return out;
 //}
 
+#if 0
 char *va(const char *format, ...)
 {
     va_list		argptr;
@@ -54,46 +55,6 @@ char *va(const char *format, ...)
     return b;	
 }
 
-#if 0
-const struct tok ethertype_values[] = { 
-    { ETHERTYPE_IP,		"IPv4" },
-    { ETHERTYPE_MPLS,		"MPLS unicast" },
-    { ETHERTYPE_MPLS_MULTI,	"MPLS multicast" },
-    { ETHERTYPE_IPV6,		"IPv6" },
-    { ETHERTYPE_8021Q,		"802.1Q" },
-    { ETHERTYPE_VMAN,		"VMAN" },
-    { ETHERTYPE_PUP,            "PUP" },
-    { ETHERTYPE_ARP,            "ARP"},
-    { ETHERTYPE_REVARP,         "Reverse ARP"},
-    { ETHERTYPE_NS,             "NS" },
-    { ETHERTYPE_SPRITE,         "Sprite" },
-    { ETHERTYPE_TRAIL,          "Trail" },
-    { ETHERTYPE_MOPDL,          "MOP DL" },
-    { ETHERTYPE_MOPRC,          "MOP RC" },
-    { ETHERTYPE_DN,             "DN" },
-    { ETHERTYPE_LAT,            "LAT" },
-    { ETHERTYPE_SCA,            "SCA" },
-    { ETHERTYPE_LANBRIDGE,      "Lanbridge" },
-    { ETHERTYPE_DECDNS,         "DEC DNS" },
-    { ETHERTYPE_DECDTS,         "DEC DTS" },
-    { ETHERTYPE_VEXP,           "VEXP" },
-    { ETHERTYPE_VPROD,          "VPROD" },
-    { ETHERTYPE_ATALK,          "Appletalk" },
-    { ETHERTYPE_AARP,           "Appletalk ARP" },
-    { ETHERTYPE_IPX,            "IPX" },
-    { ETHERTYPE_PPP,            "PPP" },
-    { ETHERTYPE_SLOW,           "Slow Protocols" },
-    { ETHERTYPE_PPPOED,         "PPPoE D" },
-    { ETHERTYPE_PPPOES,         "PPPoE S" },
-    { ETHERTYPE_EAPOL,          "EAPOL" },
-    { ETHERTYPE_JUMBO,          "Jumbo" },
-    { ETHERTYPE_LOOPBACK,       "Loopback" },
-    { ETHERTYPE_ISO,            "OSI" },
-    { ETHERTYPE_GRE_ISO,        "GRE-OSI" },
-    { 0, NULL}
-};
-
-#endif
 /*
  * Convert a token value to a string; use "fmt" if not found.
  */
@@ -130,3 +91,4 @@ tok2str(register const struct tok *lp, register const char *fmt,
 	idx = (idx+1) & 3;
 	return tok2strbuf(lp, fmt, v, ret, sizeof(buf[0]));
 }
+#endif
