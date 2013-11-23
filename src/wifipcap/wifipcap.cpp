@@ -1050,11 +1050,11 @@ int WifiPacket::decode_data_frame(const u_char * ptr, size_t len, u_int16_t fc)
 	cbs->Handle80211DataWDS( *this, hdr, ptr+hdrlen, len-hdrlen);
     }
 
-    /* Handle either the WEP or the link layer */
+    /* Handle either the WEP or the link layer. This handles the data itself */
     if (FC_WEP(fc)) {
-        handle_wep(ptr+hdrlen, len-hdrlen-4 ); /* FCS */
+        handle_wep(ptr+hdrlen, len-hdrlen-4 ); 
     } else {
-        handle_llc(hdr, ptr+hdrlen, len-hdrlen-4, fc); /* FCS */
+        handle_llc(hdr, ptr+hdrlen, len-hdrlen-4, fc); 
     }
     return 0;
 }
@@ -1155,29 +1155,31 @@ void WifiPacket::handle_80211(const u_char * pkt, size_t len /* , int pad */)
 
     if (debug) std::cerr << "FC_TYPE(fc)= " << FC_TYPE(fc) << " ";
 
-
     if (len < IEEE802_11_FC_LEN || len < hdrlen) {
 	cbs->Handle80211Unknown( *this, fc, pkt, len);
 	return;
     }
 
-    fcs_ok = false;
-    if (cbs->Check80211FCS(*this)) {
-	if (len >= hdrlen + 4) {
-	    // assume fcs is last 4 bytes (?)
-	    u_int32_t fcs_sent = EXTRACT_32BITS(pkt+len-4);
-	    u_int32_t fcs = crc32_802(pkt, len-4);
-
-	    /*
-              if (fcs != fcs_sent) {
-              cerr << "bad fcs: ";
-              fprintf (stderr, "%08x != %08x\n", fcs_sent, fcs); 
-              }
-	    */
-	    
-	    fcs_ok = (fcs == fcs_sent);
-	}
+    /* Always calculate the frame checksum, but only process the packets if the FCS or if we are ignoring it */
+    if (len >= hdrlen + 4) {
+        // assume fcs is last 4 bytes (?)
+        u_int32_t fcs_sent = EXTRACT_32BITS(pkt+len-4);
+        u_int32_t fcs = crc32_802(pkt, len-4);
+        
+        /*
+          if (fcs != fcs_sent) {
+          cerr << "bad fcs: ";
+          fprintf (stderr, "%08x != %08x\n", fcs_sent, fcs); 
+          }
+        */
+	
+        fcs_ok = (fcs == fcs_sent);
     }
+    if (cbs->Check80211FCS(*this) && fcs_ok==false){
+        cbs->Handle80211Unknown(*this,fc,pkt,len);
+        return;
+    }
+
 
     // fill in current_frame: type, sn
     switch (FC_TYPE(fc)) {

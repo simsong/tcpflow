@@ -27,11 +27,11 @@ void  scan_wifiviz(const class scanner_params &sp,const recursion_control_block 
 	sp.info->author= "Simson Garfinkel";
 	sp.info->packet_user = 0;
         sp.info->description = "Performs wifi isualization";
+        sp.info->get_config("check_fcs",&TFCB::theTFCB.opt_check_fcs,"Require valid Frame Check Sum (FCS)");
     }
     if(sp.phase==scanner_params::PHASE_SHUTDOWN){
-        extern TFCB theTFCB;
-        for(TFCB::mac_ssid_map_t::const_iterator it=theTFCB.mac_to_ssid.begin();
-            it!=theTFCB.mac_to_ssid.end();it++){
+        for(TFCB::mac_ssid_map_t::const_iterator it=TFCB::theTFCB.mac_to_ssid.begin();
+            it!=TFCB::theTFCB.mac_to_ssid.end();it++){
             std::cerr << (*it).first.mac << " => "
                       << (*it).first.ssid << " (" << (*it).second << ")\n";
         }

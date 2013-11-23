@@ -647,7 +647,7 @@ struct WifipcapCallbacks {
     // if this returns true, we'll check the fcs on every frame.
     // Note: if frames are truncated, the fcs check will fail, so you need
     // a complete packet capture for this to be meaningful
-    virtual bool Check80211FCS(const WifiPacket &p ) const { return false; }
+    virtual bool Check80211FCS(const WifiPacket &p ) { return false; }
 
     // Management
     virtual void Handle80211MgmtBeacon(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)   {puts("Handle80211MgmtBeacon");}
@@ -673,13 +673,14 @@ struct WifipcapCallbacks {
     
     // Data - Each data packet results in a call to Handle80211Data and one of the others
     virtual void Handle80211Data(const WifiPacket &p, u_int16_t fc, const struct mac_hdr_t &hdr,
-                                 const u_char *rest, size_t len, bool fcs_ok){}
+                                 const u_char *rest, size_t len){}
     virtual void Handle80211DataIBSS(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
     virtual void Handle80211DataFromAP(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
     virtual void Handle80211DataToAP(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
     virtual void Handle80211DataWDS(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
     
     // Erroneous Frames/Truncated Frames
+    // Also called if Check80211FCS() returns true and the checksum is bad
     virtual void Handle80211Unknown(const WifiPacket &p, int fc, const u_char *rest, size_t len){}
 
     // LLC/SNAP (const WifiPacket &p, see llc.h)

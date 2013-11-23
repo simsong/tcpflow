@@ -378,6 +378,7 @@ int main(int argc, char *argv[])
 {
     bool didhelp = false;
     feature_recorder::set_main_threadid();
+    sbuf_t::set_map_file_delimiter(""); // no delimiter on carving
 #ifdef BROKEN
     std::cerr << "WARNING: YOU ARE USING AN EXPERIMENTAL VERSION OF TCPFLOW \n";
     std::cerr << "THAT DOES NOT WORK PROPERLY. PLEASE USE A RELEASE DOWNLOADED\n";
