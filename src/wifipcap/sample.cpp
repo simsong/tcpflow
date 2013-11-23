@@ -8,24 +8,24 @@ class TestCB : public WifipcapCallbacks
 public:
     TestCB(){}
     virtual ~TestCB(){};
-    virtual const char *name() const {return "TestCB";} // override with your own name!
-    virtual void PacketBegin(const WifiPacket &p, const u_char *pkt, size_t len, int origlen)  const {
+    virtual const char *name()  {return "TestCB";} // override with your own name!
+    virtual void PacketBegin(const WifiPacket &p, const u_char *pkt, size_t len, int origlen)  {
         TimeVal t(p.header->ts);
         std::cout << &t << " {";
     }
-    virtual void PacketEnd(const WifiPacket &p ) const   {
+    virtual void PacketEnd(const WifiPacket &p )    {
         std::cout << "}" << std::endl;
     }
  
-    virtual bool Check80211FCS(const WifiPacket &p ) const { return true; } // please calculate FCS
+    virtual bool Check80211FCS(const WifiPacket &p )  { return true; } // please calculate FCS
 
-    virtual void Handle80211DataFromAP(const WifiPacket &p, const mac_hdr_t *hdr, const u_char *rest, u_int len) const     {
+    virtual void Handle80211DataFromAP(const WifiPacket &p, const mac_hdr_t *hdr, const u_char *rest, u_int len)      {
         std::cout << "802.11 data:\t" 
                       << hdr->sa << " -> " 
                       << hdr->da << "\t" 
                       << len ;
     }
-    virtual void Handle80211DataToAP(const WifiPacket &p, const mac_hdr_t *hdr, const u_char *rest, u_int len) const
+    virtual void Handle80211DataToAP(const WifiPacket &p, const mac_hdr_t *hdr, const u_char *rest, u_int len) 
     {
         std::cout << "802.11 data:\t" 
                   << hdr->sa << " -> " 
@@ -34,19 +34,19 @@ public:
     }
 
 
-    virtual void Handle80211MgmtProbeRequest(const WifiPacket &p,  const mgmt_header_t *hdr, const mgmt_body_t *body) const {
+    virtual void Handle80211MgmtProbeRequest(const WifiPacket &p,  const mgmt_header_t *hdr, const mgmt_body_t *body)  {
         std::cout << "802.11 mgmt:\t" 
                   << hdr->sa << "\tprobe\t\"" 
                   << body->ssid.ssid << "\"" ;
     }
 
-    virtual void Handle80211MgmtBeacon(const WifiPacket &p,  const struct mgmt_header_t *hdr, const struct mgmt_body_t *body) const   {
+    virtual void Handle80211MgmtBeacon(const WifiPacket &p,  const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)    {
         std::cout << "802.11 mgmt:\t" 
                   << hdr->sa << "\tbeacon\t\"" 
                   << body->ssid.ssid << "\"" ;
     }
 
-    virtual void HandleTCP(const WifiPacket &p,  const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, u_int len) const {
+    virtual void HandleTCP(const WifiPacket &p,  const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, u_int len)  {
 	if (ip4h && hdr)
 	    std::cout << "tcp/ip:     \t" 
                       << ip4h->src << ":" << hdr->sport << " -> " 
@@ -56,7 +56,7 @@ public:
 	    std::cout << "tcp/ip:     \t" << "[truncated]" ;
     }   
 
-    virtual void HandleUDP(const WifiPacket &p,  const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, u_int len) const {
+    virtual void HandleUDP(const WifiPacket &p,  const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, u_int len)  {
         if (ip4h && hdr)
             std::cout << "udp/ip:     \t" 
                       << ip4h->src << ":" << hdr->sport << " -> " 

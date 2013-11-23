@@ -1665,7 +1665,7 @@ void Wifipcap::Init(const char *name, bool live) {
  * This is the main packet processor.
  * It records some stats and then dispatches to the appropriate callback.
  */
-void Wifipcap::handle_packet(const WifipcapCallbacks *cbs,int header_type,
+void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
                              const struct pcap_pkthdr *header, const u_char * packet) 
 {
     /* Record start time if we don't have it */
@@ -1743,7 +1743,7 @@ const char *Wifipcap::SetFilter(const char *filter)
 }
 
 
-void Wifipcap::Run(const WifipcapCallbacks *cbs, int maxpkts)
+void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
 {
     /* NOTE: This needs to be fixed so that the correct handle_packet is called  */
 

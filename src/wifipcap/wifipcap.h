@@ -563,7 +563,7 @@ struct WifiPacket {
     /** 48-bit MACs in 64-bit ints */
     static int debug;                   // prints callback before they are called
 
-    WifiPacket(const WifipcapCallbacks *cbs_,const int header_type_,const struct pcap_pkthdr *header_,const u_char *packet_):
+    WifiPacket(WifipcapCallbacks *cbs_,const int header_type_,const struct pcap_pkthdr *header_,const u_char *packet_):
         cbs(cbs_),header_type(header_type_),header(header_),packet(packet_),fcs_ok(false){}
     void parse_elements(struct mgmt_body_t *pbody, const u_char *p, int offset, size_t len);
     int handle_beacon(const struct mgmt_header_t *pmh, const u_char *p, size_t len);
@@ -594,7 +594,7 @@ struct WifiPacket {
     void handle_radiotap(const u_char *ptr, size_t caplen);
 
     /* And finally the data for each packet */
-    const WifipcapCallbacks *cbs;             // the callbacks to use with this packet
+    WifipcapCallbacks *cbs;             // the callbacks to use with this packet
     const int header_type;                    // DLT
     const struct pcap_pkthdr *header;   // the actual pcap headers
     const u_char *packet;               // the actual packet data
@@ -621,13 +621,13 @@ struct WifipcapCallbacks {
      * @param len the length of the data captured
      * @param origlen the original length of the data (before truncated by pcap)
      */
-    virtual void PacketBegin(const WifiPacket &p, const u_char *pkt, size_t len, int origlen)  const {}
-    virtual void PacketEnd(const WifiPacket &p )  const {}
+    virtual void PacketBegin(const WifiPacket &p, const u_char *pkt, size_t len, int origlen){}
+    virtual void PacketEnd(const WifiPacket &p ){}
 
     // If a Prism or RadioTap packet is found, call these, and then call Handle80211()
 
-    virtual void HandlePrism(const WifiPacket &p, struct prism2_pkthdr *hdr, const u_char *rest, size_t len)  const {}
-    virtual void HandleRadiotap(const WifiPacket &p, struct radiotap_hdr *hdr, const u_char *rest, size_t len)  const {}
+    virtual void HandlePrism(const WifiPacket &p, struct prism2_pkthdr *hdr, const u_char *rest, size_t len){}
+    virtual void HandleRadiotap(const WifiPacket &p, struct radiotap_hdr *hdr, const u_char *rest, size_t len){}
 
     // 802.11 MAC (see ieee802_11.h)
     //
@@ -642,7 +642,7 @@ struct WifipcapCallbacks {
     //
     // fcs_ok will be true if the frame had a valid fcs (frame
     // checksum) trailer and Check80211FCS() returns true.
-    virtual void Handle80211(const WifiPacket &p, u_int16_t fc, const MAC& sa, const MAC& da, const MAC& ra, const MAC& ta, const u_char *ptr, size_t len)  const {}
+    virtual void Handle80211(const WifiPacket &p, u_int16_t fc, const MAC& sa, const MAC& da, const MAC& ra, const MAC& ta, const u_char *ptr, size_t len){}
 
     // if this returns true, we'll check the fcs on every frame.
     // Note: if frames are truncated, the fcs check will fail, so you need
@@ -650,53 +650,53 @@ struct WifipcapCallbacks {
     virtual bool Check80211FCS(const WifiPacket &p ) const { return false; }
 
     // Management
-    virtual void Handle80211MgmtBeacon(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {puts("Handle80211MgmtBeacon");}
-    virtual void Handle80211MgmtAssocRequest(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtAssocResponse(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtReassocRequest(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtReassocResponse(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtProbeRequest(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtProbeResponse(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtATIM(const WifiPacket &p, const struct mgmt_header_t *hdr)  const {}
-    virtual void Handle80211MgmtDisassoc(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtAuth(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
-    virtual void Handle80211MgmtAuthSharedKey(const WifiPacket &p, const struct mgmt_header_t *hdr, const u_char *rest, size_t len)  const {}
-    virtual void Handle80211MgmtDeauth(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)  const {}
+    virtual void Handle80211MgmtBeacon(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body)   {puts("Handle80211MgmtBeacon");}
+    virtual void Handle80211MgmtAssocRequest(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtAssocResponse(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtReassocRequest(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtReassocResponse(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtProbeRequest(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtProbeResponse(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtATIM(const WifiPacket &p, const struct mgmt_header_t *hdr){}
+    virtual void Handle80211MgmtDisassoc(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtAuth(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
+    virtual void Handle80211MgmtAuthSharedKey(const WifiPacket &p, const struct mgmt_header_t *hdr, const u_char *rest, size_t len){}
+    virtual void Handle80211MgmtDeauth(const WifiPacket &p, const struct mgmt_header_t *hdr, const struct mgmt_body_t *body){}
 
     // Control
-    virtual void Handle80211CtrlPSPoll(const WifiPacket &p, const struct ctrl_ps_poll_t *hdr)  const {}
-    virtual void Handle80211CtrlRTS(const WifiPacket &p, const struct ctrl_rts_t *hdr)  const {}
-    virtual void Handle80211CtrlCTS(const WifiPacket &p, const struct ctrl_cts_t *hdr)  const {}
-    virtual void Handle80211CtrlAck(const WifiPacket &p, const struct ctrl_ack_t *hdr)  const {}
-    virtual void Handle80211CtrlCFEnd(const WifiPacket &p, const struct ctrl_end_t *hdr)  const {}
-    virtual void Handle80211CtrlEndAck(const WifiPacket &p, const struct ctrl_end_ack_t *hdr)  const {}
+    virtual void Handle80211CtrlPSPoll(const WifiPacket &p, const struct ctrl_ps_poll_t *hdr){}
+    virtual void Handle80211CtrlRTS(const WifiPacket &p, const struct ctrl_rts_t *hdr){}
+    virtual void Handle80211CtrlCTS(const WifiPacket &p, const struct ctrl_cts_t *hdr){}
+    virtual void Handle80211CtrlAck(const WifiPacket &p, const struct ctrl_ack_t *hdr){}
+    virtual void Handle80211CtrlCFEnd(const WifiPacket &p, const struct ctrl_end_t *hdr){}
+    virtual void Handle80211CtrlEndAck(const WifiPacket &p, const struct ctrl_end_ack_t *hdr){}
     
     // Data - Each data packet results in a call to Handle80211Data and one of the others
     virtual void Handle80211Data(const WifiPacket &p, u_int16_t fc, const struct mac_hdr_t &hdr,
-                                 const u_char *rest, size_t len, bool fcs_ok)  const {}
-    virtual void Handle80211DataIBSS(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len)  const {}
-    virtual void Handle80211DataFromAP(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len)  const {}
-    virtual void Handle80211DataToAP(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len)  const {}
-    virtual void Handle80211DataWDS(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len)  const {}
+                                 const u_char *rest, size_t len, bool fcs_ok){}
+    virtual void Handle80211DataIBSS(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
+    virtual void Handle80211DataFromAP(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
+    virtual void Handle80211DataToAP(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
+    virtual void Handle80211DataWDS(const WifiPacket &p, const struct mac_hdr_t &hdr, const u_char *rest, size_t len){}
     
     // Erroneous Frames/Truncated Frames
-    virtual void Handle80211Unknown(const WifiPacket &p, int fc, const u_char *rest, size_t len)  const {}
+    virtual void Handle80211Unknown(const WifiPacket &p, int fc, const u_char *rest, size_t len){}
 
     // LLC/SNAP (const WifiPacket &p, see llc.h)
 
-    virtual void HandleLLC(const WifiPacket &p, const struct llc_hdr_t *hdr, const u_char *rest, size_t len)  const {}
-    virtual void HandleLLCUnknown(const WifiPacket &p, const u_char *rest, size_t len)  const {}
-    virtual void HandleWEP(const WifiPacket &p, const struct wep_hdr_t *hdr, const u_char *rest, size_t len)  const {}
+    virtual void HandleLLC(const WifiPacket &p, const struct llc_hdr_t *hdr, const u_char *rest, size_t len){}
+    virtual void HandleLLCUnknown(const WifiPacket &p, const u_char *rest, size_t len){}
+    virtual void HandleWEP(const WifiPacket &p, const struct wep_hdr_t *hdr, const u_char *rest, size_t len){}
 
     // for non-802.11 ethernet traces
-    virtual void HandleEthernet(const WifiPacket &p, const struct ether_hdr_t *hdr, const u_char *rest, size_t len)  const {}
+    virtual void HandleEthernet(const WifiPacket &p, const struct ether_hdr_t *hdr, const u_char *rest, size_t len){}
 
     ///// Layer 2 (see arp.h, ip.h, ip6.h)
 
-    virtual void HandleARP(const WifiPacket &p, const arp_pkthdr *hdr, const u_char *rest, size_t len)  const {}
-    virtual void HandleIP(const WifiPacket &p, const ip4_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, size_t len)  const {}
-    virtual void HandleIP6(const WifiPacket &p, const ip6_hdr_t *hdr, const u_char *rest, size_t len)  const {}
-    virtual void HandleL2Unknown(const WifiPacket &p, uint16_t ether_type, const u_char *rest, size_t len)  const {}
+    virtual void HandleARP(const WifiPacket &p, const arp_pkthdr *hdr, const u_char *rest, size_t len){}
+    virtual void HandleIP(const WifiPacket &p, const ip4_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, size_t len){}
+    virtual void HandleIP6(const WifiPacket &p, const ip6_hdr_t *hdr, const u_char *rest, size_t len){}
+    virtual void HandleL2Unknown(const WifiPacket &p, uint16_t ether_type, const u_char *rest, size_t len){}
 
     ///// Layer 3 (see icmp.h, tcp.h, udp.h)
 
@@ -707,10 +707,10 @@ struct WifipcapCallbacks {
 
     // Jeff: XXX icmp callback will probably eventually change to
     // parse the entire icmp packet
-    virtual void HandleICMP(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, int type, int code, const u_char *rest, size_t len)  const {}
-    virtual void HandleTCP(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, size_t len)  const {}
-    virtual void HandleUDP(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, size_t len)  const {}
-    virtual void HandleL3Unknown(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const u_char *rest, size_t len)  const {}
+    virtual void HandleICMP(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, int type, int code, const u_char *rest, size_t len){}
+    virtual void HandleTCP(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const tcp_hdr_t *hdr, const u_char *options, int optlen, const u_char *rest, size_t len){}
+    virtual void HandleUDP(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const udp_hdr_t *hdr, const u_char *rest, size_t len){}
+    virtual void HandleL3Unknown(const WifiPacket &p, const ip4_hdr_t *ip4h, const ip6_hdr_t *ip6h, const u_char *rest, size_t len){}
 };
 
 
@@ -795,14 +795,14 @@ public:
     /** Solely for call from ::handle_packet to WifiPcap::handle_packet */
     struct PcapUserData  {
         PcapUserData(class Wifipcap *wcap_,
-                     const struct WifipcapCallbacks *cbs_,const int header_type_):wcap(wcap_),cbs(cbs_),header_type(header_type_){};
+                     struct WifipcapCallbacks *cbs_,const int header_type_):wcap(wcap_),cbs(cbs_),header_type(header_type_){};
         class Wifipcap *wcap;
-        const struct WifipcapCallbacks *cbs;
+        struct WifipcapCallbacks *cbs;
         const int header_type;
     };
     void dl_prism(const PcapUserData &data, const struct pcap_pkthdr *header, const u_char * packet);
     void dl_ieee802_11_radio(const PcapUserData &data, const struct pcap_pkthdr *header, const u_char * packet);
-    void handle_packet(const WifipcapCallbacks *cbs,int header_type,
+    void handle_packet(WifipcapCallbacks *cbs,int header_type,
                        const struct pcap_pkthdr *header, const u_char * packet);
 
     static void dl_prism(const u_char *user, const struct pcap_pkthdr *header, const u_char * packet);
@@ -811,7 +811,7 @@ public:
 
     pcap_t *GetPcap() const { return descr; }
     int    GetDataLink() const { return datalink; }
-    void Run(const WifipcapCallbacks *cbs, int maxpkts = 0);
+    void   Run(WifipcapCallbacks *cbs, int maxpkts = 0);
 
 private:
     void  Init(const char *name, bool live);
