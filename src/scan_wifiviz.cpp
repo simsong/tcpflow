@@ -30,13 +30,15 @@ void  scan_wifiviz(const class scanner_params &sp,const recursion_control_block 
         sp.info->get_config("check_fcs",&TFCB::theTFCB.opt_check_fcs,"Require valid Frame Check Sum (FCS)");
     }
     if(sp.phase==scanner_params::PHASE_SHUTDOWN){
-        for(TFCB::mac_ssid_map_t::const_iterator it=TFCB::theTFCB.mac_to_ssid.begin();
-            it!=TFCB::theTFCB.mac_to_ssid.end();it++){
-            std::cerr << (*it).first.mac << " => "
-                      << (*it).first.ssid << " (" << (*it).second << ")\n";
+        if(sp.sxml){
+            (*sp.sxml) << "<ssids>\n";
+            for(TFCB::mac_ssid_map_t::const_iterator it=TFCB::theTFCB.mac_to_ssid.begin();
+                it!=TFCB::theTFCB.mac_to_ssid.end();it++){
+                (*sp.sxml) << "  <ssid mac='" << (*it).first.mac <<"' ssid='" << dfxml_writer::xmlescape((*it).first.ssid) << "' count='" <<
+                    (*it).second << "'/>\n";
+            }
+            (*sp.sxml) << "</ssids>\n";
         }
-        std::cerr << "\n";
-        
     }
 }
 

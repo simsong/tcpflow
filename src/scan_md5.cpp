@@ -33,8 +33,8 @@ void  scan_md5(const class scanner_params &sp,const recursion_control_block &rcb
     if(sp.phase==scanner_params::PHASE_SCAN){
 	static const std::string hash0("<hashdigest type='MD5'>");
 	static const std::string hash1("</hashdigest>");
-	if(sp.sbufxml){
-            (*sp.sbufxml) << hash0 << md5_generator::hash_buf(sp.sbuf.buf,sp.sbuf.bufsize).hexdigest() << hash1;
+	if(sp.sxml){
+            (*sp.sxml) << hash0 << md5_generator::hash_buf(sp.sbuf.buf,sp.sbuf.bufsize).hexdigest() << hash1;
         }
 	return;
     }

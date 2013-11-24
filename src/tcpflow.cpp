@@ -692,9 +692,11 @@ int main(int argc, char *argv[])
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
     DEBUG(2)("Flows seen:                         %d",(int)demux.flow_counter);
 
+
     demux.close_all_fd();
-    be13::plugin::phase_shutdown(fs);
-    
+    std::stringstream ss;
+    be13::plugin::phase_shutdown(fs,xreport ? &ss : 0);
+
     /*
      * Note: funny formats below are a result of mingw problems with PRId64.
      */
@@ -706,6 +708,7 @@ int main(int argc, char *argv[])
 
     if(xreport){
 	demux.remove_all_flows();	// empty the map to capture the state
+        xreport->xmlout("shutdown",ss.str(),"",false);
 	xreport->add_rusage();
 	xreport->pop();                 // bulk_extractor
 	xreport->close();
