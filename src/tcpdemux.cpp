@@ -633,18 +633,21 @@ int tcpdemux::process_pkt(const be13::packet_info &pi)
 
     /* Process the timeout, if there is any */
     if(tcp_timeout){
-        std::vector<flow *> to_close;
+        /* Get a list of the flows that need to be closed.  */
+        std::vector<flow &> to_close;
         for(flow_map_t::iterator it = flow_map.begin(); it!=flow_map.end(); it++){
             tcpip &tcp = *(it->second);
             flow &f = tcp.myflow;
             uint32_t age = pi.ts.tv_sec - f.tlast.tv_sec;
             if (age > tcp_timeout){
-                to_close.push_back(&f);
+                to_close.push_back(f);
             }
         }
-
+        /* Close them. This removes the flows from the flow_map(), which is why we need
+         * to create the list first.
+         */
         for(std::vector<flow *>::iterator it = to_close.begin(); it!=to_close.end(); it++){
-            remove_flow(*(*it));
+            remove_flow(*it);
         }
     }
     return r;     

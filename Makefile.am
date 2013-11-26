@@ -70,6 +70,7 @@ winrelease:
 	zip $(FN).zip tcpflow*.exe
 
 
+.PHONY: pull
 pull:
 	git pull
 	(cd src/dfxml;git pull)
