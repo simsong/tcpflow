@@ -25,6 +25,9 @@
  * Definitions for information in the LLC header.
  */
 
+#ifndef UNI_LLC_H
+#define UNI_LLC_H
+
 #define	LLC_U_FMT	3
 #define	LLC_GSAP	1
 #define	LLC_IG	        1 /* Individual / Group */
@@ -126,3 +129,4 @@ struct llc_hdr_t {
     uint16_t oui;
     uint16_t type;
 };
+#endif

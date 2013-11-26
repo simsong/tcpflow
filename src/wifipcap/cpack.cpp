@@ -29,13 +29,10 @@
 
 #ifndef WIN32
 
-#include "tcpflow.h"
-
-#include <stdlib.h>
 #include <string.h>
 
 #include "cpack.h"
-#include "uni/extract.h"
+#include "extract.h"
 
 static u_int8_t *
 cpack_next_boundary(u_int8_t *buf, u_int8_t *p, size_t alignment)
@@ -62,7 +59,7 @@ cpack_align_and_reserve(struct cpack_state *cs, size_t wordsize)
 
 	/* Too little space for wordsize bytes? */
 	if (next - cs->c_buf + wordsize > cs->c_len)
-		return NULL;
+		return 0;
 
 	return next;
 }

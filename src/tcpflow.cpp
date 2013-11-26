@@ -9,8 +9,9 @@
 
 #define __MAIN_C__
 
-#include "tcpflow.h"
+#include "config.h"
 
+#include "tcpflow.h"
 
 #include "tcpip.h"
 #include "tcpdemux.h"
@@ -23,6 +24,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
+
 
 
 
@@ -70,6 +72,7 @@ scanner_t *scanners_builtin[] = {
     scan_http,
     scan_netviz,
     scan_tcpdemux,
+    scan_wifiviz,
     0};
 
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
@@ -210,13 +213,15 @@ void terminate(int sig)
 #ifdef HAVE_FORK
 // transparent decompression for process_infile
 class inflater {
+    const std::string suffix;
+    const std::string invoc_format;
 public:
-    inflater(regex_t regex_, std::string invoc_format_) :
-        regex(regex_), invoc_format(invoc_format_) {}
+    inflater(const std::string &suffix_, const std::string &invoc_format_) :
+        suffix(suffix_), invoc_format(invoc_format_) {}
     // is this inflater appropriate for a given file?
     bool appropriate(const std::string &file_path) const
     {
-        return regexec(&regex, file_path.c_str(), (size_t) 0, NULL, 0) == 0;
+        return ends_with(file_path,suffix);
     }
     // invoke the inflater in a shell, and return the file descriptor to read the inflated file from
     int invoke(const std::string &file_path) const
@@ -251,30 +256,22 @@ public:
         close(pipe_fds[1]);
         return pipe_fds[0];
     }
-    regex_t regex;
-    std::string invoc_format;
 };
 
 static std::vector<inflater> build_inflaters()
 {
     std::vector<inflater> output;
-    regex_t re;
 
     // gzip
-    regcomp(&re, "\\.gz$", REG_EXTENDED);
-    output.push_back(inflater(re, "gunzip -c '%s'"));
+    output.push_back(inflater(".gz", "gunzip -c '%s'"));
     // zip
-    regcomp(&re, "\\.zip$", REG_EXTENDED);
-    output.push_back(inflater(re, "unzip -p '%s'"));
+    output.push_back(inflater(".zip", "unzip -p '%s'"));
     // bz2
-    regcomp(&re, "\\.bz2$", REG_EXTENDED);
-    output.push_back(inflater(re, "bunzip2 -c '%s'"));
+    output.push_back(inflater(".bz2", "bunzip2 -c '%s'"));
     // xz
-    regcomp(&re, "\\.xz$", REG_EXTENDED);
-    output.push_back(inflater(re, "unxz -c '%s'"));
+    output.push_back(inflater(".xz", "unxz -c '%s'"));
     // lzma
-    regcomp(&re, "\\.lzma$", REG_EXTENDED);
-    output.push_back(inflater(re, "unlzma -c '%s'"));
+    output.push_back(inflater(".lzma", "unlzma -c '%s'"));
 
     return output;
 }
@@ -343,18 +340,6 @@ static void process_infile(const std::string &expression,const char *device,cons
 	handler = find_handler(dlt, device);
     }
 
-    /* If DLT_NULL is "broken", giving *any* expression to the pcap
-     * library when we are using a device of type DLT_NULL causes no
-     * packets to be delivered.  In this case, we use no expression, and
-     * print a warning message if there is a user-specified expression
-     */
-#ifdef DLT_NULL_BROKEN
-    if (dlt == DLT_NULL && expression != ""){
-	DEBUG(1)("warning: DLT_NULL (loopback device) is broken on your system;");
-	DEBUG(1)("         filtering does not work.  Recording *all* packets.");
-    }
-#endif /* DLT_NULL_BROKEN */
-
     DEBUG(20) ("filter expression: '%s'",expression.c_str());
 
     /* install the filter expression in libpcap */
@@ -393,6 +378,7 @@ int main(int argc, char *argv[])
 {
     bool didhelp = false;
     feature_recorder::set_main_threadid();
+    sbuf_t::set_map_file_delimiter(""); // no delimiter on carving
 #ifdef BROKEN
     std::cerr << "WARNING: YOU ARE USING AN EXPERIMENTAL VERSION OF TCPFLOW \n";
     std::cerr << "THAT DOES NOT WORK PROPERLY. PLEASE USE A RELEASE DOWNLOADED\n";
@@ -473,6 +459,7 @@ int main(int argc, char *argv[])
 	    break;
         case 'e':
             be13::plugin::scanners_enable(optarg);
+            demux.opt.post_processing = true; // enable post processing if anything is turned on 
             break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
@@ -530,7 +517,12 @@ int main(int argc, char *argv[])
 	case 's':
             demux.opt.output_strip_nonprint = 1; DEBUG(10) ("converting non-printable characters to '.'");
             break;
-	case 'T': flow::filename_template = optarg;break;
+	case 'T':
+            flow::filename_template = optarg;
+            if(flow::filename_template.find("%c")==string::npos){
+                flow::filename_template += std::string("%C%c"); // append %C%c if not present
+            }
+            break;
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
@@ -657,7 +649,9 @@ int main(int argc, char *argv[])
 
     feature_file_names_t feature_file_names;
     be13::plugin::get_scanner_feature_file_names(feature_file_names);
-    feature_recorder_set fs(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir,false);
+    feature_recorder_set fs(0);
+
+    fs.init(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir,0);
     the_fs   = &fs;
     demux.fs = &fs;
 
@@ -698,20 +692,23 @@ int main(int argc, char *argv[])
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
     DEBUG(2)("Flows seen:                         %d",(int)demux.flow_counter);
 
+
     demux.close_all_fd();
-    be13::plugin::phase_shutdown(fs);
-    
+    std::stringstream ss;
+    be13::plugin::phase_shutdown(fs,xreport ? &ss : 0);
+
     /*
      * Note: funny formats below are a result of mingw problems with PRId64.
      */
-    const std::string total_flow_processed("Total flows processed: %"PRId64);
-    const std::string total_packets_processed("Total packets processed: %"PRId64);
+    const std::string total_flow_processed("Total flows processed: %" PRId64);
+    const std::string total_packets_processed("Total packets processed: %" PRId64);
     
     DEBUG(2)(total_flow_processed.c_str(),demux.flow_counter);
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
     if(xreport){
 	demux.remove_all_flows();	// empty the map to capture the state
+        xreport->xmlout("shutdown",ss.str(),"",false);
 	xreport->add_rusage();
 	xreport->pop();                 // bulk_extractor
 	xreport->close();

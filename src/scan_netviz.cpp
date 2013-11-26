@@ -9,7 +9,6 @@
 #include <iostream>
 #include <sys/types.h>
 
-
 #include "bulk_extractor_i.h"
 
 #ifdef HAVE_LIBCAIRO
@@ -46,32 +45,34 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
     }
 
     if(sp.phase==scanner_params::PHASE_STARTUP){
-#ifdef HAVE_LIBCAIRO
 	sp.info->name  = "netviz";
 	sp.info->flags = scanner_info::SCANNER_DISABLED;
-        sp.info->flags = 0;
 	sp.info->author= "Mike Shick";
 	sp.info->packet_user = 0;
+#ifdef HAVE_LIBCAIRO
+        sp.info->description = "Performs 1-page visualization of network packets";
 	sp.info->packet_cb = netviz_process_packet;
         sp.info->get_config(HISTOGRAM_DUMP,&histogram_dump,"Dumps the histogram");
         int max_histogram_size = DEFAULT_MAX_HISTOGRAM_SIZE;
-
         sp.info->get_config(HISTOGRAM_SIZE,&max_histogram_size,"Maximum histogram size");
         report = new one_page_report(max_histogram_size);
-#endif	
+#else
+        sp.info->description = "Disabled (compiled without libcairo";
+#endif
     }
+#ifdef HAVE_LIBCAIRO
 
     if(sp.phase==scanner_params::PHASE_SHUTDOWN){
-#ifdef HAVE_LIBCAIRO
         assert(report!=0);
         if(histogram_dump){
             report->src_tree.dump_stats(std::cout);
             report->dump(histogram_dump);
         }
-        report->source_identifier = sp.fs.input_fname;
-        report->render(sp.fs.outdir);
+        report->source_identifier = sp.fs.get_input_fname();
+        report->render(sp.fs.get_outdir());
         delete report;
         report = 0;
-#endif
     }
+#endif
 }
+

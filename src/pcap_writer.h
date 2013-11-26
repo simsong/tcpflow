@@ -7,12 +7,9 @@
 #ifndef HAVE_PCAP_WRITER_H
 #define HAVE_PCAP_WRITER_H
 class pcap_writer {
-private:
-    class not_impl: public std::exception {
-	virtual const char *what() const throw() {
-            return "copying tcpip objects is not implemented.";
-        }
-    };
+    /* These are not implemented */
+    pcap_writer &operator=(const pcap_writer &that);
+    pcap_writer(const pcap_writer &t);
     class write_error: public std::exception {
         virtual const char *what() const throw() {
             return "write error in pcap_write";
@@ -61,10 +58,6 @@ private:
         }
         if(fwrite(buf,1,sizeof(buf),fcap)!=sizeof(buf)) throw new write_error();
         if(fclose(f2)!=0) throw new write_error();
-    }
-    pcap_writer &operator=(const pcap_writer &that) { throw new not_impl();}
-    pcap_writer(const pcap_writer &t) __attribute__((__noreturn__)):fcap(0){
-        throw new not_impl();
     }
     pcap_writer():fcap(0){}
 

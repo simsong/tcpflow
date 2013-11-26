@@ -1,7 +1,9 @@
 # Programs that we compile:
 bin_PROGRAMS = tcpflow
 
-AM_CPPFLAGS = -I${top_srcdir}/src/be13_api
+EXTRA_PROGRAMS = wifipcap_demo
+
+AM_CPPFLAGS = -I${top_srcdir}/src/be13_api -I${top_srcdir}/src/wifipcap
 
 include dfxml/src/Makefile.defs
 include be13_api/Makefile.defs
@@ -33,18 +35,31 @@ NETVIZ = \
 	netviz/one_page_report.cpp \
 	netviz/one_page_report.h
 
-WIFI = 	wifi_datalink.cpp \
-	wifipcap.cpp \
-	wifipcap.h \
-	cpack.h \
-	cpack.cpp \
-	uni/ethertype.h \
-	uni/extract.h \
-	uni/ieee802_11.h \
-	uni/ieee802_11_radio.h \
-	uni/llc.h \
-	uni/oui.h \
-	uni/packet-ieee80211.h 
+WIFI = 	datalink_wifi.cpp \
+	wifipcap/TimeVal.cpp \
+	wifipcap/TimeVal.h \
+	wifipcap/arp.h \
+	wifipcap/cpack.cpp \
+	wifipcap/cpack.h \
+	wifipcap/ether.h \
+	wifipcap/ethertype.h \
+	wifipcap/extract.h \
+	wifipcap/icmp.h \
+	wifipcap/ieee802_11_radio.h \
+	wifipcap/ip.h \
+	wifipcap/ip6.h \
+	wifipcap/ipproto.h \
+	wifipcap/llc.h 
+	wifipcap/os.h \
+	wifipcap/oui.h \
+	wifipcap/prism.h \
+	wifipcap/radiotap.h \
+	wifipcap/tcp.h \
+	wifipcap/types.h \
+	wifipcap/udp.h \
+	wifipcap/util.h \
+	wifipcap/wifipcap.cpp \
+	wifipcap/wifipcap.h 
 
 
 tcpflow_SOURCES = \
@@ -58,6 +73,7 @@ tcpflow_SOURCES = \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
+	scan_wifiviz.cpp \
 	pcap_writer.h \
 	iptree.h \
 	http-parser/http_parser.c \
@@ -71,7 +87,32 @@ EXTRA_DIST =\
 	http-parser/LICENSE-MIT \
 	http-parser/Makefile \
 	http-parser/README.md \
-	http-parser/http_parser.gyp 
+	http-parser/http_parser.gyp \
+	wifipcap/README.txt \
+	wifipcap/TimeVal.cpp \
+	wifipcap/TimeVal.h \
+	wifipcap/arp.h \
+	wifipcap/ether.h \
+	wifipcap/ethertype.h \
+	wifipcap/extract.h \
+	wifipcap/icmp.h \
+	wifipcap/ieee802_11_radio.h \
+	wifipcap/ip.h \
+	wifipcap/ip6.h \
+	wifipcap/ipproto.h \
+	wifipcap/os.h \
+	wifipcap/oui.h \
+	wifipcap/prism.h \
+	wifipcap/radiotap.h \
+	wifipcap/sample.cpp \
+	wifipcap/tcp.h \
+	wifipcap/types.h \
+	wifipcap/udp.h \
+	wifipcap/util.cpp \
+	wifipcap/util.h \
+	wifipcap/wifipcap.cpp \
+	wifipcap/wifipcap.h 
+
 
 testiph: tcpflow
 	echo Testing the IP histogram

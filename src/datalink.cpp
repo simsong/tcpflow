@@ -1,4 +1,3 @@
-
 /**
  * 
  * This file is part of tcpflow. Originally by Jeremy Elson
@@ -7,12 +6,14 @@
  * Initial Release: 7 April 1999.
  *
  * This source code is under the GNU Public License (GPL).  See
- * LICENSE for details.
+ * COPYING for details.
  *
  * This file contains datalink handlers which are called by the pcap callback.
  * The purpose of each handler is to make a packet_info() object and then call
- * process_packet_info. The packet_info() object contains both the original
+ * process_packet. The packet_info() object contains both the original
  * MAC-layer (with some of the fields broken out) and the packet data layer.
+ *
+ * For wifi datalink handlers, please see datalink_wifi.cpp
  */
 
 #include "tcpflow.h"
@@ -47,25 +48,19 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
-    /* One of the symptoms of a broken DLT_NULL is that this value is
-     * not set correctly, so we don't check for it -- instead, just
-     * assume everything is IP.  --JE 20 April 1999
-     */
-#ifndef DLT_NULL_BROKEN
     /* make sure this is AF_INET */
     if (family != AF_INET && family != AF_INET6) {
 	DEBUG(6)("warning: received null frame with unknown type (type 0x%x) (AF_INET=%x; AF_INET6=%x)",
 		 family,AF_INET,AF_INET6);
 	return;
     }
-#endif
     struct timeval tv;
     be13::packet_info pi(DLT_NULL,h,p,tvshift(tv,h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
-uint64_t counter=0;
+static uint64_t counter=0;
 /* DLT_RAW: just a raw IP packet, no encapsulation or link-layer
  * headers.  Used for PPP connections under some OSs including Linux
  * and IRIX. */
@@ -78,7 +73,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     struct timeval tv;
     be13::packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
     counter++;
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 
 /* Ethernet datalink handler; used by all 10 and 100 mbit/sec
@@ -121,7 +116,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     switch (ntohs(*ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
-        be13::plugin::process_packet_info(pi);
+        be13::plugin::process_packet(pi);
         break;
 
 #ifdef ETHERTYPE_ARP
@@ -171,7 +166,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     struct timeval tv;
     be13::packet_info pi(DLT_PPP,h,p,tvshift(tv,h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 
 
@@ -187,6 +182,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #define ETHERTYPE_MPLS_MULTI    0x8848
 #endif
 
+#pragma GCC diagnostic ignored "-Wcast-align"
 void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
@@ -226,7 +222,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     
     struct timeval tv;
     be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN + mpls_sz, caplen - SLL_HDR_LEN);
-    be13::plugin::process_packet_info(pi);
+    be13::plugin::process_packet(pi);
 }
 #endif
 
@@ -245,14 +241,14 @@ dlt_handler_t handlers[] = {
     { dl_raw,     101 },
     { dl_ethernet, DLT_EN10MB },
     { dl_ethernet, DLT_IEEE802 },
-    { dl_ppp,      DLT_PPP },
+    { dl_ppp,           DLT_PPP },
 #ifdef DLT_LINUX_SLL
-    { dl_linux_sll,DLT_LINUX_SLL },
+    { dl_linux_sll,        DLT_LINUX_SLL },
 #endif
 #ifndef WIN32
     { dl_ieee802_11_radio, DLT_IEEE802_11 },
     { dl_ieee802_11_radio, DLT_IEEE802_11_RADIO },
-    { dl_prism, DLT_PRISM_HEADER},
+    { dl_prism,            DLT_PRISM_HEADER},
 #endif
     { NULL, 0 }
 };

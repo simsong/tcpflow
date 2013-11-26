@@ -56,17 +56,8 @@ int http_alert_fd = -1;                 // where should we send alerts?
 class scan_http_cbo {
 private:
     typedef enum {NOTHING,FIELD,VALUE} last_on_header_t;
-    class not_impl: public std::exception {
-	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
-    };
-
-    scan_http_cbo(const scan_http_cbo& c) __attribute__ ((__noreturn__)):
-    path(c.path), base(c.base), xmlstream(c.xmlstream),xml_fo(),request_no(c.request_no),
-        headers(c.headers), last_on_header(c.last_on_header), header_value(c.header_value), header_field(c.header_field),
-        output_path(c.output_path), fd(c.fd), first_body(c.first_body),bytes_written(c.bytes_written),unzip(c.unzip), 
-        zs(), zinit(false), zfail(false) {throw new not_impl();};
-
-    scan_http_cbo &operator=(const scan_http_cbo &c) {throw new not_impl();}
+    scan_http_cbo(const scan_http_cbo& c); // not implemented
+    scan_http_cbo &operator=(const scan_http_cbo &c); // not implemented
 
 public:
     virtual ~scan_http_cbo(){
@@ -474,7 +465,7 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
             scan_http_parser_settings.on_body                   = scan_http_cbo::scan_http_cb_on_body;
             scan_http_parser_settings.on_message_complete       = scan_http_cbo::scan_http_cb_on_message_complete;
                         
-            if(sp.sbufxml) (*sp.sbufxml) << "\n    <byte_runs>\n";
+            if(sp.sxml) (*sp.sxml) << "\n    <byte_runs>\n";
             for(size_t offset=0;;){
                 /* Set up a parser instance for the next chunk of HTTP responses and data.
                  * This might be repeated several times due to connection re-use and multiple requests.
@@ -493,7 +484,7 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
                 http_parser parser;
                 http_parser_init(&parser, HTTP_RESPONSE);
 
-                scan_http_cbo cbo(sp.sbuf.pos0.path,base,sp.sbufxml);
+                scan_http_cbo cbo(sp.sbuf.pos0.path,base,sp.sxml);
                 parser.data = &cbo;
 
                 /* Parse */
@@ -522,7 +513,7 @@ void  scan_http(const class scanner_params &sp,const recursion_control_block &rc
                 /* Bump the offset for next iteration */
                 offset += parsed;
             }
-            if(sp.sbufxml) (*sp.sbufxml) << "    </byte_runs>";
+            if(sp.sxml) (*sp.sxml) << "    </byte_runs>";
         }
     }
 }

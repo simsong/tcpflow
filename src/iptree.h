@@ -33,9 +33,6 @@
 
 template <typename TYPE,size_t ADDRBYTES> class iptreet {
 private:;
-    class not_impl: public std::exception {
-	virtual const char *what() const throw() { return "copying iptreet objects is not implemented."; }
-    };
     /**
      * the node class.
      * Each node tracks the sum that it currently has and its two children.
@@ -71,14 +68,9 @@ private:;
             }
         };
     private:
-        /* Assignment is not implemented */
-        node &operator=(const iptreet::node &that){
-            throw not_impl();
-        }
-        /* copy is no longer implemented, because it's hard to do with the parents */
-        node(const node &n){
-            throw not_impl();
-        }
+        /* Assignment and copy are not implemented */
+        node &operator=(const iptreet::node &that);
+        node(const node &n);
     public:
         class node *parent;
         class node *ptr0;               // 0 bit next
@@ -231,7 +223,7 @@ private:;
           ipv4_bits=32,
           ipv6_bits=128,
     };
-    iptreet &operator=(const iptreet &that){throw not_impl();}
+    iptreet &operator=(const iptreet &that); // not implemented
 protected:
     size_t     nodes;                   // nodes in tree
     size_t     maxnodes;                // how many will we tolerate?

@@ -35,9 +35,6 @@
  *** include files first and disable pthread support.
  ***/
 #ifdef WIN32
-//#  include <winsock2.h>			// please include winsock2.h before windows.h
-//#  include <windows.h>
-//#  include <windowsx.h>
 #  undef HAVE_PTHREAD_H
 #  undef HAVE_SEMAPHORE_H
 #  undef HAVE_PTHREAD
@@ -76,6 +73,7 @@
 #include <cstdarg>
 #include <cerrno>
 #include <iostream>
+#include <iomanip>
 
 #include <fcntl.h>
 #include <assert.h>
@@ -83,6 +81,7 @@
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+
 
 // These are the required include files; they better be present
 #include <inttypes.h>			
@@ -317,14 +316,16 @@ extern "C" scanner_t scan_md5;
 extern "C" scanner_t scan_http;
 extern "C" scanner_t scan_tcpdemux;
 extern "C" scanner_t scan_netviz;
+extern "C" scanner_t scan_wifiviz;
 
-/* extra << functions */
-inline std::ostream & operator <<(std::ostream &os,const struct timeval &tv)
+
+#ifndef HAVE_TIMEVAL_OUT
+#define HAVE_TIMEVAL_OUT
+inline std::ostream& operator<<(std::ostream& os, const struct timeval *t)
 {
-    os << "sec: " << tv.tv_sec << " usec: " << tv.tv_usec;
-    return os;
+    return os << t->tv_sec << "." << std::setw(6) << std::setfill('0') << t->tv_usec;
+    
 }
-
-
+#endif
 
 #endif /* __TCPFLOW_H__ */

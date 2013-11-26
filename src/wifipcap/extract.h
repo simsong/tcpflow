@@ -21,6 +21,10 @@
  * @(#) $Header: /home/cvs/wifitools/wifipcap/extract.h,v 1.1.1.1 2006/12/14 01:22:11 jpang Exp $ (LBL)
  */
 
+#ifndef UNI_EXTRACT_H
+#define UNI_EXTRACT_H
+
+
 /*
  * Macros to extract possibly-unaligned big-endian integral values.
  */
@@ -124,3 +128,4 @@ typedef struct {
 		     (u_int64_t)*((const u_int8_t *)(p) + 2) << 16 | \
 		     (u_int64_t)*((const u_int8_t *)(p) + 1) << 8 | \
 		     (u_int64_t)*((const u_int8_t *)(p) + 0)))
+#endif

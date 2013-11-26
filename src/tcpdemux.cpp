@@ -127,7 +127,8 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be
 
     tcpip *new_tcpip = new tcpip(*this,flow,isn);
     new_tcpip->nsn   = isn+1;		// expected sequence number of the first byte
-    DEBUG(5) ("%s: new flow. next seq num (nsn):%d", new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
+    DEBUG(5) ("new flow %s. path: %s next seq num (nsn):%d",
+              flowa.str().c_str(),new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
     flow_map[flow] = new_tcpip;
     return new_tcpip;
 }
@@ -152,7 +153,7 @@ void tcpdemux::post_process(tcpip *tcp)
         /* Open the fd if it is not already open */
         tcp->open_file();
         if(tcp->fd>=0){
-            sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,pos0_t(tcp->flow_pathname),tcp->fd);
+            sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,tcp->fd);
             if(sbuf){
                 be13::plugin::process_sbuf(scanner_params(scanner_params::PHASE_SCAN,*sbuf,*(fs),&xmladd));
                 delete sbuf;
@@ -292,6 +293,8 @@ void tcpdemux::save_flow(tcpip *tcp)
  * 
  * creates a new tcp connection if necessary, then asks the connection to either
  * print the packet or store it.
+ *
+ * Returns 0 if packet is processed, 1 if it is not processed, -1 if error
  */
 
 #define FLAG_SET(vector, flag) ((vector) & (flag))
@@ -306,7 +309,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     if (ip_payload_len < sizeof(struct be13::tcphdr)) {
 	DEBUG(6) ("received truncated TCP segment! (%u<%u)",
                   (u_int)ip_payload_len,(u_int)sizeof(struct be13::tcphdr));
-	return 0;
+	return 1;
     }
 
     struct be13::tcphdr *tcp_header = (struct be13::tcphdr *) ip_data;
@@ -334,8 +337,16 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
     tcpip   *tcp = find_tcpip(this_flow);
     
+    DEBUG(60)("%s%s%s tcp_header_len=%d tcp_datalen=%d seq=%u tcp=%p",
+              (syn_set?"SYN ":""),(ack_set?"ACK ":""),(fin_set?"FIN ":""),(int)tcp_header_len,(int)tcp_datalen,(int)seq,tcp);
+
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
     if(tcp==0 && start_new_connections==false) return 0; 
+
+    if(syn_set && tcp && tcp->syn_count>0 && tcp->pos>0){
+        std::cerr << "SYN TO IGNORE! SYN tcp="<<tcp << " flow="<<this_flow<<"\n";
+        return 1;
+    }
 
     if(tcp==0){
         if(tcp_datalen==0){                       // zero length packet
@@ -355,7 +366,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                 if(fd>0){
                     char *buf = (char *)malloc(tcp_datalen);
                     if(buf){
-                        DEBUG(100)("lseek(fd,%"PRId64",SEEK_SET)",(int64_t)(offset));
+                        DEBUG(100)("lseek(fd,%" PRId64 ",SEEK_SET)",(int64_t)(offset));
                         lseek(fd,offset,SEEK_SET);
                         ssize_t r = read(fd,buf,tcp_datalen);
                         data_match = (r==(ssize_t)tcp_datalen) && memcmp(buf,tcp_data,tcp_datalen)==0;
@@ -599,6 +610,7 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
 #pragma GCC diagnostic ignored "-Wcast-align"
 int tcpdemux::process_pkt(const be13::packet_info &pi)
 {
+    DEBUG(10)("process_pkt..............................................................................");
     int r = 1;                          // not processed yet
     switch(pi.ip_version()){
     case 4:

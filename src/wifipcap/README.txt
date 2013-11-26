@@ -1,7 +1,18 @@
+MAINTAINER
+==========
+Simson L. Garfinkel <simsong@acm.org>
+
+
+ACKNOWLEDGEMENTS
+================
+Thanks to:
+* Jeffrey Pang, for the radiotap implementation
+* Doug Madory, for the  Wifi parser
+* Jeremy Elson, for the original idea and initial tcp/ip implementation
 
 Title:   Wifipcap Library
-Authors: Jeff Pang <jeffpang@cs.cmu.edu>
-
+Authors: Jeff Pang, 
+         Simson L. Garfinkel
 
 Description:
 ============
@@ -12,7 +23,9 @@ layer 3 protocols contained within them. Basically, the wifipcap
 library handles all the parsing of 802.11 frames (and/or layer 2/3
 packets) from the pcap file (or stream).
 
-Most of the code is derived from tcpdump.
+Some of the code is derived from tcpdump.
+
+This program somewhat reworked by Simson Garfinkel
 
 Linux: Requires libpcap >= 0.9.4 on Linux.
 

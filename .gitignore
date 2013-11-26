@@ -97,3 +97,4 @@ test-driver
 tests/*.pdf
 *.trs
 .dirstamp
+out-*

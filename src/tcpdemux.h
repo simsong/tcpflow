@@ -20,29 +20,30 @@
 #include "pcap_writer.h"
 #include "dfxml/src/dfxml_writer.h"
 #include "dfxml/src/hash_t.h"
-#include <tr1/unordered_map>
-#include <tr1/unordered_set>
-#include <queue>
 
+#if defined(HAVE_UNORDERED_MAP)
+# include <unordered_map>
+# include <unordered_set>
+# undef HAVE_TR1_UNORDERED_MAP           // be sure we don't use it
+#else
+# if defined(HAVE_TR1_UNORDERED_MAP)
+#  include <tr1/unordered_map>
+#  include <tr1/unordered_set>
+# else
+#  error Requires <unordered_map> or <tr1/unordered_map>
+# endif
+#endif
+
+#include <queue>
 
 /**
  * the tcp demultiplixer
  * This is a singleton class; we only need a single demultiplexer.
  */
 class tcpdemux {
-private:
-    class not_impl: public std::exception {
-        virtual const char *what() const throw() {
-            return "copying tcpdemux objects is not implemented.";
-        }
-    };
-    tcpdemux(const tcpdemux &t) __attribute__((__noreturn__)) :outdir("."),flow_counter(),packet_counter(),xreport(),pwriter(),
-        max_open_flows(),max_fds(),flow_map(),open_flows(),saved_flow_map(),saved_flows(),start_new_connections(),opt(),fs(){
-        throw new not_impl();
-    }
-    tcpdemux &operator=(const tcpdemux &that){
-        throw new not_impl();
-    }
+    /* These are not implemented */
+    tcpdemux(const tcpdemux &t);
+    tcpdemux &operator=(const tcpdemux &that);
 
     /* see http://mikecvet.wordpress.com/tag/hashing/ */
     typedef struct {
@@ -53,10 +54,18 @@ private:
         bool operator() (const flow_addr &x, const flow_addr &y) const { return x==y;}
     } flow_addr_key_eq;
 
+#ifdef HAVE_TR1_UNORDERED_MAP
     typedef std::tr1::unordered_set<class tcpip *> tcpset;
-    typedef std::vector<class saved_flow *> saved_flows_t; // needs to be ordered
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
+#else
+    typedef std::unordered_set<class tcpip *> tcpset;
+    typedef std::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
+    typedef std::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
+#endif
+    typedef std::vector<class saved_flow *> saved_flows_t; // needs to be ordered
+
+
     tcpdemux();
 public:
     static uint32_t tcp_timeout;

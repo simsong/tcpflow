@@ -129,10 +129,16 @@ public:
 	if (this->family > b.family) return false;
 	return false;    /* they are equal! */
     }
+
+    std::string str() const {
+        std::stringstream s;
+        s << "flow[" << src << ":" << sport << "->" << dst << ":" << dport << "]";
+        return s.str();
+    }
 };
 
 inline std::ostream & operator <<(std::ostream &os,const flow_addr &f)  {
-    os << "flow[" << f.src << ":" << f.sport << "->" << f.dst << ":" << f.dport << "]";
+    os << f.str();
     return os;
 }
 
@@ -263,20 +269,8 @@ private:
     /*** Begin Effective C++ error suppression                ***
      *** This class does not implement assignment or copying. ***
      ***/
-    class not_impl: public std::exception {
-	virtual const char *what() const throw() { return "copying tcpip objects is not implemented."; }
-    };
-    tcpip(const tcpip &t) __attribute__((__noreturn__)) : demux(t.demux),myflow(),dir(),isn(),nsn(),
-        syn_count(),fin_count(), fin_size(), pos(),
-        flow_pathname(),fd(),file_created(),
-        seen(),
-        last_byte(),                    // highest byte processed
-        last_packet_number(),
-        out_of_order_count(),
-        violations(){
-	throw new not_impl();
-    }
-    tcpip &operator=(const tcpip &that) { throw new not_impl(); }
+    tcpip(const tcpip &t);
+    tcpip &operator=(const tcpip &that);
     /*** End Effective C++ error suppression */
 
 public:;
@@ -288,8 +282,8 @@ public:;
     /* State information for the flow being reconstructed */
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
-    be13::tcp_seq	isn;			// Flow's initial sequence number
-    be13::tcp_seq	nsn;			// fd - expected next sequence number 
+    be13::tcp_seq isn;			// Flow's initial sequence number
+    be13::tcp_seq nsn;			// fd - expected next sequence number 
     uint32_t	syn_count;		// number of SYNs seen
     uint32_t    fin_count;              // number of FINs received
     uint32_t    fin_size;               // length of stream as determined when fin is sent
