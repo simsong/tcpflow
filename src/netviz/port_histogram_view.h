@@ -1,3 +1,12 @@
+/**
+ * port_histogram_view.h:
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ *
+ */
+
 #ifndef PORT_HISTOGRAM_VIEW_H
 #define PORT_HISTOGRAM_VIEW_H
 

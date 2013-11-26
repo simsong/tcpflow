@@ -1,3 +1,13 @@
+/**
+ * packetfall.h: 
+ * Show packets received vs port
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ *
+ */
+
 #ifndef PACKETFALL_H
 #define PACKETFALL_H
 

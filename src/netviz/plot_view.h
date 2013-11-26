@@ -1,3 +1,13 @@
+/**
+ * plotview.h:
+ *
+ * This source file is public domain, as it is not based on the original tcpflow.
+ *
+ * Author: Michael Shick <mike@shick.in>
+ *
+ */
+
+
 #ifndef PLOT_VIEW_H
 #define PLOT_VIEW_H
 
