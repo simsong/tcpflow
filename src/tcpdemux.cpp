@@ -134,9 +134,15 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be
 }
 
 /**
- * remove a flow from the database and close the flow
- * These are the only places where a tcpip object is deleted so there is no chance of finding it again.
- * This typically happens at the end of the run unless items in the map were removed.
+ * Remove a flow from the database.
+ * Close the flow file.
+ * Write to the report.xml object.
+ * Save in the sqlite database.
+ * This is the ONLY place where a tcpip object is deleted so there is no chance of finding it again.
+ * 
+ * Flows are post-processed when a FIN is received and all bytes are received.
+ * If a FIN is received and bytes are outstanding, they are post-processed when the last byte is received.
+ * When the program shut down, all open flows are post-processed.
  */
 
 void tcpdemux::post_process(tcpip *tcp)
