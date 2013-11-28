@@ -186,6 +186,7 @@ m4_include([src/be13_api/be13_configure.m4])
 
 #
 # sqlite3 is fun
+AC_CHECK_HEADERS([sqlite3.h])
 AC_CHECK_LIB([sqlite3],[sqlite3_open])
 
 
@@ -555,6 +556,16 @@ else
 fi
 
 AC_OUTPUT
+
+## Finally, record the values of CFLAGS, CPPFLAGS, and CXXFLAGS for DFXML
+echo "#define CPPFLAGS \"$CPPFLAGS\"" >> config.h
+echo "#define CFLAGS   \"$CFLAGS\""   >> config.h
+echo "#define CXXFLAGS \"$CXXFLAGS\"" >> config.h
+echo "#define LIBS     \"$LIBS\""     >> config.h
+echo "#define LDFLAGS  \"$LDFLAGS\""  >> config.h
+if test x"$GIT_COMMIT" != "x" ; then
+  echo "#define GIT_COMMIT  \"$GIT_COMMIT\""  >> config.h
+fi
 
 if test "x${Fmissing_library}" != "x" ; then
   AC_MSG_NOTICE([*** You have missing libraries. To install them:])

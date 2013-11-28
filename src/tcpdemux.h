@@ -21,6 +21,10 @@
 #include "dfxml/src/dfxml_writer.h"
 #include "dfxml/src/hash_t.h"
 
+#if defined(HAVE_SQLITE3_H)
+#include <sqlite3.h>
+#endif
+
 #if defined(HAVE_UNORDERED_MAP)
 # include <unordered_map>
 # include <unordered_set>
@@ -67,6 +71,11 @@ class tcpdemux {
 
 
     tcpdemux();
+#ifdef HAVE_SQLITE3
+    sqlite3 *db;
+    sqlite3_stmt *insert_flow;
+#endif
+
 public:
     static uint32_t tcp_timeout;
     static unsigned int get_max_fds(void);             // returns the max
@@ -122,8 +131,19 @@ public:
     static uint32_t max_saved_flows;       // how many saved flows are kept in the saved_flow_map
     static tcpdemux *getInstance();
 
-    void  save_unk_packets(const std::string &wfname,const std::string &ifname); // save unknown packets at this location
-    void  post_process(tcpip *tcp);      // just before closing; writes XML and closes fd
+    /* Databse */
+
+    void  openDB();                    // open the database file if we are using it in outdir directory.
+    void  write_flow_record(const std::string &starttime,const std::string &endtime,
+                            const std::string &src_ipn,const std::string &dst_ipn,
+                            const std::string &mac_daddr,const std::string &mac_saddr,
+                            uint64_t packets,uint16_t srcport,uint16_t dstport,
+                            const std::string &hashdigest_md5);
+
+
+    void  save_unk_packets(const std::string &wfname,const std::string &ifname);
+                                       // save unknown packets at this location
+    void  post_process(tcpip *tcp);    // just before closing; writes XML and closes fd
 
     /* management of open fds and in-process tcpip flows*/
     void  close_all_fd();

@@ -1,3 +1,7 @@
+2013-11-28  Basic  <simsong@Mucha.local>
+
+	* src/scan_http.cpp (scan_http): BUGFIX: was not clearing byte_run DFXML between each attachment. Now does.
+
 2013-11-18  Basic  <simsong@Mucha.local>
 
 	* src/wifipcap/wifipcap.cpp (WifipcapCallbacks::decode_data_frame): now calls Handle80211Data() for all data packets

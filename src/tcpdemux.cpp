@@ -19,18 +19,68 @@
 #include <sstream>
 #include <vector>
 
-
-
 /* static */ uint32_t tcpdemux::max_saved_flows = 100;
 /* static */ uint32_t tcpdemux::tcp_timeout = 0;
 
-tcpdemux::tcpdemux():outdir("."),flow_counter(0),packet_counter(0),
-		     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
-                     flow_map(),open_flows(),saved_flow_map(),
-		     saved_flows(),start_new_connections(false),opt(),fs()
-		     
+tcpdemux::tcpdemux():
+#ifdef HAVE_SQLITE3
+    db(),insert_flow(),
+#endif
+    outdir("."),flow_counter(0),packet_counter(0),
+    xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
+    flow_map(),open_flows(),saved_flow_map(),
+    saved_flows(),start_new_connections(false),opt(),fs()
 {
 }
+
+void tcpdemux::openDB()
+{
+#ifdef HAVE_SQLITE3
+    int rc = sqlite3_open("test.db", &db);
+    if( rc ){
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        db = 0;
+    }
+    /* Create SQL statement */
+    const char *sql = "CREATE TABLE connections ("
+        "starttime TEXT NOT NULL,"
+        "endtime TEXT NOT NULL,"
+        "src_ipn TEXT,"  
+        "dst_ipn TEXT,"
+        "mac_daddr TEXT,"
+        "mac_saddr TEXT,"
+        "packets INTEGER,"
+        "srcport INTEGER,"
+        "dstport INTEGER,"
+        "hashdigest_md5 TEXT);";
+
+    /* Execute SQL statement */
+    rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
+    if( rc != SQLITE_OK ){
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+        sqlite3_close(db);
+        return 0;
+    }
+    const char* zSql = "INSERT INTO connections (starttime,endtime,src_ipn,dst_ipn,mac_daddr,mac_saddr,packets,srcport,dstport,hashdigest_md5) VALUES (?,?,?,?,?,?,?,?,?,?)";
+    if(sqlite3_prepare_v2(db, zSql, strlen(zSql), &insert_stmt, NULL)!=SQLITE_OK ){
+        fprintf(stderr, "SQL prepare error");
+        db = 0;
+        insert_stmt=0;
+        return(0);
+    }
+#endif
+}
+
+void  tcpdemux::write_flow_record(const std::string &starttime,const std::string &endtime,
+                        const std::string &src_ipn,const std::string &dst_ipn,
+                        const std::string &mac_daddr,const std::string &mac_saddr,
+                        uint64_t packets,uint16_t srcport,uint16_t dstport,
+                        const std::string &hashdigest_md5)
+{
+}
+
+
 
 /* static */ tcpdemux *tcpdemux::getInstance()
 {

@@ -98,3 +98,4 @@ tests/*.pdf
 *.trs
 .dirstamp
 out-*
+config.h

@@ -83,7 +83,7 @@ private:
     std::string header_value, header_field;
     std::string output_path;
     int         fd;                         // fd for writing
-    bool        first_body;
+    bool        first_body;                 // first call to on_body after headers
     uint64_t    bytes_written;
 
     /* decompression for gzip-encoded streams. */
@@ -410,13 +410,12 @@ int scan_http_cbo::on_message_complete()
     } else {
         /* Nothing written; erase the file */
         if(output_path.size() > 0){
-            //std::cerr << "unlink " << output_path << "\n";
             ::unlink(output_path.c_str());
         }
     }
 
     /* Erase the state variables for this part */
-    xml_fo.str() = "";
+    xml_fo.str("");
     output_path = "";
     bytes_written=0;
     unzip = false;
