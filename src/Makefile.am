@@ -49,7 +49,7 @@ WIFI = 	datalink_wifi.cpp \
 	wifipcap/ip.h \
 	wifipcap/ip6.h \
 	wifipcap/ipproto.h \
-	wifipcap/llc.h 
+	wifipcap/llc.h \
 	wifipcap/os.h \
 	wifipcap/oui.h \
 	wifipcap/prism.h \

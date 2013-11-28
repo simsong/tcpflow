@@ -10,16 +10,14 @@ AC_INIT(TCPFLOW, 1.4.2, bugs@afflib.org)
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
 AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
-AC_CONFIG_HEADER([src/config.h])
+AC_CONFIG_HEADER([config.h])
 AM_PROG_CC_C_O
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
 # Endian check is required for MD5 implementation
 AC_C_BIGENDIAN
-
 AC_CONFIG_MACRO_DIR([m4])
-AC_DEFINE([tcpflow],1,[We are compiling tcpflow])
 
 # Programs we will be using
 AC_PROG_CXX
@@ -186,7 +184,9 @@ AC_LANG_POP()
 m4_include([src/dfxml/src/dfxml_configure.m4])
 m4_include([src/be13_api/be13_configure.m4])
 
-
+#
+# sqlite3 is fun
+AC_CHECK_LIB([sqlite3],[sqlite3_open])
 
 
 #

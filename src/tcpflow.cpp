@@ -175,8 +175,6 @@ static void dfxml_create(class dfxml_writer &xreport,const std::string &command_
     xreport.xmlout("dc:type","Feature Extraction","",false);
     xreport.pop();
     xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"",command_line);
-    xreport.push("configuration");
-    xreport.pop();			// configuration
 }
 
 
@@ -642,9 +640,6 @@ int main(int argc, char *argv[])
     si.get_config("debug-prefix",&debug_prefix,"Prefix for debug output");
     init_debug(debug_prefix.c_str(),0);
 
-    argc -= optind;
-    argv += optind;
-
     DEBUG(10) ("%s version %s ", PACKAGE_NAME, PACKAGE_VERSION);
 
     feature_file_names_t feature_file_names;
@@ -657,9 +652,19 @@ int main(int argc, char *argv[])
 
     si.get_config("tdelta",&datalink_tdelta,"Time offset for packets");
 
-    if(demux.xreport) demux.xreport->xmlout("tdelta",datalink_tdelta);
+    /* Record the configuration */
+    if(xreport){
+        xreport->push("configuration");
+        xreport->pop();			// configuration
+        xreport->xmlout("tdelta",datalink_tdelta);
+    }
+
+
 
     /* Process r files and R files */
+    if(xreport){
+        xreport->push("configuration");
+    }
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 #if defined(HAVE_SETUID) && defined(HAVE_GETUID)
@@ -692,6 +697,8 @@ int main(int argc, char *argv[])
     DEBUG(2)("Flow map size at end of processing: %d",(int)demux.flow_map.size());
     DEBUG(2)("Flows seen:                         %d",(int)demux.flow_counter);
 
+    int open_fds = (int)demux.open_flows.size();
+    int flow_map_size = (int)demux.flow_map.size();
 
     demux.close_all_fd();
     std::stringstream ss;
@@ -707,8 +714,15 @@ int main(int argc, char *argv[])
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
     if(xreport){
+
 	demux.remove_all_flows();	// empty the map to capture the state
-        xreport->xmlout("shutdown",ss.str(),"",false);
+        xreport->pop();                 // fileobjects
+        xreport->xmlout("summary",ss.str(),"",false);
+        xreport->xmlout("open_fds_at_end",open_fds);
+        xreport->xmlout("max_open_flows",demux.max_open_flows);
+        xreport->xmlout("total_flows",demux.flow_counter);
+        xreport->xmlout("flow_map_size",flow_map_size);
+        xreport->xmlout("total_packets",demux.packet_counter);
 	xreport->add_rusage();
 	xreport->pop();                 // bulk_extractor
 	xreport->close();
@@ -736,7 +750,8 @@ int main(int argc, char *argv[])
                 closedir(dirp);
             }
             if(filecount>=10000){
-                std::cerr << "*** tcpflow created " << filecount << " files in output directory " << demux.outdir << "\n";
+                std::cerr << "*** tcpflow created " << filecount
+                          << " files in output directory " << demux.outdir << "\n";
                 std::cerr << "***\n";
                 std::cerr << "*** Next time, specify command-line options: -Fk , -Fm , or -Fg \n";
                 std::cerr << "*** This will automatically bin output into subdirectories.\n";
