@@ -1,8 +1,6 @@
 # Programs that we compile:
 bin_PROGRAMS = tcpflow
 
-EXTRA_PROGRAMS = wifipcap_demo
-
 AM_CPPFLAGS = -I${top_srcdir}/src/be13_api -I${top_srcdir}/src/wifipcap
 
 include dfxml/src/Makefile.defs
