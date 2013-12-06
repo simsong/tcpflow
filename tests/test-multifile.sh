@@ -3,6 +3,15 @@
 
 . ./test-subs.sh
 
+# this test requires MULTIFILE
+MULTIFILE=/corp/nps/packets/2013-httpxfer/multifile_25_21.pcap
+
+if [ ! -r $MULTIFILE ]; then
+  echo missing $MULTIFILE
+  exit 0
+fi
+
+
 testlist="1 2 3 4 10 100"
 deldir=yes
 
@@ -21,7 +30,7 @@ do
     ls -l $OUT
     exit 1
   fi
-  cmd="$TCPFLOW -f $maxfds -o $OUT -X $OUT/report.xml -r multifile_25_21.pcap -a"
+  cmd="$TCPFLOW -f $maxfds -o $OUT -X $OUT/report.xml -r $MULTIFILE -a"
   $TCPFLOW -V
   echo $cmd
   if ! $cmd; then echo tcpdump failed; exit 1 ; fi

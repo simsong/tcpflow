@@ -9,11 +9,15 @@
 
 #include "config.h"		// pull in HAVE_ defines
 
+#define __STDC_FORMAT_MACROS 
+
+#include <stdint.h>
+#include <inttypes.h>
+
 #include <iostream>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-
 #include <stdarg.h>
 #include <errno.h>
 
@@ -483,7 +487,7 @@ const char *Wifipcap::WifiUtil::MgmtReasonCode2Txt(uint v) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // Jeff: HACK -- tcpdump uses a global variable to check truncation
-#define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= len) 
+#define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= (ssize_t)len) 
 
 void WifiPacket::parse_elements(struct mgmt_body_t *pbody, const u_char *p, int offset, size_t len)
 {
@@ -1681,7 +1685,7 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
 	    int hours = (header->ts.tv_sec - startTime.tv_sec)/3600;
 	    int days  = hours/24;
 	    int left  = hours%24;
-	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10lld pkts\n", 
+	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10" PRId64 " pkts\n", 
 		    days, left, packetsProcessed);
 	}
 	lastPrintTime = header->ts;

@@ -1,3 +1,9 @@
+2013-12-06  Basic  <simsong@ncr.nps.edu>
+
+	* configure.ac: upped version number to 1.4.3
+
+	* tests/test-multifile.sh (OUT): now handles multifile and nitroba packets not being present.
+
 2013-11-28  Basic  <simsong@Mucha.local>
 
 	* src/scan_http.cpp (scan_http): BUGFIX: was not clearing byte_run DFXML between each attachment. Now does.
