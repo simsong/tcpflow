@@ -3,6 +3,8 @@ bin_PROGRAMS = tcpflow
 
 AM_CPPFLAGS = -I${top_srcdir}/src/be13_api -I${top_srcdir}/src/wifipcap
 
+CONFIG_CLEAN_FILES = config.h		# old location of config.h
+
 include dfxml/src/Makefile.defs
 include be13_api/Makefile.defs
 
