@@ -26,7 +26,7 @@ void packetfall::render(cairo_t *cr, const plot_view::bounds_t &bounds)
     cairo_fill(cr);
 
     double font_size = 16.0;
-    string label = "pretty packetfall";
+    std::string label = "pretty packetfall";
     cairo_text_extents_t extents;
 
     cairo_set_font_size(cr, font_size);
