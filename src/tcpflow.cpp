@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
             break;
 	case 'T':
             flow::filename_template = optarg;
-            if(flow::filename_template.find("%c")==string::npos){
+            if(flow::filename_template.find("%c")==std::string::npos){
                 flow::filename_template += std::string("%C%c"); // append %C%c if not present
             }
             break;
@@ -646,7 +646,7 @@ int main(int argc, char *argv[])
     be13::plugin::get_scanner_feature_file_names(feature_file_names);
     feature_recorder_set fs(0);
 
-    fs.init(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir,0);
+    fs.init(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir);
     the_fs   = &fs;
     demux.fs = &fs;
 

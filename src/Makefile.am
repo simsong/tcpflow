@@ -1,8 +1,6 @@
 # Programs that we compile:
 bin_PROGRAMS = tcpflow
 
-EXTRA_PROGRAMS = wifipcap_demo
-
 AM_CPPFLAGS = -I${top_srcdir}/src/be13_api -I${top_srcdir}/src/wifipcap
 
 include dfxml/src/Makefile.defs
@@ -36,6 +34,7 @@ NETVIZ = \
 	netviz/one_page_report.h
 
 WIFI = 	datalink_wifi.cpp \
+	datalink_wifi.h \
 	wifipcap/TimeVal.cpp \
 	wifipcap/TimeVal.h \
 	wifipcap/arp.h \
