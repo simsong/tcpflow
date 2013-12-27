@@ -21,7 +21,7 @@ time_histogram::time_histogram() :
     earliest_ts = (struct timeval) { 0 };
     latest_ts = (struct timeval) { 0 };
 
-    for(vector<span_params>::const_iterator it = spans.begin();
+    for(std::vector<span_params>::const_iterator it = spans.begin();
             it != spans.end(); it++) {
         histograms.push_back(histogram_map(*it));
     }
@@ -32,7 +32,7 @@ const float time_histogram::underflow_pad_factor = 0.1;
 // spans dictates the granularities of each histogram.  One histogram
 // will be created per entry in this vector.  Each value must have a greater
 // value of seconds than the previous
-const vector<time_histogram::span_params> time_histogram::spans = time_histogram::build_spans();
+const std::vector<time_histogram::span_params> time_histogram::spans = time_histogram::build_spans();
 const time_histogram::bucket time_histogram::empty_bucket; // an empty bucket
 const unsigned int time_histogram::F_NON_TCP = 0x01;
 
@@ -47,7 +47,7 @@ void time_histogram::insert(const struct timeval &ts, const in_port_t port, cons
     if(ts.tv_sec > latest_ts.tv_sec || (ts.tv_sec == latest_ts.tv_sec && ts.tv_usec > latest_ts.tv_usec)) {
         latest_ts = ts;
     }
-    for(vector<histogram_map>::iterator it = histograms.begin() + best_fit_index;
+    for(std::vector<histogram_map>::iterator it = histograms.begin() + best_fit_index;
             it != histograms.end(); it++) {
         bool overflowed = it->insert(ts, port, count, flags);
         // if there was an overflow and the best fit isn't already the least

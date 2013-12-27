@@ -375,7 +375,7 @@ public:
      * @param ptr   - the node currently being queried
      * @param histogram - where the histogram is written
      */
-    typedef vector<addr_elem> histogram_t;
+    typedef std::vector<addr_elem> histogram_t;
     void get_histogram(int depth,const uint8_t *addr,const class node *ptr,histogram_t  &histogram) const{
         if(ptr->nodesum()){
             histogram.push_back(addr_elem(addr,depth,ptr->nodesum()));

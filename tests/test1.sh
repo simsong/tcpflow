@@ -16,9 +16,8 @@ do
   echo checking $DMPFILE
   if ! [ -r $DMPFILE ] ; then echo $DMPFILE not found ; fi
   /bin/rm -rf out
-  cmd="$TCPFLOW -o out -X out/report.xml -r $DMPFILE"
-  echo $cmd
-  if ! $cmd; then echo tcpdump failed; exit 1 ; fi
+
+  cmd "$TCPFLOW -o out -X out/report.xml -r $DMPFILE"
 
   case $t in
   1)

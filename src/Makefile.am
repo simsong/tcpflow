@@ -36,6 +36,7 @@ NETVIZ = \
 	netviz/one_page_report.h
 
 WIFI = 	datalink_wifi.cpp \
+	datalink_wifi.h \
 	wifipcap/TimeVal.cpp \
 	wifipcap/TimeVal.h \
 	wifipcap/arp.h \

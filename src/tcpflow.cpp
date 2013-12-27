@@ -256,25 +256,25 @@ public:
     }
 };
 
-static std::vector<inflater> build_inflaters()
+typedef std::vector<inflater *> inflaters_t;
+static inflaters_t *build_inflaters()
 {
-    std::vector<inflater> output;
+    inflaters_t *output = new inflaters_t();
 
     // gzip
-    output.push_back(inflater(".gz", "gunzip -c '%s'"));
+    output->push_back(new inflater(".gz", "gunzip -c '%s'"));
     // zip
-    output.push_back(inflater(".zip", "unzip -p '%s'"));
+    output->push_back(new inflater(".zip", "unzip -p '%s'"));
     // bz2
-    output.push_back(inflater(".bz2", "bunzip2 -c '%s'"));
+    output->push_back(new inflater(".bz2", "bunzip2 -c '%s'"));
     // xz
-    output.push_back(inflater(".xz", "unxz -c '%s'"));
+    output->push_back(new inflater(".xz", "unxz -c '%s'"));
     // lzma
-    output.push_back(inflater(".lzma", "unlzma -c '%s'"));
+    output->push_back(new inflater(".lzma", "unlzma -c '%s'"));
 
     return output;
 }
 
-static std::vector<inflater> inflaters = build_inflaters();
 #define HAVE_INFLATER
 #endif
 
@@ -283,6 +283,7 @@ static std::vector<inflater> inflaters = build_inflaters();
  * May be repeated.
  * If start is false, do not initiate new connections
  */
+static inflaters_t *inflaters = 0;
 static void process_infile(const std::string &expression,const char *device,const std::string &infile)
 {
     char error[PCAP_ERRBUF_SIZE];
@@ -290,13 +291,15 @@ static void process_infile(const std::string &expression,const char *device,cons
     int dlt=0;
     pcap_handler handler;
 
+    if(inflaters==0) inflaters = build_inflaters();
+
     if (infile!=""){
         std::string file_path = infile;
         // decompress input if necessary
 #ifdef HAVE_INFLATER
-        for(std::vector<inflater>::const_iterator it = inflaters.begin(); it != inflaters.end(); it++) {
-            if(it->appropriate(infile)) {
-                int fd = it->invoke(infile);
+        for(inflaters_t::const_iterator it = inflaters->begin(); it != inflaters->end(); it++) {
+            if((*it)->appropriate(infile)) {
+                int fd = (*it)->invoke(infile);
                 file_path = ssprintf("/dev/fd/%d", fd);
                 if(fd < 0) {
                     std::cerr << "decompression of '" << infile << "' failed" << std::endl;
@@ -517,7 +520,7 @@ int main(int argc, char *argv[])
             break;
 	case 'T':
             flow::filename_template = optarg;
-            if(flow::filename_template.find("%c")==string::npos){
+            if(flow::filename_template.find("%c")==std::string::npos){
                 flow::filename_template += std::string("%C%c"); // append %C%c if not present
             }
             break;
@@ -646,7 +649,7 @@ int main(int argc, char *argv[])
     be13::plugin::get_scanner_feature_file_names(feature_file_names);
     feature_recorder_set fs(0);
 
-    fs.init(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir,0);
+    fs.init(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir);
     the_fs   = &fs;
     demux.fs = &fs;
 
