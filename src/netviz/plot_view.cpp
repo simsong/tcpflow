@@ -9,18 +9,17 @@
  */
 
 #include "config.h"
-
+#include "tcpflow.h"                    // for ssprintf
 #include "plot_view.h"
-#ifdef HAVE_LIBCAIRO
-#include "tcpflow.h"
 
+#ifdef HAVE_LIBCAIRO
 #include <math.h>
 
 const double plot_view::rgb_t::epsilon = 1.0 / 256.0;
 const double plot_view::text_line_base_width = 0.05;
 const double plot_view::span_arrow_angle = M_PI / 4.0;
 const double plot_view::span_stop_angle = M_PI / 2.0;
-const vector<string> plot_view::size_suffixes =
+const std::vector<std::string> plot_view::size_suffixes =
         plot_view::build_size_suffixes();
 
 void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
@@ -190,7 +189,7 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
     for(size_t ii = 0; ii < y_tick_labels.size(); ii++) {
         cairo_text_extents_t label_extents;
         double yy = y_height - (((double) ii) * y_tick_spacing);
-        string label = y_tick_labels.at(ii);
+        std::string label = y_tick_labels.at(ii);
 
         cairo_text_extents(cr, label.c_str(),
                &label_extents);
@@ -214,7 +213,7 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
     for(size_t ii = 0; ii < right_tick_labels.size(); ii++) {
         cairo_text_extents_t label_extents;
         double yy = y_height - (((double) ii) * y_tick_spacing);
-        string label = right_tick_labels.at(ii);
+        std::string label = right_tick_labels.at(ii);
 
         cairo_text_extents(cr, label.c_str(),
                &label_extents);
@@ -252,8 +251,8 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
 
         // prevent labels from running off the edge of the image
         double label_x = xx - (label_extents.width / 2.0);
-        label_x = max(label_x, - pad_left);
-        label_x = min(bounds.width - label_extents.width, label_x);
+        label_x = std::max(label_x, - pad_left);
+        label_x = std::min(bounds.width - label_extents.width, label_x);
 
         cairo_move_to(cr, label_x, label_extents.height + pad);
         cairo_show_text(cr, label);
@@ -272,7 +271,7 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
         const legend_entry_t &entry = legend.at(ii);
         cairo_text_extents(cr, entry.label.c_str(), &legend_label_extents);
 
-        chip_length = max(chip_length, legend_label_extents.height);
+        chip_length = std::max(chip_length, legend_label_extents.height);
     }
     chip_length *= legend_chip_factor;
 
@@ -332,7 +331,7 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
     render_data(cr, content_bounds);
 }
 
-string plot_view::pretty_byte_total(uint64_t byte_count, uint8_t precision)
+std::string plot_view::pretty_byte_total(uint64_t byte_count, uint8_t precision)
 {
     //// packet count/size
     uint64_t size_log_1000 = (uint64_t) (log(byte_count) / log(1000));
@@ -347,14 +346,14 @@ string plot_view::pretty_byte_total(uint64_t byte_count, uint8_t precision)
             size_suffixes.at(size_log_1000).c_str());
 }
 
-string plot_view::pretty_byte_total(uint64_t byte_count)
+std::string plot_view::pretty_byte_total(uint64_t byte_count)
 {
     return pretty_byte_total(byte_count, 2);
 }
 
-vector<string> plot_view::build_size_suffixes()
+std::vector<std::string> plot_view::build_size_suffixes()
 {
-    vector<string> v;
+    std::vector<std::string> v;
     v.push_back("");
     v.push_back("K");
     v.push_back("M");

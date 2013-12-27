@@ -6,21 +6,26 @@
 # See http://autotoolset.sourceforge.net/tutorial.html 
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
-AC_INIT(TCPFLOW, 1.4.2, bugs@afflib.org)
+AC_PREREQ(2.57)
+AC_INIT(TCPFLOW, 1.4.3, bugs@afflib.org)
+AC_CONFIG_MACRO_DIR([m4])
+
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
 AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
 AC_CONFIG_HEADER([config.h])
-AM_PROG_CC_C_O
+
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
+AC_PREFIX_PROGRAM(tcpflow) dnl build for same location
 
 # Endian check is required for MD5 implementation
 AC_C_BIGENDIAN
-AC_CONFIG_MACRO_DIR([m4])
 
 # Programs we will be using
+AC_PROG_CC
 AC_PROG_CXX
+AM_PROG_CC_C_O                  dnl allow per-product flags
 AC_PROG_INSTALL
 
 # use C++11 mode if available; HAVE_CXX11 is defined in config.h if so.  Don't
@@ -178,17 +183,18 @@ unset option
 AC_LANG_POP()    
 
 ################################################################
-## bring in includes
-################################################################
+## Includes
 
 m4_include([src/dfxml/src/dfxml_configure.m4])
 m4_include([src/be13_api/be13_configure.m4])
 
-#
+################################################################
+##
+
+
 # sqlite3 is fun
 AC_CHECK_HEADERS([sqlite3.h])
 AC_CHECK_LIB([sqlite3],[sqlite3_open])
-
 
 #
 # ZLIB is required for decompressing

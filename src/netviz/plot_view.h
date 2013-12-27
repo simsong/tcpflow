@@ -11,11 +11,7 @@
 #ifndef PLOT_VIEW_H
 #define PLOT_VIEW_H
 
-#include "config.h"
-
 #ifdef HAVE_LIBCAIRO
-#include "tcpflow.h"
-
 #ifdef HAVE_CAIRO_H
 #include <cairo.h>
 #elif defined HAVE_CAIRO_CAIRO_H

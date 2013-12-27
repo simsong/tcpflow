@@ -314,7 +314,7 @@ struct ctrl_end_ack_t {
 #define	IV_KEYID(iv)	(((iv) >> 30) & 0x03)
 
 struct mac_hdr_t {                 // unified 80211 header
-    mac_hdr_t():fc(),duration(),seq_ctl(),seq(),frag(),da(),sa(),ta(),ra(),bssid(){}
+    mac_hdr_t():fc(),duration(),seq_ctl(),seq(),frag(),da(),sa(),ta(),ra(),bssid(),qos(){}
     uint16_t fc;                    // frame control
     uint16_t duration;
     uint16_t seq_ctl;
