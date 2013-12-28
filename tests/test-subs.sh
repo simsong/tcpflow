@@ -47,8 +47,9 @@ testmd5()
   echo checkmd5 \"$1\" \"$md5val\" \"$len\"
 }
 
-cmd() {
-  echo $1;
-  $1;
+cmd()
+{
+    echo $1
+    if ! $1 ; then echo failed; exit 1; fi
 }
 

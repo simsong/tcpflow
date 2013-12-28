@@ -12,5 +12,3 @@ do
   echo ""
   /bin/rm -rf tmp$$
 done
-
-  

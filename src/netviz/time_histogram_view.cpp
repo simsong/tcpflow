@@ -34,9 +34,9 @@ time_histogram_view::time_histogram_view(const time_histogram &histogram_,
 const uint8_t time_histogram_view::y_tick_count = 5;
 const double time_histogram_view::bar_space_factor = 1.2;
 const double time_histogram_view::cdf_line_width = 0.5;
-const vector<time_histogram_view::time_unit> time_histogram_view::time_units =
+const std::vector<time_histogram_view::time_unit> time_histogram_view::time_units =
         time_histogram_view::build_time_units();
-const vector<time_histogram_view::si_prefix> time_histogram_view::si_prefixes =
+const std::vector<time_histogram_view::si_prefix> time_histogram_view::si_prefixes =
         time_histogram_view::build_si_prefixes();
 const double time_histogram_view::blank_bar_line_width = 0.25;
 const time_histogram_view::rgb_t time_histogram_view::blank_bar_line_color(0.0, 0.0, 0.0);
@@ -59,7 +59,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
         x_axis_decoration = plot_view::AXIS_SPAN_STOP;
     }
     else {
-        stringstream ss;
+        std::stringstream ss;
         // how long does is the total capture?
         if(duration < 1) {
             ss << "<1 second";
@@ -73,10 +73,10 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
             //     5 hours. 10 minutes, 30 seconds
 
             // break the duration down into its constituent parts
-            vector<uint64_t> duration_values;
-            vector<string> duration_names;
+            std::vector<uint64_t> duration_values;
+            std::vector<std::string> duration_names;
             int remainder = duration;
-            for(vector<time_unit>::const_reverse_iterator it = time_units.rbegin();
+            for(std::vector<time_unit>::const_reverse_iterator it = time_units.rbegin();
                     it != time_units.rend(); it++) {
 
                 duration_values.push_back(remainder / it->seconds);
@@ -86,7 +86,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
 
             int print_count = 0;
             // find how many time units are worth printing (for comma insertion)
-            for(vector<uint64_t>::const_iterator it = duration_values.begin();
+            for(std::vector<uint64_t>::const_iterator it = duration_values.begin();
                     it != duration_values.end(); it++) {
                 if(*it > 0) {
                     print_count++;
@@ -99,10 +99,10 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
             }
 
             // work back through the values and print the two coursest nonzero
-            print_count = min(print_count, 2);
+            print_count = std::min(print_count, 2);
             int printed = 0;
             for(size_t ii = 0; ii < time_units.size(); ii++) {
-                string name = duration_names.at(ii);
+                std::string name = duration_names.at(ii);
                 uint64_t value = duration_values.at(ii);
 
                 // skip over insignificant units
@@ -133,7 +133,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
             ss << " (<1 second intervals)";
         }
         else if(bar_interval >= 1) {
-            for(vector<time_unit>::const_iterator it = time_units.begin();
+            for(std::vector<time_unit>::const_iterator it = time_units.begin();
                     it != time_units.end(); it++) {
                 
                 if(it + 1 == time_units.end() || bar_interval < (it+1)->seconds) {
@@ -178,7 +178,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
             continue;
         }
 
-        string label = ssprintf("%d %sB", value, unit.prefix.c_str());
+        std::string label = ssprintf("%d %sB", value, unit.prefix.c_str());
 
 	y_tick_labels.push_back(label);
     }
@@ -248,8 +248,8 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         bar_label_numeric -= (bar_label_numeric % bar_time_value);
     }
     // create bar lables so an appropriate font size can be selected
-    vector<string> bar_labels;
-    vector<rgb_t> bar_label_colors;
+    std::vector<std::string> bar_labels;
+    std::vector<rgb_t> bar_label_colors;
     // if bars are thinner than 10pt, thin out the bar labels appropriately
     int label_every_n_bars = ((int) (10.0 / bar_allocation)) + 1;
     unsigned label_bars_offset = 0;
@@ -267,7 +267,7 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
             continue;
         }
         rgb_t bar_label_color;
-        string bar_label = next_bar_label(bar_time_unit, bar_label_numeric,
+        std::string bar_label = next_bar_label(bar_time_unit, bar_label_numeric,
                 bar_time_value * label_every_n_bars, bar_label_color);
         cairo_text_extents_t label_extents;
         cairo_text_extents(cr, bar_label.c_str(), &label_extents);
@@ -320,7 +320,7 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
         // draw bar label
         if(bar_time_unit.length() > 0 && bar_time_remainder == 0 &&
                 ii % label_every_n_bars == label_bars_offset) {
-            string label = bar_labels.at(ii / label_every_n_bars);
+            std::string label = bar_labels.at(ii / label_every_n_bars);
             rgb_t color = bar_label_colors.at(ii / label_every_n_bars);
             cairo_set_font_size(cr, safe_bar_label_font_size);
             cairo_set_source_rgb(cr, color.r, color.g, color.b);
@@ -344,10 +344,10 @@ void time_histogram_view::render_data(cairo_t *cr, const bounds_t &bounds)
 // by delta example: when invoked with ("day", 0, 2), "S" for sunday is
 // returned and numeric_label is updated to 2 which will return "T" for tuesday
 // next time
-string time_histogram_view::next_bar_label(const string &unit, unsigned &numeric_label, unsigned delta,
+std::string time_histogram_view::next_bar_label(const std::string &unit, unsigned &numeric_label, unsigned delta,
         rgb_t &label_color)
 {
-    string output;
+    std::string output;
     if(numeric_label < delta) {
         label_color = bar_label_highlight_color;
     }
@@ -423,9 +423,9 @@ string time_histogram_view::next_bar_label(const string &unit, unsigned &numeric
     return output;
 }
 
-vector<time_histogram_view::time_unit> time_histogram_view::build_time_units()
+std::vector<time_histogram_view::time_unit> time_histogram_view::build_time_units()
 {
-    vector<time_unit> output;
+    std::vector<time_unit> output;
 
     output.push_back(time_unit(SECOND_NAME, 1L));
     output.push_back(time_unit(MINUTE_NAME, 60L));
@@ -438,9 +438,9 @@ vector<time_histogram_view::time_unit> time_histogram_view::build_time_units()
     return output;
 }
 
-vector<time_histogram_view::si_prefix> time_histogram_view::build_si_prefixes()
+std::vector<time_histogram_view::si_prefix> time_histogram_view::build_si_prefixes()
 {
-    vector<si_prefix> output;
+    std::vector<si_prefix> output;
 
     output.push_back(si_prefix("", 1LL));
     output.push_back(si_prefix("K", 1000LL));

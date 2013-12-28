@@ -24,7 +24,7 @@ std::string ssprintf(const char *fmt,...)
     va_start(ap,fmt);
     vsnprintf(buf,sizeof(buf),fmt,ap);
     va_end(ap);
-    return string(buf);
+    return std::string(buf);
 }
 
 /*
