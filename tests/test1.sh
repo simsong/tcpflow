@@ -3,7 +3,7 @@
 # test to make sure that we can process the packets normally
 #
 
-. ./test-subs.sh
+. $srcdir/test-subs.sh
 
 for t in 1 2 3 
 do

@@ -1,7 +1,8 @@
 #!/bin/sh 
 # test the multifile 
 
-. ./test-subs.sh
+. $srcdir/test-subs.sh
+
 
 # this test requires MULTIFILE
 MULTIFILE=/corp/nps/packets/2013-httpxfer/multifile_25_21.pcap

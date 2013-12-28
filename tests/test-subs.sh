@@ -46,3 +46,9 @@ testmd5()
   len=`stat -r $1  | awk '{print $8;}'`
   echo checkmd5 \"$1\" \"$md5val\" \"$len\"
 }
+
+cmd() {
+  echo $1;
+  $1;
+}
+

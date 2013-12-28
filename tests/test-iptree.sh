@@ -1,4 +1,4 @@
-. ./test-subs.sh
+. $srcdir/test-subs.sh
 
 NITROBA=/corp/nps/packets/2008-nitroba/nitroba.pcap
 if [ -r $NITROBA ]; then

@@ -8,10 +8,13 @@
 # About the test files:
 #
 
-EXTRA_DIST = test1.sh test1.pcap test2.pcap test3.pcap test4.pcap  \
-	test-pdfs.sh test-multifile.sh
 
-TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh
+SH_TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh
+
+EXTRA_DIST = $(SH_TESTS) test-subs.sh test1.pcap test2.pcap test3.pcap test4.pcap  
+
+TESTS = $(SH_TESTS)
+
 CLEANFILES = \
 	out/010.000.000.001.09999-010.000.000.002.36559--42 \
 	out/010.000.000.002.36559-010.000.000.001.09999--42 \
