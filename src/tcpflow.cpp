@@ -373,6 +373,26 @@ static void process_infile(const std::string &expression,const char *device,cons
 }
 
 
+/* be_hash. Currently this just returns the MD5 of the sbuf,
+ * but eventually it will allow the use of different hashes.
+ */
+static std::string be_hash_name("md5");
+static std::string be_hash_func(const uint8_t *buf,size_t bufsize)
+{
+    if(be_hash_name=="md5" || be_hash_name=="MD5"){
+        return md5_generator::hash_buf(buf,bufsize).hexdigest();
+    }
+    if(be_hash_name=="sha1" || be_hash_name=="SHA1" || be_hash_name=="sha-1" || be_hash_name=="SHA-1"){
+        return sha1_generator::hash_buf(buf,bufsize).hexdigest();
+    }
+    if(be_hash_name=="sha256" || be_hash_name=="SHA256" || be_hash_name=="sha-256" || be_hash_name=="SHA-256"){
+        return sha256_generator::hash_buf(buf,bufsize).hexdigest();
+    }
+    std::cerr << "Invalid hash name: " << be_hash_name << "\n";
+    std::cerr << "This version of bulk_extractor only supports MD5, SHA1, and SHA256\n";
+    exit(1);
+}
+static feature_recorder_set::hash_def be_hash(be_hash_name,be_hash_func);
 
 
 int main(int argc, char *argv[])
@@ -647,7 +667,7 @@ int main(int argc, char *argv[])
 
     feature_file_names_t feature_file_names;
     be13::plugin::get_scanner_feature_file_names(feature_file_names);
-    feature_recorder_set fs(0);
+    feature_recorder_set fs(0,be_hash);
 
     fs.init(feature_file_names,input_fname.size()>0 ? input_fname : device,demux.outdir);
     the_fs   = &fs;
