@@ -51,12 +51,10 @@ public:;
     inline bool operator >=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>=0; };
     inline bool operator < (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(this->addr))<0; }
 
-#pragma GCC diagnostic ignored "-Wcast-align"
-    inline bool isv4() const {		// is this an IPv6 address?
-	uint32_t *i = (uint32_t *)((uint8_t *)&addr);
-	return i[1]==0 && i[2]==0 && i[3]==0;
+    // We represent IPv4 addresses as 4 octets of address followed by 12 octets of 0.
+    inline bool isv4() const {		
+        return quad(4)==0 && quad(8)==0 && quad(12)==0;
     }
-#pragma GCC diagnostic warning "-Wcast-align"
 };
 
 inline std::ostream & operator <<(std::ostream &os,const ipaddr &b)  {
@@ -93,7 +91,7 @@ public:
     uint16_t    dport;		// Destination port number 
     sa_family_t family;		// AF_INET or AF_INET6 */
 
-#pragma GCC diagnostic ignored "-Wcast-align"
+//#pragma GCC diagnostic ignored "-Wcast-align"
     uint64_t hash() const {
 	if(family==AF_INET){
 	    return ((uint64_t)(src.quad(0))<<32 | dst.quad(0))
@@ -106,7 +104,7 @@ public:
                 ^ (sport<<16 | dport);
 	}
     }
-#pragma GCC diagnostic warning "-Wcast-align"
+//#pragma GCC diagnostic warning "-Wcast-align"
 
     inline bool operator ==(const flow_addr &b) const {
 	return this->src==b.src &&
