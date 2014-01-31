@@ -1,6 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 # Hopefully you checked out with:
 # $ git clone --recursive https://github.com/simsong/tcpflow.git
+
+# Make sure we have automake installed
+function usage() {
+  echo tcpflow bootstrap:
+  echo be sure that these packages are installed:
+  echo automake autoconf gcc gcc-c++ boost-devel openssl-devel libpcap-devel
+  exit 1
+}
+
+automake --help 1>/dev/null 2>&1 || usage
 
 for sub in be13_api dfxml http-parser
 do

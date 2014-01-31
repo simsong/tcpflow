@@ -230,8 +230,10 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
             
             /* Print the offset */
             char b[64];
-            int count = snprintf(b,sizeof(b),"%04x: ",(int)i);
-            fwrite(b,1,count,stdout);
+            size_t count = snprintf(b,sizeof(b),"%04x: ",(int)i);
+            if(fwrite(b,1,count,stdout)!=count){
+	      perror("fwrite");
+	    }
             spaces += count;
             
             /* Print the hext bytes */

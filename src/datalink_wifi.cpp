@@ -42,7 +42,9 @@ void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char
 
 void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+#ifdef DLT_PRISM_HEADER
     theWcap.handle_packet(&TFCB::theTFCB,DLT_PRISM_HEADER,h,p);
+#endif
 }    
 
         

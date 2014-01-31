@@ -32,7 +32,9 @@ static void netviz_process_packet(void *user,const be13::packet_info &pi)
 
 #endif
 
+#ifdef HAVE_LIBCAIRO
 static int histogram_dump = 0;
+#endif
 
 extern "C"
 void  scan_netviz(const class scanner_params &sp,const recursion_control_block &rcb)
