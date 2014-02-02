@@ -91,7 +91,6 @@ public:
     uint16_t    dport;		// Destination port number 
     sa_family_t family;		// AF_INET or AF_INET6 */
 
-//#pragma GCC diagnostic ignored "-Wcast-align"
     uint64_t hash() const {
 	if(family==AF_INET){
 	    return ((uint64_t)(src.quad(0))<<32 | dst.quad(0))
@@ -99,12 +98,11 @@ public:
                 ^ (sport<<16 | dport);
 	} else {
 	    return (src.dquad(0)<<32 ^ dst.dquad(0))
-                ^ (dst.dquad(0)<<32 ^ src.dquad(0))
-                ^ (src.dquad(1) ^ dst.dquad(1))
+                ^ (dst.dquad(0)<<32  ^ src.dquad(0))
+                ^ (src.dquad(1)      ^ dst.dquad(1))
                 ^ (sport<<16 | dport);
 	}
     }
-//#pragma GCC diagnostic warning "-Wcast-align"
 
     inline bool operator ==(const flow_addr &b) const {
 	return this->src==b.src &&

@@ -270,8 +270,8 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     }
     else {
 	written = fwrite(data,1,length,stdout);
+        if(length != written) std::cerr << "\nwrite error to stdout (" << length << "!=" << written << ") \n";
     }
-    if(length != written) std::cerr << "\nwrite error to stdout\n";
 
     last_byte += length;
 
