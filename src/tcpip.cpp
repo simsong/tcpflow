@@ -418,6 +418,12 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 
     /* if we're not at the correct point in the file, seek there */
     if (offset != pos) {
+        /* Check for a keepalive */
+        if(delta == -1 && length == 1) {
+            DEBUG(25)("%s: RFC1122 keepalive detected and ignored",flow_pathname.c_str());
+            return;
+        }
+
 	if(fd>=0) lseek(fd,(off_t)delta,SEEK_CUR);
 	if(delta<0) out_of_order_count++; // only increment for backwards seeks
 	DEBUG(25)("%s: lseek(%d,%d,SEEK_CUR) offset=%" PRId64 " pos=%" PRId64 " out_of_order_count=%" PRId64,
