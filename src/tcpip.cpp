@@ -264,7 +264,13 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     else if(demux.opt.output_strip_nonprint){
 	for(const u_char *cc = data;cc<data+length;cc++){
 	    if(isprint(*cc) || (*cc=='\n') || (*cc=='\r')){
-		written += fputc(*cc,stdout);
+                int ret = fputc(*cc,stdout);
+                if(ret==EOF){
+                    std::cerr << "EOF on write to stdout\n";
+                    exit(1);
+                
+                }
+                written += ret;
 	    }
 	}
     }
