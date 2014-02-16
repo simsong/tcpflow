@@ -270,7 +270,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
                     exit(1);
                 
                 }
-                written += ret;
+                written += 1;
 	    }
 	}
     }
