@@ -1,3 +1,7 @@
+2014-02-24  Man Page  <simsong@mncrnpsedu.local>
+
+	* src/tcpflow.cpp (main): alternating color output option changed from -J to -g
+
 2013-12-06  Basic  <simsong@ncr.nps.edu>
 
 	* configure.ac: upped version number to 1.4.3

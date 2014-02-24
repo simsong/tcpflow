@@ -96,7 +96,7 @@ static void usage()
         std::cout << "   -h: print this help message (-hh for more help)\n";
         std::cout << "   -H: print detailed information about each scanner\n";
         std::cout << "   -i: network interface on which to listen\n";
-        std::cout << "   -J: output each flow in alternating colors (note change!)\n";
+        std::cout << "   -g: output each flow in alternating colors (note change!)\n";
         std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
         std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
         std::cout << "   -p: don't use promiscuous mode\n";
@@ -431,7 +431,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:Hhi:JlL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -504,7 +504,7 @@ int main(int argc, char *argv[])
 	    break;
         }
 	case 'i': device = optarg; break;
-	case 'J':
+	case 'g':
 	    demux.opt.use_color  = 1;
 	    DEBUG(10) ("using colors");
 	    break;
