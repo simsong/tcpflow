@@ -1735,7 +1735,12 @@ void Wifipcap::handle_packet_callback(u_char *user, const struct pcap_pkthdr *he
 const char *Wifipcap::SetFilter(const char *filter)
 {
     struct bpf_program fp;
+#ifdef PCAP_NETMASK_UNKNOWN
     bpf_u_int32 netp=PCAP_NETMASK_UNKNOWN;
+#else
+    bpf_u_int32 netp=0;
+#endif
+
 
     if(pcap_compile(descr,&fp,(char *)filter,0,netp) == -1) { 
 	return "Error calling pcap_compile"; 
