@@ -143,5 +143,4 @@
 #define	ETHERTYPE_ISO           0xfefe  /* nonstandard - used in Cisco HDLC encapsulation */
 #endif
 
-//extern const struct tok ethertype_values[];
 #endif

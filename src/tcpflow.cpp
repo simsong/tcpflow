@@ -664,7 +664,7 @@ int main(int argc, char *argv[])
 
     feature_file_names_t feature_file_names;
     be13::plugin::get_scanner_feature_file_names(feature_file_names);
-    feature_recorder_set fs(0,be_hash);
+    feature_recorder_set fs(feature_recorder_set::NO_ALERT,be_hash);
 
     const char *name = device;
     if(input_fname.size()>0) name=input_fname.c_str();

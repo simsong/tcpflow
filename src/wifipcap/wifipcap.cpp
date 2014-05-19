@@ -78,6 +78,7 @@ struct tok {
     const char *s;		/* string */
 };
 
+#if 0
 static const struct tok ethertype_values[] = { 
     { ETHERTYPE_IP,		"IPv4" },
     { ETHERTYPE_MPLS,		"MPLS unicast" },
@@ -115,6 +116,7 @@ static const struct tok ethertype_values[] = {
     { ETHERTYPE_GRE_ISO,        "GRE-OSI" },
     { 0, NULL}
 };
+#endif
 
 /*max length of an IEEE 802.11 packet*/
 #ifndef MAX_LEN_80211
