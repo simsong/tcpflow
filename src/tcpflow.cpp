@@ -78,84 +78,78 @@ bool opt_no_promisc = false;		// true if we should not use promiscious mode
  *** USAGE
  ****************************************************************/
 
-static int usage_count = 0;
-static void usage()
+static void usage(int level)
 {
-    switch(++usage_count){
-    case 1:
-        std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
-        std::cout << "usage: " << progname << " [-aBcCDhJpsvVZ] [-b max_bytes] [-d debug_level] \n";
-        std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
-        std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] \n";
-        std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
-        std::cout << "      [expression]\n\n";
-        std::cout << "   -a: do ALL post-processing.\n";
-        std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
-        std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
-        std::cout << "   -f: maximum number of file descriptors to use\n";
-        std::cout << "   -h: print this help message (-hh for more help)\n";
-        std::cout << "   -H: print detailed information about each scanner\n";
-        std::cout << "   -i: network interface on which to listen\n";
-        std::cout << "   -g: output each flow in alternating colors (note change!)\n";
-        std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
-        std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
-        std::cout << "   -p: don't use promiscuous mode\n";
-        std::cout << "   -q: quiet mode - do not print warnings\n";
-        std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
-        std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
-        std::cout << "   -v: verbose operation equivalent to -d 10\n";
-        std::cout << "   -V: print version number and exit\n";
-        std::cout << "   -w file: write packets not processed to file\n";
-        std::cout << "   -o  outdir   : specify output directory (default '.')\n";
-        std::cout << "   -X  filename : DFXML output to filename\n";
-        std::cout << "   -m  bytes    : specifies skip that starts a new stream (default "
-                  << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
-        std::cout << "   -F{p} : filename prefix/suffix (-hh for options)\n";
-        std::cout << "   -T{t} : filename template (-hh for options; default "
-                  << flow::filename_template << ")\n";
-        std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
+    std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
+    std::cout << "usage: " << progname << " [-aBcCDhJpsvVZ] [-b max_bytes] [-d debug_level] \n";
+    std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
+    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] \n";
+    std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
+    std::cout << "      [expression]\n\n";
+    std::cout << "   -a: do ALL post-processing.\n";
+    std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
+    std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
+    std::cout << "   -f: maximum number of file descriptors to use\n";
+    std::cout << "   -h: print this help message (-hh for more help)\n";
+    std::cout << "   -H: print detailed information about each scanner\n";
+    std::cout << "   -i: network interface on which to listen\n";
+    std::cout << "   -g: output each flow in alternating colors (note change!)\n";
+    std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
+    std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
+    std::cout << "   -p: don't use promiscuous mode\n";
+    std::cout << "   -q: quiet mode - do not print warnings\n";
+    std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
+    std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
+    std::cout << "   -v: verbose operation equivalent to -d 10\n";
+    std::cout << "   -V: print version number and exit\n";
+    std::cout << "   -w file: write packets not processed to file\n";
+    std::cout << "   -o  outdir   : specify output directory (default '.')\n";
+    std::cout << "   -X  filename : DFXML output to filename\n";
+    std::cout << "   -m  bytes    : specifies skip that starts a new stream (default "
+              << (unsigned)tcpdemux::options::MAX_SEEK << ").\n";
+    std::cout << "   -F{p} : filename prefix/suffix (-hh for options)\n";
+    std::cout << "   -T{t} : filename template (-hh for options; default "
+              << flow::filename_template << ")\n";
+    std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
 
-        std::cout << "\nControl of Scanners:\n";
-        std::cout << "   -E scanner   - turn off all scanners except scanner\n";
-        std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
-        be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
+    std::cout << "\nControl of Scanners:\n";
+    std::cout << "   -E scanner   - turn off all scanners except scanner\n";
+    std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
+    be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
 
-        std::cout << "Console output options:\n";
-        std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
-        std::cout << "   -c: console print only (don't create files)\n";
-        std::cout << "   -C: console print only, but without the display of source/dest header\n";
-        std::cout << "   -s: strip non-printable characters (change to '.')\n";
-        std::cout << "   -D: output in hex (useful to combine with -c or -C)\n";
-        std::cout << "\n";
+    std::cout << "Console output options:\n";
+    std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
+    std::cout << "   -c: console print only (don't create files)\n";
+    std::cout << "   -C: console print only, but without the display of source/dest header\n";
+    std::cout << "   -s: strip non-printable characters (change to '.')\n";
+    std::cout << "   -D: output in hex (useful to combine with -c or -C)\n";
+    std::cout << "\n";
 #ifndef HAVE_LIBCAIRO
-	std::cout << "Rendering not available because Cairo was not installed.\n\n";
+    std::cout << "Rendering not available because Cairo was not installed.\n\n";
 #endif
-        std::cout << "expression: tcpdump-like filtering expression\n";
-        std::cout << "\nSee the man page for additional information.\n\n";
-        break;
-    case 2:
-        std::cout << "Filename Prefixes:\n";
-        std::cout << "   -Fc : append the connection counter to ALL filenames\n";
-        std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
-        std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
-        std::cout << "   -FX : Do not output any files (other than report files)\n";
-        std::cout << "   -FM : Calculate the MD5 for every flow (stores in DFXML)\n";
-        std::cout << "   -Fk : Bin output in 1K directories\n";
-        std::cout << "   -Fm : Bin output in 1M directories (2 levels)\n";
-        std::cout << "   -Fg : Bin output in 1G directories (3 levels)\n";
-        flow::usage();
-        std::cout << "-S name=value options:\n";
-        for(int i=0;defaults[i].name;i++){
-            std::stringstream ss;
-            ss << defaults[i].name << "=" << defaults[i].dvalue;
-            printf("   %-20s %s\n",ss.str().c_str(),defaults[i].help);
-        }
-        std::cout << "\n";
-        std::cout << "DEBUG Levels (specify with -dNN):\n";
-        std::cout << "get_max_fds() = " << tcpdemux::getInstance()->get_max_fds() << "\n";
-        std::cout << "NUM_RESERVED_FDS = " << NUM_RESERVED_FDS << "\n";
-        break;
+    std::cout << "expression: tcpdump-like filtering expression\n";
+    std::cout << "\nSee the man page for additional information.\n\n";
+    if(level<2) return;
+    std::cout << "Filename Prefixes:\n";
+    std::cout << "   -Fc : append the connection counter to ALL filenames\n";
+    std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
+    std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
+    std::cout << "   -FX : Do not output any files (other than report files)\n";
+    std::cout << "   -FM : Calculate the MD5 for every flow (stores in DFXML)\n";
+    std::cout << "   -Fk : Bin output in 1K directories\n";
+    std::cout << "   -Fm : Bin output in 1M directories (2 levels)\n";
+    std::cout << "   -Fg : Bin output in 1G directories (3 levels)\n";
+    flow::usage();
+    std::cout << "-S name=value options:\n";
+    for(int i=0;defaults[i].name;i++){
+        std::stringstream ss;
+        ss << defaults[i].name << "=" << defaults[i].dvalue;
+        printf("   %-20s %s\n",ss.str().c_str(),defaults[i].help);
     }
+    std::cout << "\n";
+    std::cout << "DEBUG Levels (specify with -dNN):\n";
+    std::cout << "get_max_fds() = " << tcpdemux::getInstance()->get_max_fds() << "\n";
+    std::cout << "NUM_RESERVED_FDS = " << NUM_RESERVED_FDS << "\n";
 }
 
 /**
@@ -394,7 +388,8 @@ static feature_recorder_set::hash_def be_hash(be_hash_name,be_hash_func);
 
 int main(int argc, char *argv[])
 {
-    bool didhelp = false;
+    int opt_help = 0;
+    int opt_Help = 0;
     feature_recorder::set_main_threadid();
     sbuf_t::set_map_file_delimiter(""); // no delimiter on carving
 #ifdef BROKEN
@@ -404,6 +399,7 @@ int main(int argc, char *argv[])
     std::cerr << "\n";
 #endif
 
+    bool opt_enable_report = true;
     bool force_binary_output = false;
     const char *device = 0;             // default device
     const char *lockname = 0;
@@ -547,44 +543,49 @@ int main(int argc, char *argv[])
 	case 'x': be13::plugin::scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
 	case 'Z': demux.opt.gzip_decompress = 0; break;
-	case 'H':
-            be13::plugin::info_scanners(true,true,scanners_builtin,'e','x');
-            didhelp = true;
-            break;
-	case 'h': case '?':
-            usage();
-            didhelp = true;
-            break;
+	case 'H': opt_Help += 1; break;
+	case 'h': opt_help += 1; break;
 	default:
 	    DEBUG(1) ("error: unrecognized switch '%c'", arg);
-	    need_usage = 1;
+	    opt_help += 1;
 	    break;
 	}
     }
 
-    if(didhelp) exit(0);
+    
+    argc -= optind;
+    argv += optind;
+
+
+    /* Load all the scanners and enable the ones we care about */
+    scanner_info si;
+    si.config = &be_config;
+
+    si.get_config("enable_report",&opt_enable_report,"Enable report.xml");
+    be13::plugin::load_scanners(scanners_builtin,be_config);
+
+    if(opt_Help){
+        be13::plugin::info_scanners(true,true,scanners_builtin,'e','x');
+        exit(0);
+    }
+
+    if(opt_help) {
+        usage(opt_help);
+        exit(0);
+    }
+            
+
     if(demux.opt.post_processing && !demux.opt.store_output){
         std::cerr << "ERROR: post_processing currently requires storing output.\n";
         exit(1);
     }
 
-    argc -= optind;
-    argv += optind;
-
-    /* Load all the scanners and enable the ones we care about */
     if(demux.opt.opt_md5) be13::plugin::scanners_enable("md5");
-    be13::plugin::load_scanners(scanners_builtin,be_config);
     be13::plugin::scanners_process_enable_disable_commands();
 
     /* If there is no report filename, call it report.xml in the output directory */
     if( reportfilename.size()==0 ){
 	reportfilename = demux.outdir + "/" + DEFAULT_REPORT_FILENAME;
-    }
-
-    /* print help and exit if there was an error in the arguments */
-    if (need_usage) {
-	usage();
-	exit(1);
     }
 
     /* remaining arguments are either an input list (-l flag) or a pcap expression (default) */
@@ -638,7 +639,7 @@ int main(int argc, char *argv[])
     }
 
     /* report file specified? */
-    if(reportfilename.size()>0){
+    if(reportfilename.size()>0 && opt_enable_report){
 	xreport = new dfxml_writer(reportfilename,false);
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
@@ -652,8 +653,6 @@ int main(int argc, char *argv[])
         demux.save_unk_packets(opt_unk_packets,input_fname);
     }
 
-    scanner_info si;
-    si.config = &be_config;
 
     /* Debug prefix set? */
     std::string debug_prefix=progname;
