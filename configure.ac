@@ -28,6 +28,10 @@ AC_PROG_CXX
 AM_PROG_CC_C_O                  dnl allow per-product flags
 AC_PROG_INSTALL
 
+m4_include([m4/slg_searchdirs.m4])
+m4_include([m4/slg_gcc_all_warnings.m4])
+
+
 # use C++11 mode if available; HAVE_CXX11 is defined in config.h if so.  Don't
 # use the GNU C++11 extensions for portability's sake (noext).
 AC_LANG_PUSH(C++)
@@ -104,7 +108,6 @@ fi
 # causes configure to crash on gcc-4.2.1: -Wsign-compare-Winline 
 # causes warnings with unistd.h:  -Wnested-externs 
 # Just causes too much annoyance: -Wmissing-format-attribute 
-
 # Check GCC
 WARNINGS_TO_TEST="-MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes \
     -Wshadow -Wwrite-strings -Wcast-align -Waggregate-return \
@@ -285,32 +288,39 @@ AC_LANG_POP()
 ################################################################
 # drawing support via cairo
 #
+cairo=test
+AC_ARG_ENABLE([cairo],[  --enable-cairo=false to disable libcairo even if present])
+  if test "${enable_cairo}" = false ; then
+    cairo=false
+  fi
 
-# Cairo requires these to be explicitly included on mingw (and perhaps others):
-AC_CHECK_LIB([expat],[XML_ParserCreate])
-AC_CHECK_LIB([pixman-1],[pixman_region_init])
-AC_CHECK_LIB([bz2],[BZ2_bzDecompress])
-AC_CHECK_LIB([freetype],[FT_Init_FreeType]) # requires bz2
-AC_CHECK_LIB([fontconfig],[FcBlanksCreate]) # requires freetype expat
+if test $cairo = test ; then
+  # Cairo requires these to be explicitly included on mingw (and perhaps others):
+  AC_CHECK_LIB([expat],[XML_ParserCreate])
+  AC_CHECK_LIB([pixman-1],[pixman_region_init])
+  AC_CHECK_LIB([bz2],[BZ2_bzDecompress])
+  AC_CHECK_LIB([freetype],[FT_Init_FreeType]) # requires bz2
+  AC_CHECK_LIB([fontconfig],[FcBlanksCreate]) # requires freetype expat
 
-AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
-AC_CHECK_HEADERS([cairo.h cairo-pdf.h])
-AC_CHECK_LIB([cairo],[cairo_create], , [
-  AC_MSG_WARN([
-*** cairo libraries not detected.
-*** Please install cairo-devel to get 1-page PDF summary generation.
-])
-  Fmissing_library="cairo-devel $missing_library "
-  Umissing_library="libcairo2-dev $missing_library "
-  Mmissing_library="cairo-devel "
-])
+  AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
+  AC_CHECK_HEADERS([cairo.h cairo-pdf.h])
+  AC_CHECK_LIB([cairo],[cairo_create], , [
+    AC_MSG_WARN([
+  *** cairo libraries not detected.
+  *** Please install cairo-devel to get 1-page PDF summary generation.
+  ])
+    Fmissing_library="cairo-devel $missing_library "
+    Umissing_library="libcairo2-dev $missing_library "
+    Mmissing_library="cairo-devel "
+  ])
+fi
 
 ################################################################
 # pcap support. A bit more involved than normal due to the error message
 #
 pcap=test
 AC_ARG_ENABLE([pcap],[  --enable-pcap=false to disable libpcap even if present])
-  if test "${enableval}" = false ; then
+  if test "${enable_pcap}" = false ; then
     pcap=false
   fi
 
