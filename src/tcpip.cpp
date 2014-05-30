@@ -270,8 +270,9 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
                     exit(1);
                 
                 }
-                written += 1;
 	    }
+            written += 1; // treat even unprintable characters as "written". It
+                          // really means "processed"
 	}
     }
     else {
