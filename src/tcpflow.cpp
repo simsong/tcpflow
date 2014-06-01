@@ -661,14 +661,14 @@ int main(int argc, char *argv[])
 
     DEBUG(10) ("%s version %s ", PACKAGE_NAME, PACKAGE_VERSION);
 
-    feature_file_names_t feature_file_names;
-    be13::plugin::get_scanner_feature_file_names(feature_file_names);
-    feature_recorder_set fs(feature_recorder_set::NO_ALERT,be_hash,demux.outdir);
-
     const char *name = device;
     if(input_fname.size()>0) name=input_fname.c_str();
     if(name==0) name="<default>";
-    fs.init(feature_file_names,name);
+
+    feature_file_names_t feature_file_names;
+    be13::plugin::get_scanner_feature_file_names(feature_file_names);
+    feature_recorder_set fs(feature_recorder_set::NO_ALERT,be_hash,name,demux.outdir);
+    fs.init(feature_file_names);
     the_fs   = &fs;
     demux.fs = &fs;
 
