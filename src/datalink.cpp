@@ -245,7 +245,7 @@ dlt_handler_t handlers[] = {
 #ifdef DLT_LINUX_SLL
     { dl_linux_sll,        DLT_LINUX_SLL },
 #endif
-#ifndef WIN32
+#if defined(USE_WIFI) && !defined(WIN32)
     { dl_ieee802_11_radio, DLT_IEEE802_11 },
     { dl_ieee802_11_radio, DLT_IEEE802_11_RADIO },
     { dl_prism,            DLT_PRISM_HEADER},

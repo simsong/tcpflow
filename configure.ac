@@ -186,12 +186,6 @@ unset option
 AC_LANG_POP()    
 
 ################################################################
-## Includes
-
-m4_include([src/dfxml/src/dfxml_configure.m4])
-m4_include([src/be13_api/be13_configure.m4])
-
-################################################################
 ##
 
 
@@ -228,6 +222,12 @@ AC_CHECK_LIB([ssl],[SSL_library_init],,
 AC_CHECK_FUNCS([MD5_Init EVP_get_digestbyname])
 
 ################################################################
+## Includes
+
+m4_include([src/dfxml/src/dfxml_configure.m4])
+m4_include([src/be13_api/be13_configure.m4])
+
+################################################################
 # PTHREAD support
 # With special nods to compiling under mingw
 
@@ -238,6 +238,7 @@ if test  x"$mingw" = x"yes";  then
   CXXFLAGS="$CXXFLAGS -mthreads "
   AC_DEFINE(HAVE_PTHREAD,1,[Defined to POSIX threads for mingw])
   #AC_MSG_NOTICE([pthreads now disabled under mingw])
+  AC_CHECK_LIB([pthread],[pthread_create])
 else
   m4_include([m4/ax_pthread.m4])
   AX_PTHREAD([
@@ -318,18 +319,12 @@ fi
 ################################################################
 # pcap support. A bit more involved than normal due to the error message
 #
-pcap=test
-AC_ARG_ENABLE([pcap],[  --enable-pcap=false to disable libpcap even if present])
-  if test "${enable_pcap}" = false ; then
-    pcap=false
-  fi
-
-if test $pcap = test ; then
-  AC_CHECK_HEADERS(pcap.h pcap/pcap.h )
-  if test x"$mingw" = x"yes" ; then 
+AC_CHECK_HEADERS(pcap.h pcap/pcap.h )
+if test x"$mingw" = x"yes" ; then 
     AC_MSG_WARN([pcap not supported under mingw])
-  else
+else
     AC_CHECK_LIB(pcap, pcap_lookupdev, , [
+        enable_pcap=no
 	AC_MSG_WARN([
 Can't find the pcap library (libpcap.a). 
 tcpflow will not live capture or compile rules without pcap!
@@ -350,8 +345,14 @@ located.])
         Umissing_library="$Umissing_library libpcap-dev "
         Mmissing_library="$Mmissing_library libpcap "
     ])
-  fi
 fi
+
+dnl set with_wifi to 0 if you do not want it
+AC_ARG_ENABLE([wifi],
+              AS_HELP_STRING([--disable-wifi], [Disable WIFI decoding]),
+              [],
+	      [AC_DEFINE(USE_WIFI, 1, [Use WIFI decompression]) wifi="yes"])
+AM_CONDITIONAL([WIFI_ENABLED], [test "yes" = "$wifi"])
 
 
 ################################################################

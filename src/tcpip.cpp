@@ -2,6 +2,11 @@
  * This file is part of tcpflow by Simson Garfinkel,
  * originally by Jeremy Elson <jelson@circlemud.org>
  *
+ * Modified by Greg Drew to add support for creating a packet time / data index
+ * which allows mapping bytes in the flow back to their relative arrival time.
+ * This is very useful in reassembling inherently bidirectional conversations
+ * such as chat or telnet sessions.  --GDD
+ *
  * This source code is under the GNU Public License (GPL).  See
  * LICENSE for details.
  *
@@ -13,6 +18,8 @@
 
 #include <iostream>
 #include <sstream>
+#include <vector>
+#include <string>
 
 #pragma GCC diagnostic ignored "-Weffc++"
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -29,6 +36,7 @@ tcpip::tcpip(tcpdemux &demux_,const flow &flow_,be13::tcp_seq isn_):
     demux(demux_),myflow(flow_),dir(unknown),isn(isn_),nsn(0),
     syn_count(0),fin_count(0),fin_size(0),pos(0),
     flow_pathname(),fd(-1),file_created(false),
+    flow_index_pathname(),idx_file(),
     seen(new recon_set()),
     last_byte(),
     last_packet_number(),out_of_order_count(0),violations(0)
@@ -144,6 +152,11 @@ void tcpip::close_file()
 	fd = -1;
     }
     demux.open_flows.erase(this);           // we are no longer open
+    // Also close the flow_index file, if flow indexing is in use --GDD
+    if(demux.opt.output_packet_index && idx_file.is_open()){
+    	idx_file.close();
+    }
+    //std::cerr << "close_file1 " << *this << "\n";
 }
 
 /*
@@ -154,12 +167,14 @@ void tcpip::close_file()
 
 int tcpip::open_file()
 {
+	int create_idx_needed = false;
     if(fd<0){
         //std::cerr << "open_file0 " << ct << " " << *this << "\n";
         /* If we don't have a filename, create the flow */
         if(flow_pathname.size()==0) {
             flow_pathname = myflow.new_filename(&fd,O_RDWR|O_BINARY|O_CREAT,0666);
             file_created = true;		// remember we made it
+            create_idx_needed = true;	// We created a new stream, so we need to create a new flow file. --GDD
             DEBUG(5) ("%s: created new file",flow_pathname.c_str());
         } else {
             /* open an existing flow */
@@ -180,6 +195,30 @@ int tcpip::open_file()
         demux.open_flows.insert(this);
         if(demux.open_flows.size() > demux.max_open_flows) demux.max_open_flows = demux.open_flows.size();
         //std::cerr << "open_file1 " << *this << "\n";
+    }
+    if(demux.opt.output_packet_index){
+    	//Open the file for the flow index.  We don't do this if the flow file could not be
+    	//	opened.  The file must be opened for append, in case this is a reopen.  The filename
+    	//	standard is the flow name followed by ".findx", which google currently says does not
+    	//	conflict with anything major.
+    	flow_index_pathname = flow_pathname + ".findx";
+    	DEBUG(10)("opening index file: %s",flow_index_pathname.c_str());
+    	if(create_idx_needed){
+    		//New flow file, even if there was an old one laying around --GDD
+    		idx_file.open(flow_index_pathname.c_str(),std::ios::trunc|std::ios::in|std::ios::out);
+    	}else{
+    		//Use existing flow file --GDD
+    		idx_file.open(flow_index_pathname.c_str(),std::ios::ate|std::ios::in|std::ios::out);
+    	}
+    	if(idx_file.bad()){
+    		perror(flow_index_pathname.c_str());
+    		// Be nice and be sure the flow has been closed in the demultiplexer.
+    		// demux.close_tcpip_fd(this);  Need to fix this.  Also, when called, it will
+    		// have to differentiate the fact that the open fd cound only needs to be
+    		// decremented by one and not by 2.--GDD
+    		return -1;
+    	}
+
     }
     return 0;
 }
@@ -355,7 +394,7 @@ void update_seen(recon_set *seen,uint64_t pos,uint32_t length)
  *
  * called from tcpdemux::process_tcp_packet()
  */
-void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
+void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,struct timeval ts)
 {
     if(length==0) return;               // no need to do anything
 
@@ -450,6 +489,17 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
 	    DEBUG(1) ("write to %s failed: ", flow_pathname.c_str());
 	    if (debug >= 1) perror("");
 	}
+	// Write to the index file if needed.  Note, index file is sorted before close, so no need to jump around --GDD
+		if (demux.opt.output_packet_index && idx_file.is_open()) {
+			idx_file << offset << "|" << ts.tv_sec << "." << ts.tv_usec << "|"
+					<< wlength << "\n";
+			if (idx_file.bad()){
+				DEBUG(1)("write to index file %s failed: ",flow_index_pathname.c_str());
+				if(debug >= 1){
+					perror("");
+				}
+			}
+		}
 	if(wlength != length){
 	    off_t p = lseek(fd,length-wlength,SEEK_CUR); // seek out the space we didn't write
             DEBUG(100)("   lseek(%" PRId64 ",SEEK_CUR)=%" PRId64,(int64_t)(length-wlength),(int64_t)p);
@@ -475,6 +525,65 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta)
     /* For debugging, force this connection closed */
     demux.close_tcpip_fd(this);			
 #endif
+}
+
+/*
+ * Compare two index strings and return the result.  Called by
+ * the vector::sort in sort_index.
+ * --GDD
+ */
+bool tcpip::compare(std::string a, std::string b){
+	std::stringstream ss_a(a),ss_b(b);
+	long a_l,b_l;
+
+	ss_a >> a_l;
+	ss_b >> b_l;
+	return a_l < b_l;
+}
+
+/*
+ * Sort an index file (presumably from this object) if file indexing is
+ * turned on and the file exists.  Index files may be out of order due
+ * to the arrival of out of order packets.  It is cheaper to reorder them
+ * one time at the end of processing than it is to continually keep them
+ * in order.
+ * --GDD
+ */
+void tcpip::sort_index(std::fstream *ix_file) {
+
+	std::vector<std::string> idx;
+	std::string line;
+
+	if (demux.opt.output_packet_index) {
+		if (!(idx_file.good() && idx_file.is_open())) {
+			DEBUG(5)("Skipping index file sort.  Unusual behavior.\n");
+			return; //Nothing to do
+		}
+		//Make sure we are at the beginning.
+		ix_file->clear();
+		ix_file->seekg(0);
+		do {
+			*ix_file >> line;
+			if (!ix_file->eof()) {
+				idx.push_back(line);
+			}
+		} while (ix_file->good());
+		std::sort(idx.begin(), idx.end(), &tcpip::compare);
+		ix_file->clear();
+		ix_file->seekg(0);
+		for (std::vector<std::string>::iterator s = idx.begin(); s != idx.end();
+				s++) {
+			*ix_file << *s << "\n";
+		}
+	}
+}
+
+/*
+ * Convenience function to cause the local index file to be sorted.
+ * --GDD
+ */
+void tcpip::sort_index(){
+	tcpip::sort_index(&(this->idx_file));
 }
 
 #pragma GCC diagnostic ignored "-Weffc++"

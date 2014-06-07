@@ -92,7 +92,8 @@ public:
                   post_processing(false),gzip_decompress(true),
                   max_bytes_per_flow(),
                   max_flows(0),suppress_header(0),
-                  output_strip_nonprint(true),output_hex(false),use_color(0),max_seek(MAX_SEEK){
+                  output_strip_nonprint(true),output_hex(false),use_color(0),
+                  output_packet_index(false),max_seek(MAX_SEEK) {
         }
         bool    console_output;
         bool    store_output;   // do we output?
@@ -105,6 +106,8 @@ public:
         bool    output_strip_nonprint;
         bool    output_hex;
         bool    use_color;
+        bool    output_packet_index;    // Generate a packet index file giving the timestamp and location
+                                        // bytes written to the flow file.
         int32_t max_seek;               // signed becuase we compare with abs()
     };
 

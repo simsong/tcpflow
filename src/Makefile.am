@@ -1,7 +1,13 @@
 # Programs that we compile:
 bin_PROGRAMS = tcpflow
 
-AM_CPPFLAGS = -I${top_srcdir}/src/be13_api -I${top_srcdir}/src/wifipcap
+if WIFI_ENABLED
+WIFI_INCS = -I${top_srcdir}/src/wifipcap
+else
+WIFI_INCS =
+endif
+
+AM_CPPFLAGS = -I${top_srcdir}/src/be13_api $(WIFI_INCS)
 
 CONFIG_CLEAN_FILES = config.h		# old location of config.h
 
@@ -37,6 +43,7 @@ NETVIZ = \
 
 WIFI = 	datalink_wifi.cpp \
 	datalink_wifi.h \
+	scan_wifiviz.cpp \
 	wifipcap/TimeVal.cpp \
 	wifipcap/TimeVal.h \
 	wifipcap/arp.h \
@@ -60,11 +67,16 @@ WIFI = 	datalink_wifi.cpp \
 	wifipcap/udp.h \
 	wifipcap/util.h \
 	wifipcap/wifipcap.cpp \
-	wifipcap/wifipcap.h 
+	wifipcap/wifipcap.h
 
+if WIFI_ENABLED
+WIFI_FILES = $(WIFI)
+else
+WIFI_FILES =
+endif
 
 tcpflow_SOURCES = \
-	$(DFXML_WRITER) $(NETVIZ) $(BE13_API) $(WIFI) \
+	$(DFXML_WRITER) $(NETVIZ) $(BE13_API) $(WIFI_FILES) \
 	datalink.cpp flow.cpp \
 	tcpflow.cpp \
 	tcpip.h tcpip.cpp \
@@ -74,7 +86,6 @@ tcpflow_SOURCES = \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
-	scan_wifiviz.cpp \
 	pcap_writer.h \
 	iptree.h \
 	http-parser/http_parser.c \

@@ -69,7 +69,9 @@ scanner_t *scanners_builtin[] = {
     scan_http,
     scan_netviz,
     scan_tcpdemux,
+#ifdef USE_WIFI
     scan_wifiviz,
+#endif
     0};
 
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
@@ -93,6 +95,7 @@ static void usage(int level)
     std::cout << "   -h: print this help message (-hh for more help)\n";
     std::cout << "   -H: print detailed information about each scanner\n";
     std::cout << "   -i: network interface on which to listen\n";
+    std::cout << "   -I: generate temporal packet-> byte index files for each flow (.findex)\n";
     std::cout << "   -g: output each flow in alternating colors (note change!)\n";
     std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
     std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
@@ -274,7 +277,9 @@ static inflaters_t *build_inflaters()
  * May be repeated.
  * If start is false, do not initiate new connections
  */
+#ifdef HAVE_INFLATER
 static inflaters_t *inflaters = 0;
+#endif
 static void process_infile(const std::string &expression,const char *device,const std::string &infile)
 {
     char error[PCAP_ERRBUF_SIZE];
@@ -282,7 +287,9 @@ static void process_infile(const std::string &expression,const char *device,cons
     int dlt=0;
     pcap_handler handler;
 
+#ifdef HAVE_INFLATER
     if(inflaters==0) inflaters = build_inflaters();
+#endif
 
     if (infile!=""){
         std::string file_path = infile;
@@ -427,7 +434,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -500,6 +507,10 @@ int main(int argc, char *argv[])
 	    break;
         }
 	case 'i': device = optarg; break;
+ 	case 'I':
+ 		DEBUG(10) ("creating packet index files");
+ 		demux.opt.output_packet_index = true;
+ 		break;
 	case 'g':
 	    demux.opt.use_color  = 1;
 	    DEBUG(10) ("using colors");

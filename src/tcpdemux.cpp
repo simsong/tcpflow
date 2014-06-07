@@ -125,7 +125,8 @@ void tcpdemux::close_oldest_fd()
 int tcpdemux::retrying_open(const std::string &filename,int oflag,int mask)
 {
     while(true){
-	if(open_flows.size() >= max_fds) close_oldest_fd();
+    //Packet index file reduces max_fds by 1/2 as the index files also take a fd
+	if(open_flows.size() >= (opt.output_packet_index ?  max_fds/2 : max_fds)) close_oldest_fd();
 	int fd = ::open(filename.c_str(),oflag,mask);
 	DEBUG(2)("retrying_open ::open(fn=%s,oflag=x%x,mask:x%x)=%d",filename.c_str(),oflag,mask,fd);
 	if(fd>=0){
@@ -193,6 +194,10 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be
  * Flows are post-processed when a FIN is received and all bytes are received.
  * If a FIN is received and bytes are outstanding, they are post-processed when the last byte is received.
  * When the program shut down, all open flows are post-processed.
+ * 
+ * Amended to trigger the packet/data location index sort as part of the post-processing.  This sorts
+ * the (potentially out of order) index to make it simple for external applications.  No processing is
+ * done if the (-I) index generation feature is turned off.  --GDD
  */
 
 void tcpdemux::post_process(tcpip *tcp)
@@ -527,7 +532,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 	    tcp->print_packet(tcp_data, tcp_datalen);
 	} else {
 	    if (opt.store_output){
-		tcp->store_packet(tcp_data, tcp_datalen, delta);
+		tcp->store_packet(tcp_data, tcp_datalen, delta,pi.ts);
 	    }
 	}
     }

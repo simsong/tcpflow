@@ -1,6 +1,8 @@
 #ifndef TCPIP_H
 #define TCPIP_H
 
+#include <fstream>
+
 /** On windows, there is no in_addr_t; this is from
  * /usr/include/netinet/in.h
  */
@@ -290,6 +292,10 @@ public:;
     int		fd;			// file descriptor for file storing this flow's data 
     bool	file_created;		// true if file was created
 
+    /* Flow Index information - only used if flow packet/data indexing is requested --GDD */
+    std::string flow_index_pathname;	// Path for the flow index file
+    std::fstream		idx_file;				// File descriptor for storing the flow index data
+
     /* Stats */
     recon_set   *seen;                  // what we've seen; it must be * due to boost lossage
     uint64_t    last_byte;              // last byte in flow processed
@@ -301,11 +307,14 @@ public:;
     void close_file();			// close fd
     int  open_file();                   // opens save file; return -1 if failure, 0 if success
     void print_packet(const u_char *data, uint32_t length);
-    void store_packet(const u_char *data, uint32_t length, int32_t delta);
+    void store_packet(const u_char *data, uint32_t length, int32_t delta,struct timeval ts);
     void process_packet(const struct timeval &ts,const int32_t delta,const u_char *data,const uint32_t length);
     uint32_t seen_bytes();
     void dump_seen();
     void dump_xml(class dfxml_writer *xmlreport,const std::string &xmladd);
+    static bool compare(std::string a, std::string b);
+    void sort_index(std::fstream *idx_file);
+    void sort_index();
 };
 
 /* print a tcpip data structure. Largely for debugging */

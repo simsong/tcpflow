@@ -34,7 +34,7 @@
  *** If we are compiling for Windows, including the Windows-specific
  *** include files first and disable pthread support.
  ***/
-#ifdef WIN32
+#if (defined(WIN32) || defined(__MINGW32__))
 #  undef HAVE_PTHREAD_H
 #  undef HAVE_SEMAPHORE_H
 #  undef HAVE_PTHREAD
@@ -233,6 +233,10 @@ typedef size_t socklen_t;
 #undef s6_addr32
 #define s6_addr32		__u6_addr.__u6_addr32
 
+#ifdef __MINGW32__
+typedef uint16_t in_port_t;
+typedef	unsigned char u_int8_t;
+#endif
 
 /**************************** Constants ***********************************/
 
@@ -257,6 +261,11 @@ extern const char *progname;
 void    terminate(int sig) __attribute__ ((__noreturn__));
 #ifndef HAVE_INET_NTOP
 const char *inet_ntop(int af, const void *src,char *dst, socklen_t size);
+#endif
+
+#if defined(__MINGW32__)
+// <ws2tcpip.h> has this prototype for ws2_32 dll, but has type-conflicts with winsock2.h
+WINSOCK_API_LINKAGE LPCWSTR WSAAPI inet_ntop(INT Family, PVOID pAddr, LPWSTR pStringBuf, size_t StringBufSIze);
 #endif
 
 #ifdef HAVE_PTHREAD

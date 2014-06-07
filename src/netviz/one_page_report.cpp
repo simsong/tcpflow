@@ -351,10 +351,12 @@ void one_page_report::render_pass::render_header()
     //// date range
     time_t tstart = report.earliest.tv_sec;
     struct tm start;
+    memset(&start,0,sizeof(start));
     localtime_r(&tstart,&start);
 
     time_t tstop = report.latest.tv_sec;
     struct tm stop;
+    memset(&stop,0,sizeof(stop));
     localtime_r(&tstop,&stop);
     formatted = ssprintf("Date range: %04d-%02d-%02d %02d:%02d:%02d -- %04d-%02d-%02d %02d:%02d:%02d",
             1900 + start.tm_year, 1 + start.tm_mon, start.tm_mday,

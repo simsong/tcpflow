@@ -44,7 +44,7 @@ copyright       : (C) 2003      Jeff Pang        ( jeffpang@cs.cmu.edu )
 #include <sys/time.h>
 #include <time.h>
 #else
-#include <WinSock2.h>
+#include <winsock2.h>
 #endif
 
 #include "types.h"
