@@ -351,7 +351,12 @@ dnl set with_wifi to 0 if you do not want it
 AC_ARG_ENABLE([wifi],
               AS_HELP_STRING([--disable-wifi], [Disable WIFI decoding]),
               [],
-	      [AC_DEFINE(USE_WIFI, 1, [Use WIFI decompression]) wifi="yes"])
+	      [
+               if test x"no" = x"$mingw"; then
+                 AC_DEFINE(USE_WIFI, 1, [Use WIFI decompression]) 
+                 wifi="yes"
+               fi
+              ])
 AM_CONDITIONAL([WIFI_ENABLED], [test "yes" = "$wifi"])
 
 
