@@ -189,10 +189,6 @@ AC_LANG_POP()
 ##
 
 
-# sqlite3 is fun
-AC_CHECK_HEADERS([sqlite3.h])
-AC_CHECK_LIB([sqlite3],[sqlite3_open])
-
 #
 # ZLIB is required for decompressing
 #  Note you cannot put comments in the AC_MSG_ERROR for some reason

@@ -87,6 +87,7 @@ void init_debug(const char *pfx,int include_pid)
 
 /****************************************************************/
 /* C++ string splitting code from http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c */
+#if 0
 static std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
 {
     std::stringstream ss(s);
@@ -102,7 +103,7 @@ static std::vector<std::string> split(const std::string &s, char delim)
     std::vector<std::string> elems;
     return split(s, delim, elems);
 }
-
+#endif
 
 
 /* mkdir all of the containing directories in path.
