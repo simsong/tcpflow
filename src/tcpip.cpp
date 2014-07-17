@@ -172,13 +172,13 @@ int tcpip::open_file()
         //std::cerr << "open_file0 " << ct << " " << *this << "\n";
         /* If we don't have a filename, create the flow */
         if(flow_pathname.size()==0) {
-            flow_pathname = myflow.new_filename(&fd,O_RDWR|O_BINARY|O_CREAT,0666);
+            flow_pathname = myflow.new_filename(&fd,O_RDWR|O_BINARY|O_CREAT|O_EXCL,0666);
             file_created = true;		// remember we made it
             create_idx_needed = true;	// We created a new stream, so we need to create a new flow file. --GDD
             DEBUG(5) ("%s: created new file",flow_pathname.c_str());
         } else {
             /* open an existing flow */
-            fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
+            fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT | O_EXCL,0666);
             lseek(fd,pos,SEEK_SET);  
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
