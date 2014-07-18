@@ -178,7 +178,7 @@ int tcpip::open_file()
             DEBUG(5) ("%s: created new file",flow_pathname.c_str());
         } else {
             /* open an existing flow */
-            fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT | O_EXCL,0666);
+            fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
             lseek(fd,pos,SEEK_SET);  
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
