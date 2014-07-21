@@ -382,6 +382,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     bool syn_set = FLAG_SET(tcp_header->th_flags, TH_SYN);
     bool ack_set = FLAG_SET(tcp_header->th_flags, TH_ACK);
     bool fin_set = FLAG_SET(tcp_header->th_flags, TH_FIN);
+    bool rst_set = FLAG_SET(tcp_header->th_flags, TH_RST);
 
     /* calculate the total length of the TCP header including options */
     u_int tcp_header_len = tcp_header->th_off * 4;
@@ -398,8 +399,8 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
     tcpip   *tcp = find_tcpip(this_flow);
     
-    DEBUG(60)("%s%s%s tcp_header_len=%d tcp_datalen=%d seq=%u tcp=%p",
-              (syn_set?"SYN ":""),(ack_set?"ACK ":""),(fin_set?"FIN ":""),(int)tcp_header_len,(int)tcp_datalen,(int)seq,tcp);
+    DEBUG(60)("%s%s%s%s tcp_header_len=%d tcp_datalen=%d seq=%u tcp=%p",
+              (syn_set?"SYN ":""),(ack_set?"ACK ":""),(fin_set?"FIN ":""),(rst_set?"RST ":""),(int)tcp_header_len,(int)tcp_datalen,(int)seq,tcp);
 
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
     if(tcp==0 && start_new_connections==false) return 0; 
@@ -412,6 +413,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     if(tcp==0){
         if(tcp_datalen==0){                       // zero length packet
             if(fin_set) return 0;              // FIN on a connection that's unknown; safe to ignore
+            if(rst_set) return 0;              // RST on a connection that's unknown; safe to ignore
             if(syn_set==false && ack_set==false) return 0; // neither a SYN nor ACK; return
         } else {
             /* Data present on a flow that is not actively being demultiplexed.
@@ -535,6 +537,11 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 		tcp->store_packet(tcp_data, tcp_datalen, delta,pi.ts);
 	    }
 	}
+    }
+
+    if (rst_set){
+        remove_flow(this_flow);	// take it out of the map  
+        return 0;
     }
 
     /* Count the FINs.
