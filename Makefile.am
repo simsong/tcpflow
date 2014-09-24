@@ -54,20 +54,25 @@ tcpflow32.exe:
 	mingw32-configure
 	make clean
 	make 
+	mv -f src/tcpflow.exe tcpflow32.exe
 
 tcpflow64.exe:
 	mingw64-configure
 	make clean
 	make 
-
-FN=$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)
-winrelease:
-	/bin/rm -f tcpflow*.exe $(FN).zip
-	make tcpflow32.exe
-	mv -f src/tcpflow.exe tcpflow32.exe
-	make tcpflow64.exe
 	mv -f src/tcpflow.exe tcpflow64.exe
-	zip $(FN).zip tcpflow*.exe
+
+FN=$(PACKAGE_TARNAME)-$(PACKAGE_VERSION).zip
+$(FN): tcpflow32.exe tcpflow64.exe
+	/bin/rm -f tcpflow*.exe $(FN)
+	make tcpflow32.exe
+	make tcpflow64.exe
+	zip $(FN) tcpflow32.exe tcpflow64.exe
+
+winrelease: $(FN)
+
+pub: $(FN)
+	scp $(FN) dcorpora@digitalcorpora.org:downloads/tcpflow/
 
 
 .PHONY: pull
