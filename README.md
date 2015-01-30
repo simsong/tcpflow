@@ -34,7 +34,7 @@ If you want do download the development tree with git, be sure to do a *complete
 To download and compile for Amazon AMI:
 
     ssh ec2-user@<your ec2 instance>
-    sudo bash yum -y install git make gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel zlib-devel
+    sudo bash yum -y install git make gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel openssl-devel zlib-devel
     git clone --recursive https://github.com/simsong/tcpflow.git
     sh bootstrap.sh
 
