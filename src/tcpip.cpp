@@ -491,7 +491,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
 	}
 	// Write to the index file if needed.  Note, index file is sorted before close, so no need to jump around --GDD
 		if (demux.opt.output_packet_index && idx_file.is_open()) {
-			idx_file << offset << "|" << ts.tv_sec << "." << ts.tv_usec << "|"
+			idx_file << offset << "|" << ts.tv_sec << "." << std::setw(6) << std::setfill('0') << ts.tv_usec << "|"
 					<< wlength << "\n";
 			if (idx_file.bad()){
 				DEBUG(1)("write to index file %s failed: ",flow_index_pathname.c_str());
