@@ -124,6 +124,7 @@ static void usage(int level)
     std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
     std::cout << "   -c: console print only (don't create files)\n";
     std::cout << "   -C: console print only, but without the display of source/dest header\n";
+    std::cout << "   -0: don't print newlines after packets when printing to console";
     std::cout << "   -s: strip non-printable characters (change to '.')\n";
     std::cout << "   -D: output in hex (useful to combine with -c or -C)\n";
     std::cout << "\n";
@@ -434,7 +435,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z:0")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -463,6 +464,9 @@ int main(int argc, char *argv[])
 	    break;
 	case 'c':
 	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
+	    break;
+    case '0':
+	    demux.opt.console_output_nonewline = true;
 	    break;
 	case 'd':
 	    if ((debug = atoi(optarg)) < 0) {
