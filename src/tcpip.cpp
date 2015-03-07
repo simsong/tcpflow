@@ -323,7 +323,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 
     if (demux.opt.use_color) printf("\033[0m");
 
-    putchar('\n');
+    if (! demux.opt.console_output_nonewline) putchar('\n');
     fflush(stdout);
 
 #ifdef HAVE_PTHREAD
