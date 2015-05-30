@@ -79,10 +79,12 @@ void tcpip::dump_xml(class dfxml_writer *xreport,const std::string &xmladd)
     attrs << "dst_ipn='"  << myflow.dst << "' ";
     if(myflow.has_mac_daddr()) attrs << "mac_daddr='" << macaddr(myflow.mac_daddr) << "' ";
     if(myflow.has_mac_saddr()) attrs << "mac_saddr='" << macaddr(myflow.mac_saddr) << "' ";
+    attrs << "len='"      << myflow.len << "' ";
     attrs << "packets='"  << myflow.packet_count << "' ";
     attrs << "srcport='"  << myflow.sport << "' ";
     attrs << "dstport='"  << myflow.dport << "' ";
     attrs << "family='"   << (int)myflow.family << "' ";
+    if (myflow.snap_trunc) attrs << "snap_trunc='true' ";
     if(out_of_order_count) attrs << "out_of_order_count='" << out_of_order_count << "' ";
     if(violations)         attrs << "violations='" << violations << "' ";
 	
