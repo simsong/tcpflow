@@ -25,7 +25,7 @@ If you want do download the development tree with git, be sure to do a *complete
 
     git clone --recursive https://github.com/simsong/tcpflow.git
     cd tcpflow
-    sh bootstrap.sh
+    bash bootstrap.sh
     ./configure
     make
     sudo make install  
