@@ -99,7 +99,7 @@ HERE are some examples:
 You can change the template that is used to create filenames with the
 -F and -T options.  If a directory appears in the template the directory will be automatically created.
 
-If you use the -a option, tcpflow will automatically interpert HTTP responses.
+If you use the -a option, tcpflow will automatically interpret HTTP responses.
 
        If the output file is
           208.111.153.175.00080-192.168.001.064.37314,
