@@ -211,6 +211,7 @@ AC_CHECK_FUNCS([regcomp tre_regcomp tre_version])
 ################################################################
 ## OpenSSL Support (required for AFFLIB and hash_t )
 AC_CHECK_HEADERS([openssl/aes.h openssl/bio.h openssl/evp.h openssl/hmac.h openssl/md5.h openssl/pem.h openssl/rand.h openssl/rsa.h openssl/sha.h openssl/pem.h openssl/x509.h])
+AC_CHECK_LIB([dl],[dlopen])                   dnl apparently OpenSSL now needs -ldl on some Linux
 AC_CHECK_LIB([crypto],[EVP_get_digestbyname])	# if crypto is available, get it
 AC_CHECK_LIB([md],[MD5])                        # if libmd is available, get it 
 AC_CHECK_LIB([ssl],[SSL_library_init],,
