@@ -13,7 +13,7 @@ Be sure you have the necessary precursors. For RedHat based distributions use fo
     
 If you are working on a Debian based distribution use this:
 
-    # sudo apt-get install git gcc g++ automake autoconf libpcap-dev libboost-dev zlib1g-dev libcairo2-dev
+    # sudo apt-get install git gcc g++ automake autoconf libpcap-dev libboost-dev libssl-dev zlib1g-dev libcairo2-dev
 
 Download the release from http://digitalcorpora.org/downloads/tcpflow/.  Compile and install with:
 
