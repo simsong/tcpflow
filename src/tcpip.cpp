@@ -310,6 +310,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
                 
                 }
 	    }
+	    else fputc('.',stdout);
             written += 1; // treat even unprintable characters as "written". It
                           // really means "processed"
 	}
