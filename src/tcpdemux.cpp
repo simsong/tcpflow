@@ -459,6 +459,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 
 	if(abs(delta) > opt.max_seek){
 	    remove_flow(this_flow);
+	    delta = 0;
 	    tcp = 0;
 	}
     }

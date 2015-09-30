@@ -1,9 +1,9 @@
 [submodule "src/http-parser"]
 	path = src/http-parser
-	url = git://github.com/joyent/http-parser.git
+	url = https://github.com/joyent/http-parser.git
 [submodule "src/be13_api"]
 	path = src/be13_api
-	url = git://github.com/simsong/be13_api.git
+	url = https://github.com/simsong/be13_api.git
 [submodule "src/dfxml"]
 	path = src/dfxml
 	url = https://github.com/simsong/dfxml.git
