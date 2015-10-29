@@ -737,7 +737,7 @@ int main(int argc, char *argv[])
     int open_fds = (int)demux.open_flows.size();
     int flow_map_size = (int)demux.flow_map.size();
 
-    demux.close_all_fd();
+    demux.remove_all_flows();	// empty the map to capture the state
     std::stringstream ss;
     be13::plugin::phase_shutdown(fs,xreport ? &ss : 0);
 
@@ -751,8 +751,6 @@ int main(int argc, char *argv[])
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
     if(xreport){
-
-	demux.remove_all_flows();	// empty the map to capture the state
         xreport->pop();                 // fileobjects
         xreport->xmlout("summary",ss.str(),"",false);
         xreport->xmlout("open_fds_at_end",open_fds);

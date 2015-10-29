@@ -150,7 +150,6 @@ public:
     void  post_process(tcpip *tcp);    // just before closing; writes XML and closes fd
 
     /* management of open fds and in-process tcpip flows*/
-    void  close_all_fd();
     void  close_tcpip_fd(tcpip *);         
     void  close_oldest_fd();
     void  remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary
