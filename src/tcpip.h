@@ -249,6 +249,8 @@ public:
 typedef boost::icl::interval_set<uint64_t> recon_set; // Boost interval set of bytes that were reconstructed.
 #endif
 
+#include "intrusive_list.h"
+
 #pragma GCC diagnostic warning "-Weffc++"
 #pragma GCC diagnostic warning "-Wshadow"
 #pragma GCC diagnostic warning "-Wall"
@@ -302,6 +304,9 @@ public:;
     uint64_t	last_packet_number;	// for finding most recent packet written
     uint64_t	out_of_order_count;	// all packets were contigious
     uint64_t    violations;		// protocol violation count
+
+    /* File Acess Order */
+    intrusive_list<tcpip>::iterator it;
 
     /* Methods */
     void close_file();			// close fd

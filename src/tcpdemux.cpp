@@ -97,12 +97,12 @@ void  tcpdemux::write_flow_record(const std::string &starttime,const std::string
  */
 void tcpdemux::close_all_fd()
 {
-    tcpset open_flows_copy(open_flows);	// make a copy because we're going to modify it
-
-    for(tcpset::const_iterator it = open_flows_copy.begin();it!=open_flows_copy.end();it++){
-	(*it)->close_file();
-    }
-    assert(open_flows.size()==0);	// we've closed them all
+    tcpip *oldest_tcp;
+    while(!open_flows.empty()) {
+        oldest_tcp = *open_flows.begin();
+        oldest_tcp->close_file();
+      }
+    assert(open_flows.empty());	// we've closed them all
 }
 
 
@@ -111,12 +111,7 @@ void tcpdemux::close_all_fd()
  */
 void tcpdemux::close_oldest_fd()
 {
-    tcpip *oldest_tcp=0;
-    for(tcpset::iterator it = open_flows.begin();it!=open_flows.end();it++){
-	if(oldest_tcp==0 || (*it)->last_packet_number < oldest_tcp->last_packet_number){
-	    oldest_tcp = (*it);
-	}
-    }
+    tcpip *oldest_tcp = *open_flows.begin();
     if(oldest_tcp) oldest_tcp->close_file();
 }
 
@@ -181,6 +176,7 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be
     DEBUG(5) ("new flow %s. path: %s next seq num (nsn):%d",
               flowa.str().c_str(),new_tcpip->flow_pathname.c_str(),new_tcpip->nsn);
     flow_map[flow] = new_tcpip;
+    open_flows.reset(new_tcpip);
     return new_tcpip;
 }
 
@@ -552,6 +548,8 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
         if(tcp->fin_count==1){
             tcp->fin_size = (seq+tcp_datalen-tcp->isn)-1;
         }
+    } else {
+        open_flows.move_to_end(tcp);
     }
 
     /* If a fin was sent and we've seen all of the bytes, close the stream */
