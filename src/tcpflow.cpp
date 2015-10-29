@@ -750,9 +750,8 @@ int main(int argc, char *argv[])
     DEBUG(2)(total_flow_processed.c_str(),demux.flow_counter);
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
-    if(xreport){
-
 	demux.remove_all_flows();	// empty the map to capture the state
+    if(xreport){
         xreport->pop();                 // fileobjects
         xreport->xmlout("summary",ss.str(),"",false);
         xreport->xmlout("open_fds_at_end",open_fds);
