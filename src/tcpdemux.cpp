@@ -89,23 +89,6 @@ void  tcpdemux::write_flow_record(const std::string &starttime,const std::string
     return theInstance;
 }
 
-
-
-/**
- * Implement a list of open_flows, each with an associated file descriptor.
- * When a new file needs to be opened, we can close a flow if necessary.
- */
-void tcpdemux::close_all_fd()
-{
-    tcpip *oldest_tcp;
-    while(!open_flows.empty()) {
-        oldest_tcp = *open_flows.begin();
-        oldest_tcp->close_file();
-      }
-    assert(open_flows.empty());	// we've closed them all
-}
-
-
 /**
  * find the flow that has been written to in the furthest past and close it.
  */
