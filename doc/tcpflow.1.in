@@ -284,7 +284,7 @@ all of the pcap files in the current directory, use this:
 .fi
 .in -.5i
 .TP
-.B \-J
+.B \-g
 Output flow information to console in multiple colors. \fBNOTE: This option was changed from tcpflow 1.3.\fP
 .TP
 .B \-m \fImin_size\fP

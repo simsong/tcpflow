@@ -39,6 +39,7 @@
 #endif
 
 #include <queue>
+#include "intrusive_list.h"
 
 /**
  * the tcp demultiplixer
@@ -59,11 +60,9 @@ class tcpdemux {
     } flow_addr_key_eq;
 
 #ifdef HAVE_TR1_UNORDERED_MAP
-    typedef std::tr1::unordered_set<class tcpip *> tcpset;
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
 #else
-    typedef std::unordered_set<class tcpip *> tcpset;
     typedef std::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
     typedef std::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
 #endif
@@ -124,7 +123,7 @@ public:
     unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux
 
     flow_map_t  flow_map;               // db of open tcpip objects, indexed by flow
-    tcpset      open_flows;              // the tcpip flows with open files
+    intrusive_list<tcpip> open_flows; // the tcpip flows with open files in access order
 
     saved_flow_map_t saved_flow_map;  // db of saved flows, indexed by flow
     saved_flows_t    saved_flows;     // the flows that were saved
@@ -151,7 +150,6 @@ public:
     void  post_process(tcpip *tcp);    // just before closing; writes XML and closes fd
 
     /* management of open fds and in-process tcpip flows*/
-    void  close_all_fd();
     void  close_tcpip_fd(tcpip *);         
     void  close_oldest_fd();
     void  remove_flow(const flow_addr &flow); // remove a flow from the database, closing open files if necessary

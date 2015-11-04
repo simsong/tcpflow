@@ -81,6 +81,7 @@ tcpflow_SOURCES = \
 	tcpflow.cpp \
 	tcpip.h tcpip.cpp \
 	tcpdemux.h tcpdemux.cpp \
+	intrusive_list.h \
 	tcpflow.h util.cpp \
 	scan_md5.cpp \
 	scan_http.cpp \

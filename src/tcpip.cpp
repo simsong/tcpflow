@@ -150,8 +150,8 @@ void tcpip::close_file()
 #endif
 	close(fd);
 	fd = -1;
+	demux.open_flows.erase(this);           // we are no longer open
     }
-    demux.open_flows.erase(this);           // we are no longer open
     // Also close the flow_index file, if flow indexing is in use --GDD
     if(demux.opt.output_packet_index && idx_file.is_open()){
     	idx_file.close();
@@ -192,7 +192,7 @@ int tcpip::open_file()
             return -1;
         }
         /* Remember that we have this open */
-        demux.open_flows.insert(this);
+        demux.open_flows.push_back(this);
         if(demux.open_flows.size() > demux.max_open_flows) demux.max_open_flows = demux.open_flows.size();
         //std::cerr << "open_file1 " << *this << "\n";
     }
@@ -310,6 +310,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
                 
                 }
 	    }
+	    else fputc('.',stdout);
             written += 1; // treat even unprintable characters as "written". It
                           // really means "processed"
 	}
