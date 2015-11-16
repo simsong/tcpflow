@@ -1,4 +1,4 @@
-TCPFLOW 1.3
+TCPFLOW 1.4.6
 ===========
 Downloads directory: http://www.digitalcorpora.org/downloads/tcpflow/
 
