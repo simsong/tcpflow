@@ -90,7 +90,7 @@ public:
         options():console_output(false),console_output_nonewline(false),
                   store_output(true),opt_md5(false),
                   post_processing(false),gzip_decompress(true),
-                  max_bytes_per_flow(),
+                  max_bytes_per_flow(-1),
                   max_flows(0),suppress_header(0),
                   output_strip_nonprint(true),output_hex(false),use_color(0),
                   output_packet_index(false),max_seek(MAX_SEEK) {
@@ -101,7 +101,7 @@ public:
         bool    opt_md5;                // do we calculate MD5 on DFXML output?
         bool    post_processing;        // decode headers after tcp connection closes
         bool    gzip_decompress;
-        uint64_t max_bytes_per_flow;
+        int64_t  max_bytes_per_flow;
         uint32_t max_flows;
         bool    suppress_header;
         bool    output_strip_nonprint;

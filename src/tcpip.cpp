@@ -236,10 +236,12 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     /* green, blue, read */
     const char *color[3] = { "\033[0;32m", "\033[0;34m", "\033[0;31m" };
 
-    if(demux.opt.max_bytes_per_flow>0){
-	if(last_byte > demux.opt.max_bytes_per_flow) return; /* too much has been printed */
-	if(length > demux.opt.max_bytes_per_flow - last_byte){
-	    length = demux.opt.max_bytes_per_flow - last_byte; /* can only output this much */
+    if(demux.opt.max_bytes_per_flow>=0){
+        uint64_t max_bytes_per_flow = (uint64_t)demux.opt.max_bytes_per_flow;
+
+	if(last_byte > max_bytes_per_flow) return; /* too much has been printed */
+	if(length > max_bytes_per_flow - last_byte){
+	    length = max_bytes_per_flow - last_byte; /* can only output this much */
 	    if(length==0) return;
 	}
     }
@@ -420,13 +422,15 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
      * but remember to seek out to the actual position after the truncated write...
      */
     uint32_t wlength = length;		// length to write
-    if (demux.opt.max_bytes_per_flow){
-	if(offset >= demux.opt.max_bytes_per_flow){
+    if (demux.opt.max_bytes_per_flow >= 0){
+        uint64_t max_bytes_per_flow = (uint64_t)demux.opt.max_bytes_per_flow;
+
+	if(offset >= max_bytes_per_flow){
 	    wlength = 0;
 	} 
-	if(offset < demux.opt.max_bytes_per_flow &&  offset+length > demux.opt.max_bytes_per_flow){
+	if(offset < max_bytes_per_flow &&  offset+length > max_bytes_per_flow){
 	    DEBUG(2) ("packet truncated by max_bytes_per_flow on %s", flow_pathname.c_str());
-	    wlength = demux.opt.max_bytes_per_flow - offset;
+	    wlength = max_bytes_per_flow - offset;
 	}
     }
 
@@ -435,7 +439,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
      * save the return value because open_tcpfile() puts the file pointer
      * into the structure for us.
      */
-    if (fd < 0 && wlength>0) {
+    if (fd < 0) {
 	if (open_file()) {
 	    DEBUG(1)("unable to open TCP file %s  fd=%d  wlength=%d",
                      flow_pathname.c_str(),fd,(int)wlength);
