@@ -52,11 +52,6 @@ public:;
     inline bool operator > (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>0; };
     inline bool operator >=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>=0; };
     inline bool operator < (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(this->addr))<0; }
-
-    // We represent IPv4 addresses as 4 octets of address followed by 12 octets of 0.
-    inline bool isv4() const {		
-        return quad(4)==0 && quad(8)==0 && quad(12)==0;
-    }
 };
 
 inline std::ostream & operator <<(std::ostream &os,const ipaddr &b)  {
