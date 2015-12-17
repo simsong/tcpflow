@@ -3,6 +3,8 @@
 
 #include <fstream>
 
+#include "inet_ntop.h"
+
 /** On windows, there is no in_addr_t; this is from
  * /usr/include/netinet/in.h
  */
@@ -52,16 +54,21 @@ public:;
     inline bool operator > (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>0; };
     inline bool operator >=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>=0; };
     inline bool operator < (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(this->addr))<0; }
-
-    // We represent IPv4 addresses as 4 octets of address followed by 12 octets of 0.
-    inline bool isv4() const {		
-        return quad(4)==0 && quad(8)==0 && quad(12)==0;
-    }
 };
 
-inline std::ostream & operator <<(std::ostream &os,const ipaddr &b)  {
-    os << (int)b.addr[0] <<"."<<(int)b.addr[1] << "."
-       << (int)b.addr[2] << "." << (int)b.addr[3];
+class ipaddr_prn {
+public:
+    const ipaddr& ia;
+    const sa_family_t family;
+    ipaddr_prn(const ipaddr& ia_, sa_family_t family_)
+        : ia(ia_), family(family_)
+    { }
+};
+
+inline std::ostream & operator <<(std::ostream &os, const ipaddr_prn &b) {
+    char buf[INET6_ADDRSTRLEN];
+    inet_ntop(b.family, b.ia.addr, buf, sizeof(buf));
+    os << buf;
     return os;
 }
 
@@ -130,7 +137,7 @@ public:
 
     std::string str() const {
         std::stringstream s;
-        s << "flow[" << src << ":" << sport << "->" << dst << ":" << dport << "]";
+        s << "flow[" << ipaddr_prn(src, family) << ":" << sport << "->" << ipaddr_prn(dst, family) << ":" << dport << "]";
         return s.str();
     }
 };
