@@ -259,14 +259,7 @@ typedef	unsigned char u_int8_t;
 /* tcpflow.cpp - CLI */
 extern const char *progname;
 void    terminate(int sig) __attribute__ ((__noreturn__));
-#ifndef HAVE_INET_NTOP
-const char *inet_ntop(int af, const void *src,char *dst, socklen_t size);
-#endif
-
-#if defined(__MINGW32__)
-// <ws2tcpip.h> has this prototype for ws2_32 dll, but has type-conflicts with winsock2.h
-WINSOCK_API_LINKAGE LPCWSTR WSAAPI inet_ntop(INT Family, PVOID pAddr, LPWSTR pStringBuf, size_t StringBufSIze);
-#endif
+#include "inet_ntop.h"
 
 #ifdef HAVE_PTHREAD
 #include <semaphore.h>
