@@ -128,7 +128,7 @@ delivery. However, tcpflow currently does not understand IP fragments; flows
 containing IP fragments will not be recorded properly.
 
 tcpflow can output a summary report file in DFXML format. This file
-includes information about the systme on which the tcpflow program was
+includes information about the system on which the tcpflow program was
 compiled, where it was run, and every TCP flow, including source and
 destination IP addresses and ports, number of bytes, number of
 packets, and (optionally) the MD5 hash of every bytestream. 
