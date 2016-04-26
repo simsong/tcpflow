@@ -1,13 +1,13 @@
 
 #assume variable buffer includes message data
-
+message="header data\r\n\r\nthis is the start of the message..."
 key = "01101011101"
 newKey = ""
 keyLen = len(key)
 
 dataStart = message.find("\r\n\r\n")+4
 httpData = message[dataStart:]
-binaryData=''.join(format(ord(x), 'b') for x in st)
+binaryData=''.join(format(ord(x), 'b') for x in httpData)
 
 while len(newKey) + keyLen <= len(binaryData):
 	newKey+=key
@@ -19,4 +19,9 @@ while len(newKey) < len(binaryData):
 	newKey+=key[i]
 	i+=1
 
-return (binaryData) ^ int(key)
+xorRes = int(binaryData,2) ^ int(newKey,2)
+
+#print newKey
+#print binaryData
+print '{0:b}'.format(xorRes)
+
