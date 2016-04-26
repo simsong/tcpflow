@@ -67,6 +67,7 @@ sem_t *semlock = 0;
 scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
+    scan_custom,
     scan_netviz,
     scan_tcpdemux,
 #ifdef USE_WIFI
