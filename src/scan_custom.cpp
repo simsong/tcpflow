@@ -27,17 +27,17 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
         return;     /* No feature files created */
     }
 
+
 #ifdef HAVE_EVP_GET_DIGESTBYNAME
     if(sp.phase==scanner_params::PHASE_SCAN){
 	//printf("Hello world!\n");
-	printf("%.*s\n##########################\n",sp.sbuf.bufsize,sp.sbuf.buf);
+	//printf("%.*s\n##########################\n",sp.sbuf.bufsize,sp.sbuf.buf);
 	//fwrite(sp.sbuf.buf,sp.sbuf.bufsize,1,stdout);
-	
-	//const char* code;
-	//code = "print 'hello'";
-	//Py_Initialize();
-	//PyRun_SimpleString(code);
-	//Py_Finalize();
+	const char* code;
+	code = "print 'This is the result of a python print statement, but we are running C++ :)'";
+	Py_Initialize();
+	PyRun_SimpleString(code);
+	Py_Finalize();
 	return;
     }
 #endif
