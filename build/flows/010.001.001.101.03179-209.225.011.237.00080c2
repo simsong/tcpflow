@@ -1,0 +1,24 @@
+POST /scripts/cms/xcms.asp HTTP/1.1
+User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0) Opera 7.11  [en]
+Host: ins1.opera.com
+Accept: application/x-shockwave-flash,text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,video/x-mng,image/png,image/jpeg,image/gif;q=0.2,text/css,*/*;q=0.1
+Accept-Language: en
+Accept-Charset: windows-1252, utf-8, utf-16, iso-8859-1;q=0.6, *;q=0.1
+Accept-Encoding: deflate, gzip, x-gzip, identity, *;q=0
+Connection: Keep-Alive
+Content-length: 433
+Content-Type: application/vnd.xacp
+
+<?xml version="1.0" encoding='ISO-8859-1'?>
+<xacp version="1.0.0">
+  <content_request vendor="Opera" product="Opera" product_version="711" distribution="Win_700" user_code="7f0100105688831559922">
+<client_connection last="2004-11-14" units="days" count="120"/><needs>
+<content location="top" exposures="30"/>
+</needs>
+<avoid>
+</avoid>
+<profile>
+<property name="Language" val="en"/>
+</profile>
+</content_request>
+</xacp>

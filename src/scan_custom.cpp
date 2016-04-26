@@ -9,7 +9,7 @@
 
 #include <iostream>
 #include <sys/types.h>
-
+#include <python2.7/Python.h>
 
 extern "C"
 void  scan_custom(const class scanner_params &sp,const recursion_control_block &rcb)
@@ -29,8 +29,15 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 
 #ifdef HAVE_EVP_GET_DIGESTBYNAME
     if(sp.phase==scanner_params::PHASE_SCAN){
-	printf("Hello world!\n");
+	//printf("Hello world!\n");
+	printf("%.*s\n##########################\n",sp.sbuf.bufsize,sp.sbuf.buf);
 	//fwrite(sp.sbuf.buf,sp.sbuf.bufsize,1,stdout);
+	
+	//const char* code;
+	//code = "print 'hello'";
+	//Py_Initialize();
+	//PyRun_SimpleString(code);
+	//Py_Finalize();
 	return;
     }
 #endif
