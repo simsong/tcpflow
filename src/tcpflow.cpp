@@ -8,7 +8,7 @@
  */
 
 #define __MAIN_C__
-
+#include <typeinfo>
 #include "config.h"
 
 #include "tcpflow.h"
@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z:0")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:P:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z:0")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -497,8 +497,18 @@ int main(int argc, char *argv[])
 	    be13::plugin::scanners_enable(optarg);
 	    break;
         case 'e':
-            be13::plugin::scanners_enable(optarg);
-            demux.opt.post_processing = true; // enable post processing if anything is turned on
+	    if (!strcmp(optarg,"custom")) {
+	    	printf("'Custom' scanner is reserved for option 'P'.\n");
+	    }      
+	    else {
+	    	be13::plugin::scanners_enable(optarg);
+            	demux.opt.post_processing = true; // enable post processing if anything is turned on 
+            }
+	    break;
+	case 'P':
+	    //store optarg (python file path) here
+	    be13::plugin::scanners_enable("custom");
+            demux.opt.post_processing = true; // enable post processing if anything is turned on 
             break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){

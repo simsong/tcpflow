@@ -32,7 +32,7 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 	//printf("%.*s\n##########################\n",sp.sbuf.bufsize,sp.sbuf.buf);
 	
 	// TODO:
-	// ADD COMMAND LINE ARCHITECTURE
+	// ADD COMMAND LINE ARCHITECTURE (Partially complete: requires passage of optarg to this file)
 	// PASS DATA BACK TO TCP FLOW
 
 	Py_Initialize();
