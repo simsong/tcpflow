@@ -14,8 +14,7 @@
 extern "C"
 void  scan_custom(const class scanner_params &sp,const recursion_control_block &rcb)
 {
-
-    if(sp.sp_version!=scanner_params::CURRENT_SP_VERSION){
+        if(sp.sp_version!=scanner_params::CURRENT_SP_VERSION){
 	std::cerr << "scan_custom requires sp version " << scanner_params::CURRENT_SP_VERSION << "; "
 		  << "got version " << sp.sp_version << "\n";
 	exit(1);
@@ -30,13 +29,32 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 
 #ifdef HAVE_EVP_GET_DIGESTBYNAME
     if(sp.phase==scanner_params::PHASE_SCAN){
-	//printf("Hello world!\n");
 	//printf("%.*s\n##########################\n",sp.sbuf.bufsize,sp.sbuf.buf);
-	//fwrite(sp.sbuf.buf,sp.sbuf.bufsize,1,stdout);
-	const char* code;
-	code = "print 'This is the result of a python print statement, but we are running C++ :)'";
+	// MUST PASS DATA BACK FOR WRITING	
 	Py_Initialize();
-	PyRun_SimpleString(code);
+	std::string data( reinterpret_cast< char const* >(sp.sbuf.buf) );
+	char functionString[128];
+	char moduleString[128];
+	strcpy(functionString,"myFunction"); // will be a commandline arg
+	strcat(functionString,"()");
+	strcpy(moduleString,"from ");
+	strcat(moduleString,"myPlugin"); // will be commandline arg
+	strcat(moduleString," import ");
+	strcat(moduleString,"myFunction"); // will be commandline arg
+	PyRun_SimpleString(
+
+		"import sys\n"
+		"sys.path.append('/home/smolesss/git/tcpflow/build')\n"
+
+		); // TODO: Append relative path to build!
+	PyRun_SimpleString(moduleString);
+	PyRun_SimpleString(functionString);
+
+	
+	//Alternative printing:
+	//std::cout << data;
+	
+	
 	Py_Finalize();
 	return;
     }

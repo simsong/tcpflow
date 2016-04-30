@@ -1,27 +1,29 @@
+def myFunction():
+	print "test"
+	#assume variable buffer includes message data
+	message="header data\r\n\r\nthis is the start of the message..."
+	key = "01101011101"
+	newKey = ""
+	keyLen = len(key)
 
-#assume variable buffer includes message data
-message="header data\r\n\r\nthis is the start of the message..."
-key = "01101011101"
-newKey = ""
-keyLen = len(key)
+	dataStart = message.find("\r\n\r\n")+4
+	httpData = message[dataStart:]
+	binaryData=''.join(format(ord(x), 'b') for x in httpData)
+	
+	while len(newKey) + keyLen <= len(binaryData):
+		newKey+=key
 
-dataStart = message.find("\r\n\r\n")+4
-httpData = message[dataStart:]
-binaryData=''.join(format(ord(x), 'b') for x in httpData)
+	i=0	
+	while len(newKey) < len(binaryData):
+		if i == keyLen:
+			i = 0
+		newKey+=key[i]
+		i+=1
 
-while len(newKey) + keyLen <= len(binaryData):
-	newKey+=key
+	xorRes = int(binaryData,2) ^ int(newKey,2)
 
-i=0
-while len(newKey) < len(binaryData):
-	if i == keyLen:
-		i = 0
-	newKey+=key[i]
-	i+=1
+	#print newKey
+	#print binaryData
+	print '{0:b}'.format(xorRes)
 
-xorRes = int(binaryData,2) ^ int(newKey,2)
-
-#print newKey
-#print binaryData
-print '{0:b}'.format(xorRes)
 
