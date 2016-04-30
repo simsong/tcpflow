@@ -30,30 +30,32 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 #ifdef HAVE_EVP_GET_DIGESTBYNAME
     if(sp.phase==scanner_params::PHASE_SCAN){
 	//printf("%.*s\n##########################\n",sp.sbuf.bufsize,sp.sbuf.buf);
-	// MUST PASS DATA BACK FOR WRITING	
+	
+	// TODO:
+	// ADD COMMAND LINE ARCHITECTURE
+	// PASS DATA BACK TO TCP FLOW
+
 	Py_Initialize();
+	PyObject *pName, *pModule, *pFunc, *pArgs, *pData, *pResult;
+	
 	std::string data( reinterpret_cast< char const* >(sp.sbuf.buf) );
-	char functionString[128];
-	char moduleString[128];
-	strcpy(functionString,"myFunction"); // will be a commandline arg
-	strcat(functionString,"()");
-	strcpy(moduleString,"from ");
-	strcat(moduleString,"myPlugin"); // will be commandline arg
-	strcat(moduleString," import ");
-	strcat(moduleString,"myFunction"); // will be commandline arg
-	PyRun_SimpleString(
+	pData = PyString_FromString(data.c_str());
 
-		"import sys\n"
-		"sys.path.append('/home/smolesss/git/tcpflow/build')\n"
-
-		); // TODO: Append relative path to build!
-	PyRun_SimpleString(moduleString);
-	PyRun_SimpleString(functionString);
-
+	//os.getcwd() should return "/home/smolesss/git/tcpflow"
+	PyRun_SimpleString("import sys, os\n" "workingDir = os.getcwd() + '/build'\n" "sys.path.append(workingDir)\n");
 	
-	//Alternative printing:
-	//std::cout << data;
+	pName = PyString_FromString("myPlugin"); // commandline arg will determine
+	pModule=PyImport_Import(pName);
+	pFunc=PyObject_GetAttrString(pModule,"myFunction"); // commandline arg will determine
+	pArgs = PyTuple_New(1);
+	PyTuple_SetItem(pArgs,0,pData);
+	pResult = PyObject_CallObject(pFunc,pArgs);
+
+	// Temporary print function	
+	printf("Returning: %s\n", PyString_AsString(pResult));	
 	
+
+	// Here, we will convert pResult back into unsigned char* and overwrite sp.sbuf.buf
 	
 	Py_Finalize();
 	return;

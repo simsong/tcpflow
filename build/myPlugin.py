@@ -1,7 +1,11 @@
-def myFunction():
-	print "test"
+def myFunction(packetContents):
+
 	#assume variable buffer includes message data
-	message="header data\r\n\r\nthis is the start of the message..."
+	#message=packetContents
+
+
+	"""
+	#message="header data\r\n\r\nthis is the start of the message..."
 	key = "01101011101"
 	newKey = ""
 	keyLen = len(key)
@@ -24,6 +28,9 @@ def myFunction():
 
 	#print newKey
 	#print binaryData
-	print '{0:b}'.format(xorRes)
+	#return '{0:b}'.format(xorRes)
+	"""
+
+	return packetContents
 
 
