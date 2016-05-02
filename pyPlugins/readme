@@ -1,0 +1,11 @@
+To execute customizable python plugins...
+	1) Create a python script with the following properties:
+		a) The script contains one or more functions for tcpflow usage.
+		b) Each tcpflow function must take a single, string parameter. This parameter will hold the contents of the application data captured by tcpflow.
+		c) Each tcpflow function must return a string, which will then be added to the report.xml file with the "plugindata" tag.
+	2) Add the script to the tcpflow/pyPlugins directory.
+	3) Execute the script by passing "<FileName>:<FunctionName>" to tcpflow with the "-P" option.
+
+Example Usage:
+	
+	./src/tcpflow -r samplePcaps/jpegs.cap -o flows -P xorPlugin:myFunction
