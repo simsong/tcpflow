@@ -82,7 +82,6 @@ tags
 TAGS
 src/tcpflow
 doc/tcpflow.1
-report.xml
 src/config.h
 tcpflow.spec
 out

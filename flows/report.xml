@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<dfxml xmloutputversion='1.0'>
+  <metadata 
+  xmlns='http://afflib.org/tcpflow/' 
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
+  xmlns:dc='http://purl.org/dc/elements/1.1/'>
+    <dc:type>Feature Extraction</dc:type>
+  </metadata>
+  <creator version='1.0'>
+    <program>TCPFLOW</program>
+    <version>1.4.6</version>
+    <build_environment>
+      <compiler>4.9.2 (4.9.2)</compiler>
+      <CPPFLAGS>-pthread -I/usr/local/include -I/usr/local/include  -DUTC_OFFSET=-0400 </CPPFLAGS>
+      <CFLAGS>-g   -pthread -g -O3 -MD -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wshadow -Wwrite-strings -Wcast-align -Waggregate-return -Wbad-function-cast -Wcast-qual -Wundef -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wc++-compat -Wmissing-noreturn -Wall -Wstrict-prototypes -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wshadow -Wwrite-strings -Wcast-align -Waggregate-return -Wbad-function-cast -Wcast-qual -Wundef -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wc++-compat -Wmissing-noreturn -Wall -Wstrict-prototypes</CFLAGS>
+      <CXXFLAGS>-g -pthread -g -O3 -Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wshadow -Wwrite-strings -Wcast-align -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wmissing-noreturn -Woverloaded-virtual -Wsign-promo -funit-at-a-time -Weffc++ -std=c++11 -Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wshadow -Wwrite-strings -Wcast-align -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wmissing-noreturn -Woverloaded-virtual -Wsign-promo -funit-at-a-time -Wstrict-null-sentinel -Weffc++ </CXXFLAGS>
+      <LDFLAGS>-L/usr/local/lib -L/usr/local/lib </LDFLAGS>
+      <LIBS>-lpcap -lexpat  -lssl -lcrypto -lssl -lcrypto -ldl -lz </LIBS>
+      <compilation_date>2016-04-25T21:35:03</compilation_date>
+      <library name="boost" version="105500"/>
+      <git commit="tcpflow-1.4.0beta1-186-ge922d10-dirty"/>
+    </build_environment>
+    <execution_environment>
+      <os_sysname>Linux</os_sysname>
+      <os_release>3.16.0-4-amd64</os_release>
+      <os_version>#1 SMP Debian 3.16.7-ckt20-1+deb8u4 (2016-02-29)</os_version>
+      <host>debian</host>
+      <arch>x86_64</arch>
+      <command_line>./build/tcpflow -e custom -r jpegs.cap -o flows</command_line>
+      <uid>1001</uid>
+      <start_time>2016-04-30T12:20:01Z</start_time>
+    </execution_environment>
+  </creator>
+  <configuration>
+  </configuration>
+  <tdelta>0</tdelta>
