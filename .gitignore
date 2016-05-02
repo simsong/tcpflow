@@ -80,6 +80,7 @@ depcomp
 .libs
 tags
 TAGS
+report.xml
 src/tcpflow
 doc/tcpflow.1
 src/config.h
