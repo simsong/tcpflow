@@ -41,11 +41,11 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 	std::string data(reinterpret_cast<char const*>(sp.sbuf.buf));
 	pData = PyString_FromString(data.c_str());
 
-	PyRun_SimpleString("import sys, os\n" "workingDir = os.getcwd() + '/pyPlugins'\n" "sys.path.append(workingDir)\n");	
-	pName = PyString_FromString("xorPlugin"); // commandline arg will determine
+	PyRun_SimpleString("import sys, os\n" "workingDir = os.getcwd() + '/python/plugins'\n" "sys.path.append(workingDir)\n");	
+	pName = PyString_FromString("samplePlugin"); // commandline arg will determine
 	pModule=PyImport_Import(pName);
 	if (pModule==NULL) return;
-	pFunc=PyObject_GetAttrString(pModule,"myFunction"); // commandline arg will determine
+	pFunc=PyObject_GetAttrString(pModule,"xorOp"); // commandline arg will determine
 	if (pFunc==NULL) return;
 	pArgs = PyTuple_New(1);
 	PyTuple_SetItem(pArgs,0,pData);
