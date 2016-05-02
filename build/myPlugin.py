@@ -31,6 +31,6 @@ def myFunction(packetContents):
 	#return '{0:b}'.format(xorRes)
 	"""
 
-	return packetContents
+	return "This is an altered buffer."
 
 

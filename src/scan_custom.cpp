@@ -33,8 +33,7 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 	
 	// TODO:
 	// ADD COMMAND LINE ARCHITECTURE (Partially complete: requires passage of optarg to this file)
-	// PASS DATA BACK TO TCP FLOW
-
+	
 	Py_Initialize();
 	PyObject *pName, *pModule, *pFunc, *pArgs, *pData, *pResult;
 	
@@ -51,12 +50,12 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 	PyTuple_SetItem(pArgs,0,pData);
 	pResult = PyObject_CallObject(pFunc,pArgs);
 
-	// Temporary print function	
-	printf("Returning: %s\n", PyString_AsString(pResult));	
+	//printf("Plugin returned:\n %s\n", PyString_AsString(pResult));	
 	
+	if(sp.sxml) {
+		(*sp.sxml) << "<plugindata>" << PyString_AsString(pResult) << "</plugindata>";
+	}
 
-	// Here, we will convert pResult back into unsigned char* and overwrite sp.sbuf.buf
-	
 	Py_Finalize();
 	return;
     }

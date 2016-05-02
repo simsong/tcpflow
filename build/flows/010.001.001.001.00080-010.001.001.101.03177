@@ -1,0 +1,20 @@
+HTTP/1.1 200 OK
+Date: Sat, 20 Nov 2004 10:21:06 GMT
+Server: Apache/2.0.40 (Red Hat Linux)
+Last-Modified: Mon, 08 Mar 2004 20:27:54 GMT
+ETag: "46eed-a0-800ce680"
+Accept-Ranges: bytes
+Content-Length: 160
+Connection: close
+Content-Type: text/html; charset=ISO-8859-1
+
+<html>
+<head>
+<title>
+Ronnie sahlbergs Websida
+</title>
+</head>
+<body>
+<a href="./Websidan/index.html">Familjen Sahlbergs Websida</a>
+</body>
+</html>
