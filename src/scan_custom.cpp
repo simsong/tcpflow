@@ -3,6 +3,9 @@
  * scan_custom;
  */
 
+// TODO:
+// ADD COMMAND LINE ARCHITECTURE (Partially complete: requires passage of optarg to this file)
+
 #include "config.h"
 #include "bulk_extractor_i.h"
 #include "dfxml/src/hash_t.h"
@@ -29,33 +32,32 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 
 #ifdef HAVE_EVP_GET_DIGESTBYNAME
     if(sp.phase==scanner_params::PHASE_SCAN){
+	
 	//printf("%.*s\n##########################\n",sp.sbuf.bufsize,sp.sbuf.buf);
-	
-	// TODO:
-	// ADD COMMAND LINE ARCHITECTURE (Partially complete: requires passage of optarg to this file)
-	
+
 	Py_Initialize();
 	PyObject *pName, *pModule, *pFunc, *pArgs, *pData, *pResult;
 	
-	std::string data( reinterpret_cast< char const* >(sp.sbuf.buf) );
+	std::string data(reinterpret_cast<char const*>(sp.sbuf.buf));
 	pData = PyString_FromString(data.c_str());
 
-	//os.getcwd() should return "/home/smolesss/git/tcpflow"
-	PyRun_SimpleString("import sys, os\n" "workingDir = os.getcwd() + '/build'\n" "sys.path.append(workingDir)\n");
-	
-	pName = PyString_FromString("myPlugin"); // commandline arg will determine
+	PyRun_SimpleString("import sys, os\n" "workingDir = os.getcwd() + '/build'\n" "sys.path.append(workingDir)\n");	
+
+	pName = PyString_FromString("xorPlugin"); // commandline arg will determine
 	pModule=PyImport_Import(pName);
+	if (pModule==NULL) return;
 	pFunc=PyObject_GetAttrString(pModule,"myFunction"); // commandline arg will determine
+	if (pFunc==NULL) return;
 	pArgs = PyTuple_New(1);
 	PyTuple_SetItem(pArgs,0,pData);
 	pResult = PyObject_CallObject(pFunc,pArgs);
-
-	//printf("Plugin returned:\n %s\n", PyString_AsString(pResult));	
+	if (pResult==NULL) return;
 	
+	//printf("Plugin returned:\n %s\n", PyString_AsString(pResult));	
 	if(sp.sxml) {
-		(*sp.sxml) << "<plugindata>" << PyString_AsString(pResult) << "</plugindata>";
+		(*sp.sxml) << "<plugindata>\n" << PyString_AsString(pResult) << "\n</plugindata>";
 	}
-
+	
 	Py_Finalize();
 	return;
     }
