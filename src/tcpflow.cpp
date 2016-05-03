@@ -75,6 +75,9 @@ scanner_t *scanners_builtin[] = {
 #endif
     0};
 
+// Define a global variable to hold commandline argument for python plugin extension
+std::string pyPluginArg;
+
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
 
 /****************************************************************
@@ -86,7 +89,7 @@ static void usage(int level)
     std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
     std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
     std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
-    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] \n";
+    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] [-P file::function] \n";
     std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
     std::cout << "      [expression]\n\n";
     std::cout << "   -a: do ALL post-processing.\n";
@@ -101,6 +104,7 @@ static void usage(int level)
     std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
     std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
     std::cout << "   -p: don't use promiscuous mode\n";
+    std::cout << "   -P file::function: run application data through function in python file\n";
     std::cout << "   -q: quiet mode - do not print warnings\n";
     std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
     std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
@@ -505,9 +509,13 @@ int main(int argc, char *argv[])
             	demux.opt.post_processing = true; // enable post processing if anything is turned on 
             }
 	    break;
+	// Introduce a new commandline option for python plugin extension.
 	case 'P':
-	    //store optarg (python file path) here
 	    be13::plugin::scanners_enable("custom");
+
+	    // Pass optional commandline argument to our global variable for later use in scan_custom
+	    pyPluginArg = optarg;
+	
             demux.opt.post_processing = true; // enable post processing if anything is turned on 
             break;
 	case 'F':
