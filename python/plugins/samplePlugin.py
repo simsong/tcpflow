@@ -1,12 +1,11 @@
 ## This a demo of a simple plugin package which consists of a two functions.
 
-## The first function takes a string (application data from tcpflow's buffer) and returns the first and last 10 characters of the packet.
+## The first function takes a string (application data from tcpflow's buffer) returns a sample message.
 
 def sampleFunction(appData):
-	return appData[:10]+"..."+appData[-10:]
+	return "This message appears in the report.xml file under the 'plugindata' tag."
 
-## The second function takes a string (application datafrom tcpflow's buffer) and returns the binary result of taking the HTTP message (without headers) and performing a bitwise xor operation with a sample key (defined inside the function).
-
+## The second function takes a string (application data from tcpflow's buffer) and writes the application (HTTP) header data to myOutput.txt in the python director. This function does not return and simply prints to stdout.
 
 def headerWriter(appData):
 	fName = "myOutput.txt"
@@ -16,6 +15,8 @@ def headerWriter(appData):
 	f.write(headerData)
 	f.close()
 	print "Wrote data to "+fName
+
+## The third function takes a string (application datafrom tcpflow's buffer) and returns the binary result of taking the HTTP message (without headers) and performing a bitwise xor operation with a sample key (defined inside the function).
 
 def xorOp(appData):
 
