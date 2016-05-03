@@ -40,7 +40,7 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 	std::string functionName;
 	
 	// Find delimeter in commandline argument to identify where to split the argument
-	int delimIndex = pyPluginArg.find("::");
+	int delimIndex = pyPluginArg.rfind("::");
 	if (delimIndex < 0) {
 		printf("Invalid argument to option 'P'. Must follow: <filename>::<function>.\n");
 		return;
