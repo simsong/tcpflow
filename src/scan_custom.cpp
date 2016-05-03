@@ -72,17 +72,17 @@ void  scan_custom(const class scanner_params &sp,const recursion_control_block &
 	pFunc=PyObject_GetAttrString(pModule,functionName.c_str());
 	if (pFunc==NULL) return;
 	
-	// Compose python argument in the form of a tuple and pass the argument to the chosen function; if the function does not return anything or encounters an error, return to display the error
+	// Compose python argument in the form of a tuple and pass the argument to the chosen function; if the function does not return anything or encounters an error, return to exit and/or display the error
 	pArgs = PyTuple_New(1);
 	PyTuple_SetItem(pArgs,0,pData);
 	pResult = PyObject_CallObject(pFunc,pArgs);
-	if (pResult==NULL) return;
+	if (pResult!=NULL) {
 	
-	// If xml-reporting is enabled, insert the string the function returned into the report
-	if(sp.sxml) {
-		(*sp.sxml) << "<plugindata>\n" << PyString_AsString(pResult) << "\n</plugindata>";
+		// If xml-reporting is enabled, insert the string the function returned into the report
+		if(sp.sxml) {
+			(*sp.sxml) << "<plugindata>\n      " << PyString_AsString(pResult) << "\n      </plugindata>";
+		}
 	}
-	
 	// Terminate the python interpreter and exit
 	Py_Finalize();
 	return;

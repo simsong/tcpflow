@@ -1,13 +1,23 @@
 ## This a demo of a simple plugin package which consists of a two functions.
 
-## The first function takes a string (packet contents from tcpflow's buffer) and returns the first and last 10 characters of the packet.
+## The first function takes a string (application data from tcpflow's buffer) and returns the first and last 10 characters of the packet.
 
-def sampleFunction(packetContents):
-	return packetContents[:10]+"..."+packetContents[-10:]
+def sampleFunction(appData):
+	return appData[:10]+"..."+appData[-10:]
 
-## The second function takes a string (packet contents from tcpflow's buffer) and returns the binary result of taking the HTTP message (without headers) and performing a bitwise xor operation with a sample key (defined inside the function).
+## The second function takes a string (application datafrom tcpflow's buffer) and returns the binary result of taking the HTTP message (without headers) and performing a bitwise xor operation with a sample key (defined inside the function).
 
-def xorOp(packetContents):
+
+def headerWriter(appData):
+	fName = "myOutput.txt"
+	f = open("python/"+fName,'a')
+	headerFinish = appData.find("\r\n\r\n")+4
+	headerData = appData[:headerFinish+1]
+	f.write(headerData)
+	f.close()
+	print "Wrote data to "+fName
+
+def xorOp(appData):
 
 	#assume variable buffer includes message data
 	
@@ -15,8 +25,8 @@ def xorOp(packetContents):
 	newKey = ""
 	keyLen = len(key)
 
-	dataStart = packetContents.find("\r\n\r\n")+4
-	httpData = packetContents[dataStart:]
+	dataStart = appData.find("\r\n\r\n")+4
+	httpData = appData[dataStart:]
 	binaryData=''.join(format(ord(x), 'b') for x in httpData)
 	if len(binaryData)<1:
 		return 0
