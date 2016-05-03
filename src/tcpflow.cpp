@@ -89,7 +89,7 @@ static void usage(int level)
     std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
     std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
     std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
-    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] [-P file::function] \n";
+    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] [-P python_file::function_to_call] \n";
     std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
     std::cout << "      [expression]\n\n";
     std::cout << "   -a: do ALL post-processing.\n";
