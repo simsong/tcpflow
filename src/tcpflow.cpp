@@ -61,7 +61,7 @@ sem_t *semlock = 0;
 #define DEFAULT_REPORT_FILENAME "report.xml"
 
 /****************************************************************
- *** SCANNER PLUG-IN SYSTEM 
+ *** SCANNER PLUG-IN SYSTEM
  ****************************************************************/
 
 scanner_t *scanners_builtin[] = {
@@ -204,6 +204,7 @@ void terminate(int sig)
 }
 
 #ifdef HAVE_FORK
+#include <sys/wait.h>
 // transparent decompression for process_infile
 class inflater {
     const std::string suffix;
@@ -217,7 +218,7 @@ public:
         return ends_with(file_path,suffix);
     }
     // invoke the inflater in a shell, and return the file descriptor to read the inflated file from
-    int invoke(const std::string &file_path) const
+    int invoke(const std::string &file_path, int* ppid) const
     {
         std::string invocation = ssprintf(invoc_format.c_str(), file_path.c_str());
         int pipe_fds[2];
@@ -246,6 +247,7 @@ public:
             }
             exit(0);
         }
+        *ppid = child_pid;
         close(pipe_fds[1]);
         return pipe_fds[0];
     }
@@ -287,6 +289,8 @@ static void process_infile(const std::string &expression,const char *device,cons
     pcap_t *pd=0;
     int dlt=0;
     pcap_handler handler;
+    int waitfor = -1;
+    int pipefd = -1;
 
 #ifdef HAVE_INFLATER
     if(inflaters==0) inflaters = build_inflaters();
@@ -298,12 +302,12 @@ static void process_infile(const std::string &expression,const char *device,cons
 #ifdef HAVE_INFLATER
         for(inflaters_t::const_iterator it = inflaters->begin(); it != inflaters->end(); it++) {
             if((*it)->appropriate(infile)) {
-                int fd = (*it)->invoke(infile);
-                file_path = ssprintf("/dev/fd/%d", fd);
-                if(fd < 0) {
-                    std::cerr << "decompression of '" << infile << "' failed" << std::endl;
+                pipefd = (*it)->invoke(infile, &waitfor);
+                if(pipefd < 0) {
+                    std::cerr << "decompression of '" << infile << "' failed: " << strerror (errno) << std::endl;
                     exit(1);
                 }
+                file_path = ssprintf("/dev/fd/%d", pipefd);
                 if(access(file_path.c_str(), R_OK)) {
                     std::cerr << "decompression of '" << infile << "' is not available on this system" << std::endl;
                     exit(1);
@@ -366,9 +370,18 @@ static void process_infile(const std::string &expression,const char *device,cons
     /* start listening or reading from the input file */
     if (infile == "") DEBUG(1) ("listening on %s", device);
     if (pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance()) < 0){
-	
+
 	die("%s: %s", infile.c_str(),pcap_geterr(pd));
     }
+    pcap_close (pd);
+#ifdef HAVE_FORK
+    if (waitfor != -1) {
+        wait (0);
+    }
+    if (pipefd != -1) {
+        close (pipefd);
+    }
+#endif
 }
 
 
@@ -443,7 +456,7 @@ int main(int argc, char *argv[])
             be13::plugin::scanners_enable_all();
 	    break;
 
-	case 'A': 
+	case 'A':
 	    fprintf(stderr,"-AH has been deprecated. Just use -a\n");
 	    need_usage=true;
 	    break;
@@ -484,7 +497,7 @@ int main(int argc, char *argv[])
 	    break;
         case 'e':
             be13::plugin::scanners_enable(optarg);
-            demux.opt.post_processing = true; // enable post processing if anything is turned on 
+            demux.opt.post_processing = true; // enable post processing if anything is turned on
             break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
@@ -567,7 +580,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-    
+
     argc -= optind;
     argv += optind;
 
@@ -588,7 +601,7 @@ int main(int argc, char *argv[])
         usage(opt_help);
         exit(0);
     }
-            
+
 
     if(demux.opt.post_processing && !demux.opt.store_output){
         std::cerr << "ERROR: post_processing currently requires storing output.\n";
@@ -627,7 +640,7 @@ int main(int argc, char *argv[])
 #else
 	fprintf(stderr,"%s: attempt to create lock pthreads not present\n",argv[0]);
 	exit(1);
-#endif	
+#endif
     }
 
     if(force_binary_output) demux.opt.output_strip_nonprint = false;
@@ -746,7 +759,7 @@ int main(int argc, char *argv[])
      */
     const std::string total_flow_processed("Total flows processed: %" PRId64);
     const std::string total_packets_processed("Total packets processed: %" PRId64);
-    
+
     DEBUG(2)(total_flow_processed.c_str(),demux.flow_counter);
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
@@ -761,7 +774,7 @@ int main(int argc, char *argv[])
 	xreport->add_rusage();
 	xreport->pop();                 // bulk_extractor
 	xreport->close();
-	delete xreport;                 
+	delete xreport;
     }
 
     if(demux.flow_counter > tcpdemux::WARN_TOO_MANY_FILES){
