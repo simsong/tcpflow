@@ -291,6 +291,7 @@ static void process_infile(const std::string &expression,const char *device,cons
     int dlt=0;
     pcap_handler handler;
     int waitfor = -1;
+    int pipefd = -1;
 
 #ifdef HAVE_INFLATER
     if(inflaters==0) inflaters = build_inflaters();
@@ -302,12 +303,12 @@ static void process_infile(const std::string &expression,const char *device,cons
 #ifdef HAVE_INFLATER
         for(inflaters_t::const_iterator it = inflaters->begin(); it != inflaters->end(); it++) {
             if((*it)->appropriate(infile)) {
-                int fd = (*it)->invoke(infile, &waitfor);
-                file_path = ssprintf("/dev/fd/%d", fd);
-                if(fd < 0) {
-                    std::cerr << "decompression of '" << infile << "' failed" << std::endl;
+                pipefd = (*it)->invoke(infile, &waitfor);
+                if(pipefd < 0) {
+                    std::cerr << "decompression of '" << infile << "' failed: " << strerror (errno) << std::endl;
                     exit(1);
                 }
+                file_path = ssprintf("/dev/fd/%d", pipefd);
                 if(access(file_path.c_str(), R_OK)) {
                     std::cerr << "decompression of '" << infile << "' is not available on this system" << std::endl;
                     exit(1);
@@ -376,9 +377,13 @@ static void process_infile(const std::string &expression,const char *device,cons
 
 	die("%s: %s", infile.c_str(),pcap_geterr(pd));
     }
-#if HAVE_FORK
+    pcap_close (pd);
+#ifdef HAVE_FORK
     if (waitfor != -1) {
         wait (0);
+    }
+    if (pipefd != -1) {
+        close (pipefd);
     }
 #endif
 }
