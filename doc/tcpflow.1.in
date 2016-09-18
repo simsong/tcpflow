@@ -120,16 +120,11 @@ of bytes.  Good thing that modern disks are so big, eh?
 .TP
 .B \-c
 Console print.  Print the contents of packets to stdout as they
-are received, without storing any captured data to files (implies
+are received, without storing any captured data to files (implies \fB\-s\fP).
 .TP
 .B \-C
 Console print without the packet source and destination details being printed.  Print the contents of packets to stdout as they
-are received, without storing any captured data to files (implies
-.B \-e
-When outputting to the console each flow will be output in different colors
-(blue for client to server flows, red for server to client flows, green for undecided flows).
-.B -s
-).
+are received, without storing any captured data to files (implies \fB\-s\fP).
 .TP
 .B \-D
 Console output should be in hex. 
@@ -254,6 +249,10 @@ allowed by the OS.  The
 .B \-v
 option will report how many file descriptors tcpflow is using.
 .TP
+.B \-g
+Output flow information to console in multiple colors. (Blue for client to server flows, red for server to client flows, green for undecided flows.)
+\fBNOTE: This option was changed from tcpflow 1.3 (-e) and 1.4.4 (-J).\fP
+.TP
 .B \-h
 Help.  Print usage information and exit.
 .TP
@@ -283,9 +282,6 @@ all of the pcap files in the current directory, use this:
 
 .fi
 .in -.5i
-.TP
-.B \-g
-Output flow information to console in multiple colors. \fBNOTE: This option was changed from tcpflow 1.3.\fP
 .TP
 .B \-m \fImin_size\fP
 Forces a new connection output file when there is a skip in the TCP session
