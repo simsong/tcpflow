@@ -120,16 +120,15 @@ of bytes.  Good thing that modern disks are so big, eh?
 .TP
 .B \-c
 Console print.  Print the contents of packets to stdout as they
-are received, without storing any captured data to files (implies
+are received, without storing any captured data to files (implies \fB\-s\fP).
 .TP
 .B \-C
 Console print without the packet source and destination details being printed.  Print the contents of packets to stdout as they
-are received, without storing any captured data to files (implies
+are received, without storing any captured data to files (implies \fB\-s\fP).
+.TP
 .B \-e
 When outputting to the console each flow will be output in different colors
 (blue for client to server flows, red for server to client flows, green for undecided flows).
-.B -s
-).
 .TP
 .B \-D
 Console output should be in hex. 
