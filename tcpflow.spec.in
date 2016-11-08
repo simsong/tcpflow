@@ -7,7 +7,7 @@ Summary: Network traffic recorder
 Name: tcpflow
 Version: %ver
 Release: %rel
-Copyright: GPLv3
+License: GPLv3
 Group: Console/Networking
 Source: http://afflib.org/downloads/tcpflow-@VERSION@.tar.gz
 BuildRoot: /var/tmp/tcpflow-root
@@ -19,8 +19,8 @@ tcpflow is a program that captures data transmitted as part of TCP connections (
 
 %changelog
 
-* 2012-02-26 Simson Garfinkel <simsong@acm.org> - Rewrite for version 1.2
-* 1999-04-22 Ross Golder <rossigee@bigfoot.com> -  Wrote for version 0.12
+* Sun Feb 26 2012 Simson Garfinkel <simsong@acm.org> - Rewrite for version 1.2
+* Thu Apr 22 1999 Ross Golder <rossigee@bigfoot.com> -  Wrote for version 0.12
 
 %prep
 %setup
@@ -60,5 +60,5 @@ rm -rf $RPM_BUILD_ROOT
 
 %doc AUTHORS COPYING ChangeLog NEWS README
 %{prefix}/bin/*
-%{prefix}/man/man*/*
+%{prefix}/share/man/man*/*
 
