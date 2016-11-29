@@ -369,6 +369,8 @@ static void process_infile(const std::string &expression,const char *device,cons
 	
 	die("%s: %s", infile.c_str(),pcap_geterr(pd));
     }
+    
+    pcap_close(pd);
 }
 
 
