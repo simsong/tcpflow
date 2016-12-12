@@ -1,6 +1,6 @@
 TCPFLOW 1.4.6
 ===========
-Downloads directory: http://www.digitalcorpora.org/downloads/tcpflow/
+Downloads directory: http://digitalcorpora.org/downloads/tcpflow/
 
 
 Compiling

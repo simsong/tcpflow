@@ -32,7 +32,7 @@ pdft:
 #
 
 RELEASE_USER = simsong@
-RELEASE_HOST = www.digitalcorpora.org
+RELEASE_HOST = digitalcorpora.org
 RELEASE_DIR  = digitalcorpora.org/
 
 RELEASE_LOC  = $(RELEASE_DIR)/downloads/

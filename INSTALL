@@ -1,6 +1,6 @@
 Better install instructions will go here.
 
-1 - sh bootstrap.sh
-2 - sh configure
+1 - ./bootstrap.sh
+2 - ./configure
 3 - make
 4 - make install
