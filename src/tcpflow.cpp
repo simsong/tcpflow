@@ -381,6 +381,7 @@ static void process_infile(const std::string &expression,const char *device,cons
     if (pipefd != -1) {
         close (pipefd);
     }
+#endif
 }
 
 
