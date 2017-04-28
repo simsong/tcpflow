@@ -218,7 +218,7 @@ expands to source IP address.
 expands to source IP port.
 .B %B
 expands to destination IP address.
-.B %a
+.B %b
 expands to destination IP port.
 .B %T
 expands to timestamp in ISO8601 format.
