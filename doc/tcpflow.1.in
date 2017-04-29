@@ -218,7 +218,7 @@ expands to source IP address.
 expands to source IP port.
 .B %B
 expands to destination IP address.
-.B %a
+.B %b
 expands to destination IP port.
 .B %T
 expands to timestamp in ISO8601 format.
@@ -327,8 +327,8 @@ Read from a file, but only to complete TCP flows. This option is used when
 .IR tcpflow
 is used to process a series of files that are captured over time.
 For each time period
-\fIn,\fP file  \fIfilen.pcap\fP should be processed with  \fBR -r \fIfilen.pcap\fP,
-while \fIfile(n-1).pcap\fP should be processed with \fIR -R file(n-1).pcap.\fP
+\fIn,\fP file  \fIfile(n).pcap\fP should be processed with  \fB-R \fIfile(n).pcap\fP,
+while \fIfile(n-1).pcap\fP should be processed with \fI-r file(n-1).pcap.\fP
 .TP
 .B \-S\fIname\fB=\fIvalue\fP
 Sets a \fIname\fP parameter to be equal to \fIvalue\fP for a plug-in. 
