@@ -45,6 +45,7 @@ To Compile for Windows with mingw on Fedora Core:
     mingw64-configure
     make
 
+To use CMake, see detailed instructions: [cmake/README.md](./cmake/README.md)
 
 
 Introduction To tcpflow
