@@ -592,7 +592,8 @@ fi
 
 if test "x${Fmissing_library}" != "x" ; then
   AC_MSG_NOTICE([*** You have missing libraries. To install them:])
-  AC_MSG_NOTICE([*** Fedora:  sudo yum install $Fmissing_library])
+  AC_MSG_NOTICE([*** Red Hat: sudo yum install $Fmissing_library])
+  AC_MSG_NOTICE([*** Fedora:  sudo dnf install $Fmissing_library])
   AC_MSG_NOTICE([*** Ubuntu:  sudo apt-get install $Umissing_library])
   AC_MSG_NOTICE([*** MacOS:   sudo port install $Mmissing_library])
 fi
