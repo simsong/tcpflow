@@ -1,15 +1,6 @@
 # This files sets the compiler/linker flags
 # Supported compilers: GCC and Clang
 
-if(NOT CMAKE_COMPILER_IS_GNUCXX AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    message(STATUS "<compilation-flags.cmake> No flag set for your compiler '${CMAKE_CXX_COMPILER_ID}' (only GNU and Clang are supported for the moment)")
-    return()
-endif()
-
-# -g3 => Max debug info for all targets (for any CMAKE_BUILD_TYPE)
-# Replace -g3 by -g2 if produced binaries are too big
-# Binaries may also be stripped to remove all debug info
-add_compile_options(-g3) # -g3 -> include also the MACRO definitions
 
 # Use distcc/ccache if available
 # TODO(olibre): Use "CMAKE_{C,CXX}_COMPILER_LAUNCHER=ccache" with cmake-v3.4
@@ -20,14 +11,34 @@ if(path_ccache AND path_distcc)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "env CCACHE_PREFIX=distcc")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    "env CCACHE_PREFIX=distcc")
 elseif(path_ccache)
-    message(STATUS "<compilation-flags.cmake> Command 'ccache' detected => Use 'ccache' to speed up compilation and link" )
+    message(STATUS "<compilation-flags.cmake> Command 'ccache' detected => Use 'ccache' to speed up compilation and link")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
 elseif(path_distcc)
-    message(STATUS "<compilation-flags.cmake> Command 'distcc' detected => Use 'distcc' to speed up compilation and link" )
+    message(STATUS "<compilation-flags.cmake> Command 'distcc' detected => Use 'distcc' to speed up compilation and link")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE distcc)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    distcc)
 endif()
+
+
+if(NOT CMAKE_COMPILER_IS_GNUCXX AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "<compilation-flags.cmake> Rest of compiler/linker flags are not available for your C++ compiler '${CMAKE_CXX_COMPILER_ID}' (only GNU and Clang are supported for the moment, please help extend these flags for your tools)")
+    return()
+endif()
+
+
+if (BUILD_COLOR)
+    message(STATUS "<compilation-flags.cmake> Detected defined BUILD_COLOR => Use -fdiagnostics-color=${BUILD_COLOR}")
+    add_compile_options (-fdiagnostics-color=${BUILD_COLOR})
+    link_libraries      (-fdiagnostics-color=${BUILD_COLOR})
+endif()
+
+
+# -g3 => Max debug info for all targets (for any CMAKE_BUILD_TYPE)
+# Replace -g3 by -g2 if produced binaries are too big
+# Binaries may also be stripped (at packaging stage) to remove debug info
+add_compile_options(-g3) # -g3 -> include also the MACRO definitions
+
 
 # Compilation flag -march
 if(MARCH STREQUAL "native")
