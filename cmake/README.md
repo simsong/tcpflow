@@ -28,7 +28,7 @@ Clone Git repository and its submodules recursively.
     git clone --recursive https://github.com/simsong/tcpflow
     cd tcpflow
 
-Generate the header `config.h` (autotools check the availibility of libraries and features within your environment).
+Generate the header `config.h` (autotools check the availability of libraries and features within your environment).
 
     ./boostrap.sh
     ./configure
@@ -90,7 +90,7 @@ CMake does not build the project: CMake is not a build tool. CMake generates fil
 
 ### Makefiles
 
-On most Unix-like plateforms, CMake generates *Unix Makefiles* when GNU Make is available. Therefore, command `make` can also be used to build the project.
+On most Unix-like platforms, CMake generates *Unix Makefiles* when GNU Make is available. Therefore, command `make` can also be used to build the project.
 
     mkdir build
     cd    build
@@ -221,7 +221,7 @@ Option `SANITIZE=ON` let you run the run-time code analysis.
 
 ### Optimizations
 
-Option `MARCH` let you control the `CFLAG -march`. In order to use recent processor instructions set, the CMake script uses default option `MARCH=corei7` (`-march=corei7`). You can use `MARCH=native` to request `gcc` to provide the real *cpu-type* used in order to keep a reproductible build on another machine. You can use empty option `MARCH=` to unset flag `-march`.
+Option `MARCH` let you control the `CFLAG -march`. In order to use recent processor instructions set, the CMake script uses default option `MARCH=corei7` (`-march=corei7`). You can use `MARCH=native` to request `gcc` to provide the real *cpu-type* used in order to keep a reproducible build on another machine. You can use empty option `MARCH=` to unset flag `-march`.
 
     cmake .. -DMARCH=native  # Detect corresponding cpu-type before build
     cmake .. -DMARCH=        # Disable flag -march
