@@ -470,6 +470,8 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     /* Now tcp is valid */
     tcp->myflow.tlast = pi.ts;		// most recently seen packet
     tcp->last_packet_number = packet_counter++;
+    tcp->myflow.len += pi.pcap_hdr->len;
+    tcp->myflow.snap_trunc = tcp->myflow.snap_trunc || (pi.pcap_hdr->len > pi.pcap_hdr->caplen);
     tcp->myflow.packet_count++;
 
     /*
