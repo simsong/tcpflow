@@ -83,7 +83,7 @@ bool opt_no_promisc = false;		// true if we should not use promiscious mode
 static void usage(int level)
 {
     std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
-    std::cout << "usage: " << progname << " [-aBcCDhJpsvVZ] [-b max_bytes] [-d debug_level] \n";
+    std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
     std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
     std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] \n";
     std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
@@ -95,7 +95,7 @@ static void usage(int level)
     std::cout << "   -h: print this help message (-hh for more help)\n";
     std::cout << "   -H: print detailed information about each scanner\n";
     std::cout << "   -i: network interface on which to listen\n";
-    std::cout << "   -I: generate temporal packet-> byte index files for each flow (.findex)\n";
+    std::cout << "   -I: write for each flow another file *.findx to provide byte-indexed timestamps\n";
     std::cout << "   -g: output each flow in alternating colors (note change!)\n";
     std::cout << "   -l: treat non-flag arguments as input files rather than a pcap expression\n";
     std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
