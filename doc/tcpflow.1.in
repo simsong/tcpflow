@@ -186,13 +186,20 @@ hash value, is also written to the
 file.
 .TP
 .B \-F[format]
-Specifies format for output filenames. Format specifiers:
+Specifies format for output filenames.
+.RS
+.TP
+Format specifiers:
+.TP
 .B c
-appends the connection counter to ALL filenames.
+Appends the connection counter to ALL filenames.
+.TP
 .B t
-prepends each filename with a Unix timestamp.
+Prepends each filename with a Unix timestamp (seconds since epoch).
+.TP
 .B T
-prepends each filename with an ISO-8601 timestamp.
+Prepends each filename with an ISO-8601 timestamp.
+.TP
 .B X
 Do not output any files (other than the 
 .B DFXML report
