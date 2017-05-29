@@ -53,7 +53,7 @@ tcpflow \- TCP flow recorder
 .BI \-w file\fR\c
 ]
 [\c
-.BI -x\ scanner\fR\c
+.BI \-x \ scanner\fR\c
 ]
 [\c
 .BI \-X \ file.xml\fR\c
@@ -114,9 +114,8 @@ or
 .B \-b \fImax_bytes\fP
 Specifies the maximum size of a captured flow.  Any bytes beyond \fImax_bytes\fP from the
 first byte captured will be discarded.  The default is to store an
-unlimited number of bytes per flow. \fBNote:\fP previous versions of \fBtcpflow\fP could only store
-a maximum of 4GiB per flow, but version 1.4 and above can really store an unlimited amount 
-of bytes.  Good thing that modern disks are so big, eh?
+unlimited number of bytes per flow. \fBNote:\fP before version 1.4, \fBtcpflow\fP could only store
+a maximum of 4GiB per flow.
 .TP
 .B \-c
 Console print.  Print the contents of packets to stdout as they
@@ -176,6 +175,7 @@ If the HTTPBODY was compressed with GZIP, you may get a
 third file as well:
 .in +.5i
 .nf
+
 \fB208.111.153.175.00080-192.168.001.064.37314-HTTPBODY-GZIP\fP
 
 .fi
