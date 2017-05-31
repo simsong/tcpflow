@@ -8,7 +8,7 @@ tcpflow \- TCP flow recorder
 .na
 .B tcpflow
 [\c
-.BI \-aBcCDhpsvVZ\fR\c
+.BI \-aBcCDhIpsvVZ\fR\c
 ]
 [\c
 .BI \-b \ max_bytes\fR\c
@@ -258,7 +258,7 @@ option will report how many file descriptors tcpflow is using.
 .TP
 .B \-g
 Output flow information to console in multiple colors. (Blue for client to server flows, red for server to client flows, green for undecided flows.)
-\fBNOTE: This option was changed from tcpflow 1.3 (-e) and 1.4.4 (-J).\fP
+Note: This option was different from tcpflow 1.3 (-e) and 1.4.4 (-J).
 .TP
 .B \-h
 Help.  Print usage information and exit.
@@ -271,6 +271,23 @@ Interface name.  Capture packets from the network interface
 named \fIiface\fP.  If no interface is specified with
 .B \-i
 , a reasonable default will be used by libpcap automatically.
+.TP
+.B \-I
+Store the reception timestamps (of TCP packets) in a companion file \fB*.findx\fP.
+Therefore each flow will have two files: (1) the usual file containing payload bytes
+and (2) the text file containing the corresponding timestamps.
+This last file \fB*.findx\fP has three columns using the pipe \fB'|'\fP as separator:
+.nf
+
+    \fBbyte-index|timestamp|length\fP
+
+.fi
+The \fBbyte-index\fP column is the postion within the file containing the payload bytes.
+The \fBtimestamp\fP column represents the number of seconds since epoch as a floating point number.
+The precision is the microsecond but may also be the nanosecond in a future tcpflow version.
+The \fBlength\fP column is the number of successive bytes concerned by \fBtimestamp\fP
+and can include several TCP frames (TCP packets).
+The extension \fBfindx\fP may become from the fact that the timestamps are \fBframe indexed\fP.
 .TP
 .B \-L \fIsemlock_name\fP
 Specifies that \fIsemlock_name\fP should be used as a Unix semaphore to prevent two different copies
