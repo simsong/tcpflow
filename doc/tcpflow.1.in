@@ -224,32 +224,6 @@ bin output in 1M directories (2 levels)
 .TP
 .B \-Fg
 bin output in 1G directories (3 levels)
-.B \-T[format]
-Specifies an arbitrary template for filenames. 
-.B %A
-expands to source IP address.
-.B %a
-expands to source IP port.
-.B %B
-expands to destination IP address.
-.B %b
-expands to destination IP port.
-.B %T
-expands to timestamp in ISO8601 format.
-.B %t
-expands to timestamp in Unix time_t format.
-.B %V
-expands to "--" if a VLAN is present.
-.B %v
-expands to the VLAN number if a VLAN is present.
-.B %C
-expands to "c" if the connection count>0.
-.B %c
-expands to the connection count if the connection count>0.
-.B %#
-always expands to the connection count.
-.B %%
-prints a "%".
 .TP
 .B \-f\fImax_fds\fP
 Max file descriptors used.  Limit the number of file descriptors used
@@ -369,6 +343,67 @@ Use \fB-hh\fP to find out all of the settable parameters.
 Strip non-printables.  Convert all non-printable characters to the
 "." character before printing packets to the console or storing them
 to a file.
+.TP
+.B \-T[format]
+Specifies an arbitrary template for filenames.
+.RS
+.TP
+.B %A
+expands to source IP address.
+.TP
+.B %a
+expands to source IP port.
+.TP
+.B %B
+expands to destination IP address.
+.TP
+.B %b
+expands to destination IP port.
+.TP
+.B %T
+expands to timestamp in ISO8601 format.
+.TP
+.B %t
+expands to timestamp in Unix time_t format.
+.TP
+.B %V
+expands to "--" if a VLAN is present.
+.TP
+.B %v
+expands to the VLAN number if a VLAN is present.
+.TP
+.B %C
+expands to "c" if the connection count>0.
+.TP
+.B %c
+expands to the connection count if the connection count>0.
+.TP
+.B %#
+always expands to the connection count.
+.TP
+.B %N
+(connection_number )             % 1000
+.TP
+.B %K
+(connection_number / 1000)       % 1000
+.TP
+.B %M
+(connection_number / 1000000)    % 1000
+.TP
+.B %G
+(connection_number / 1000000000) % 1000
+.TP
+.B %%
+prints a "%".
+.TP
+.RE
+When the option \fB\-T\fP is used, \fBtcpflow\fP ignores options \fB\-Fk\fP, \fB\-Fm\fP and \fB\-Fg\fP.
+However, the option \fB\-T\fP handles \fB'/'\fP within the filename template patern to create sub-directories.
+For example the following line will create a directory tree \fBout/IP-src/port-src/IP-dst/port-dst\fP.
+.nf
+
+    \fBtcpflow -r packets.pcap -o out -T %A/%a/%B/%b/%c%N.flow\fP
+.fi
 .TP
 .B \-V
 Print the version number and exit.
