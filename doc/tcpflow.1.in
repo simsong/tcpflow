@@ -181,7 +181,9 @@ third file as well:
 .fi
 .in -.5i
 Additional information about these streams, such as their MD5
-hash value, is also written to the DFXML file
+hash value, is also written to the
+.B DFXML report
+file.
 .TP
 .B \-F[format]
 Specifies format for output filenames.
@@ -200,14 +202,19 @@ Prepends each filename with an ISO-8601 timestamp.
 .TP
 .B X
 Do not output any files (other than the 
-.B report.xml 
-report files).
+.B DFXML report
+file).
+.RE
 .TP
 .B \-FM
-Include MD5 of each flow in the DFXML output.
+Include MD5 of each flow in the
+.B DFXML report
+file.
 .TP
 .B \-FX
-Suppresses file output entirely (DFXML file is still produced).
+Suppresses file output entirely,
+.B DFXML report
+file is still produced.
 .TP
 .B \-Fk
 bin output in 1K directories
@@ -375,8 +382,15 @@ Write packets that were not processed to \fIfilename.pcap\fP. Typically this wil
 UDP packets.
 .TP
 .B \-X \fIfilename.xml\fP
-Write a DFXML report file to \fIfilename.xml\fP. The file contains a record of every 
+Write a
+.B DFXML report
+to \fIfilename.xml\fP. The file contains a record of every
 tcp connection, how the tcpflow program was compiled, and the computer on which tcpflow was run.
+By default
+.B tcpflow
+writes the
+.B DFXML report
+in file \fIreport.xml\fP.
 .TP
 .B \-Z
 Don't decompress gzip-compressed streams. 
