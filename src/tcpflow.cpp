@@ -75,9 +75,6 @@ scanner_t *scanners_builtin[] = {
 #endif
     0};
 
-// Define a global variable to hold commandline argument for python plugin extension
-std::string pyPluginArg;
-
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
 
 /****************************************************************
@@ -501,10 +498,6 @@ int main(int argc, char *argv[])
 	    be13::plugin::scanners_enable(optarg);
 	    break;
     case 'e':
-        if (!strcmp(optarg,"python")) {
-            std::cerr << "Error: Scanner 'python' is reserved for option '-P'.\n";
-            exit(1)
-        }
         be13::plugin::scanners_enable(optarg);
         demux.opt.post_processing = true; // enable post processing if anything is turned on
         break;
@@ -551,13 +544,7 @@ int main(int argc, char *argv[])
             flow::outdir = optarg;
             break;
     case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
-    case 'P':  // Python plugin extension.
-        be13::plugin::scanners_enable("python");
-        // Pass optional commandline argument to our global variable for later use in scan_python
-        pyPluginArg = optarg;
-        demux.opt.post_processing = true; // enable post processing if anything is turned on
-        break;
-        case 'q': opt_quiet = true; break;
+    case 'q': opt_quiet = true; break;
     case 'R': Rfiles.push_back(optarg); break;
     case 'r': rfiles.push_back(optarg); break;
     case 'S':
