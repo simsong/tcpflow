@@ -172,6 +172,7 @@ set (tcpflow_cpp datalink.cpp flow.cpp
     util.cpp
     scan_md5.cpp
     scan_http.cpp       # Depends on zlib
+    scan_python.cpp
     scan_tcpdemux.cpp
     scan_netviz.cpp
     pcap_writer.h
