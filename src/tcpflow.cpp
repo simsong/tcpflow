@@ -509,7 +509,7 @@ int main(int argc, char *argv[])
             	demux.opt.post_processing = true; // enable post processing if anything is turned on 
             }
 	    break;
-	// Introduce a new commandline option for python plugin extension.
+	// Python plugin extension.
 	case 'P':
 	    be13::plugin::scanners_enable("custom");
 
