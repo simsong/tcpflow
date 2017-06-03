@@ -453,7 +453,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:P:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z:0")) != EOF) {
+    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pP:qR:r:S:sT:Vvw:x:X:Z:0")) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -500,25 +500,15 @@ int main(int argc, char *argv[])
 	    be13::plugin::scanners_disable_all();
 	    be13::plugin::scanners_enable(optarg);
 	    break;
-        case 'e':
-	    if (!strcmp(optarg,"python")) {
-	    	printf("'Custom' scanner is reserved for option 'P'.\n");
-	    }      
-	    else {
-	    	be13::plugin::scanners_enable(optarg);
-            	demux.opt.post_processing = true; // enable post processing if anything is turned on 
-            }
-	    break;
-	// Python plugin extension.
-	case 'P':
-	    be13::plugin::scanners_enable("python");
-
-	    // Pass optional commandline argument to our global variable for later use in scan_python
-	    pyPluginArg = optarg;
-	
-            demux.opt.post_processing = true; // enable post processing if anything is turned on 
-            break;
-	case 'F':
+    case 'e':
+        if (!strcmp(optarg,"python")) {
+            std::cerr << "Error: Scanner 'python' is reserved for option '-P'.\n";
+            exit(1)
+        }
+        be13::plugin::scanners_enable(optarg);
+        demux.opt.post_processing = true; // enable post processing if anything is turned on
+        break;
+    case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){
 		case 'c': replace(flow::filename_template,"%c","%C"); break;
@@ -560,11 +550,17 @@ int main(int argc, char *argv[])
             demux.outdir = optarg;
             flow::outdir = optarg;
             break;
-	case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
+    case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
+    case 'P':  // Python plugin extension.
+        be13::plugin::scanners_enable("python");
+        // Pass optional commandline argument to our global variable for later use in scan_python
+        pyPluginArg = optarg;
+        demux.opt.post_processing = true; // enable post processing if anything is turned on
+        break;
         case 'q': opt_quiet = true; break;
-	case 'R': Rfiles.push_back(optarg); break;
-	case 'r': rfiles.push_back(optarg); break;
-        case 'S':
+    case 'R': Rfiles.push_back(optarg); break;
+    case 'r': rfiles.push_back(optarg); break;
+    case 'S':
 	    {
 		std::vector<std::string> params = split(optarg,'=');
 		if(params.size()!=2){
