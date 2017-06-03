@@ -316,7 +316,7 @@ void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((f
 
 extern "C" scanner_t scan_md5;
 extern "C" scanner_t scan_http;
-extern "C" scanner_t scan_custom;
+extern "C" scanner_t scan_python;
 extern "C" scanner_t scan_tcpdemux;
 extern "C" scanner_t scan_netviz;
 extern "C" scanner_t scan_wifiviz;

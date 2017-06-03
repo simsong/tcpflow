@@ -67,7 +67,7 @@ sem_t *semlock = 0;
 scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
-    scan_custom,
+    scan_python,
     scan_netviz,
     scan_tcpdemux,
 #ifdef USE_WIFI
@@ -501,7 +501,7 @@ int main(int argc, char *argv[])
 	    be13::plugin::scanners_enable(optarg);
 	    break;
         case 'e':
-	    if (!strcmp(optarg,"custom")) {
+	    if (!strcmp(optarg,"python")) {
 	    	printf("'Custom' scanner is reserved for option 'P'.\n");
 	    }      
 	    else {
@@ -511,9 +511,9 @@ int main(int argc, char *argv[])
 	    break;
 	// Python plugin extension.
 	case 'P':
-	    be13::plugin::scanners_enable("custom");
+	    be13::plugin::scanners_enable("python");
 
-	    // Pass optional commandline argument to our global variable for later use in scan_custom
+	    // Pass optional commandline argument to our global variable for later use in scan_python
 	    pyPluginArg = optarg;
 	
             demux.opt.post_processing = true; // enable post processing if anything is turned on 

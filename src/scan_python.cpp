@@ -1,6 +1,6 @@
 /**
  *
- * scan_custom;
+ * scan_python;
  */
 
 #include "config.h"
@@ -15,16 +15,16 @@
 extern std::string pyPluginArg;
 
 extern "C"
-void  scan_custom(const class scanner_params &sp,const recursion_control_block &rcb)
+void  scan_python(const class scanner_params &sp,const recursion_control_block &rcb)
 {
         if(sp.sp_version!=scanner_params::CURRENT_SP_VERSION){
-	std::cerr << "scan_custom requires sp version " << scanner_params::CURRENT_SP_VERSION << "; "
+	std::cerr << "scan_python requires sp version " << scanner_params::CURRENT_SP_VERSION << "; "
 		  << "got version " << sp.sp_version << "\n";
 	exit(1);
     }
 
     if(sp.phase==scanner_params::PHASE_STARTUP){
-	sp.info->name  = "custom";
+	sp.info->name  = "python";
 	sp.info->flags = scanner_info::SCANNER_DISABLED;
         return;     /* No feature files created */
     }
