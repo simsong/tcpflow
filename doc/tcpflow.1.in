@@ -185,7 +185,7 @@ hash value, is also written to the
 .B DFXML report
 file.
 .TP
-.B \-e python \-S pyPath=path \-S pyModule=module \-S pyFunction=foo
+.B \-e python \-S py_path=path \-S py_module=module \-S py_function=foo
 Post-process TCP payload by an external python function.
 .RS
 .PP
@@ -200,7 +200,7 @@ in directory \fBpython/plugins\fP.
 Example:
 .PP
 .nf
-    \fBtcpflow -r my.cap -e python -S pyPath=python/plugins -S pyModule=samplePlugin -S pyFunction=sampleFunction\fP
+    \fBtcpflow -r my.cap -e python -S py_path=python/plugins -S py_module=samplePlugin -S py_function=sampleFunction\fP
 .fi
 .RE
 .TP

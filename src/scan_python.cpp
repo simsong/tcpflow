@@ -20,30 +20,30 @@
 struct ScanPython
 {
     ScanPython()
-        : path()
-        , module()
-        , function()
-        , initializationScript()
+        : py_path()
+        , py_module()
+        , py_function()
+        , init_script()
 #if HAVE_PYTHON2_7_PYTHON_H
         , pythonFunction (NULL)
 #endif
     { }
 
     ScanPython(const ScanPython& o)
-        : path(o.path)
-        , module(o.module)
-        , function(o.function)
-        , initializationScript(o.initializationScript)
+        : py_path(o.py_path)
+        , py_module(o.py_module)
+        , py_function(o.py_function)
+        , init_script(o.init_script)
 #if HAVE_PYTHON2_7_PYTHON_H
         , pythonFunction (NULL)
 #endif
     { }
 
     ScanPython& operator=(const ScanPython& o) {
-        path                 = o.path;
-        module               = o.module;
-        function             = o.function;
-        initializationScript = o.initializationScript;
+        py_path     = o.py_path;
+        py_module   = o.py_module;
+        py_function = o.py_function;
+        init_script = o.init_script;
 #if HAVE_PYTHON2_7_PYTHON_H
         pythonFunction = NULL;
 #endif
@@ -56,10 +56,10 @@ struct ScanPython
     void scan(const scanner_params& sp);
     void shutdown();
 
-    std::string path;
-    std::string module;
-    std::string function;
-    std::string initializationScript;
+    std::string py_path;
+    std::string py_module;
+    std::string py_function;
+    std::string init_script;
 
 #if HAVE_PYTHON2_7_PYTHON_H
     PyObject* pythonFunction;
@@ -79,14 +79,9 @@ void ScanPython::startup(const scanner_params& sp)
     sp.info->name = "python";
     sp.info->flags = scanner_info::SCANNER_DISABLED;
 
-    sp.info->get_config("pyPath", &path, "    Directory to find python module (optional)");
-    sp.info->get_config("pyModule", &module, "  Name of python module (script name without extension)");
-    sp.info->get_config("pyFunction", &function, "Function name within the python module");
-
-    if (module.empty() || function.empty()) {
-        DEBUG(1)("[scan_python] Cannot call python becase no provided module/function.\n"
-                 "\t\t\t\t"  "Please use arguments -S pyModule=module -S pyFunction=foo");
-    }
+    sp.info->get_config("py_path", &py_path, "    Directory to find python module (optional)");
+    sp.info->get_config("py_module", &py_module, "  Name of python module (script name without extension)");
+    sp.info->get_config("py_function", &py_function, "Function name within the python module");
 }
 
 
@@ -102,34 +97,35 @@ static std::string get_working_dir(const std::string& path)
     }
 }
 
-void ScanPython::init(const scanner_params& sp)
+void ScanPython::init(const scanner_params& /*sp*/)
 {
-    if (module.empty() || function.empty()) {
+    if (py_module.empty() || py_function.empty()) {
         DEBUG(1)("[scan_python] Cannot call python becase no provided module/function."  "\n"
-                 "\t\t\t\t"  "Please use arguments -S pyModule=module -S pyFunction=foo" "\n"
-                 "\t\t\t\t"  "The scanner 'python' is disabled to avoid warning messages.");
-        sp.info->flags = scanner_info::SCANNER_DISABLED;
+                 "\t\t\t\t"  "Please use arguments -S py_module=module -S py_function=foo" );
+        // "\n"  "\t\t\t\t"  "The scanner 'python' is disabled to avoid warning messages.");
+        // sp.info->flags = scanner_info::SCANNER_DISABLED;
+        // TODO(simsong): Should we disable the scanner to avoid warnings?
         return;
     }
 
     // Write the initialization script to set directory to the local system path
-    initializationScript = "import sys, os"                          "\n"
-                           "workingDir = " + get_working_dir(path) + "\n"
+    init_script = "import sys, os"                          "\n"
+                           "workingDir = " + get_working_dir(py_path) + "\n"
                            "sys.path.append(workingDir)"             "\n";
 
 #if HAVE_PYTHON2_7_PYTHON_H
     // Spawn python interpreter
     Py_Initialize();
 
-    DEBUG(10) ("[scan_python]  Initialize Python using script:" "\n" "%s", initializationScript.c_str());
-    PyRun_SimpleString(initializationScript.c_str());
+    DEBUG(10) ("[scan_python]  Initialize Python using script:" "\n" "%s", init_script.c_str());
+    PyRun_SimpleString(init_script.c_str());
 
     // Create PyObject from script filename
-    PyObject* pName = PyString_FromString(module.c_str());
+    PyObject* pName = PyString_FromString(py_module.c_str());
     if (pName == NULL) {
         DEBUG(2) ("[scan_python] Cannot create PyObject from path='%s' and module='%s'"   "\n"
-                  "\t\t\t" "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
-                  path.c_str(), module.c_str());
+                  "\t\t\t" "Try using three arguments: -S py_path=path -S py_module=module -S py_function=foo",
+                  py_path.c_str(), py_module.c_str());
         return;
     }
 
@@ -137,23 +133,24 @@ void ScanPython::init(const scanner_params& sp)
     PyObject* pModule = PyImport_Import(pName);
     if (pModule == NULL) {
         DEBUG(2) ("[scan_python] Cannot import module='%s' from path='%s' in Python interpreter"   "\n"
-                  "\t\t\t" "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
-                  module.c_str(), path.c_str());
+                  "\t\t\t" "Try using three arguments: -S py_path=path -S py_module=module -S py_function=foo",
+                  py_module.c_str(), py_path.c_str());
         return;
     }
 
     // Identify function to be used
-    pythonFunction = PyObject_GetAttrString(pModule, function.c_str());
+    pythonFunction = PyObject_GetAttrString(pModule, py_function.c_str());
     if (pythonFunction == NULL) {
         DEBUG(2) ("[scan_python] Cannot identify function='%s' in module='%s' from path='%s'"   "\n"
-                  "\t\t\t" "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
-                  function.c_str(), module.c_str(), path.c_str());
+                  "\t\t\t" "Try using three arguments: -S py_path=path -S py_module=module -S py_function=foo",
+                  py_function.c_str(), py_module.c_str(), py_path.c_str());
         return;
     }
 #endif
 }
 
 
+// TODO(simsong): Why is PHASE_THREAD_BEFORE_SCAN never processed?
 void ScanPython::before()
 {
 }
@@ -165,8 +162,9 @@ void ScanPython::scan(const scanner_params& sp)
     if (pythonFunction == NULL) {
         init(sp);
         if (pythonFunction == NULL) {
-            DEBUG(1)("[scan_python] Cannot initialize => Disabled the scanner to avoid warning messages.");
-            sp.info->flags = scanner_info::SCANNER_DISABLED;
+            // DEBUG(1)("[scan_python] Cannot initialize => Disabled the scanner to avoid warning messages.");
+            // sp.info->flags = scanner_info::SCANNER_DISABLED;
+            // TODO(simsong): Should we disable the scanner to avoid warnings?
             return;
         }
     }

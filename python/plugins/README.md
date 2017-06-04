@@ -10,7 +10,7 @@ To execute customizable python plugins:
   - If an intended function returns, it must return a string,  
     which will then be added to the report.xml file with the "plugindata" tag.
 
-3. Execute the `tcpflow` command line with arguments `-e python -S pyPath=path -S pyModule=module -S pyFunction=foo`.  
+3. Execute the `tcpflow` command line with arguments `-e python -S py_path=path -S py_module=module -S py_function=foo`.  
    Example:
 
-	    tcpflow -r my.cap -o flows -e python -S pyPath=python/plugins -S pyModule=samplePlugin -S pyFunction=sampleFunction
+	    tcpflow -r my.cap -o flows -e python -S py_path=python/plugins -S py_module=samplePlugin -S py_function=sampleFunction
