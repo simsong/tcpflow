@@ -64,7 +64,7 @@ case $host in
      CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -g $CPPFLAGS"
      CPPFLAGS="$CPPFLAGS --static"
      CFLAGS="$CFLAGS --static -static-libgcc -static-libstdc++"
-     CXXFLAGS="$CXXFLAGS -Wno-format"  # compiler mingw-4.3.0 is broken on I64u formats
+     CXXFLAGS="$CXXFLAGS -Wno-format "  # compiler mingw-4.3.0 is broken on I64u formats
      CXXFLAGS="$CXXFLAGS --static -static-libgcc -static-libstdc++"
      LDFLAGS="$LDFLAGS --static"
      mingw="yes"
@@ -246,7 +246,7 @@ else
     echo Using settings from [AX_PTHREAD]
     LIBS="$PTHREAD_LIBS $LIBS"
     CFLAGS="  $PTHREAD_CFLAGS $CFLAGS"
-    CXXFLAGS="$PTHREAD_CFLAGS $CXXFLAGS"
+    CXXFLAGS="$PTHREAD_CFLAGS $CXXFLAGS "
     CPPFLAGS="$PTHREAD_CFLAGS $CPPFLAGS "
     CC="$PTHREAD_CC"
   ])
