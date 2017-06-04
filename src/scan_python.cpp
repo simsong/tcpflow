@@ -51,7 +51,7 @@ struct ScanPython
     }
 
     void startup(const scanner_params& sp);
-    void init();
+    void init(const scanner_params& sp);
     void before();
     void scan(const scanner_params& sp);
     void shutdown();
@@ -86,7 +86,6 @@ void ScanPython::startup(const scanner_params& sp)
     if (module.empty() || function.empty()) {
         DEBUG(1)("[scan_python] Cannot call python becase no provided module/function.\n"
                  "\t\t\t\t"  "Please use arguments -S pyModule=module -S pyFunction=foo");
-        exit(1);
     }
 }
 
@@ -103,8 +102,16 @@ static std::string get_working_dir(const std::string& path)
     }
 }
 
-void ScanPython::init()
+void ScanPython::init(const scanner_params& sp)
 {
+    if (module.empty() || function.empty()) {
+        DEBUG(1)("[scan_python] Cannot call python becase no provided module/function."  "\n"
+                 "\t\t\t\t"  "Please use arguments -S pyModule=module -S pyFunction=foo" "\n"
+                 "\t\t\t\t"  "The scanner 'python' is disabled to avoid warning messages.");
+        sp.info->flags = scanner_info::SCANNER_DISABLED;
+        return;
+    }
+
     // Write the initialization script to set directory to the local system path
     initializationScript = "import sys, os"                          "\n"
                            "workingDir = " + get_working_dir(path) + "\n"
@@ -120,8 +127,8 @@ void ScanPython::init()
     // Create PyObject from script filename
     PyObject* pName = PyString_FromString(module.c_str());
     if (pName == NULL) {
-        DEBUG(2) ("[scan_python] Cannot create PyObject from path='%s' and module='%s'"
-                  "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
+        DEBUG(2) ("[scan_python] Cannot create PyObject from path='%s' and module='%s'"   "\n"
+                  "\t\t\t" "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
                   path.c_str(), module.c_str());
         return;
     }
@@ -129,8 +136,8 @@ void ScanPython::init()
     // Import script file in python interpreter
     PyObject* pModule = PyImport_Import(pName);
     if (pModule == NULL) {
-        DEBUG(2) ("[scan_python] Cannot import module='%s' from path='%s' in Python interpreter"
-                  "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
+        DEBUG(2) ("[scan_python] Cannot import module='%s' from path='%s' in Python interpreter"   "\n"
+                  "\t\t\t" "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
                   module.c_str(), path.c_str());
         return;
     }
@@ -138,8 +145,8 @@ void ScanPython::init()
     // Identify function to be used
     pythonFunction = PyObject_GetAttrString(pModule, function.c_str());
     if (pythonFunction == NULL) {
-        DEBUG(2) ("[scan_python] Cannot identify function='%s' in module='%s' from path='%s'"
-                  "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
+        DEBUG(2) ("[scan_python] Cannot identify function='%s' in module='%s' from path='%s'"   "\n"
+                  "\t\t\t" "Try using three arguments: -S pyPath=path -S pyModule=module -S pyFunction=foo",
                   function.c_str(), module.c_str(), path.c_str());
         return;
     }
@@ -156,9 +163,12 @@ void ScanPython::scan(const scanner_params& sp)
 {
 #if HAVE_PYTHON2_7_PYTHON_H
     if (pythonFunction == NULL) {
-        init();
-        if (pythonFunction == NULL)
+        init(sp);
+        if (pythonFunction == NULL) {
+            DEBUG(1)("[scan_python] Cannot initialize => Disabled the scanner to avoid warning messages.");
+            sp.info->flags = scanner_info::SCANNER_DISABLED;
             return;
+        }
     }
 
     // Cast packet buffer contents into a string and create pyObject
@@ -218,7 +228,7 @@ extern "C" void scan_python(const scanner_params& sp,
 
     // Should be called in main thread after all scanners loaded (but never called)
     case scanner_params::PHASE_INIT:
-        singleton.init();
+        singleton.init(sp);
         break;
 
     // Called in worker thread before first scan
