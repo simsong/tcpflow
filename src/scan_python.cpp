@@ -19,6 +19,29 @@
 
 struct ScanPython
 {
+    ScanPython() : path(), module(), function(), initializationScript(),
+#if HAVE_PYTHON2_7_PYTHON_H
+        pythonFunction (NULL)
+#endif
+    { }
+
+    ScanPython(const ScanPython& o) : path(o.path), module(o.module), function(o.function), initializationScript(o.initializationScript),
+#if HAVE_PYTHON2_7_PYTHON_H
+        pythonFunction (NULL)
+#endif
+    { }
+
+    ScanPython& operator=(const ScanPython& o) {
+        path                 = o.path;
+        module               = o.module;
+        function             = o.function;
+        initializationScript = o.initializationScript;
+#if HAVE_PYTHON2_7_PYTHON_H
+        pythonFunction = NULL;
+#endif
+        return *this;
+    }
+
     void startup(const scanner_params& sp);
     void init();
     void before();
@@ -51,11 +74,8 @@ void ScanPython::startup(const scanner_params& sp)
     sp.info->get_config("pyPath", &path, "    Directory to find python module (optional)");
     sp.info->get_config("pyModule", &module, "  Name of python module (script name without extension)");
     sp.info->get_config("pyFunction", &function, "Function name within the python module");
-
-#if HAVE_PYTHON2_7_PYTHON_H
-    pythonFunction = NULL;
-#endif
 }
+
 
 static std::string get_working_dir(const std::string& path)
 {
@@ -71,13 +91,6 @@ static std::string get_working_dir(const std::string& path)
 
 void ScanPython::init()
 {
-#ifndef HAVE_PYTHON2_7_PYTHON_H
-    DEBUG(2)
-    ("[scan_python] tcpflow cannot call python scripts required by the scanner 'python' "
-     "because the header <python2.7/Python.h> was not present during the tcpflow build. "
-     "Try to install package 'python-devel' and build again tcpflow (./configure)");
-#endif
-
     if (module.empty() || function.empty()) {
         DEBUG(2)("[scan_python] Cannot call python becase no provided module/function.\n"
                  "              Please use arguments -S pyModule=module -S pyFunction=foo");
@@ -160,6 +173,11 @@ void ScanPython::scan(const scanner_params& sp)
                 (*sp.sxml) << "<scan_python_result/>";
         }
     }
+#else
+    DEBUG(2)
+    ("[scan_python] tcpflow cannot call python scripts required by the scanner 'python' "
+     "because the header <python2.7/Python.h> was not present during the tcpflow build. "
+     "Try to install package 'python-devel' and build again tcpflow (./configure)");
 #endif
 }
 
