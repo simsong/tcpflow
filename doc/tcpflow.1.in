@@ -185,6 +185,25 @@ hash value, is also written to the
 .B DFXML report
 file.
 .TP
+.B \-e python \-S pyPath=path \-S pyModule=module \-S pyFunction=foo
+Post-process TCP payload by an external python function.
+.RS
+.PP
+The python function must take a single string parameter.
+The python function can return a string (else the function does must not return).
+The returned string (if any) is written in the
+.B DFXML report
+file inside the XML tag \fB<scan_python_result>...</scan_python_result>\fP.
+A sample python script is available within the tcpflow source code
+in directory \fBpython/plugins\fP.
+.PP
+Example:
+.PP
+.nf
+    \fBtcpflow -r my.cap -e python -S pyPath=python/plugins -S pyModule=samplePlugin -S pyFunction=sampleFunction\fP
+.fi
+.RE
+.TP
 .B \-F[format]
 Specifies format for output filenames.
 .RS
