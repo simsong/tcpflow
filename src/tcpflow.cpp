@@ -8,6 +8,7 @@
  */
 
 #define __MAIN_C__
+
 #include "config.h"
 
 #include "tcpflow.h"
@@ -66,8 +67,8 @@ sem_t *semlock = 0;
 scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
-    scan_python,
     scan_netviz,
+    scan_python,
     scan_tcpdemux,
 #ifdef USE_WIFI
     scan_wifiviz,
@@ -85,7 +86,7 @@ static void usage(int level)
     std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
     std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
     std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
-    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file]\n";
+    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] \n";
     std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
     std::cout << "      [expression]\n\n";
     std::cout << "   -a: do ALL post-processing.\n";
@@ -449,135 +450,135 @@ int main(int argc, char *argv[])
     bool trailing_input_list = false;
     int arg;
     while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z:0")) != EOF) {
-        switch (arg) {
-        case 'a':
-            demux.opt.post_processing = true;
-            demux.opt.opt_md5 = true;
+	switch (arg) {
+	case 'a':
+	    demux.opt.post_processing = true;
+	    demux.opt.opt_md5 = true;
             be13::plugin::scanners_enable_all();
-            break;
+	    break;
 
-        case 'A':
-            fprintf(stderr,"-AH has been deprecated. Just use -a\n");
-            need_usage=true;
-            break;
+	case 'A':
+	    fprintf(stderr,"-AH has been deprecated. Just use -a\n");
+	    need_usage=true;
+	    break;
 
-        case 'b':
-            demux.opt.max_bytes_per_flow = atoi(optarg);
-            if(debug > 1) {
-                std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
-            }
-            break;
-        case 'B':
+	case 'b':
+	    demux.opt.max_bytes_per_flow = atoi(optarg);
+	    if(debug > 1) {
+		std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
+	    }
+	    break;
+	case 'B':
             force_binary_output = true;
-            demux.opt.output_strip_nonprint  = false;	DEBUG(10) ("converting non-printable characters to '.'");
-            break;
-        case 'C':
-            demux.opt.console_output  = true;	DEBUG(10) ("printing packets to console only");
-            demux.opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
-            break;
-        case 'c':
-            demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
-            break;
-        case '0':
-            demux.opt.console_output_nonewline = true;
-            break;
-        case 'd':
-            if ((debug = atoi(optarg)) < 0) {
-                debug = DEFAULT_DEBUG_LEVEL;
-                DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
-            }
-            break;
+	    demux.opt.output_strip_nonprint  = false;	DEBUG(10) ("converting non-printable characters to '.'");
+	    break;
+	case 'C':
+	    demux.opt.console_output  = true;	DEBUG(10) ("printing packets to console only");
+	    demux.opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
+	    break;
+	case 'c':
+	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
+	    break;
+    case '0':
+	    demux.opt.console_output_nonewline = true;
+	    break;
+	case 'd':
+	    if ((debug = atoi(optarg)) < 0) {
+		debug = DEFAULT_DEBUG_LEVEL;
+		DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
+	    }
+	    break;
         case 'D':
             demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
-            demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
+	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
             break;
-        case 'E':
-            be13::plugin::scanners_disable_all();
-            be13::plugin::scanners_enable(optarg);
-            break;
+	case 'E':
+	    be13::plugin::scanners_disable_all();
+	    be13::plugin::scanners_enable(optarg);
+	    break;
         case 'e':
             be13::plugin::scanners_enable(optarg);
             demux.opt.post_processing = true; // enable post processing if anything is turned on
             break;
-        case 'F':
-            for(const char *cc=optarg;*cc;cc++){
-                switch(*cc){
-                case 'c': replace(flow::filename_template,"%c","%C"); break;
+	case 'F':
+	    for(const char *cc=optarg;*cc;cc++){
+		switch(*cc){
+		case 'c': replace(flow::filename_template,"%c","%C"); break;
                 case 'k': flow::filename_template = "%K/" + flow::filename_template; break;
                 case 'm': flow::filename_template = "%M000-%M999/%M%K/" + flow::filename_template; break;
                 case 'g': flow::filename_template = "%G000000-%G999999/%G%M000-%G%M999/%G%M%K/" + flow::filename_template; break;
-                case 't': flow::filename_template = "%tT" + flow::filename_template; break;
-                case 'T': flow::filename_template = "%T"  + flow::filename_template; break;
-                case 'X': demux.opt.store_output = false;break;
-                case 'M': demux.opt.opt_md5 = true;break;
-                default:
-                    fprintf(stderr,"-F invalid format specification '%c'\n",*cc);
-                    need_usage = true;
-                }
-            }
-            break;
-        case 'f':
+		case 't': flow::filename_template = "%tT" + flow::filename_template; break;
+		case 'T': flow::filename_template = "%T"  + flow::filename_template; break;
+		case 'X': demux.opt.store_output = false;break;
+		case 'M': demux.opt.opt_md5 = true;break;
+		default:
+		    fprintf(stderr,"-F invalid format specification '%c'\n",*cc);
+		    need_usage = true;
+		}
+	    }
+	    break;
+	case 'f':
         {
             int mnew = atoi(optarg);
             DEBUG(1)("changing max_fds from %d to %d",demux.max_fds,mnew);
             demux.max_fds = mnew;
-            break;
+	    break;
         }
-        case 'i': device = optarg; break;
-        case 'I':
-            DEBUG(10) ("creating packet index files");
-            demux.opt.output_packet_index = true;
-            break;
-        case 'g':
-            demux.opt.use_color  = 1;
-            DEBUG(10) ("using colors");
-            break;
+	case 'i': device = optarg; break;
+ 	case 'I':
+ 		DEBUG(10) ("creating packet index files");
+ 		demux.opt.output_packet_index = true;
+ 		break;
+	case 'g':
+	    demux.opt.use_color  = 1;
+	    DEBUG(10) ("using colors");
+	    break;
         case 'l': trailing_input_list = true; break;
-        case 'L': lockname = optarg; break;
-        case 'm':
-            demux.opt.max_seek = atoi(optarg);
-            DEBUG(10) ("max_seek set to %d",demux.opt.max_seek); break;
-        case 'o':
+	case 'L': lockname = optarg; break;
+	case 'm':
+	    demux.opt.max_seek = atoi(optarg);
+	    DEBUG(10) ("max_seek set to %d",demux.opt.max_seek); break;
+	case 'o':
             demux.outdir = optarg;
             flow::outdir = optarg;
             break;
-        case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
+	case 'p': opt_no_promisc = true; DEBUG(10) ("NOT turning on promiscuous mode"); break;
         case 'q': opt_quiet = true; break;
-        case 'R': Rfiles.push_back(optarg); break;
-        case 'r': rfiles.push_back(optarg); break;
+	case 'R': Rfiles.push_back(optarg); break;
+	case 'r': rfiles.push_back(optarg); break;
         case 'S':
-        {
-            std::vector<std::string> params = split(optarg,'=');
-            if(params.size()!=2){
-                std::cerr << "Invalid paramter: " << optarg << "\n";
-                exit(1);
-            }
-            be_config.namevals[params[0]] = params[1];
-            continue;
-        }
+	    {
+		std::vector<std::string> params = split(optarg,'=');
+		if(params.size()!=2){
+		    std::cerr << "Invalid paramter: " << optarg << "\n";
+		    exit(1);
+		}
+		be_config.namevals[params[0]] = params[1];
+		continue;
+	    }
 
-        case 's':
+	case 's':
             demux.opt.output_strip_nonprint = 1; DEBUG(10) ("converting non-printable characters to '.'");
             break;
-        case 'T':
+	case 'T':
             flow::filename_template = optarg;
             if(flow::filename_template.find("%c")==std::string::npos){
                 flow::filename_template += std::string("%C%c"); // append %C%c if not present
             }
             break;
-        case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
-        case 'v': debug = 10; break;
+	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
+	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
-        case 'x': be13::plugin::scanners_disable(optarg);break;
-        case 'X': reportfilename = optarg;break;
-        case 'Z': demux.opt.gzip_decompress = 0; break;
-        case 'H': opt_Help += 1; break;
-        case 'h': opt_help += 1; break;
-        default:
-            DEBUG(1) ("error: unrecognized switch '%c'", arg);
-            opt_help += 1;
-            break;
-        }
+	case 'x': be13::plugin::scanners_disable(optarg);break;
+	case 'X': reportfilename = optarg;break;
+	case 'Z': demux.opt.gzip_decompress = 0; break;
+	case 'H': opt_Help += 1; break;
+	case 'h': opt_help += 1; break;
+	default:
+	    DEBUG(1) ("error: unrecognized switch '%c'", arg);
+	    opt_help += 1;
+	    break;
+	}
     }
 
 
