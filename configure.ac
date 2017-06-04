@@ -246,7 +246,7 @@ else
     echo Using settings from [AX_PTHREAD]
     LIBS="$PTHREAD_LIBS $LIBS"
     CFLAGS="  $PTHREAD_CFLAGS $CFLAGS"
-    CXXFLAGS="$PTHREAD_CFLAGS $CXXFLAGS -I/usr/include/python2.7 -lpython2.7"
+    CXXFLAGS="$PTHREAD_CFLAGS $CXXFLAGS"
     CPPFLAGS="$PTHREAD_CFLAGS $CPPFLAGS "
     CC="$PTHREAD_CC"
   ])
@@ -554,6 +554,7 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 # If the header is not present => Disable the source code of the plugin
 #
 AC_CHECK_HEADERS(python2.7/Python.h)  # ==> #define HAVE_PYTHON2_7_PYTHON_H
+AC_CHECK_LIB(python2.7)
 
 ############## drop optimization flags if requested ################
 
