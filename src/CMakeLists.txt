@@ -104,6 +104,7 @@ file (GLOB netviz_cpp netviz/*.cpp)
 file (GLOB netviz_h   netviz/*.h)
 source_group("netviz headers" FILES ${netviz_h})
 add_library (netviz  ${netviz_cpp}  ${netviz_h})
+target_link_libraries(netviz cairo)
 target_include_directories(netviz PUBLIC netviz)
 target_link_libraries(netviz cairo)
 
