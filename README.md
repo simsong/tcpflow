@@ -47,6 +47,24 @@ To Compile for Windows with mingw on Fedora Core:
 
 To use CMake, see detailed instructions: [cmake/README.md](./cmake/README.md)
 
+Build RPM
+---------
+
+From a clean repository as normal user (not root):
+
+    ./bootstrap.sh     # Generates the file ./configure
+    ./configure        # Generates the file tcpflow.spec
+    rpmbuild -bb tcpflow.spec --build-in-place
+
+Check the specfile and resulted RPM:
+
+    rpmlint tcpflow.spec
+    rpmlint ~/rpmbuild/RPMS/x86_64/tcpflow-....rpm
+
+Install:
+
+    sudo dnf install ~/rpmbuild/RPMS/x86_64/tcpflow-....rpm
+
 
 Introduction To tcpflow
 =======================

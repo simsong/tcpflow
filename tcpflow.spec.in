@@ -1,64 +1,57 @@
-# Note that this is NOT a relocatable package
-%define ver      @VERSION@
-%define rel      1
-%define prefix   /usr
+%global _hardened_build 1
 
-Summary: Network traffic recorder
-Name: tcpflow
-Version: %ver
-Release: %rel
-Copyright: GPLv3
-Group: Console/Networking
-Source: http://afflib.org/downloads/tcpflow-@VERSION@.tar.gz
-BuildRoot: /var/tmp/tcpflow-root
-Prefix: %prefix
-URL: http://afflib.org/tcpflow/
+Name:          tcpflow
+Version:       @VERSION@
+Release:       0%{?dist}
+License:       GPLv3
+Summary:       Network traffic recorder
+URL:           https://github.com/simsong/tcpflow
+Source0:       http://digitalcorpora.org/downloads/%{name}/%{name}-%{version}.tar.gz
+
+BuildRequires: boost-devel
+#BuildRequires: bzip2-devel
+BuildRequires: cairo-devel
+BuildRequires: libpcap-devel
+BuildRequires: openssl-devel
+BuildRequires: zlib-devel
 
 %description
-tcpflow is a program that captures data transmitted as part of TCP connections (flows), and stores the data in a way that is convenient for protocol analysis or debugging. A program like 'tcpdump' shows a summary of packets seen on the wire, but usually doesn't store the data that's actually being transmitted. In contrast, tcpflow reconstructs the actual data streams and stores each flow in a separate file for later analysis.
+tcpflow is a program that captures data transmitted as part of TCP
+connections (flows), and stores the data in a way that is convenient
+for protocol analysis or debugging. A program like 'tcpdump' shows a
+summary of packets seen on the wire, but usually doesn't store the
+data that's actually being transmitted. In contrast, tcpflow
+reconstructs the actual data streams and stores each flow in a
+separate file for later analysis.
+
+%prep
+%setup -q
+
+%build
+export CPPFLAGS="%{optflags}"
+export LDFLAGS="%{__global_ldflags}"
+%configure
+make %{?_smp_mflags}
+
+%install
+make DESTDIR=%{buildroot} INSTALL='install -p' install
+
+%check
+#make check
+
+%files
+%doc AUTHORS COPYING ChangeLog NEWS README
+%{_bindir}/tcpflow
+%{_mandir}/man1/tcpflow.1*
 
 %changelog
 
-* 2012-02-26 Simson Garfinkel <simsong@acm.org> - Rewrite for version 1.2
-* 1999-04-22 Ross Golder <rossigee@bigfoot.com> -  Wrote for version 0.12
+* Sun Jun 04 2017 O. Libre <olibre@Lmap.org> - 1.4.6-0
+- Apply improvements from Fedora Packages repo https://src.fedoraproject.org/cgit/rpms/?q=tcpflow
 
-%prep
-%setup
+* Sun Feb 26 2012 Simson Garfinkel <simsong@acm.org> - 1.2
+- Rewrite for version 1.2
 
-%build
-# Needed for snapshot releases.
-%ifarch alpha
-  MYARCH_FLAGS="--host=alpha-redhat-linux"
-%endif
-MYCFLAGS="$RPM_OPT_FLAGS"
-
-#if [ ! -f configure ]; then
-#  CFLAGS="$MYCFLAGS" ./autogen.sh $MYARCH_FLAGS --prefix=%prefix --localstatedir=/var/lib --with-pcap=/usr/include/pcap
-#else
-#  CFLAGS="$MYCFLAGS" ./configure $MYARCH_FLAGS --prefix=%prefix --localstatedir=/var/lib --with-pcap=/usr/include/pcap
-#fi
-
-CFLAGS="$MYCFLAGS" ./configure $MYARCH_FLAGS --prefix=%prefix --localstatedir=/var/lib 
-
-if [ "$SMP" != "" ]; then
-  (make "MAKE=make -k -j $SMP"; exit 0)
-  make
-else
-  make
-fi
-
-%install
-rm -rf $RPM_BUILD_ROOT
-
-make prefix=$RPM_BUILD_ROOT%{prefix} install
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%files
-%defattr(-, root, root)
-
-%doc AUTHORS COPYING ChangeLog NEWS README
-%{prefix}/bin/*
-%{prefix}/man/man*/*
+* Thu Apr 22 1999 Ross Golder <rossigee@bigfoot.com> - 0.12
+- Wrote for version 0.12
 
