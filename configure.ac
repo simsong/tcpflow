@@ -335,7 +335,7 @@ pcap-dev library.  Please execute this command:
 
   UBUNTU: sudo apt-get install libpcap-dev
   DEBIAN: sudo apt-get install libpcap-dev
-  FEDORA: sudo yum install libpcap-devel
+  FEDORA: sudo dnf install libpcap-devel
   MINGW:  Sorry!  libpcap is not currently 
           available when cross-compiling.
 
