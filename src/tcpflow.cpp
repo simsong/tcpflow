@@ -424,7 +424,6 @@ int main(int argc, char *argv[])
     bool force_binary_output = false;
     const char *device = 0;             // default device
     const char *lockname = 0;
-    int need_usage = 0;
     std::string reportfilename;
     std::vector<std::string> Rfiles;	// files for finishing
     std::vector<std::string> rfiles;	// files to read
@@ -458,7 +457,6 @@ int main(int argc, char *argv[])
 
 	case 'A':
 	    fprintf(stderr,"-AH has been deprecated. Just use -a\n");
-	    need_usage=true;
 	    break;
 
 	case 'b':
@@ -512,7 +510,6 @@ int main(int argc, char *argv[])
 		case 'M': demux.opt.opt_md5 = true;break;
 		default:
 		    fprintf(stderr,"-F invalid format specification '%c'\n",*cc);
-		    need_usage = true;
 		}
 	    }
 	    break;
