@@ -5,6 +5,7 @@ find_package(Boost) #TODO(olibre): COMPONENTS program_options system)
 find_package(PCAP)
 find_package(OpenSSL)
 find_package(Threads)
+find_package(PythonLibs)
 
 
 # TODO(olibre): Use target_link_libraries() instead of include_directories()
@@ -84,10 +85,12 @@ check_include_files(unordered_map HAVE_UNORDERED_MAP)
 check_include_files(unordered_set HAVE_UNORDERED_SET)
 check_include_files(winsock2.h HAVE_WINSOCK2_H)
 check_include_files(zlib.h HAVE_ZLIB_H)
-# The following command lines list the rest of the #define that are used but not yet implemented using CMake directives
-# sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}' | sort -u | while read w ; do grep -wB1 $w config.h | grep '[^ ]*> header' -q && echo $w; done > already-implemented-using-cmake-directives
-# ( sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}'  | sort -u | while read w ; do find src -name 'config.h' -o -regex '.*.h\|.*.cpp' -exec fgrep -Iowqm1 $w {} '+' && echo "$w" ; done ) > used-in-source-code
-# comm -13 already-implemented-using-cmake-directives used-in-source-code | grep -wf - config.h -B1 --color=always > rest-to-implement-using-cmake-directives
+check_include_files(python2.7/Python.h PYTHON2_7_PYTHON_H)  # TODO(olibre): Use instead PYTHON_INCLUDE_DIRS
+# There are many other #define not (yet) implemented by above CMake directives.
+# To list the #define use the following command lines:
+#   sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}' | sort -u | while read w ; do grep -wB1 $w config.h | grep '[^ ]*> header' -q && echo $w; done > already-implemented-using-cmake-directives
+#   ( sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}'  | sort -u | while read w ; do find src -name 'config.h' -o -regex '.*.h\|.*.cpp' -exec fgrep -Iowqm1 $w {} '+' && echo "$w" ; done ) > used-in-source-code
+#   comm -13 already-implemented-using-cmake-directives used-in-source-code | grep -wf - config.h -B1 --color=always > rest-to-implement-using-cmake-directives
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 # When all #define from config.h are implemented using CMake directives the following line...
@@ -102,6 +105,7 @@ file (GLOB netviz_h   netviz/*.h)
 source_group("netviz headers" FILES ${netviz_h})
 add_library (netviz  ${netviz_cpp}  ${netviz_h})
 target_include_directories(netviz PUBLIC netviz)
+target_link_libraries(netviz cairo)
 
 # add_subdirectory(dfxml/src)
 set(dfxml_writer_h dfxml/src/dfxml_writer.h dfxml/src/hash_t.h)
@@ -172,6 +176,7 @@ set (tcpflow_cpp datalink.cpp flow.cpp
     util.cpp
     scan_md5.cpp
     scan_http.cpp       # Depends on zlib
+    scan_python.cpp     # Depends on PYTHON_LIBRARIES
     scan_tcpdemux.cpp
     scan_netviz.cpp
     pcap_writer.h
@@ -187,4 +192,4 @@ set (tcpflow_h
 )
 source_group("tcpflow headers" FILES ${tcpflow_h})
 add_executable(tcpflow ${tcpflow_cpp} ${tcpflow_h})
-target_link_libraries(tcpflow netviz wifipcap be13_api dfxml_writer http-parser z pcap)
+target_link_libraries(tcpflow netviz wifipcap be13_api dfxml_writer http-parser z pcap ${PYTHON_LIBRARIES})  # add also ${PYTHON_INCLUDE_PATH}
