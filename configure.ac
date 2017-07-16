@@ -362,6 +362,43 @@ AM_CONDITIONAL([WIFI_ENABLED], [test "yes" = "$wifi"])
 
 
 ################################################################
+#
+# LIBCAP_NG
+# Check for libcap-ng
+AC_MSG_CHECKING(whether to use libcap-ng)
+# Specify location for both includes and libraries.
+want_libcap_ng=ifavailable
+AC_ARG_WITH(cap_ng,
+    AS_HELP_STRING([--with-cap-ng],
+		   [use libcap-ng @<:@default=yes, if available@:>@]),
+[
+	if test $withval = no
+	then
+		want_libcap_ng=no
+		AC_MSG_RESULT(no)
+	elif test $withval = yes
+	then
+		want_libcap_ng=yes
+		AC_MSG_RESULT(yes)
+	fi
+],[
+	#
+	# Use libcap-ng if it's present, otherwise don't.
+	#
+	want_libcap_ng=ifavailable
+	AC_MSG_RESULT([yes, if available])
+])
+if test "$want_libcap_ng" != "no"; then
+        #
+        # note: it really is cap-ng.h, and not cap_ng.h
+        #
+	AC_CHECK_LIB(cap-ng, capng_change_id)
+	AC_CHECK_HEADERS(cap-ng.h)
+fi
+
+
+
+################################################################
 # Specify our other headers
 
 AC_HEADER_STDC
