@@ -495,7 +495,6 @@ AC_CHECK_HEADERS([netinet/ip_ether.h], [], [],
 ]])
  
 
-
 AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 [[
 #ifdef HAVE_SYS_TYPES_H
@@ -505,9 +504,11 @@ AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
+
 #if HAVE_NETINET_IP_VAR_H
 #include <netinet/ip_var.h>
 #endif
+
 #if HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
 #endif
@@ -553,38 +554,6 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 #endif
 ]]
 )
-
-### AC_CHECK_TYPES([tcp_seq], [], [], 
-### [[
-### /* from sysdep.h */
-### #include <stdio.h>
-### #include <stdlib.h>
-### 
-### #ifdef HAVE_UNISTD_H
-### # include <unistd.h>
-### #endif
-### 
-### #ifndef __FAVOR_BSD
-### #define __FAVOR_BSD
-### #endif
-### 
-### #ifndef __USE_BSD
-### #define __USE_BSD
-### #endif
-### 
-### #ifdef HAVE_ARPA_INET_H
-### #include <arpa/inet.h>
-### #endif
-### 
-### #ifdef HAVE_SYS_SOCKET_H
-### #include <sys/socket.h>
-### #endif
-### 
-### #ifdef HAVE_NETINET_TCP_H
-### #include <netinet/tcp.h>
-### #endif
-### ]]
-### )
 
 ############## drop optimization flags if requested ################
 
