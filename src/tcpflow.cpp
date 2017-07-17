@@ -25,6 +25,10 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif
+
 /* bring in inet_ntop if it is not present */
 #define ETH_ALEN 6
 #ifndef HAVE_INET_NTOP

@@ -406,6 +406,7 @@ AC_CHECK_HEADERS([\
 	arpa/inet.h \
 	ctype.h \
 	fcntl.h \
+        grp.h \
 	inttypes.h \
 	linux/if_ether.h \
 	net/ethernet.h \
