@@ -187,7 +187,7 @@ void ScanPython::scan(const scanner_params& sp)
             (*sp.sxml) << "<tcpflow:result scan=\"python\" "
                           "path=\""<< py_path <<"\" "
                           "module=\""<< py_module <<"\" "
-                          "py_function=\""<< py_function;
+                          "function=\""<< py_function;
 
             if (returned_string)
                 (*sp.sxml)  <<"\">"<< returned_string <<"</tcpflow:result>";
