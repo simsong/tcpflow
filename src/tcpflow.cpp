@@ -24,6 +24,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
+#include <getopt.h>
 
 #ifdef HAVE_GRP_H
 #include <grp.h>
@@ -87,6 +88,21 @@ scanner_t *scanners_builtin[] = {
     0};
 
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
+
+/* Long options!
+ * 
+ * We need more long options; developers looking at this file should
+ * feel free to submit more!
+ */
+
+static const struct option longopts[] = {
+    { "help", no_argument, NULL, 'h' },
+    { "relinquish-privileges", required_argument, NULL, 'U' },
+    { "verbose", no_argument, NULL, 'v' },
+    { "version", no_argument, NULL, 'V' },
+    { NULL, 0, NULL, 0 }
+};
+
 
 /****************************************************************
  *** USAGE
@@ -538,7 +554,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:Z0")) != EOF) {
+    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:Z0", longopts, NULL)) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;

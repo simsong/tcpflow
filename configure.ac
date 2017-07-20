@@ -7,7 +7,7 @@
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.4.7-dev, simsong@github.com)
+AC_INIT(TCPFLOW, 1.5.0-dev, simsong@github.com)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
