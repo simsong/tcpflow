@@ -2,7 +2,7 @@
  *  emacs: -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8; c-file-style: "linux" -*-
  *
  * scan_python:
- * Use external python script
+ * Use external python scripts to post-process flow files
  */
 
 #include "config.h"
@@ -180,13 +180,19 @@ void ScanPython::scan(const scanner_params& sp)
     PyTuple_SetItem(pArgs, 0, pData);
     PyObject* pResult = PyObject_CallObject(pythonFunction, pArgs);
     if (pResult) {
-        // If XML-reporting enabled => Insert the returned string from the function
+        // If XML-reporting enabled => Insert the string returned by the python function
         if (sp.sxml) {
-            const char* ptr = PyString_AsString(pResult);
-            if (ptr)
-                (*sp.sxml) << "<scan_python_result>"<< ptr <<"</scan_python_result>";
+            const char* returned_string = PyString_AsString(pResult);
+
+            (*sp.sxml) << "<tcpflow:result scan=\"python\" "
+                          "path=\""<< py_path <<"\" "
+                          "module=\""<< py_module <<"\" "
+                          "py_function=\""<< py_function;
+
+            if (returned_string)
+                (*sp.sxml)  <<"\">"<< returned_string <<"</tcpflow:result>";
             else
-                (*sp.sxml) << "<scan_python_result/>";
+                (*sp.sxml) << "\"/>";
         }
     }
 #else
