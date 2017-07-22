@@ -39,8 +39,6 @@
 /* droproot is from tcpdump.
  * See https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
  */
-static void droproot(const char *, const char *);
-
 const char *program_name = 0;
 const char *tcpflow_droproot_username = 0;
 const char *tcpflow_chroot_dir = 0;
@@ -312,7 +310,7 @@ static inflaters_t *build_inflaters()
 #ifndef _WIN32
 /* Drop root privileges and chroot if necessary */
 static void
-droproot(const char *username, const char *chroot_dir)
+droproot(tcpdemux &demux,const char *username, const char *chroot_dir)
 {
     struct passwd *pw = NULL;
 
@@ -324,6 +322,16 @@ droproot(const char *username, const char *chroot_dir)
 
     pw = getpwnam(username);
     if (pw) {
+        /* Begin tcpflow add */
+        if(demux.xreport){
+            const char *outfilename = demux.xreport->get_outfilename().c_str();
+            if(chown(outfilename,pw->pw_uid,pw->pw_gid)){
+                fprintf(stderr, "%s: Coudln't change owner of '%.64s' to %s (uid %d): %s\n",
+                        program_name, outfilename, username, pw->pw_uid, strerror(errno));
+                exit(1);
+            }
+        }
+        /* end tcpflow add */
         if (chroot_dir) {
             if (chroot(chroot_dir) != 0 || chdir ("/") != 0) {
                 fprintf(stderr, "%s: Couldn't chroot/chdir to '%.64s': %s\n",
@@ -378,10 +386,10 @@ droproot(const char *username, const char *chroot_dir)
 /**
  * Perform the droproot operation for tcpflow. This needs to be called immediately after pcap_open()
  */
-void tcpflow_droproot()
+void tcpflow_droproot(tcpdemux &demux)
 {
     if (tcpflow_droproot_username){
-        droproot(tcpflow_droproot_username,tcpflow_chroot_dir);
+        droproot(demux,tcpflow_droproot_username,tcpflow_chroot_dir);
     }
 }
 
@@ -393,7 +401,7 @@ void tcpflow_droproot()
 #ifdef HAVE_INFLATER
 static inflaters_t *inflaters = 0;
 #endif
-static void process_infile(const std::string &expression,const char *device,const std::string &infile)
+static void process_infile(tcpdemux &demux,const std::string &expression,const char *device,const std::string &infile)
 {
     char error[PCAP_ERRBUF_SIZE];
     pcap_t *pd=0;
@@ -429,7 +437,7 @@ static void process_infile(const std::string &expression,const char *device,cons
 	if ((pd = pcap_open_offline(file_path.c_str(), error)) == NULL){	/* open the capture file */
 	    die("%s", error);
 	}
-        tcpflow_droproot();                     // drop root if requested
+        tcpflow_droproot(demux);        // drop root if requested
 	dlt = pcap_datalink(pd);	/* get the handler for this kind of packets */
 	handler = find_handler(dlt, infile.c_str());
     } else {
@@ -444,7 +452,7 @@ static void process_infile(const std::string &expression,const char *device,cons
 	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
 	    die("%s", error);
 	}
-        tcpflow_droproot();                     // drop root if requested
+        tcpflow_droproot(demux);                     // drop root if requested
 	/* get the handler for this kind of packets */
 	dlt = pcap_datalink(pd);
 	handler = find_handler(dlt, device);
@@ -835,19 +843,19 @@ int main(int argc, char *argv[])
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 	demux.start_new_connections = true;
-        process_infile(expression,device,"");
+        process_infile(demux,expression,device,"");
         input_fname = device;
     }
     else {
 	/* first pick up the new connections with -r */
 	demux.start_new_connections = true;
 	for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
-	    process_infile(expression,device,*it);
+	    process_infile(demux,expression,device,*it);
 	}
 	/* now pick up the outstanding connection with -R, but don't start new connections */
 	demux.start_new_connections = false;
 	for(std::vector<std::string>::const_iterator it=Rfiles.begin();it!=Rfiles.end();it++){
-	    process_infile(expression,device,*it);
+	    process_infile(demux,expression,device,*it);
 	}
     }
 
