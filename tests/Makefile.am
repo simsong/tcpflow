@@ -8,7 +8,7 @@
 # About the test files:
 #
 
-SH_TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh
+SH_TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh test-chroot.sh
 
 EXTRA_DIST = $(SH_TESTS) test-subs.sh test1.pcap test2.pcap test3.pcap test4.pcap  
 
@@ -24,6 +24,9 @@ CLEANFILES = \
 	out/2001:6f8:102d::2d0:9ff:fee3:e8de.59201-2001:6f8:900:7c0::2.00080 \
 	out/2001:6f8:900:7c0::2.00080-2001:6f8:102d::2d0:9ff:fee3:e8de.59201 \
 	out/report.xml 
+
+nitroba.pcap:
+	wget http://downloads.digitalcorpora.org/corpora/packets/2008-nitroba/nitroba.pcap
 
 clean:
 	@echo Erase any left over trace files

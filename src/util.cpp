@@ -172,7 +172,7 @@ void debug_real(const char *fmt, ...)
   
 
 /* Print a debugging or informatioal message, then exit  */
-void die(const char *fmt, ...) 
+[[noreturn]] void die(const char *fmt, ...) 
 {
     va_list ap;
 

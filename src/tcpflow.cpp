@@ -24,6 +24,11 @@
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
+#include <getopt.h>
+
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif
 
 /* bring in inet_ntop if it is not present */
 #define ETH_ALEN 6
@@ -31,6 +36,12 @@
 #include "inet_ntop.c"
 #endif
 
+/* droproot is from tcpdump.
+ * See https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
+ */
+const char *program_name = 0;
+const char *tcpflow_droproot_username = 0;
+const char *tcpflow_chroot_dir = 0;
 
 scanner_info::scanner_config be_config; // system configuration
 
@@ -77,6 +88,21 @@ scanner_t *scanners_builtin[] = {
 
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
 
+/* Long options!
+ * 
+ * We need more long options; developers looking at this file should
+ * feel free to submit more!
+ */
+
+static const struct option longopts[] = {
+    { "help", no_argument, NULL, 'h' },
+    { "relinquish-privileges", required_argument, NULL, 'U' },
+    { "verbose", no_argument, NULL, 'v' },
+    { "version", no_argument, NULL, 'V' },
+    { NULL, 0, NULL, 0 }
+};
+
+
 /****************************************************************
  *** USAGE
  ****************************************************************/
@@ -102,11 +128,12 @@ static void usage(int level)
     std::cout << "   -L  semlock - specifies that writes are locked using a named semaphore\n";
     std::cout << "   -p: don't use promiscuous mode\n";
     std::cout << "   -q: quiet mode - do not print warnings\n";
-    std::cout << "   -r file: read packets from tcpdump pcap file (may be repeated)\n";
-    std::cout << "   -R file: read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
-    std::cout << "   -v: verbose operation equivalent to -d 10\n";
-    std::cout << "   -V: print version number and exit\n";
-    std::cout << "   -w file: write packets not processed to file\n";
+
+    std::cout << "   -r file      : read packets from tcpdump pcap file (may be repeated)\n";
+    std::cout << "   -R file      : read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
+    std::cout << "   -v           : verbose operation equivalent to -d 10\n";
+    std::cout << "   -V           : print version number and exit\n";
+    std::cout << "   -w  file     : write packets not processed to file\n";
     std::cout << "   -o  outdir   : specify output directory (default '.')\n";
     std::cout << "   -X  filename : DFXML output to filename\n";
     std::cout << "   -m  bytes    : specifies skip that starts a new stream (default "
@@ -114,7 +141,11 @@ static void usage(int level)
     std::cout << "   -F{p} : filename prefix/suffix (-hh for options)\n";
     std::cout << "   -T{t} : filename template (-hh for options; default "
               << flow::filename_template << ")\n";
-    std::cout << "   -Z: do not decompress gzip-compressed HTTP transactions\n";
+    std::cout << "   -Z       do not decompress gzip-compressed HTTP transactions\n";
+
+    std::cout << "\nSecurity:\n";
+    std::cout << "   -U user  relinquish privleges and become user (if running as root)\n";
+    std::cout << "   -z dir   chroot to dir (requires that -U be used).\n";
 
     std::cout << "\nControl of Scanners:\n";
     std::cout << "   -E scanner   - turn off all scanners except scanner\n";
@@ -137,8 +168,8 @@ static void usage(int level)
     if(level<2) return;
     std::cout << "Filename Prefixes:\n";
     std::cout << "   -Fc : append the connection counter to ALL filenames\n";
-    std::cout << "   -Ft : prepend the time_t timestamp to ALL filenames\n";
-    std::cout << "   -FT : prepend the ISO8601 timestamp to ALL filenames\n";
+    std::cout << "   -Ft : prepend the time_t UTC timestamp to ALL filenames\n";
+    std::cout << "   -FT : prepend the ISO8601 UTC timestamp to ALL filenames\n";
     std::cout << "   -FX : Do not output any files (other than report files)\n";
     std::cout << "   -FM : Calculate the MD5 for every flow (stores in DFXML)\n";
     std::cout << "   -Fk : Bin output in 1K directories\n";
@@ -276,6 +307,93 @@ static inflaters_t *build_inflaters()
 #define HAVE_INFLATER
 #endif
 
+// https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
+#ifndef _WIN32
+/* Drop root privileges and chroot if necessary */
+static void
+droproot(tcpdemux &demux,const char *username, const char *chroot_dir)
+{
+    struct passwd *pw = NULL;
+
+    if (chroot_dir && !username) {
+        fprintf(stderr, "%s: Chroot without dropping root is insecure\n",
+                program_name);
+        exit(1);
+    }
+
+    pw = getpwnam(username);
+    if (pw) {
+        /* Begin tcpflow add */
+        if(demux.xreport){
+            const char *outfilename = demux.xreport->get_outfilename().c_str();
+            if(chown(outfilename,pw->pw_uid,pw->pw_gid)){
+                fprintf(stderr, "%s: Coudln't change owner of '%.64s' to %s (uid %d): %s\n",
+                        program_name, outfilename, username, pw->pw_uid, strerror(errno));
+                exit(1);
+            }
+        }
+        /* end tcpflow add */
+        if (chroot_dir) {
+            if (chroot(chroot_dir) != 0 || chdir ("/") != 0) {
+                fprintf(stderr, "%s: Couldn't chroot/chdir to '%.64s': %s\n",
+                        program_name, chroot_dir, pcap_strerror(errno));
+                exit(1);
+            }
+        }
+#ifdef HAVE_LIBCAP_NG
+        {
+            int ret = capng_change_id(pw->pw_uid, pw->pw_gid, CAPNG_NO_FLAG);
+            if (ret < 0) {
+                fprintf(stderr, "error : ret %d\n", ret);
+            } else {
+                fprintf(stderr, "dropped privs to %s\n", username);
+            }
+        }
+#else
+        if (initgroups(pw->pw_name, pw->pw_gid) != 0 ||
+            setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {
+            fprintf(stderr, "%s: Couldn't change to '%.32s' uid=%lu gid=%lu: %s\n",
+                    program_name, username,
+                    (unsigned long)pw->pw_uid,
+                    (unsigned long)pw->pw_gid,
+                    pcap_strerror(errno));
+            exit(1);
+        }
+        else {
+            fprintf(stderr, "dropped privs to %s\n", username);
+        }
+#endif /* HAVE_LIBCAP_NG */
+    }
+    else {
+        fprintf(stderr, "%s: Couldn't find user '%.32s'\n",
+                program_name, username);
+        exit(1);
+    }
+#ifdef HAVE_LIBCAP_NG
+    /* We don't need CAP_SETUID, CAP_SETGID and CAP_SYS_CHROOT any more. */
+    capng_updatev(
+                  CAPNG_DROP,
+                  CAPNG_EFFECTIVE | CAPNG_PERMITTED,
+                  CAP_SETUID,
+                  CAP_SETGID,
+                  CAP_SYS_CHROOT,
+                  -1);
+    capng_apply(CAPNG_SELECT_BOTH);
+#endif /* HAVE_LIBCAP_NG */
+
+}
+#endif /* _WIN32 */
+
+/**
+ * Perform the droproot operation for tcpflow. This needs to be called immediately after pcap_open()
+ */
+void tcpflow_droproot(tcpdemux &demux)
+{
+    if (tcpflow_droproot_username){
+        droproot(demux,tcpflow_droproot_username,tcpflow_chroot_dir);
+    }
+}
+
 /*
  * process an input file or device
  * May be repeated.
@@ -284,7 +402,7 @@ static inflaters_t *build_inflaters()
 #ifdef HAVE_INFLATER
 static inflaters_t *inflaters = 0;
 #endif
-static void process_infile(const std::string &expression,const char *device,const std::string &infile)
+static void process_infile(tcpdemux &demux,const std::string &expression,const char *device,const std::string &infile)
 {
     char error[PCAP_ERRBUF_SIZE];
     pcap_t *pd=0;
@@ -320,6 +438,7 @@ static void process_infile(const std::string &expression,const char *device,cons
 	if ((pd = pcap_open_offline(file_path.c_str(), error)) == NULL){	/* open the capture file */
 	    die("%s", error);
 	}
+        tcpflow_droproot(demux);        // drop root if requested
 	dlt = pcap_datalink(pd);	/* get the handler for this kind of packets */
 	handler = find_handler(dlt, infile.c_str());
     } else {
@@ -334,12 +453,7 @@ static void process_infile(const std::string &expression,const char *device,cons
 	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
 	    die("%s", error);
 	}
-#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
-	/* drop root privileges - we don't need them any more */
-	if(setuid(getuid())){
-	    perror("setuid");
-	}
-#endif
+        tcpflow_droproot(demux);                     // drop root if requested
 	/* get the handler for this kind of packets */
 	dlt = pcap_datalink(pd);
 	handler = find_handler(dlt, device);
@@ -410,6 +524,7 @@ static feature_recorder_set::hash_def be_hash(be_hash_name,be_hash_func);
 
 int main(int argc, char *argv[])
 {
+    program_name = argv[0];
     int opt_help = 0;
     int opt_Help = 0;
     feature_recorder::set_main_threadid();
@@ -448,7 +563,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:Vvw:x:X:Z:0")) != EOF) {
+    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:Z0", longopts, NULL)) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -563,11 +678,13 @@ int main(int argc, char *argv[])
                 flow::filename_template += std::string("%C%c"); // append %C%c if not present
             }
             break;
+        case 'U': tcpflow_droproot_username = optarg; break;
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
 	case 'x': be13::plugin::scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
+        case 'z': tcpflow_chroot_dir = optarg; break;
 	case 'Z': demux.opt.gzip_decompress = 0; break;
 	case 'H': opt_Help += 1; break;
 	case 'h': opt_help += 1; break;
@@ -578,6 +695,9 @@ int main(int argc, char *argv[])
 	}
     }
 
+    if(tcpflow_chroot_dir && !tcpflow_droproot_username){
+        err(1,"-z option requires -U option");
+    }
 
     argc -= optind;
     argv += optind;
@@ -664,8 +784,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* report file specified? */
+    /* report file specified? If so, open it.
+     * Note: If we are going to chroot, we need apply the chroot prefix also,
+     * but we need to open the file *now*.
+     */
+    std::cerr << "reportfilename: " << reportfilename << "\n";
     if(reportfilename.size()>0 && opt_enable_report){
+        if (tcpflow_chroot_dir){
+            reportfilename = std::string(tcpflow_chroot_dir) + std::string("/") + reportfilename;
+        }
+        std::cerr << "reportfilename: " << reportfilename << "\n";
 	xreport = new dfxml_writer(reportfilename,false);
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
@@ -715,26 +843,20 @@ int main(int argc, char *argv[])
     }
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
-#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
-        /* Since we don't need network access, drop root privileges */
-	if(setuid(getuid())){
-	    perror("setuid");
-	}
-#endif
 	demux.start_new_connections = true;
-        process_infile(expression,device,"");
+        process_infile(demux,expression,device,"");
         input_fname = device;
     }
     else {
 	/* first pick up the new connections with -r */
 	demux.start_new_connections = true;
 	for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
-	    process_infile(expression,device,*it);
+	    process_infile(demux,expression,device,*it);
 	}
 	/* now pick up the outstanding connection with -R, but don't start new connections */
 	demux.start_new_connections = false;
 	for(std::vector<std::string>::const_iterator it=Rfiles.begin();it!=Rfiles.end();it++){
-	    process_infile(expression,device,*it);
+	    process_infile(demux,expression,device,*it);
 	}
     }
 
