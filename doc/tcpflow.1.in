@@ -449,6 +449,10 @@ in file \fIreport.xml\fP.
 .B \-Z
 Don't decompress gzip-compressed streams. 
 .\"START -- tcpdump excerpt"
+.TP
+.B \fIexpression]\fP
+tcpflow flow passes the \fIexpression\fP to \fBlibpcap\fP. Please refer to the \fBtcpdump\fP or \fBlibpcap\fP documentation for information on how to construct and test these expressions.
+
 .SH EXAMPLES
 .LP
 To record all packets arriving at or departing from \fIsundown\fP and extract all of the HTTP attachments:

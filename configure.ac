@@ -7,7 +7,7 @@
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.4.7-dev, simsong@github.com)
+AC_INIT(TCPFLOW, 1.5.0-alpha, simsong@github.com)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
@@ -362,6 +362,43 @@ AM_CONDITIONAL([WIFI_ENABLED], [test "yes" = "$wifi"])
 
 
 ################################################################
+#
+# LIBCAP_NG
+# Check for libcap-ng
+AC_MSG_CHECKING(whether to use libcap-ng)
+# Specify location for both includes and libraries.
+want_libcap_ng=ifavailable
+AC_ARG_WITH(cap_ng,
+    AS_HELP_STRING([--with-cap-ng],
+		   [use libcap-ng @<:@default=yes, if available@:>@]),
+[
+	if test $withval = no
+	then
+		want_libcap_ng=no
+		AC_MSG_RESULT(no)
+	elif test $withval = yes
+	then
+		want_libcap_ng=yes
+		AC_MSG_RESULT(yes)
+	fi
+],[
+	#
+	# Use libcap-ng if it's present, otherwise don't.
+	#
+	want_libcap_ng=ifavailable
+	AC_MSG_RESULT([yes, if available])
+])
+if test "$want_libcap_ng" != "no"; then
+        #
+        # note: it really is cap-ng.h, and not cap_ng.h
+        #
+	AC_CHECK_LIB(cap-ng, capng_change_id)
+	AC_CHECK_HEADERS(cap-ng.h)
+fi
+
+
+
+################################################################
 # Specify our other headers
 
 AC_HEADER_STDC
@@ -369,6 +406,7 @@ AC_CHECK_HEADERS([\
 	arpa/inet.h \
 	ctype.h \
 	fcntl.h \
+        grp.h \
 	inttypes.h \
 	linux/if_ether.h \
 	net/ethernet.h \
@@ -458,7 +496,6 @@ AC_CHECK_HEADERS([netinet/ip_ether.h], [], [],
 ]])
  
 
-
 AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 [[
 #ifdef HAVE_SYS_TYPES_H
@@ -468,9 +505,11 @@ AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
+
 #if HAVE_NETINET_IP_VAR_H
 #include <netinet/ip_var.h>
 #endif
+
 #if HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
 #endif
@@ -516,38 +555,6 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 #endif
 ]]
 )
-
-### AC_CHECK_TYPES([tcp_seq], [], [], 
-### [[
-### /* from sysdep.h */
-### #include <stdio.h>
-### #include <stdlib.h>
-### 
-### #ifdef HAVE_UNISTD_H
-### # include <unistd.h>
-### #endif
-### 
-### #ifndef __FAVOR_BSD
-### #define __FAVOR_BSD
-### #endif
-### 
-### #ifndef __USE_BSD
-### #define __USE_BSD
-### #endif
-### 
-### #ifdef HAVE_ARPA_INET_H
-### #include <arpa/inet.h>
-### #endif
-### 
-### #ifdef HAVE_SYS_SOCKET_H
-### #include <sys/socket.h>
-### #endif
-### 
-### #ifdef HAVE_NETINET_TCP_H
-### #include <netinet/tcp.h>
-### #endif
-### ]]
-### )
 
 ################################################################
 # Plugin scanner_python.cpp requires header "Python.h"
