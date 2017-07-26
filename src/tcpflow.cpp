@@ -24,10 +24,10 @@
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
-#include <getopt.h>
+#include <getopt.h>      // getopt_long()
 
 #ifdef HAVE_GRP_H
-#include <grp.h>
+#  include <grp.h>       // initgroups()
 #endif
 
 /* bring in inet_ntop if it is not present */
@@ -95,13 +95,13 @@ bool opt_no_promisc = false;		// true if we should not use promiscious mode
  */
 
 static const struct option longopts[] = {
+    { "chroot", required_argument, NULL, 'z' },
     { "help", no_argument, NULL, 'h' },
     { "relinquish-privileges", required_argument, NULL, 'U' },
     { "verbose", no_argument, NULL, 'v' },
     { "version", no_argument, NULL, 'V' },
     { NULL, 0, NULL, 0 }
 };
-
 
 /****************************************************************
  *** USAGE
@@ -111,10 +111,10 @@ static void usage(int level)
 {
     std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
     std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
-    std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-i iface] [-L semlock]\n";
-    std::cout << "     [-m min_bytes] [-o outdir] [-r file] [-R file] \n";
-    std::cout << "     [-S name=value] [-T template] [-w file] [-x scanner] [-X xmlfile]\n";
-    std::cout << "      [expression]\n\n";
+    std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-h|--help] [-i iface]\n";
+    std::cout << "     [-l files...] [-L semlock] [-m min_bytes] [-o outdir] [-r file] [-R file]\n";
+    std::cout << "     [-S name=value] [-T template] [-U|--relinquish-privileges user] [-v|--verbose]\n";
+    std::cout << "     [-w file] [-x scanner] [-X xmlfile] [-z|--chroot dir] [expression]\n\n";
     std::cout << "   -a: do ALL post-processing.\n";
     std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
     std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
@@ -150,7 +150,14 @@ static void usage(int level)
     std::cout << "\nControl of Scanners:\n";
     std::cout << "   -E scanner   - turn off all scanners except scanner\n";
     std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
-    be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
+    if(level > 1) {
+        std::cout << "\n" "Activated options -S name=value:";
+        for(int i=0;defaults[i].name;i++){
+            std::cout <<"\n   -S "<< defaults[i].name << "=" << defaults[i].dvalue <<'\t'<< defaults[i].help;
+        }
+        std::cout << '\n';
+        be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
+    }
 
     std::cout << "Console output options:\n";
     std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
@@ -176,16 +183,10 @@ static void usage(int level)
     std::cout << "   -Fm : Bin output in 1M directories (2 levels)\n";
     std::cout << "   -Fg : Bin output in 1G directories (3 levels)\n";
     flow::usage();
-    std::cout << "-S name=value options:\n";
-    for(int i=0;defaults[i].name;i++){
-        std::stringstream ss;
-        ss << defaults[i].name << "=" << defaults[i].dvalue;
-        printf("   %-20s %s\n",ss.str().c_str(),defaults[i].help);
-    }
-    std::cout << "\n";
-    std::cout << "DEBUG Levels (specify with -dNN):\n";
-    std::cout << "get_max_fds() = " << tcpdemux::getInstance()->get_max_fds() << "\n";
-    std::cout << "NUM_RESERVED_FDS = " << NUM_RESERVED_FDS << "\n";
+    std::cout << "\n Current limitations:"
+                 "\n" "  get_max_fds() = " << tcpdemux::getInstance()->get_max_fds();
+    std::cout << "\n" "  NUM_RESERVED_FDS = " << NUM_RESERVED_FDS;
+    std::cout << '\n';
 }
 
 /**
