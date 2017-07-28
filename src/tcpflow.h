@@ -258,7 +258,7 @@ typedef	unsigned char u_int8_t;
 
 /* tcpflow.cpp - CLI */
 extern const char *progname;
-void    terminate(int sig) __attribute__ ((__noreturn__));
+[[noreturn]] void    terminate(int sig);
 #include "inet_ntop.h"
 
 #ifdef HAVE_PTHREAD
@@ -310,7 +310,7 @@ std::string macaddr(const uint8_t *addr);
 void init_debug(const char *progname,int include_pid);
 void (*portable_signal(int signo, void (*func)(int)))(int);
 void debug_real(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((format (printf, 1, 2)));
+[[noreturn]] void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((format (printf, 1, 2)));
 
 /* scanners */
 

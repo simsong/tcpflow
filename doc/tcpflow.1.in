@@ -8,7 +8,7 @@ tcpflow \- TCP flow recorder
 .na
 .B tcpflow
 [\c
-.BI \-aBcCDhIpsvVZ\fR\c
+.BI \-aBcCDIpsZ\fR\c
 ]
 [\c
 .BI \-b \ max_bytes\fR\c
@@ -26,7 +26,15 @@ tcpflow \- TCP flow recorder
 .BI \-F[ctTXMkmg]\fR\c
 ]
 [\c
+.BI \-h\fR\c
+|\c
+.BI \--help\fR\c
+]
+[\c
 .BI \-i \ iface\fR\c
+]
+[\c
+.BI \-l \ file1.pcap\ file2.pcap...\fR\c
 ]
 [\c
 .BI \-L \ semlock\fR\c
@@ -44,19 +52,39 @@ tcpflow \- TCP flow recorder
 .BI \-R \ file0.pcap\fR\c
 ]
 [\c
-.BI \-S name=value\fR\c
+.BI \-S \ name=value\fR\c
 ]
 [\c
 .BI \-T[filename\ template]\fR\c
 ]
 [\c
-.BI \-w file\fR\c
+.BI \-U\fR\c
+|\c
+.BI \--relinquish-privileges \ username\fR\c
+]
+[\c
+.BI \-v\fR\c
+|\c
+.BI \--verbose\fR\c
+]
+[\c
+.BI \-V\fR\c
+|\c
+.BI \--version\fR\c
+]
+[\c
+.BI \-w \ file\fR\c
 ]
 [\c
 .BI \-x \ scanner\fR\c
 ]
 [\c
 .BI \-X \ file.xml\fR\c
+]
+[\c
+.BI \-z\fR\c
+|\c
+.BI \--chroot \ directory\fR\c
 ]
 [\c
 .BI expression\fR\c
@@ -66,16 +94,16 @@ tcpflow \- TCP flow recorder
 .B tcpflow
 is a program that captures data transmitted as part of TCP connections
 (flows), and stores the data in a way that is convenient for protocol
-analysis or debugging.  Rather than showing packet-by-packet information, tcpflow
+analysis or debugging.  Rather than showing packet-by-packet information, \fBtcpflow\fP
 reconstructs the actual data streams and stores each flow in a
-separate file for later analysis.  tcpflow understands TCP sequence
+separate file for later analysis.  \fBtcpflow\fP understands TCP sequence
 numbers and will correctly reconstruct data streams regardless of
-retransmissions or out-of-order delivery. tcpflow provides control over filenames
+retransmissions or out-of-order delivery. \fBtcpflow\fP provides control over filenames
 for automatic binning of connections by protocol, IP adress or connection number, and has a sophisticated
 plug-in system for decompressing compressed HTTP connections, undoing MIME encoding, or calling user-provided
 programs for post-processing.
 .LP
-By default tcpflow stores all captured data in files that have names of the form:
+By default \fBtcpflow\fP stores all captured data in files that have names of the form:
 .in +.5i
 .nf
 
@@ -94,7 +122,7 @@ If you want to simply process a few hundred thousand packets and see what you ha
 
 .fi
 .in -.5i
-This will cause tcpflow to perform (-a) all processing, store the output in a directory
+This will cause \fBtcpflow\fP to perform (-a) all processing, store the output in a directory
 called 
 .BI outdir,
 bin the output in directories of 1000 connections each, and read its input from the file
@@ -246,21 +274,21 @@ bin output in 1G directories (3 levels)
 .TP
 .B \-f\fImax_fds\fP
 Max file descriptors used.  Limit the number of file descriptors used
-by tcpflow to \fImax_fds\fP.  Higher numbers use more system
+by \fBtcpflow\fP to \fImax_fds\fP.  Higher numbers use more system
 resources, but usually perform better.  If the underlying operating
 system supports the
 .B setrlimit()
 system call, the OS will be asked to enforce the requested limit.  The
-default is for tcpflow to use the maximum number of file descriptors
+default is for \fBtcpflow\fP to use the maximum number of file descriptors
 allowed by the OS.  The
 .B \-v
-option will report how many file descriptors tcpflow is using.
+option will report how many file descriptors \fBtcpflow\fP is using.
 .TP
 .B \-g
 Output flow information to console in multiple colors. (Blue for client to server flows, red for server to client flows, green for undecided flows.)
-Note: This option was different from tcpflow 1.3 (-e) and 1.4.4 (-J).
+Note: This option was different from \fBtcpflow\fP 1.3 (-e) and 1.4.4 (-J).
 .TP
-.B \-h
+.B \-h \--help
 Help.  Print usage information and exit.
 .TP
 .B \-hh
@@ -284,14 +312,14 @@ This last file \fB*.findx\fP has three columns using the pipe \fB'|'\fP as separ
 .fi
 The \fBbyte-index\fP column is the postion within the file containing the payload bytes.
 The \fBtimestamp\fP column represents the number of seconds since epoch as a floating point number.
-The precision is the microsecond but may also be the nanosecond in a future tcpflow version.
+The precision is the microsecond but may also be the nanosecond in a future \fBtcpflow\fP version.
 The \fBlength\fP column is the number of successive bytes concerned by \fBtimestamp\fP
 and can include several TCP frames (TCP packets).
 The extension \fBfindx\fP may become from the fact that the timestamps are \fBframe indexed\fP.
 .TP
 .B \-L \fIsemlock_name\fP
 Specifies that \fIsemlock_name\fP should be used as a Unix semaphore to prevent two different copies
-of tcpflow running in two different processes but outputing to the same standard output from printing 
+of \fBtcpflow\fP running in two different processes but outputing to the same standard output from printing
 on top of each other. This is an application of Unix named semaphores; bet you have never seen
 one before.
 .TP
@@ -315,17 +343,17 @@ of \fImin_size\fP bytes or more.
 Specifies the output directory where the transcript files will be written.
 .TP
 .B \-P
-No purge. Normally tcpflow removes connections from the hash table
+No purge. Normally \fBtcpflow\fP removes connections from the hash table
 after the connection is closed with a FIN. This conserves memory but
 takes additional CPU time. Selecting this option causes the
-std::tr1:unordered_map to grow without bounds, as tcpflow did prior to
-version 1.1. That makes tcpflow run faster if there are less than 10
+std::tr1:unordered_map to grow without bounds, as \fBtcpflow\fP did prior to
+version 1.1. That makes \fBtcpflow\fP run faster if there are less than 10
 million connections, but can lead to out-of-memory errors.
 .TP
 .B \-p
-No promiscuous mode.  Normally, tcpflow attempts to put the network
+No promiscuous mode.  Normally, \fBtcpflow\fP attempts to put the network
 interface into promiscuous mode before capturing packets.  The
-\fB-p\fP option tells tcpflow \fInot\fP to put the interface into
+\fB-p\fP option tells \fBtcpflow\fP \fInot\fP to put the interface into
 promiscuous mode.  Note that it might already be in promiscuous mode
 for some other reason.
 .TP
@@ -334,6 +362,25 @@ Quiet mode --- don't print warnings. Currently the only warning that \fBtcpflow\
 prints is a warning when more than 10,000 files are created that the user should
 have provided the \fB-Fk\fP, \fB-Fm\fP, or \fB-Fg\fP options. We might have other warnings
 in the future.
+.TP
+.B \--relinquish-privileges\fB=\fIusername\fP
+When \fBtcpflow\fP is run as root, this option changes
+the user ID and group ID to write files owned by \fIusername\fP.
+The group ID is the first one from the \fIusername\fP groups list.
+This operation is performed just after opening
+the capture device or just after opening the first input PCAP file.
+This option does not support multi root-only readable input files
+as the root privileges are dropped after openning the first file
+(e.g.
+.B \-r \fIroot-only-access.pcap\fP
+.B \-R \fIroot-only.pcap\fP
+.B \-l \fIroot-only*.pcap\fP\c
+).
+This option has the same behaviour as the
+.IR tcpdump (1)
+option having the same name
+.B \--relinquish-privileges\fB
+.
 .TP
 .B \-r
 Read from file.  Read packets from \fIfile\fP, which was created using the
@@ -424,11 +471,11 @@ For example the following line will create a directory tree \fBout/IP-src/port-s
     \fBtcpflow -r packets.pcap -o out -T %A/%a/%B/%b/%c%N.flow\fP
 .fi
 .TP
-.B \-V
+.B \-V \--version
 Print the version number and exit.
 .TP
-.B \-v
-Verbose operation.  Verbosely describe tcpflow's operation.
+.B \-v \--verbose
+Verbose operation.  Verbosely describe \fBtcpflow\fP's operation.
 Equivalent to \fB \-d 10\fP.
 .TP
 .B \-w \fIfilename.pcap\fP
@@ -439,7 +486,7 @@ UDP packets.
 Write a
 .B DFXML report
 to \fIfilename.xml\fP. The file contains a record of every
-tcp connection, how the tcpflow program was compiled, and the computer on which tcpflow was run.
+tcp connection, how the \fBtcpflow\fP program was compiled, and the computer on which \fBtcpflow\fP was run.
 By default
 .B tcpflow
 writes the
@@ -449,6 +496,10 @@ in file \fIreport.xml\fP.
 .B \-Z
 Don't decompress gzip-compressed streams. 
 .\"START -- tcpdump excerpt"
+.TP
+.B \fIexpression]\fP
+tcpflow flow passes the \fIexpression\fP to \fBlibpcap\fP. Please refer to the \fBtcpdump\fP or \fBlibpcap\fP documentation for information on how to construct and test these expressions.
+
 .SH EXAMPLES
 .LP
 To record all packets arriving at or departing from \fIsundown\fP and extract all of the HTTP attachments:
@@ -466,7 +517,7 @@ To record traffic between \fIhelios\fR and either \fIhot\fR or \fIace\fR and bin
 .SH BUGS
 Please send bug reports to simsong@acm.org.
 .LP
-tcpflow currently does not understand IP fragments.  Flows containing
+\fBtcpflow\fP currently does not understand IP fragments.  Flows containing
 IP fragments will not be recorded correctly.
 .SH AUTHORS
 Originally by Jeremy Elson <jelson@circlemud.org>.
