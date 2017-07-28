@@ -8,7 +8,7 @@ tcpflow \- TCP flow recorder
 .na
 .B tcpflow
 [\c
-.BI \-aBcCDhpsvVZ\fR\c
+.BI \-aBcCDhIpsvVZ\fR\c
 ]
 [\c
 .BI \-b \ max_bytes\fR\c
@@ -53,7 +53,7 @@ tcpflow \- TCP flow recorder
 .BI \-w file\fR\c
 ]
 [\c
-.BI -x\ scanner\fR\c
+.BI \-x \ scanner\fR\c
 ]
 [\c
 .BI \-X \ file.xml\fR\c
@@ -114,9 +114,8 @@ or
 .B \-b \fImax_bytes\fP
 Specifies the maximum size of a captured flow.  Any bytes beyond \fImax_bytes\fP from the
 first byte captured will be discarded.  The default is to store an
-unlimited number of bytes per flow. \fBNote:\fP previous versions of \fBtcpflow\fP could only store
-a maximum of 4GiB per flow, but version 1.4 and above can really store an unlimited amount 
-of bytes.  Good thing that modern disks are so big, eh?
+unlimited number of bytes per flow. \fBNote:\fP before version 1.4, \fBtcpflow\fP could only store
+a maximum of 4GiB per flow.
 .TP
 .B \-c
 Console print.  Print the contents of packets to stdout as they
@@ -176,31 +175,46 @@ If the HTTPBODY was compressed with GZIP, you may get a
 third file as well:
 .in +.5i
 .nf
+
 \fB208.111.153.175.00080-192.168.001.064.37314-HTTPBODY-GZIP\fP
 
 .fi
 .in -.5i
 Additional information about these streams, such as their MD5
-hash value, is also written to the DFXML file
+hash value, is also written to the
+.B DFXML report
+file.
 .TP
 .B \-F[format]
-Specifies format for output filenames. Format specifiers:
+Specifies format for output filenames.
+.RS
+.TP
+Format specifiers:
+.TP
 .B c
-appends the connection counter to ALL filenames.
+Appends the connection counter to ALL filenames.
+.TP
 .B t
-prepends each filename with a Unix timestamp.
+Prepends each filename with a Unix timestamp (seconds since epoch).
+.TP
 .B T
-prepends each filename with an ISO-8601 timestamp.
+Prepends each filename with an ISO-8601 timestamp.
+.TP
 .B X
 Do not output any files (other than the 
-.B report.xml 
-report files).
+.B DFXML report
+file).
+.RE
 .TP
 .B \-FM
-Include MD5 of each flow in the DFXML output.
+Include MD5 of each flow in the
+.B DFXML report
+file.
 .TP
 .B \-FX
-Suppresses file output entirely (DFXML file is still produced).
+Suppresses file output entirely,
+.B DFXML report
+file is still produced.
 .TP
 .B \-Fk
 bin output in 1K directories
@@ -210,32 +224,6 @@ bin output in 1M directories (2 levels)
 .TP
 .B \-Fg
 bin output in 1G directories (3 levels)
-.B \-T[format]
-Specifies an arbitrary template for filenames. 
-.B %A
-expands to source IP address.
-.B %a
-expands to source IP port.
-.B %B
-expands to destination IP address.
-.B %b
-expands to destination IP port.
-.B %T
-expands to timestamp in ISO8601 format.
-.B %t
-expands to timestamp in Unix time_t format.
-.B %V
-expands to "--" if a VLAN is present.
-.B %v
-expands to the VLAN number if a VLAN is present.
-.B %C
-expands to "c" if the connection count>0.
-.B %c
-expands to the connection count if the connection count>0.
-.B %#
-always expands to the connection count.
-.B %%
-prints a "%".
 .TP
 .B \-f\fImax_fds\fP
 Max file descriptors used.  Limit the number of file descriptors used
@@ -251,7 +239,7 @@ option will report how many file descriptors tcpflow is using.
 .TP
 .B \-g
 Output flow information to console in multiple colors. (Blue for client to server flows, red for server to client flows, green for undecided flows.)
-\fBNOTE: This option was changed from tcpflow 1.3 (-e) and 1.4.4 (-J).\fP
+Note: This option was different from tcpflow 1.3 (-e) and 1.4.4 (-J).
 .TP
 .B \-h
 Help.  Print usage information and exit.
@@ -264,6 +252,23 @@ Interface name.  Capture packets from the network interface
 named \fIiface\fP.  If no interface is specified with
 .B \-i
 , a reasonable default will be used by libpcap automatically.
+.TP
+.B \-I
+Store the reception timestamps (of TCP packets) in a companion file \fB*.findx\fP.
+Therefore each flow will have two files: (1) the usual file containing payload bytes
+and (2) the text file containing the corresponding timestamps.
+This last file \fB*.findx\fP has three columns using the pipe \fB'|'\fP as separator:
+.nf
+
+    \fBbyte-index|timestamp|length\fP
+
+.fi
+The \fBbyte-index\fP column is the postion within the file containing the payload bytes.
+The \fBtimestamp\fP column represents the number of seconds since epoch as a floating point number.
+The precision is the microsecond but may also be the nanosecond in a future tcpflow version.
+The \fBlength\fP column is the number of successive bytes concerned by \fBtimestamp\fP
+and can include several TCP frames (TCP packets).
+The extension \fBfindx\fP may become from the fact that the timestamps are \fBframe indexed\fP.
 .TP
 .B \-L \fIsemlock_name\fP
 Specifies that \fIsemlock_name\fP should be used as a Unix semaphore to prevent two different copies
@@ -339,6 +344,67 @@ Strip non-printables.  Convert all non-printable characters to the
 "." character before printing packets to the console or storing them
 to a file.
 .TP
+.B \-T[format]
+Specifies an arbitrary template for filenames.
+.RS
+.TP
+.B %A
+expands to source IP address.
+.TP
+.B %a
+expands to source IP port.
+.TP
+.B %B
+expands to destination IP address.
+.TP
+.B %b
+expands to destination IP port.
+.TP
+.B %T
+expands to timestamp in ISO8601 format.
+.TP
+.B %t
+expands to timestamp in Unix time_t format.
+.TP
+.B %V
+expands to "--" if a VLAN is present.
+.TP
+.B %v
+expands to the VLAN number if a VLAN is present.
+.TP
+.B %C
+expands to "c" if the connection count>0.
+.TP
+.B %c
+expands to the connection count if the connection count>0.
+.TP
+.B %#
+always expands to the connection count.
+.TP
+.B %N
+(connection_number )             % 1000
+.TP
+.B %K
+(connection_number / 1000)       % 1000
+.TP
+.B %M
+(connection_number / 1000000)    % 1000
+.TP
+.B %G
+(connection_number / 1000000000) % 1000
+.TP
+.B %%
+prints a "%".
+.TP
+.RE
+When the option \fB\-T\fP is used, \fBtcpflow\fP ignores options \fB\-Fk\fP, \fB\-Fm\fP and \fB\-Fg\fP.
+However, the option \fB\-T\fP handles \fB'/'\fP within the filename template patern to create sub-directories.
+For example the following line will create a directory tree \fBout/IP-src/port-src/IP-dst/port-dst\fP.
+.nf
+
+    \fBtcpflow -r packets.pcap -o out -T %A/%a/%B/%b/%c%N.flow\fP
+.fi
+.TP
 .B \-V
 Print the version number and exit.
 .TP
@@ -351,8 +417,15 @@ Write packets that were not processed to \fIfilename.pcap\fP. Typically this wil
 UDP packets.
 .TP
 .B \-X \fIfilename.xml\fP
-Write a DFXML report file to \fIfilename.xml\fP. The file contains a record of every 
+Write a
+.B DFXML report
+to \fIfilename.xml\fP. The file contains a record of every
 tcp connection, how the tcpflow program was compiled, and the computer on which tcpflow was run.
+By default
+.B tcpflow
+writes the
+.B DFXML report
+in file \fIreport.xml\fP.
 .TP
 .B \-Z
 Don't decompress gzip-compressed streams. 
