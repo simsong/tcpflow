@@ -68,6 +68,7 @@ scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
     scan_netviz,
+    scan_python,
     scan_tcpdemux,
 #ifdef USE_WIFI
     scan_wifiviz,
