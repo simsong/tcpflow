@@ -7,7 +7,7 @@
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.4.6, simsong@github.com)
+AC_INIT(TCPFLOW, 1.4.7-dev, simsong@github.com)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
@@ -335,7 +335,7 @@ pcap-dev library.  Please execute this command:
 
   UBUNTU: sudo apt-get install libpcap-dev
   DEBIAN: sudo apt-get install libpcap-dev
-  FEDORA: sudo yum install libpcap-devel
+  FEDORA: sudo dnf install libpcap-devel
   MINGW:  Sorry!  libpcap is not currently 
           available when cross-compiling.
 

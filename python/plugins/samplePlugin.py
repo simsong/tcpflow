@@ -5,7 +5,7 @@
 ## The input string contains the application data from tcpflow's buffer.
 
 def sampleFunction(appData):
-    return "This message appears in the 'plugindata' tag of report.xml."
+    return "This message appears in the XML tag 'tcpflow:result' of report.xml (DFXML)."
 
 ## The second function takes a string (application data)
 ## and writes the application (HTTP) header data to the file
