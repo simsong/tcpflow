@@ -557,22 +557,7 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 )
 
 ################################################################
-# Plugin scanner_python.cpp requires header "Python.h"
-# If the header is not present => Disable the source code of the plugin
-#
-AC_CHECK_HEADERS(python2.7/Python.h)  # ==> #define HAVE_PYTHON2_7_PYTHON_H
-AC_CHECK_LIB(python2.7,Py_Initialize,,[
-  AC_MSG_WARN([
-*** Cannot find python library.
-*** Please install python-devel to enable scanner python.
-  ])
-  Fmissing_library="$Fmissing_library python-devel "      # Validated on Fedora 25
-  Umissing_library="$Umissing_library libpython2.7-dev"   # Should be OK: https://packages.ubuntu.com/yakkety/libpython2.7-dev
-  Mmissing_library="$Mmissing_library python27"           # Not sure: https://github.com/macports/macports-ports/blob/master/lang/python27/Portfile
-])
-
-################################################################
-# Plugin scanner_python.cpp requires header "Python.h"
+# Plugin scan_python.cpp requires header "Python.h"
 # If the header is not present => Disable the source code of the plugin
 #
 AC_CHECK_HEADERS(python2.7/Python.h)  # ==> #define HAVE_PYTHON2_7_PYTHON_H
