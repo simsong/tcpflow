@@ -88,9 +88,9 @@ check_include_files(zlib.h HAVE_ZLIB_H)
 check_include_files(python2.7/Python.h PYTHON2_7_PYTHON_H)  # TODO(olibre): Use instead PYTHON_INCLUDE_DIRS
 # There are many other #define not (yet) implemented by above CMake directives.
 # To list the #define use the following command lines:
-#   sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}' | sort -u | while read w ; do grep -wB1 $w config.h | grep '[^ ]*> header' -q && echo $w; done > already-implemented-using-cmake-directives
-#   ( sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}'  | sort -u | while read w ; do find src -name 'config.h' -o -regex '.*.h\|.*.cpp' -exec fgrep -Iowqm1 $w {} '+' && echo "$w" ; done ) > used-in-source-code
-#   comm -13 already-implemented-using-cmake-directives used-in-source-code | grep -wf - config.h -B1 --color=always > rest-to-implement-using-cmake-directives
+# sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}' | sort -u | while read w ; do grep -wB1 $w config.h | grep '[^ ]*> header' -q && echo $w; done > already-implemented-using-cmake-directives
+# ( sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}'  | sort -u | while read w ; do find src -name 'config.h' -o -regex '.*.h\|.*.cpp' -exec fgrep -Iowqm1 $w {} '+' && echo "$w" ; done ) > used-in-source-code
+# comm -13 already-implemented-using-cmake-directives used-in-source-code | grep -wf - config.h -B1 --color=always > rest-to-implement-using-cmake-directives
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 # When all #define from config.h are implemented using CMake directives the following line...
@@ -106,7 +106,6 @@ source_group("netviz headers" FILES ${netviz_h})
 add_library (netviz  ${netviz_cpp}  ${netviz_h})
 target_link_libraries(netviz cairo)  # TODO(olibre): Only if libcairo is present
 target_include_directories(netviz PUBLIC netviz)
-target_link_libraries(netviz cairo)
 
 # add_subdirectory(dfxml/src)
 set(dfxml_writer_h dfxml/src/dfxml_writer.h dfxml/src/hash_t.h)
