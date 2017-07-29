@@ -557,7 +557,7 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 )
 
 ################################################################
-# Plugin scanner_python.cpp requires header "Python.h"
+# Plugin scan_python.cpp requires header "Python.h"
 # If the header is not present => Disable the source code of the plugin
 #
 AC_CHECK_HEADERS(python2.7/Python.h)  # ==> #define HAVE_PYTHON2_7_PYTHON_H

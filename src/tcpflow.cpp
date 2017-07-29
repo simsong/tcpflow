@@ -103,6 +103,7 @@ static const struct option longopts[] = {
     { NULL, 0, NULL, 0 }
 };
 
+
 /****************************************************************
  *** USAGE
  ****************************************************************/
@@ -158,8 +159,8 @@ static void usage(int level)
         std::cout << '\n';
         be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
     }
-
-    std::cout << "Console output options:\n";
+    std::cout << "\n"
+                 "Console output options:\n";
     std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
     std::cout << "   -c: console print only (don't create files)\n";
     std::cout << "   -C: console print only, but without the display of source/dest header\n";
@@ -183,7 +184,7 @@ static void usage(int level)
     std::cout << "   -Fm : Bin output in 1M directories (2 levels)\n";
     std::cout << "   -Fg : Bin output in 1G directories (3 levels)\n";
     flow::usage();
-    std::cout << "\n Current limitations:"
+    std::cout << "\n" "Current limitations:"
                  "\n" "  get_max_fds() = " << tcpdemux::getInstance()->get_max_fds();
     std::cout << "\n" "  NUM_RESERVED_FDS = " << NUM_RESERVED_FDS;
     std::cout << '\n';

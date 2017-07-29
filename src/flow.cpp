@@ -30,7 +30,8 @@ std::string flow::outdir(".");
 
 void flow::usage()
 {
-    std::cout << "Filename template format for option -T:\n";
+    std::cout << "\n"
+                 "Filename template format for option -T:\n";
     std::cout << "  %A/%a - source IP address/port;          %B/%b - dest IP address/port\n";
     std::cout << "  %E/%e - source/dest Ethernet Mac address\n";
     std::cout << "  %V/%v - VLAN number, '--' if no vlan/'' if no vlan\n";
@@ -47,7 +48,6 @@ void flow::usage()
     std::cout << "\n";
     std::cout << "Note: Using the option -T will ignore options -Fk, -Fm and -Fg.\n";
     std::cout << "      Filename template format handles '/' to create sub-directories.\n";
-    std::cout << "\n";
 }
 
 std::string flow::filename(uint32_t connection_count)
