@@ -158,12 +158,14 @@ public:;
     static void usage();			// print information on flow notation
     static std::string filename_template;	// 
     static std::string outdir;                  // where the output gets written
-    flow():id(),vlan(),mac_daddr(),mac_saddr(),tstart(),tlast(),packet_count(){};
+    flow():id(),vlan(),mac_daddr(),mac_saddr(),tstart(),tlast(),len(),caplen(),packet_count(){};
     flow(const flow_addr &flow_addr_,uint64_t id_,const be13::packet_info &pi):
 	flow_addr(flow_addr_),id(id_),vlan(pi.vlan()),
         mac_daddr(),
         mac_saddr(),
         tstart(pi.ts),tlast(pi.ts),
+        len(0),
+        caplen(0),
 	packet_count(0){
         if(pi.pcap_hdr){
             memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
@@ -177,6 +179,8 @@ public:;
     uint8_t mac_saddr[6];               // source mac address of first packet
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
+    uint64_t len;     		        // off-wire length
+    uint64_t caplen;    		// captured length
     uint64_t packet_count;		// packet count
 
     // return a filename for a flow based on the template and the connection count

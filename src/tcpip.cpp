@@ -75,17 +75,18 @@ void tcpip::dump_xml(class dfxml_writer *xreport,const std::string &xmladd)
     std::stringstream attrs;
     attrs << "startime='" << dfxml_writer::to8601(myflow.tstart) << "' ";
     attrs << "endtime='"  << dfxml_writer::to8601(myflow.tlast)  << "' ";
-    attrs << "src_ipn='"  << ipaddr_prn(myflow.src, myflow.family) << "' ";
-    attrs << "dst_ipn='"  << ipaddr_prn(myflow.dst, myflow.family) << "' ";
     if(myflow.has_mac_daddr()) attrs << "mac_daddr='" << macaddr(myflow.mac_daddr) << "' ";
     if(myflow.has_mac_saddr()) attrs << "mac_saddr='" << macaddr(myflow.mac_saddr) << "' ";
-    attrs << "packets='"  << myflow.packet_count << "' ";
+    attrs << "family='"   << (int)myflow.family << "' ";
+    attrs << "src_ipn='"  << ipaddr_prn(myflow.src, myflow.family) << "' ";
+    attrs << "dst_ipn='"  << ipaddr_prn(myflow.dst, myflow.family) << "' ";
     attrs << "srcport='"  << myflow.sport << "' ";
     attrs << "dstport='"  << myflow.dport << "' ";
-    attrs << "family='"   << (int)myflow.family << "' ";
+    attrs << "packets='"  << myflow.packet_count << "' ";
     if(out_of_order_count) attrs << "out_of_order_count='" << out_of_order_count << "' ";
     if(violations)         attrs << "violations='" << violations << "' ";
-	
+    attrs << "len='"      << myflow.len << "' ";
+    if(myflow.len != myflow.caplen) attrs << "caplen='"   << myflow.caplen << "' ";
     xreport->xmlout(tcpflow_str,"",attrs.str(),false);
     if(xmladd.size()>0) xreport->xmlout("",xmladd,"",false);
     xreport->pop();

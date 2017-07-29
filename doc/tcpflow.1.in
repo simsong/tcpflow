@@ -498,8 +498,105 @@ Don't decompress gzip-compressed streams.
 .\"START -- tcpdump excerpt"
 .TP
 .B \fIexpression]\fP
-tcpflow flow passes the \fIexpression\fP to \fBlibpcap\fP. Please refer to the \fBtcpdump\fP or \fBlibpcap\fP documentation for information on how to construct and test these expressions.
+.B tcpflow
+passes the \fIexpression\fP to \fBlibpcap\fP.
+Please refer to the \fBtcpdump\fP or \fBlibpcap\fP documentation
+for information on how to construct and test these expressions.
 
+.SH DFXML report
+.LP
+The
+.B DFXML report
+is the XML file written by
+.B tcpflow
+to provide
+.B tcpflow
+build details, command line arguments
+and information about processed flows.
+.LP
+By default the
+.B DFXML file
+is named \fIreport.xml\fP.
+But this filename can be changed
+using command line option \fB\-X\fP.
+.LP
+.B DFXML file
+respects the
+.B DFXML schema
+defined by project
+\fIhttps://github.com/dfxml-working-group/dfxml_schema\fP.
+.br
+Moreover
+.B tcpflow
+adds two extra XML tags,
+as illustrated by the following example:
+.RS
+.nf
+
+\fB
+<tcpflow startime='2017-07-22T00:12:21.962782Z' endtime='2017-07-22T00:12:22.097591Z'
+         family='2' mac_daddr='40:3d:78:57:ed:d4' mac_saddr='00:c5:42:d2:cb:f2'
+         src_ipn='141.134.34.12' dst_ipn='192.168.0.40' srcport='80' dstport='38797'
+         packets='4' len='677' caplen='611' />
+
+<tcpflow:result scanner="python" path="python/plugins" module="samplePlugin"
+                function="sampleFunction">bla bla bla</tcpflow:result>
+\fP
+.fi
+.RE
+.LP
+The first XML tag \fB<tcpflow>\fP provide information about the captured flow.
+This tag should be renamed \fB<tcpflow:cap>\fP in a future version
+in order to conform better to \fBDFXML schema\fP.
+.LP
+The second XML tag \fB<tcpflow:result>\fP collects processing results.
+For the moment, only the scanner \fIpython\fP uses this feature.
+.PP
+The XML attributes of \fB<tcpflow>\fP are:
+.IP \(bu
+\fBstartime\fP Reception time of first packet
+.IP \(bu
+\fBendtime\fP Reception time of last packet
+.IP \(bu
+\fBfamily\fP
+.IP \(bu
+\fBmac_daddr\fP Destination MAC address of first packet (printed if any)
+.IP \(bu
+\fBmac_saddr\fP Source MAC address of first packet (printed if any)
+.IP \(bu
+\fBsrc_ipn\fP IP source
+.IP \(bu
+\fBdst_ipn\fP IP destination
+.IP \(bu
+\fBsrcport\fP TCP port source
+.IP \(bu
+\fBdstport\fP TCP port destination
+.IP \(bu
+\fBpackets\fP Nummber of packets
+.IP \(bu
+\fBout_of_order_count\fP Number of times
+.B tcpflow
+has replaced missing payload by zeros in the flow file,
+for example when capture does not contain the TCP session begin (printed if any)
+.IP \(bu
+\fBviolations\fP Number of protocol violations (printed if any)
+.IP \(bu
+\fBlen\fP Sum of un-truncated length of all packet data
+(including headers, see https://stackoverflow.com/q/1491660)
+.IP \(bu
+\fBcaplen\fP Sum of captured bytes of all packet data
+(including headers, printed if different from \fBlen\fP)
+.PP
+The XML attributes of \fB<tcpflow:result>\fP are:
+.IP \(bu
+\fBscanner\fP Name of the scanner
+.IP \(bu
+\fBpath\fP Directory of the scanner module (printed if relevant)
+.IP \(bu
+\fBmodule\fP Module name (printed if relevant, used to indicate the python script)
+.IP \(bu
+\fBfunction\fP Function name (printed if relevant,
+used to indicate the function within the python module)
 .SH EXAMPLES
 .LP
 To record all packets arriving at or departing from \fIsundown\fP and extract all of the HTTP attachments:

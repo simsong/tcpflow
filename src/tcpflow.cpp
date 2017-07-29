@@ -487,7 +487,6 @@ static void process_infile(tcpdemux &demux,const std::string &expression,const c
     /* start listening or reading from the input file */
     if (infile == "") DEBUG(1) ("listening on %s", device);
     if (pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance()) < 0){
-
 	die("%s: %s", infile.c_str(),pcap_geterr(pd));
     }
     pcap_close (pd);

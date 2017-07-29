@@ -470,7 +470,17 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     /* Now tcp is valid */
     tcp->myflow.tlast = pi.ts;		// most recently seen packet
     tcp->last_packet_number = packet_counter++;
+    tcp->myflow.len += pi.pcap_hdr->len;
+    tcp->myflow.caplen += pi.pcap_hdr->caplen;
     tcp->myflow.packet_count++;
+
+    // Does not seem consitent => Print a notice
+    // See also https://stackoverflow.com/q/1491660
+    if(pi.pcap_hdr->caplen != pi.pcap_hdr->len){
+        DEBUG(2)("Captured packet has a length caplen=%d different "
+                 "from the un-truncated length len=%d provided by PCAP API",
+                 pi.pcap_hdr->caplen, pi.pcap_hdr->len);
+    }
 
     /*
      * 2012-10-24 slg - the first byte is sent at SEQ==ISN+1.
