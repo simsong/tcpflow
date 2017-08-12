@@ -36,6 +36,10 @@
 #include "inet_ntop.c"
 #endif
 
+#ifdef HAVE_CAP_NG_H
+#include <cap-ng.h>
+#endif
+
 /* droproot is from tcpdump.
  * See https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
  */
@@ -375,7 +379,7 @@ droproot(tcpdemux &demux,const char *username, const char *chroot_dir)
     /* We don't need CAP_SETUID, CAP_SETGID and CAP_SYS_CHROOT any more. */
     capng_updatev(
                   CAPNG_DROP,
-                  CAPNG_EFFECTIVE | CAPNG_PERMITTED,
+                  (capng_type_t)(CAPNG_EFFECTIVE | CAPNG_PERMITTED),
                   CAP_SETUID,
                   CAP_SETGID,
                   CAP_SYS_CHROOT,
