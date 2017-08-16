@@ -3,7 +3,7 @@
  * Originally by Jeremy Elson <jelson@circlemud.org>
  * Now maintained by Simson L. Garfinkel <simsong@acm.org>
  *
- * This source code is under the GNU Public License (GPL).  
+ * This source code is under the GNU Public License (GPL).
  * See LICENSE for details.
  *
  */
@@ -172,7 +172,7 @@ void debug_real(const char *fmt, ...)
   
 
 /* Print a debugging or informatioal message, then exit  */
-[[noreturn]] void die(const char *fmt, ...) 
+[[noreturn]] void die(const char *fmt, ...)
 {
     va_list ap;
 
@@ -183,7 +183,7 @@ void debug_real(const char *fmt, ...)
 
 /* An attempt at making signal() portable.
  *
- * If we detect sigaction, use that; 
+ * If we detect sigaction, use that;
  * otherwise if we have setsig, use that;
  * otherwise, cross our fingers and hope for the best using plain old signal().
  *

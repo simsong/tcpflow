@@ -93,7 +93,7 @@ scanner_t *scanners_builtin[] = {
 bool opt_no_promisc = false;		// true if we should not use promiscious mode
 
 /* Long options!
- * 
+ *
  * We need more long options; developers looking at this file should
  * feel free to submit more!
  */

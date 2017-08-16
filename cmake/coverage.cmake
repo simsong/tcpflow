@@ -13,7 +13,7 @@ if( NOT CMAKE_COMPILER_IS_GNUCXX AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" 
 endif()
 
 # The function assert() may introduce a bias in covered lines count
-# To ignore lines about assert() => Disable assert() 
+# To ignore lines about assert() => Disable assert()
 add_definitions(-DNDEBUG)
 
 # Compilers GCC and Clang need flag --coverage
@@ -23,7 +23,7 @@ add_compile_options( --coverage )
 link_libraries(      --coverage )
 
 # Depending on presence of tools gcov/gcovr/lcov/genhtml => Add targets
-# HTML report: 
+# HTML report:
 # - gcovr --root . --html --html-details --output coverage.html --exclude-unreachable-branches --print-summary
 # - lcov + genhtml
 

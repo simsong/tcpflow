@@ -6,7 +6,7 @@
 # * Debug    = -O0 + enable  assert              <-- Default value
 # * Coverage = -O0 + disable assert (-DNDEBUG)
 set(CMAKE_CONFIGURATION_TYPES Release Debug Coverage CACHE STRING "Reset the supported CMAKE_BUILD_TYPEs." FORCE)
-# Use "cmake -DCMAKE_BUILD_TYPE=Release" or "cmake -DCMAKE_BUILD_TYPE=Coverage" to override default value 'Debug' 
+# Use "cmake -DCMAKE_BUILD_TYPE=Release" or "cmake -DCMAKE_BUILD_TYPE=Coverage" to override default value 'Debug'
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "Coverage")

@@ -1,4 +1,4 @@
-TCPFLOW 1.4.6
+TCPFLOW 1.5.0
 ===========
 Downloads directory: http://digitalcorpora.org/downloads/tcpflow/
 
@@ -7,15 +7,18 @@ Compiling
 ---------
 To compile for Linux
 
-Be sure you have the necessary precursors. For RedHat based distributions use following command to install them:
+Be sure you have the necessary precursors. There are files in the root directory that will do this for you, depending on your host operating system:
 
-    # yum -y install git gcc-c++ automake autoconf boost-devel cairo-devel libpcap-devel zlib-devel
-    
-If you are working on a Debian based distribution use this:
+CONFIGURE_ARCH_17_8.sh
+CONFIGURE_FEDORA_18.sh
+CONFIGURE_FEDORA_26.sh
+CONFIGURE_UBUNTU_16_04.sh
 
-    # sudo apt-get install git gcc g++ automake autoconf libpcap-dev libboost-dev libssl-dev zlib1g-dev libcairo2-dev
+Depending on your OS, just:
 
-Download the release from http://digitalcorpora.org/downloads/tcpflow/.  Compile and install with:
+    # sudo bash CONFIGURE_<YOUROS>.sh
+
+Once you have configured your OS, compile and install with:
 
     ./configure
     make
@@ -197,8 +200,6 @@ increasingly a rare event, so this does not seem to be a significant problem.
 MAINTAINER
 ==========
 Simson L. Garfinkel <simsong@acm.org>
-
-
 
 ACKNOWLEDGEMENTS
 ================
