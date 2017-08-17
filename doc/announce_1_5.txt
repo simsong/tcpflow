@@ -1,0 +1,29 @@
+I'm pleased to announce the release of tcpflow version 1.5.0.  This
+version was going to be called version 1.4.7, but so much has changed
+that it seemed like a good time to bump the minor version number. It's
+more than just a bug-fix release!
+
+Changes from 1.4.6:
+
+* We now pin to simsong/http-parser rather than nodejs/http-parser, so that we have more control over http-parser's .gitignore file.
+
+* support for cmake. (May not be current, but it's there for you cmake fans!)
+
+* CONFIGURE_FEDORA_26.sh script installs all needed Fedora 26 packages.
+
+* CONFIGURE_UBUNTU_16_04.sh script installs all needed Ubuntu 16.04 packages
+
+* CONFIGURE_ARCH_17_8.sh installs all needed Arch Linux 17.8 packages! Yes, we now support Arch!
+
+* getopt_long() support. Now you can go to town and create long-versions of all your favorite, one-character tcpflow options (provided you know C++, of course. Please submit pull requests!)
+
+* tcpflow man page updated
+
+* There's a Python post-processor option as well. 
+
+* chroot() and drop root, allowing better control of privledge. 
+
+* Support for libcap (capability library).
+
+
+
