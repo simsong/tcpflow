@@ -21,6 +21,7 @@ Other programs to look at:
  http://ant.isi.edu/wiv2012/program.html
 ================
 Current bugs:
+
 tests/bug2.pcap has a connection with multiple packets sent after it is closed.
   src/tcpflow -d 100  -o bug2 -r  tests/bug2.pcap   --- gets data corruption because the retransmitted packets overwrite the beginning
   src/tcpflow -P -d 100  -o bug2 -r  tests/bug2.pcap   --- doesn't.
@@ -90,10 +91,3 @@ If the file is already there:
 On retransmit:
  - If the data doesn't match, increment the connection count (easy way to document the retransmit)
 
-
-================================================================
-tcpdemux.cpp: - explore elimination of unnecessary copy of flow() structure by creating a 'new flow'
-in tcpdemux::create_tcpip() and passing a pointer to the newly created. 
-================================================================
-Current crasher:
-run -o out-e4 -e netviz -x tcpdemux -r /corp/caida/packets/equinix-sanjose.dirA.20120606-235200.UTC.anon.pcap 

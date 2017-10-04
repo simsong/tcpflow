@@ -15,7 +15,8 @@ AC_CONFIG_FILES([doc/tcpflow.1])
 AC_CONFIG_FILES([tcpflow.spec])
 AC_CONFIG_HEADER([config.h])
 
-AM_INIT_AUTOMAKE
+# https://stackoverflow.com/questions/15013672/use-autotools-with-readme-md
+AM_INIT_AUTOMAKE([foreign])
 AM_MAINTAINER_MODE
 AC_PREFIX_PROGRAM(tcpflow) dnl build for same location
 
