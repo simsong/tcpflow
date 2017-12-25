@@ -793,7 +793,6 @@ int main(int argc, char *argv[])
      * Note: If we are going to chroot, we need apply the chroot prefix also,
      * but we need to open the file *now*.
      */
-    std::cerr << "reportfilename: " << reportfilename << "\n";
     if(reportfilename.size()>0 && opt_enable_report){
         if (tcpflow_chroot_dir){
             reportfilename = std::string(tcpflow_chroot_dir) + std::string("/") + reportfilename;
