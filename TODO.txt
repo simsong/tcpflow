@@ -22,6 +22,8 @@ Other programs to look at:
 ================
 Current bugs:
 
+- Add more tests, specifically a test to read multiple files at once.
+
 tests/bug2.pcap has a connection with multiple packets sent after it is closed.
   src/tcpflow -d 100  -o bug2 -r  tests/bug2.pcap   --- gets data corruption because the retransmitted packets overwrite the beginning
   src/tcpflow -P -d 100  -o bug2 -r  tests/bug2.pcap   --- doesn't.

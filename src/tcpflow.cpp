@@ -168,7 +168,7 @@ static void usage(int level)
     std::cout << "   -B: binary output, even with -c or -C (normally -c or -C turn it off)\n";
     std::cout << "   -c: console print only (don't create files)\n";
     std::cout << "   -C: console print only, but without the display of source/dest header\n";
-    std::cout << "   -0: don't print newlines after packets when printing to console";
+    std::cout << "   -0: don't print newlines after packets when printing to console\n";
     std::cout << "   -s: strip non-printable characters (change to '.')\n";
     std::cout << "   -D: output in hex (useful to combine with -c or -C)\n";
     std::cout << "\n";
