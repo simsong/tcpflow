@@ -258,7 +258,7 @@ typedef	unsigned char u_int8_t;
 
 /* tcpflow.cpp - CLI */
 extern const char *progname;
-[[noreturn]] void    terminate(int sig);
+void    terminate(int sig);
 #include "inet_ntop.h"
 
 #ifdef HAVE_PTHREAD

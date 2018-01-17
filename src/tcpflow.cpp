@@ -234,11 +234,18 @@ void replace(std::string &str,const std::string &from,const std::string &to)
 /* These must be global variables so they are available in the signal handler */
 feature_recorder_set *the_fs = 0;
 dfxml_writer *xreport = 0;
+pcap_t *pd = 0;
 void terminate(int sig)
 {
-    DEBUG(1) ("terminating");
-    be13::plugin::phase_shutdown(*the_fs);	// give plugins a chance to do a clean shutdown
-    exit(0); /* libpcap uses onexit to clean up */
+    if (sig == SIGHUP || sig == SIGINT || sig == SIGTERM) {
+        DEBUG(1) ("terminating orderly");
+        pcap_breakloop(pd);
+        return;
+    } else {
+        DEBUG(1) ("terminating");
+        be13::plugin::phase_shutdown(*the_fs);	// give plugins a chance to do a clean shutdown
+        exit(0); /* libpcap uses onexit to clean up */
+    }
 }
 
 #ifdef HAVE_FORK
@@ -411,7 +418,6 @@ static inflaters_t *inflaters = 0;
 static void process_infile(tcpdemux &demux,const std::string &expression,const char *device,const std::string &infile)
 {
     char error[PCAP_ERRBUF_SIZE];
-    pcap_t *pd=0;
     int dlt=0;
     pcap_handler handler;
     int waitfor = -1;
@@ -490,7 +496,9 @@ static void process_infile(tcpdemux &demux,const std::string &expression,const c
 
     /* start listening or reading from the input file */
     if (infile == "") DEBUG(1) ("listening on %s", device);
-    if (pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance()) < 0){
+    int pcap_retval = pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance());
+    
+    if (pcap_retval < 0 && pcap_retval != -2){
 	die("%s: %s", infile.c_str(),pcap_geterr(pd));
     }
     pcap_close (pd);
