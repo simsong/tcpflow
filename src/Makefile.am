@@ -96,6 +96,8 @@ tcpflow_SOURCES = \
 	mime_map.h 
 
 EXTRA_DIST =\
+	inet_ntop.c \
+	inet_ntop.h \
 	http-parser/AUTHORS \
 	http-parser/CONTRIBUTIONS \
 	http-parser/LICENSE-MIT \
