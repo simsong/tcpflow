@@ -766,7 +766,7 @@ int main(int argc, char *argv[])
 
     /* was a semaphore provided for the lock? */
     if(lockname){
-#if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD)
+#if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD_H)
 	semlock = sem_open(lockname,O_CREAT,0777,1); // get the semaphore
 #else
 	fprintf(stderr,"%s: attempt to create lock pthreads not present\n",argv[0]);
