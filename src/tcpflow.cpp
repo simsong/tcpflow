@@ -68,7 +68,7 @@ const char *progname = 0;		// name of the program
 int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
 
 /* semaphore prevents multiple copies from outputing on top of each other */
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREAD_H
 #include <semaphore.h>
 sem_t *semlock = 0;
 #endif
