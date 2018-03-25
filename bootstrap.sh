@@ -6,7 +6,7 @@
 function usage() {
   echo tcpflow bootstrap:
   echo be sure that these packages are installed:
-  echo automake autoconf gcc gcc-c++ boost-devel openssl-devel libpcap-devel
+  echo automake autoconf gcc gcc-c++ boost-devel openssl-devel libpcap-devel cairo-devel
   exit 1
 }
 

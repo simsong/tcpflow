@@ -1,0 +1,15 @@
+addons:
+  apt:
+    packages: 
+    - automake
+    - autoconf
+    - g++
+    - libboost-dev
+    - libssl-dev
+    - libpcap-dev
+    - libcairo2-dev
+language: cpp
+install:
+ - ./bootstrap.sh && ./configure && make
+script:
+ - make check
