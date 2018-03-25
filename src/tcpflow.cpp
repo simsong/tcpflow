@@ -415,7 +415,7 @@ void tcpflow_droproot(tcpdemux &demux)
 #ifdef HAVE_INFLATER
 static inflaters_t *inflaters = 0;
 #endif
-static void process_infile(tcpdemux &demux,const std::string &expression,const char *device,const std::string &infile)
+static int process_infile(tcpdemux &demux,const std::string &expression,const char *device,const std::string &infile)
 {
     char error[PCAP_ERRBUF_SIZE];
     int dlt=0;
@@ -499,7 +499,8 @@ static void process_infile(tcpdemux &demux,const std::string &expression,const c
     int pcap_retval = pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance());
     
     if (pcap_retval < 0 && pcap_retval != -2){
-	die("%s: %s", infile.c_str(),pcap_geterr(pd));
+	DEBUG(1) ("%s: %s", infile.c_str(),pcap_geterr(pd));
+	return 1;
     }
     pcap_close (pd);
 #ifdef HAVE_FORK
@@ -510,6 +511,8 @@ static void process_infile(tcpdemux &demux,const std::string &expression,const c
         close (pipefd);
     }
 #endif
+
+    return 0;
 }
 
 
@@ -850,25 +853,26 @@ int main(int argc, char *argv[])
 
 
     /* Process r files and R files */
+    int exit_val = 0;
     if(xreport){
         xreport->push("configuration");
     }
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 	demux.start_new_connections = true;
-        process_infile(demux,expression,device,"");
+        exit_val = process_infile(demux,expression,device,"");
         input_fname = device;
     }
     else {
 	/* first pick up the new connections with -r */
 	demux.start_new_connections = true;
 	for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
-	    process_infile(demux,expression,device,*it);
+	    exit_val |= process_infile(demux,expression,device,*it);
 	}
 	/* now pick up the outstanding connection with -R, but don't start new connections */
 	demux.start_new_connections = false;
 	for(std::vector<std::string>::const_iterator it=Rfiles.begin();it!=Rfiles.end();it++){
-	    process_infile(demux,expression,device,*it);
+	    exit_val |= process_infile(demux,expression,device,*it);
 	}
     }
 
@@ -940,5 +944,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    exit(0);                            // return(0) causes crash on Windows
+    exit(exit_val);                     // return(0) causes crash on Windows
 }
