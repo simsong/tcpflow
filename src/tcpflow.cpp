@@ -411,6 +411,7 @@ void tcpflow_droproot(tcpdemux &demux)
  * process an input file or device
  * May be repeated.
  * If start is false, do not initiate new connections
+ * Return 0 on success or -1 on error
  */
 #ifdef HAVE_INFLATER
 static inflaters_t *inflaters = 0;
@@ -500,7 +501,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
     
     if (pcap_retval < 0 && pcap_retval != -2){
 	DEBUG(1) ("%s: %s", infile.c_str(),pcap_geterr(pd));
-	return 1;
+	return -1;
     }
     pcap_close (pd);
 #ifdef HAVE_FORK
@@ -860,19 +861,28 @@ int main(int argc, char *argv[])
     if(rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 	demux.start_new_connections = true;
-        exit_val = process_infile(demux,expression,device,"");
+        int err = process_infile(demux,expression,device,"");
+        if (err < 0) {
+            exit_val = 1;
+        }
         input_fname = device;
     }
     else {
 	/* first pick up the new connections with -r */
 	demux.start_new_connections = true;
 	for(std::vector<std::string>::const_iterator it=rfiles.begin();it!=rfiles.end();it++){
-	    exit_val |= process_infile(demux,expression,device,*it);
+	    int err = process_infile(demux,expression,device,*it);
+	    if (err < 0) {
+	        exit_val = 1;
+	    }
 	}
 	/* now pick up the outstanding connection with -R, but don't start new connections */
 	demux.start_new_connections = false;
 	for(std::vector<std::string>::const_iterator it=Rfiles.begin();it!=Rfiles.end();it++){
-	    exit_val |= process_infile(demux,expression,device,*it);
+	    int err = process_infile(demux,expression,device,*it);
+	    if (err < 0) {
+	        exit_val = 1;
+	    }
 	}
     }
 
