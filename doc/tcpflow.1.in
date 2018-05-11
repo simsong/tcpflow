@@ -99,7 +99,7 @@ reconstructs the actual data streams and stores each flow in a
 separate file for later analysis.  \fBtcpflow\fP understands TCP sequence
 numbers and will correctly reconstruct data streams regardless of
 retransmissions or out-of-order delivery. \fBtcpflow\fP provides control over filenames
-for automatic binning of connections by protocol, IP adress or connection number, and has a sophisticated
+for automatic binning of connections by protocol, IP address or connection number, and has a sophisticated
 plug-in system for decompressing compressed HTTP connections, undoing MIME encoding, or calling user-provided
 programs for post-processing.
 .LP
@@ -126,7 +126,7 @@ This will cause \fBtcpflow\fP to perform (-a) all processing, store the output i
 called 
 .BI outdir,
 bin the output in directories of 1000 connections each, and read its input from the file
-\fBpackets.pcap\fP. More sophisticiated processing is possible, of course.
+\fBpackets.pcap\fP. More sophisticated processing is possible, of course.
 .SH OPTIONS
 .TP
 .B \-a
@@ -319,7 +319,7 @@ The extension \fBfindx\fP may become from the fact that the timestamps are \fBfr
 .TP
 .B \-L \fIsemlock_name\fP
 Specifies that \fIsemlock_name\fP should be used as a Unix semaphore to prevent two different copies
-of \fBtcpflow\fP running in two different processes but outputing to the same standard output from printing
+of \fBtcpflow\fP running in two different processes but outputting to the same standard output from printing
 on top of each other. This is an application of Unix named semaphores; bet you have never seen
 one before.
 .TP
@@ -370,7 +370,7 @@ The group ID is the first one from the \fIusername\fP groups list.
 This operation is performed just after opening
 the capture device or just after opening the first input PCAP file.
 This option does not support multi root-only readable input files
-as the root privileges are dropped after openning the first file
+as the root privileges are dropped after opening the first file
 (e.g.
 .B \-r \fIroot-only-access.pcap\fP
 .B \-R \fIroot-only.pcap\fP
