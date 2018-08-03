@@ -1492,17 +1492,19 @@ void WifiPacket::handle_prism(const u_char *pc, size_t len)
     prism2_pkthdr hdr;
 
     /* get the fields */
-    hdr.host_time 	= EXTRACT_LE_32BITS(pc+32);
-    hdr.mac_time 	= EXTRACT_LE_32BITS(pc+44);
-    hdr.channel 	= EXTRACT_LE_32BITS(pc+56);
-    hdr.rssi 		= EXTRACT_LE_32BITS(pc+68);
-    hdr.sq 		= EXTRACT_LE_32BITS(pc+80);
-    hdr.signal  	= EXTRACT_LE_32BITS(pc+92);
-    hdr.noise   	= EXTRACT_LE_32BITS(pc+104);
-    hdr.rate		= EXTRACT_LE_32BITS(pc+116)/2;
-    hdr.istx		= EXTRACT_LE_32BITS(pc+128);
-    cbs->HandlePrism( *this, &hdr, pc + 144, len - 144);
-    handle_80211(pc+144,len-144);
+    if (len>=144){
+        hdr.host_time 	= EXTRACT_LE_32BITS(pc+32);
+        hdr.mac_time 	= EXTRACT_LE_32BITS(pc+44);
+        hdr.channel 	= EXTRACT_LE_32BITS(pc+56);
+        hdr.rssi 		= EXTRACT_LE_32BITS(pc+68);
+        hdr.sq 		= EXTRACT_LE_32BITS(pc+80);
+        hdr.signal  	= EXTRACT_LE_32BITS(pc+92);
+        hdr.noise   	= EXTRACT_LE_32BITS(pc+104);
+        hdr.rate		= EXTRACT_LE_32BITS(pc+116)/2;
+        hdr.istx		= EXTRACT_LE_32BITS(pc+128);
+        cbs->HandlePrism( *this, &hdr, pc + 144, len - 144);
+        handle_80211(pc+144,len-144);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1511,6 +1513,7 @@ void WifiPacket::handle_prism(const u_char *pc, size_t len)
 /// handle each of the packet types
 ///
 
+/// 2018-08-02: slg - I'm not sure why this is commented out.
 void WifiPacket::handle_ether(const u_char *ptr, size_t len)
 {
 #if 0
@@ -1715,6 +1718,7 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
         break;
     default:
 #if 0
+        /// 2018-08-02: slg - I'm also not sure why this is commented out.
 	// try handling it as default IP assuming framing is ethernet 
 	// (this is for testing)
         pkt.handle_ip(packet,header->caplen);
