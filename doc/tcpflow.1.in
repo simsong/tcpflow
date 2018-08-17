@@ -497,11 +497,20 @@ in file \fIreport.xml\fP.
 Don't decompress gzip-compressed streams. 
 .\"START -- tcpdump excerpt"
 .TP
-.B \fIexpression]\fP
-.B tcpflow
-passes the \fIexpression\fP to \fBlibpcap\fP.
-Please refer to the \fBtcpdump\fP or \fBlibpcap\fP documentation
-for information on how to construct and test these expressions.
+\fIexpression\fP
+selects which packets will be captured.  If no \fIexpression\fP
+is given, all packets on the net will be captured.  Otherwise,
+only packets for which \fIexpression\fP is `true' will be captured.
+.IP
+For the \fIexpression\fP syntax, see
+.BR pcap-filter (7).
+.IP
+The \fIexpression\fP argument can be passed to \fItcpflow\fP as either a single
+Shell argument, or as multiple Shell arguments, whichever is more convenient.
+Generally, if the expression contains Shell metacharacters, such as
+backslashes used to escape protocol names, it is easier to pass it as
+a single, quoted argument rather than to escape the Shell metacharacters.
+Multiple arguments are concatenated with spaces before being parsed.
 
 .SH DFXML report
 .LP
