@@ -92,7 +92,7 @@ public:
                   post_processing(false),gzip_decompress(true),
                   max_bytes_per_flow(-1),
                   max_flows(0),suppress_header(0),
-                  output_strip_nonprint(true),output_hex(false),use_color(0),
+                  output_strip_nonprint(true),output_json(false),output_hex(false),use_color(0),
                   output_packet_index(false),max_seek(MAX_SEEK) {
         }
         bool    console_output;
@@ -105,6 +105,7 @@ public:
         uint32_t max_flows;
         bool    suppress_header;
         bool    output_strip_nonprint;
+        bool    output_json;
         bool    output_hex;
         bool    use_color;
         bool    output_packet_index;    // Generate a packet index file giving the timestamp and location
