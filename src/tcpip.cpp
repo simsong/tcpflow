@@ -256,9 +256,9 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     }
 #endif
 
+    if(flow_pathname.size()==0) flow_pathname = myflow.filename(0);
     if (demux.opt.use_color) fputs(dir==dir_cs ? color[1] : color[2], stdout);
-    if (demux.opt.suppress_header == 0){
-        if(flow_pathname.size()==0) flow_pathname = myflow.filename(0);
+    if (demux.opt.suppress_header == 0 && demux.opt.output_json == 0){
         printf("%s: ", flow_pathname.c_str());
         if(demux.opt.output_hex) putchar('\n');
     }
@@ -302,9 +302,76 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
             fputc('\n',stdout);
         }
         written = length;               // just fake it.
-    }
-    else if(demux.opt.output_strip_nonprint){
-	for(const u_char *cc = data;cc<data+length;cc++){
+    } else if (demux.opt.output_json) {
+        // {
+        //     "src_host": "192.168.0.1",
+        //     "src_port": 1234,
+        //     "dst_host": "1.1.1.1",
+        //     "dst_port": 80,
+        //     "payload" : [...]
+        // }    
+
+        std::string hoststr = std::string();
+
+        putchar('{');   
+        printf("\"src_host\":\"");
+
+        size_t src_pos = 0;
+        size_t src_end_pos = 0;
+        size_t src_pos_counter = 0;
+
+        size_t pathname_len = flow_pathname.length();
+        for(size_t i = 0; i < pathname_len; ++i) {
+            if(flow_pathname[i] == '.') {
+                src_pos_counter++;
+                printf("%d%s", atoi(hoststr.c_str()), (src_pos_counter != 4 ? "." : ""));
+                hoststr.clear();
+            } else {
+                hoststr = hoststr + flow_pathname[i];
+            }
+            if(src_pos_counter == 4) {
+                src_pos = i;
+                break;
+            }
+        }
+        src_end_pos = src_pos;
+        for(;src_end_pos < pathname_len; ++src_end_pos) {
+            if(flow_pathname[src_end_pos] == '-') {
+                break;
+            }
+        }
+        printf("\",\"src_port\":%d,\"dst_host\":\"", atoi(flow_pathname.substr(src_pos + 1, src_end_pos - src_pos).c_str()));
+        
+        size_t dst_pos = src_end_pos + 1;
+        size_t dst_end_pos = dst_pos;
+        size_t dst_pos_counter = 0;
+        
+        for(size_t i = dst_pos; i < pathname_len; ++i) {
+              if(flow_pathname[i] == '.') {
+                dst_pos_counter++;
+                printf("%d%s", atoi(hoststr.c_str()), (dst_pos_counter != 4 ? "." : ""));
+                hoststr.clear();
+            } else {
+                hoststr = hoststr + flow_pathname[i];
+            }
+            if(dst_pos_counter == 4) {
+                dst_pos = i;
+                break;
+            }
+        }
+        dst_end_pos = dst_pos;
+        for(;dst_end_pos < pathname_len; ++dst_end_pos) {
+            if(flow_pathname[dst_end_pos] == '-') {
+                break;
+            }
+        }
+        printf("\",\"dst_port\":%d,\"payload\": [", atoi(flow_pathname.substr(dst_pos + 1, dst_end_pos - dst_pos).c_str()));
+
+        for(size_t i = 0; i < length; ++i) {
+            printf("%d%s", data[i], (i != length - 1 ? "," : "]}"));
+        }
+    } else if (demux.opt.output_strip_nonprint) {
+	    for(const u_char *cc = data;cc<data+length;cc++){
 	    if(isprint(*cc) || (*cc=='\n') || (*cc=='\r')){
                 int ret = fputc(*cc,stdout);
                 if(ret==EOF){
@@ -316,10 +383,9 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 	    else fputc('.',stdout);
             written += 1; // treat even unprintable characters as "written". It
                           // really means "processed"
-	}
-    }
-    else {
-	written = fwrite(data,1,length,stdout);
+        }
+	} else {
+	    written = fwrite(data,1,length,stdout);
         if(length != written) std::cerr << "\nwrite error to stdout (" << length << "!=" << written << ") \n";
     }
 
