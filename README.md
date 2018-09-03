@@ -2,8 +2,22 @@ TCPFLOW 1.5.0
 =============
 Downloads directory: http://digitalcorpora.org/downloads/tcpflow/
 
-Compiling
----------
+Installation
+------------
+
+Most common GNU/Linux distributions ship tcpflow in their repositories. So on Debian/Ubuntu/etc you can say
+
+    sudo apt-get install tcpflow
+
+and on Fedora/RedHat/CentOS/etc you can say
+
+    sudo dnf install tcpflow
+
+And that's it. If this isn't good-enough for whatever reason, you can build from source:
+
+Building from source
+--------------------
+
 To compile for Linux
 
 Be sure you have the necessary precursors. There are files in the root directory that will do this for you, depending on your host operating system:
