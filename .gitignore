@@ -1,52 +1,53 @@
-# http://help.github.com/ignore-files/
-# Compiled source #
-###################
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
-*.a
-*.pyc
 
+# Backup Files and autoconf nonsense 
+# Compiled source #
+# Executables
+# Logs and databases #
+# OS generated files #
 # Packages #
-############
-# it's better to unpack these files and commit the raw source
 # git has its own built in compression methods
+# http://help.github.com/ignore-files/
+# http://stackoverflow.com/questions/3290908/which-files-generated-by-autotools-should-i-keep-in-git-repository
+# it's better to unpack these files and commit the raw source
+# plus vim backups
+############
+###################
+######################
 *.7z
+*.a
+*.aff
+*.class
+*.com
+*.dll
 *.dmg
+*.exe
 *.gz
 *.iso
 *.jar
-*.rar
-*.tar
-*.zip
-
-# Logs and databases #
-######################
 *.log
+*.o
+*.obj
+*.pyc
+*.rar
+*.sig
+*.so
 *.sql
 *.sqlite
-
-# OS generated files #
-######################
-.DS_Store*
-ehthumbs.db
-Icon?
-Thumbs.db
-
-# Backup Files and autoconf nonsense 
-# http://stackoverflow.com/questions/3290908/which-files-generated-by-autotools-should-i-keep-in-git-repository
-autom4te.cache
-*.aff
-*.obj
-*.sig
+*.swp
+*.tar
+*.trs
+*.zip
 *~
+.DS_Store
+.DS_Store*
+.deps
+.dirstamp
+.libs
+Icon?
 Makefile
 Makefile.in
-Makefile.in
 TAGS
+Thumbs.db
 a.out.dSYM
 aclocal.m4
 affconfig.h
@@ -57,10 +58,15 @@ afflib.pc
 afflib.spec
 autom4te.cache
 config.guess
+config.h
+config.h.in
 config.log
 config.status
 config.sub
 configure
+depcomp
+doc/tcpflow.1
+ehthumbs.db
 install-sh
 libtool
 ltmain.sh
@@ -70,33 +76,19 @@ m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
 missing
-stamp-h*
-# plus vim backups
-*.swp
-
-depcomp
-
-# Executables
-.deps
-.libs
-tags
-TAGS
-src/tcpflow
-doc/tcpflow.1
-report.xml
-src/config.h
-tcpflow.spec
 out
+out-*
+report.xml
 src/a.out
-tests/out
-tests/packet1.pcap
-config.h.in
+src/config.h
 src/iphtest-nitroba-100.txt
 src/iphtest-nitroba-1000.txt
 src/iphtest-nitroba-10000.txt
+src/tcpflow
+stamp-h*
+tags
+tcpflow.spec
 test-driver
 tests/*.pdf
-*.trs
-.dirstamp
-out-*
-config.h
+tests/out
+tests/packet1.pcap
