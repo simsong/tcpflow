@@ -120,8 +120,9 @@ static void usage(int level)
     std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
     std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-h|--help] [-i iface]\n";
     std::cout << "     [-l files...] [-L semlock] [-m min_bytes] [-o outdir] [-r file] [-R file]\n";
-    std::cout << "     [-S name=value] [-T template] [-U|--relinquish-privileges user] [-v|--verbose]\n";
-    std::cout << "     [-w file] [-x scanner] [-X xmlfile] [-z|--chroot dir] [expression]\n\n";
+    std::cout << "     [-S name=value] [-t timeout] [-T template] [-U|--relinquish-privileges user]\n";
+    std::cout << "     [-v|--verbose] [-w file] [-x scanner] [-X xmlfile] [-z|--chroot dir]\n";
+    std::cout << "     [expression]\n";
     std::cout << "   -a: do ALL post-processing.\n";
     std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
     std::cout << "   -d debug_level: debug level; default is " << DEFAULT_DEBUG_LEVEL << "\n";
@@ -138,6 +139,7 @@ static void usage(int level)
 
     std::cout << "   -r file      : read packets from tcpdump pcap file (may be repeated)\n";
     std::cout << "   -R file      : read packets from tcpdump pcap file TO FINISH CONNECTIONS\n";
+    std::cout << "   -t timeout   : update timeout for libpcap (in ms). Only for live monitoring.\n";
     std::cout << "   -v           : verbose operation equivalent to -d 10\n";
     std::cout << "   -V           : print version number and exit\n";
     std::cout << "   -w  file     : write packets not processed to file\n";
@@ -465,6 +467,8 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 	    }
 	}
 
+        DEBUG(20) ("Using libpcap update timeout of %d milliseconds", packet_buffer_timeout);
+
 	/* make sure we can open the device */
 	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, packet_buffer_timeout, error)) == NULL){
 	    die("%s", error);
@@ -583,7 +587,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:Z0J", longopts, NULL)) != EOF) {
+    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:st:T:U:Vvw:x:X:z:Z0J", longopts, NULL)) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -694,6 +698,17 @@ int main(int argc, char *argv[])
 
 	case 's':
             demux.opt.output_strip_nonprint = 1; DEBUG(10) ("converting non-printable characters to '.'");
+            break;
+        case 't':
+            {
+                int timeout = atoi(optarg);
+                if (timeout <= 0) {
+                    std::cerr << "The libpcap update timeout should be positive and nonzero. Got: '" << optarg << "'\n";
+                    std::cerr << "Keeping default timeout (" << packet_buffer_timeout << ")\n";
+                } else
+                    packet_buffer_timeout = timeout;
+                    DEBUG(10) ("setting libpcap update timeout to %d", packet_buffer_timeout);
+            }
             break;
 	case 'T':
             flow::filename_template = optarg;
