@@ -59,6 +59,7 @@ typedef struct {
 
 default_t defaults[] = {
     {"tdelta","0","Time delta in seconds"},
+    {"packet-buffer-timeout", "10", "Time in milliseconds between each callback from libpcap"},
     {0,0,0}
 };
 
@@ -849,6 +850,7 @@ int main(int argc, char *argv[])
     demux.fs = &fs;
 
     si.get_config("tdelta",&datalink_tdelta,"Time offset for packets");
+    si.get_config("packet-buffer-timeout", &packet_buffer_timeout, "Time in milliseconds between each callback from libpcap");
 
     /* Record the configuration */
     if(xreport){
