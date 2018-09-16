@@ -47,6 +47,8 @@ const char *program_name = 0;
 const char *tcpflow_droproot_username = 0;
 const char *tcpflow_chroot_dir = 0;
 
+int packet_buffer_timeout = 10;
+
 scanner_info::scanner_config be_config; // system configuration
 
 typedef struct {
@@ -464,7 +466,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 	}
 
 	/* make sure we can open the device */
-	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
+	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, packet_buffer_timeout, error)) == NULL){
 	    die("%s", error);
 	}
         tcpflow_droproot(demux);                     // drop root if requested
