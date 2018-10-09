@@ -22,6 +22,9 @@
 #include <errno.h>
 
 #ifdef HAVE_NET_ETHERNET_H
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif
 #include <net/ethernet.h>
 #endif
 
