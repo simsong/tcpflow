@@ -47,6 +47,8 @@ const char *program_name = 0;
 const char *tcpflow_droproot_username = 0;
 const char *tcpflow_chroot_dir = 0;
 
+int packet_buffer_timeout = 10;
+
 scanner_info::scanner_config be_config; // system configuration
 
 typedef struct {
@@ -57,6 +59,7 @@ typedef struct {
 
 default_t defaults[] = {
     {"tdelta","0","Time delta in seconds"},
+    {"packet-buffer-timeout", "10", "Time in milliseconds between each callback from libpcap"},
     {0,0,0}
 };
 
@@ -170,6 +173,7 @@ static void usage(int level)
     std::cout << "   -C: console print only, but without the display of source/dest header\n";
     std::cout << "   -0: don't print newlines after packets when printing to console\n";
     std::cout << "   -s: strip non-printable characters (change to '.')\n";
+    std::cout << "   -J: output json format.\n";
     std::cout << "   -D: output in hex (useful to combine with -c or -C)\n";
     std::cout << "\n";
 #ifndef HAVE_LIBCAIRO
@@ -463,7 +467,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 	}
 
 	/* make sure we can open the device */
-	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, 1000, error)) == NULL){
+	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, packet_buffer_timeout, error)) == NULL){
 	    die("%s", error);
 	}
         tcpflow_droproot(demux);                     // drop root if requested
@@ -580,7 +584,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:Z0", longopts, NULL)) != EOF) {
+    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:Z0J", longopts, NULL)) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -618,10 +622,10 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
 	    }
 	    break;
-        case 'D':
-            demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
+    case 'D':
+        demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
 	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
-            break;
+        break;
 	case 'E':
 	    be13::plugin::scanners_disable_all();
 	    be13::plugin::scanners_enable(optarg);
@@ -663,6 +667,9 @@ int main(int argc, char *argv[])
 	    DEBUG(10) ("using colors");
 	    break;
         case 'l': trailing_input_list = true; break;
+    case 'J':
+        demux.opt.output_json = true;
+        break;
 	case 'L': lockname = optarg; break;
 	case 'm':
 	    demux.opt.max_seek = atoi(optarg);
@@ -843,6 +850,7 @@ int main(int argc, char *argv[])
     demux.fs = &fs;
 
     si.get_config("tdelta",&datalink_tdelta,"Time offset for packets");
+    si.get_config("packet-buffer-timeout", &packet_buffer_timeout, "Time in milliseconds between each callback from libpcap");
 
     /* Record the configuration */
     if(xreport){
