@@ -241,8 +241,10 @@ public:
         return (addr[i / 8]) & (1<<((7-i)&7));
     }
     /* set the ith bit to 1 */
-    static void setbit(uint8_t *addr,size_t i){
-        addr[i / 8] |= (1<<((7-i)&7));
+    static void setbit(uint8_t *addr,size_t addr, size_t i){
+        if ( i/8 < addr) {
+            addr[i / 8] |= (1<<((7-i)&7));
+        }
     }
     
     virtual ~iptreet(){}                // required per compiler warnings
@@ -388,7 +390,8 @@ public:
         uint8_t addr1[ADDRBYTES];
         
         memset(addr0,0,sizeof(addr0)); memcpy(addr0,addr,(depth+7)/8);
-        memset(addr1,0,sizeof(addr1)); memcpy(addr1,addr,(depth+7)/8); setbit(addr1,depth);
+        memset(addr1,0,sizeof(addr1)); memcpy(addr1,addr,(depth+7)/8);
+        setbit(addr1,sizeof(addr1),depth);
         
         if(ptr->ptr0) get_histogram(depth+1,addr0,ptr->ptr0,histogram);
         if(ptr->ptr1) get_histogram(depth+1,addr1,ptr->ptr1,histogram);
@@ -527,8 +530,10 @@ public:
     /* de-interleave a pair of addresses */
     static void un_pair(uint8_t *addr1,uint8_t *addr2,size_t addr12len,size_t *depth1,size_t *depth2,const uint8_t *addr,size_t addrlen,size_t depth){
         for(size_t i=0;i<addrlen*8/2;i++){
-            if(iptreet<uint64_t,32>::bit(addr,i*2))   iptreet<uint64_t,32>::setbit(addr1,i);
-            if(iptreet<uint64_t,32>::bit(addr,i*2+1)) iptreet<uint64_t,32>::setbit(addr2,i);
+            if(iptreet<uint64_t,32>::bit(addr,i*2))
+                iptreet<uint64_t,32>::setbit(addr1,sizeof(addr1),i);
+            if(iptreet<uint64_t,32>::bit(addr,i*2+1))
+                iptreet<uint64_t,32>::setbit(addr2,sizeof(addr2),i);
         }
         *depth1 = (depth+1)/2;
         *depth2 = (depth)/2;
@@ -563,8 +568,10 @@ public:
         memset(addr,0,sizeof(addr));
         /* Interleave on the bit by bit level */
         for(size_t i=0;i<addrlen*8;i++){
-            if(iptreet<uint64_t,32>::bit(addr1,i)) iptreet<uint64_t,32>::setbit(addr,i*2);
-            if(iptreet<uint64_t,32>::bit(addr2,i)) iptreet<uint64_t,32>::setbit(addr,i*2+1);
+            if(iptreet<uint64_t,32>::bit(addr1,i))
+                iptreet<uint64_t,32>::setbit(addr,sizeof(addr),i*2);
+            if(iptreet<uint64_t,32>::bit(addr2,i))
+                iptreet<uint64_t,32>::setbit(addr,sizeof(addr),i*2+1);
         }
         add(addr,addrlen*2,val); /* Add it */
     }
