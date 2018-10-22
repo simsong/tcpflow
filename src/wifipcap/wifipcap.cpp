@@ -22,6 +22,9 @@
 #include <errno.h>
 
 #ifdef HAVE_NET_ETHERNET_H
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
 #include <net/ethernet.h>
 #endif
 
