@@ -425,6 +425,7 @@ AC_CHECK_HEADERS([\
 	syslog.h \ 
 	sys/cdefs.h \
 	sys/mman.h \
+	sys/param.h \
 	sys/resource.h \
 	sys/socket.h \
 	sys/types.h \
