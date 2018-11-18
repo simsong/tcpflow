@@ -86,8 +86,8 @@ private:;
         node(node *p):parent(p),ptr0(0),ptr1(0),tsum(),dirty(false),cached_best(){ }
         int children() const {return (ptr0 ? 1 : 0) + (ptr1 ? 1 : 0);}
         ~node(){
-            if(ptr0){ delete ptr0; ptr0 = 0; }
-            if(ptr1){ delete ptr1; ptr1 = 0; }
+            delete ptr0; ptr0 = 0;
+            delete ptr1; ptr1 = 0; 
         };
         // a node is leaf if tsum>0 and both ptrs are 0.
         bool isLeaf() const {             
@@ -111,8 +111,7 @@ private:;
                 tsum += ptr0->tsum;
                 tree.cache_remove(ptr0); // remove it from the cache
                 tree.pruned++;
-                delete ptr0;
-                ptr0=0;
+                delete ptr0; ptr0=0;
                 tree.nodes--;
                 removed++;
             }

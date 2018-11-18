@@ -103,7 +103,7 @@ void tcpip::dump_xml(class dfxml_writer *xreport,const std::string &xmladd)
 tcpip::~tcpip()
 {
     assert(fd<0);                       // file must be closed
-    if(seen) delete seen;
+    delete seen;                        // no need to check to see if seen is null or not.
 }
 
 #pragma GCC diagnostic warning "-Weffc++"
@@ -528,10 +528,8 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
 		  fd,out_of_order_count);
 
         /* TK: If we have seen packets, everything in the recon set needs to be shifted as well.*/
-        if(seen){
-            delete seen;
-            seen = 0;
-        }
+        delete seen;
+        seen = 0;
     }
 
     /* if we're not at the correct point in the file, seek there */

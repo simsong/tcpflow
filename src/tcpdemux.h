@@ -79,8 +79,8 @@ public:
     static uint32_t tcp_timeout;
     static unsigned int get_max_fds(void);             // returns the max
     virtual ~tcpdemux(){
-        if(xreport) delete xreport;
-        if(pwriter) delete pwriter;
+        delete xreport;
+        delete pwriter;
     }
 
     /* The pure options class means we can add new options without having to modify the tcpdemux constructor. */
