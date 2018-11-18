@@ -461,9 +461,19 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
     } else {
 	/* if the user didn't specify a device, try to find a reasonable one */
 	if (device == NULL){
+#ifdef HAVE_PCAP_FINDALLDEVS
+            char errbuf[PCAP_ERRBUF_SIZE];
+            pcap_if_t *alldevs = 0;
+            if (pcap_findalldevs(&alldevs,errbuf)){
+		die("%s", errbuf);
+	    }
+            device=strdup(alldevs[0].name);
+            pcap_freealldevs(alldevs);
+#else
 	    if ((device = pcap_lookupdev(error)) == NULL){
 		die("%s", error);
 	    }
+#endif
 	}
 
 	/* make sure we can open the device */

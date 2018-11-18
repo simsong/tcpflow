@@ -7,7 +7,7 @@
 # and http://www.openismus.com/documents/linux/automake/automake.shtml 
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.5.0, simsong@acm.org)
+AC_INIT(TCPFLOW, 1.5.1, simsong@acm.org)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
@@ -70,6 +70,10 @@ case $host in
      LDFLAGS="$LDFLAGS --static"
      mingw="yes"
      ;;		 		     
+
+   *)
+     CXXFLAGS="$CXXFLAGS -Wno-address-of-packed-member"
+     ;;
 esac
 
 if test x"${mingw}" == "xno" ; then
@@ -348,6 +352,7 @@ located.])
         Mmissing_library="$Mmissing_library libpcap "
     ])
 fi
+AC_CHECK_FUNCS([pcap_findalldevs])
 
 dnl set with_wifi to 0 if you do not want it
 AC_ARG_ENABLE([wifi],
