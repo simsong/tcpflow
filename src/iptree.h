@@ -530,9 +530,9 @@ public:
     static void un_pair(uint8_t *addr1,uint8_t *addr2,size_t addr12len,size_t *depth1,size_t *depth2,const uint8_t *addr,size_t addrlen,size_t depth){
         for(size_t i=0;i<addrlen*8/2;i++){
             if(iptreet<uint64_t,32>::bit(addr,i*2))
-                iptreet<uint64_t,32>::setbit(addr1,sizeof(addr1),i);
+                iptreet<uint64_t,32>::setbit(addr1, addr12len, i);
             if(iptreet<uint64_t,32>::bit(addr,i*2+1))
-                iptreet<uint64_t,32>::setbit(addr2,sizeof(addr2),i);
+                iptreet<uint64_t,32>::setbit(addr2, addr12len, i);
         }
         *depth1 = (depth+1)/2;
         *depth2 = (depth)/2;
