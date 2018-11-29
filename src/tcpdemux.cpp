@@ -28,9 +28,17 @@ tcpdemux::tcpdemux():
 #endif
     outdir("."),flow_counter(0),packet_counter(0),
     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
-    flow_map(),open_flows(),saved_flow_map(),
+    flow_map(),open_flows(),saved_flow_map(),flow_fd_cache_map(0),
     saved_flows(),start_new_connections(false),opt(),fs()
 {
+    tcp_processor = &tcpdemux::process_tcp;
+}
+
+void tcpdemux::alter_processing_core()
+{
+    DEBUG(1) ("ensuring pcap core");
+    tcp_processor = &tcpdemux::dissect_tcp;
+    flow_sorter = new pcap_writer();
 }
 
 void tcpdemux::openDB()
@@ -221,10 +229,17 @@ void tcpdemux::remove_flow(const flow_addr &flow)
 
 void tcpdemux::remove_all_flows()
 {
+
+    DEBUG(10) ("Cleaning up flows");
     for(flow_map_t::iterator it=flow_map.begin();it!=flow_map.end();it++){
         post_process(it->second);
     }
     flow_map.clear();
+
+    for(sparse_saved_flow_map_t::iterator it=flow_fd_cache_map.begin();it!=flow_fd_cache_map.end();it++){
+        delete it->second;
+    }
+    flow_fd_cache_map.clear();
 }
 
 /****************************************************************
@@ -322,6 +337,42 @@ void tcpdemux::save_flow(tcpip *tcp)
     saved_flows.push_back(sf);
 }
 
+/**
+ * dissect_tcp():
+ *
+ * Called to process tcp pkts in a way that dissected or isolated pcap flows are
+ * emerging afterwards. Similar notions go into the direction of "sorting" pcap pkts
+ * as per flow context.
+ *
+ * Returns 0 if packet is processed, 1 if it is not processed, -1 if error
+ */
+
+int tcpdemux::dissect_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
+                          const u_char *ip_data, uint32_t ip_payload_len,
+                          const be13::packet_info &pi)
+{
+    DEBUG(6) ("dissecting pkt *********************");
+    struct be13::tcphdr *tcp_header = (struct be13::tcphdr *) ip_data;
+    flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),
+                        ntohs(tcp_header->th_dport),family);
+
+    sparse_saved_flow_map_t::const_iterator it = flow_fd_cache_map.find(this_flow);
+    if(it!=flow_fd_cache_map.end()){
+        flow_sorter->update_sink(it->second->fcap);
+    }
+    else {
+        flow fn_gen_vehicle(this_flow, 0, pi); // impromptu flow name generator
+        std::string fn = fn_gen_vehicle.new_pcap_filename();
+        flow_sorter->refresh_sink(fn);
+        FILE *sink= flow_sorter->yield_sink();
+        sparse_saved_flow *ssf = new sparse_saved_flow(this_flow, sink);
+        flow_fd_cache_map[ssf->addr] = ssf;
+    }
+
+    flow_sorter->writepkt(pi.pcap_hdr,pi.pcap_data);
+
+    return 0;
+}
 
 /**
  * process_tcp():
@@ -341,6 +392,8 @@ void tcpdemux::save_flow(tcpip *tcp)
 
 #pragma GCC diagnostic ignored "-Wcast-align"
 #include "iptree.h"
+
+
 
 int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                           const u_char *ip_data, uint32_t ip_payload_len,
@@ -623,9 +676,9 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     uint16_t ip_payload_len = ip_len - ip_header_len;
     ipaddr src(ip_header->ip_src.addr);
     ipaddr dst(ip_header->ip_dst.addr);
-    return process_tcp(src, dst, AF_INET,
-                       pi.ip_data + ip_header_len, ip_payload_len,
-                       pi);
+    return (this->*tcp_processor)(src, dst ,AF_INET,
+                                  pi.ip_data + ip_header_len,
+                                  ip_payload_len,pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
@@ -658,8 +711,9 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
     ipaddr src(ip_header->ip6_src.addr.addr8);
     ipaddr dst(ip_header->ip6_dst.addr.addr8);
     
-    return process_tcp(src, dst ,AF_INET6,
-                       pi.ip_data + sizeof(struct be13::ip6_hdr),ip_payload_len,pi);
+    return (this->*tcp_processor)(src, dst ,AF_INET6,
+                                   pi.ip_data + sizeof(struct be13::ip6_hdr),
+                                   ip_payload_len,pi);
 }
 
 /* This is called when we receive an IPv4 or IPv6 datagram.

@@ -59,9 +59,10 @@ class pcap_writer {
         if(fwrite(buf,1,sizeof(buf),fcap)!=sizeof(buf)) throw new write_error();
         if(fclose(f2)!=0) throw new write_error();
     }
-    pcap_writer():fcap(0){}
 
 public:
+    pcap_writer():fcap(0){}
+
     static pcap_writer *open_new(const std::string &ofname){
         pcap_writer *pcw = new pcap_writer();
         pcw->open(ofname);
@@ -85,6 +86,16 @@ public:
         write4(h->len);
         size_t count = fwrite(p,1,h->caplen,fcap);	// the packet
         if(count!=h->caplen) throw new write_error();
+    }
+    void refresh_sink(const std::string &fname) {
+        open(fname);
+        write_header();
+    }
+    void update_sink(FILE *sink) {
+        fcap = sink;
+    }
+    FILE* yield_sink() {
+        return fcap;
     }
 };
     

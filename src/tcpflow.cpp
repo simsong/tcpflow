@@ -150,6 +150,7 @@ static void usage(int level)
     std::cout << "   -T{t} : filename template (-hh for options; default "
               << flow::filename_template << ")\n";
     std::cout << "   -Z       do not decompress gzip-compressed HTTP transactions\n";
+    std::cout << "   -K: output|keep pcap flow structure.\n";
 
     std::cout << "\nSecurity:\n";
     std::cout << "   -U user  relinquish privleges and become user (if running as root)\n";
@@ -594,7 +595,7 @@ int main(int argc, char *argv[])
 
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:Z0J", longopts, NULL)) != EOF) {
+    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:ZK0J", longopts, NULL)) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
@@ -679,6 +680,10 @@ int main(int argc, char *argv[])
         case 'l': trailing_input_list = true; break;
     case 'J':
         demux.opt.output_json = true;
+        break;
+    case 'K':;
+        demux.opt.output_pcap = true;
+        demux.alter_processing_core();
         break;
 	case 'L': lockname = optarg; break;
 	case 'm':

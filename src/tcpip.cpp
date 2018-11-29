@@ -256,7 +256,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     }
 #endif
 
-    if(flow_pathname.size()==0) flow_pathname = myflow.filename(0);
+    if(flow_pathname.size()==0) flow_pathname = myflow.filename(0, false);
     if (demux.opt.use_color) fputs(dir==dir_cs ? color[1] : color[2], stdout);
     if (demux.opt.suppress_header == 0 && demux.opt.output_json == 0){
         printf("%s: ", flow_pathname.c_str());
