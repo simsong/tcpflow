@@ -5,8 +5,7 @@
 # Make sure we have automake installed
 function usage() {
   echo tcpflow bootstrap:
-  echo be sure that these packages are installed:
-  echo automake autoconf gcc gcc-c++ boost-devel openssl-devel libpcap-devel cairo-devel
+  echo be sure to run the appropriate CONFIGURE script to install the necessary packages.
   exit 1
 }
 
