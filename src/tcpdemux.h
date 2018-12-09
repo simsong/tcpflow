@@ -62,9 +62,11 @@ class tcpdemux {
 #ifdef HAVE_TR1_UNORDERED_MAP
     typedef std::tr1::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
     typedef std::tr1::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
+    typedef std::tr1::unordered_map<flow_addr,sparse_saved_flow *,flow_addr_hash,flow_addr_key_eq> sparse_saved_flow_map_t; // flows ctxt caching for pcap dissection
 #else
     typedef std::unordered_map<flow_addr,tcpip *,flow_addr_hash,flow_addr_key_eq> flow_map_t; // active flows
     typedef std::unordered_map<flow_addr,saved_flow *,flow_addr_hash,flow_addr_key_eq> saved_flow_map_t; // flows that have been saved
+    typedef std::unordered_map<flow_addr,sparse_saved_flow *,flow_addr_hash,flow_addr_key_eq> sparse_saved_flow_map_t; // flows ctxt caching for pcap dissection
 #endif
     typedef std::vector<class saved_flow *> saved_flows_t; // needs to be ordered
 
@@ -74,6 +76,13 @@ class tcpdemux {
     sqlite3 *db;
     sqlite3_stmt *insert_flow;
 #endif
+
+    pcap_writer *flow_sorter;
+
+    /* facility logic hinge */
+    int (tcpdemux::*tcp_processor)(const ipaddr &src, const ipaddr &dst,sa_family_t family,
+                         const u_char *tcp_data, uint32_t tcp_length,
+                         const be13::packet_info &pi);
 
 public:
     static uint32_t tcp_timeout;
@@ -92,7 +101,8 @@ public:
                   post_processing(false),gzip_decompress(true),
                   max_bytes_per_flow(-1),
                   max_flows(0),suppress_header(0),
-                  output_strip_nonprint(true),output_json(false),output_hex(false),use_color(0),
+                  output_strip_nonprint(true),output_json(false),
+                  output_pcap(false),output_hex(false),use_color(0),
                   output_packet_index(false),max_seek(MAX_SEEK) {
         }
         bool    console_output;
@@ -106,6 +116,7 @@ public:
         bool    suppress_header;
         bool    output_strip_nonprint;
         bool    output_json;
+        bool    output_pcap;
         bool    output_hex;
         bool    use_color;
         bool    output_packet_index;    // Generate a packet index file giving the timestamp and location
@@ -127,6 +138,7 @@ public:
     intrusive_list<tcpip> open_flows; // the tcpip flows with open files in access order
 
     saved_flow_map_t saved_flow_map;  // db of saved flows, indexed by flow
+    sparse_saved_flow_map_t flow_fd_cache_map;  // db caching saved flows descriptors, indexed by flow
     saved_flows_t    saved_flows;     // the flows that were saved
     bool             start_new_connections;  // true if we should start new connections
 
@@ -134,6 +146,8 @@ public:
     class       feature_recorder_set *fs; // where features extracted from each flow should be stored
     
     static uint32_t max_saved_flows;       // how many saved flows are kept in the saved_flow_map
+
+    void alter_processing_core();
     static tcpdemux *getInstance();
 
     /* Databse */
@@ -173,6 +187,9 @@ public:
      * Each returns 0 if processed, 1 if not processed, -1 if error.
      */
     int  process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
+                     const u_char *tcp_data, uint32_t tcp_length,
+                     const be13::packet_info &pi);
+    int  dissect_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                      const u_char *tcp_data, uint32_t tcp_length,
                      const be13::packet_info &pi);
     int  process_ip4(const be13::packet_info &pi);

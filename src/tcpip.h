@@ -184,10 +184,12 @@ public:;
     uint64_t packet_count;		// packet count
 
     // return a filename for a flow based on the template and the connection count
-    std::string filename(uint32_t connection_count); 
+    std::string filename(uint32_t connection_count, bool);
     // return a new filename for a flow based on the temlate,
     // optionally opening the file and returning a fd if &fd is provided
     std::string new_filename(int *fd,int flags,int mode);	
+
+    std::string new_pcap_filename();
 
     bool has_mac_daddr(){
         return mac_daddr[0] || mac_daddr[1] || mac_daddr[2] || mac_daddr[3] || mac_daddr[4] || mac_daddr[5];
@@ -362,6 +364,18 @@ public:
     std::string       saved_filename;        // where the flow was saved
     be13::tcp_seq     isn;                    // the flow's ISN
     virtual ~saved_flow(){};
+};
+
+class sparse_saved_flow  {
+public:
+    sparse_saved_flow (const flow_addr &idx, FILE *_fcap):addr(idx),fcap(_fcap) {}
+
+    flow_addr         addr;                  // flow address
+    FILE              *fcap;                // output pcap file
+    virtual ~sparse_saved_flow()
+    {
+        if(fcap) fclose(fcap);
+    }
 };
 
 

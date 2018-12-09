@@ -496,6 +496,8 @@ in file \fIreport.xml\fP.
 .B \-Z
 Don't decompress gzip-compressed streams. 
 .\"START -- tcpdump excerpt"
+.B \-K
+Retain per flow isolated pcap structure.
 .TP
 \fIexpression\fP
 selects which packets will be captured.  If no \fIexpression\fP

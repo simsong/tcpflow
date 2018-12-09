@@ -50,7 +50,7 @@ void flow::usage()
     std::cout << "      Filename template format handles '/' to create sub-directories.\n";
 }
 
-std::string flow::filename(uint32_t connection_count)
+std::string flow::filename(uint32_t connection_count, bool is_pcap)
 {
     std::stringstream ss;
 
@@ -149,6 +149,9 @@ std::string flow::filename(uint32_t connection_count)
 	    if(buf[0]) ss << buf;
 	}
     }
+    if(is_pcap){
+        ss << ".pcap"; // file extension
+    }
     return ss.str();
 }
 
@@ -161,7 +164,7 @@ std::string flow::new_filename(int *fd,int flags,int mode)
 {
     /* Loop connection count until we find a file that doesn't exist */
     for(uint32_t connection_count=0;;connection_count++){
-        std::string nfn = filename(connection_count);
+        std::string nfn = filename(connection_count, false);
         if(nfn.find('/')!=std::string::npos) mkdirs_for_path(nfn.c_str());
         int nfd = tcpdemux::getInstance()->retrying_open(nfn,flags,mode);
         if(nfd>=0){
@@ -169,6 +172,17 @@ std::string flow::new_filename(int *fd,int flags,int mode)
             return nfn;
         }
         if(errno!=EEXIST) die("Cannot open: %s",nfn.c_str());
+    }
+    return std::string("<<CANNOT CREATE FILE>>");               // error; no file
+}
+
+std::string flow::new_pcap_filename()
+{
+    /* Loop connection count until we find a file that doesn't exist */
+    for(uint32_t connection_count=0;;connection_count++){
+        std::string nfn = filename(connection_count, true);
+        if(nfn.find('/')!=std::string::npos) mkdirs_for_path(nfn.c_str());
+        return nfn;
     }
     return std::string("<<CANNOT CREATE FILE>>");               // error; no file
 }
