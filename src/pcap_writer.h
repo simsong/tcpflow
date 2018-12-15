@@ -37,14 +37,14 @@ class pcap_writer {
         fcap = fopen(fname.c_str(),"wb"); // write the output
         if(fcap==0) throw new write_error();
     }
-    void write_header(){
+    void write_header(const int pcap_dlt){
         write4(0xa1b2c3d4);
         write2(2);			// major version number
         write2(4);			// minor version number
         write4(0);			// time zone offset; always 0
         write4(0);			// accuracy of time stamps in the file; always 0
         write4(PCAP_MAX_PKT_LEN);	// snapshot length
-        write4(DLT_EN10MB);             // link layer encapsulation
+        write4(pcap_dlt);             // link layer encapsulation
     }
     void copy_header(const std::string &ifname){
         /* assert byte order is correct */
@@ -66,7 +66,7 @@ public:
     static pcap_writer *open_new(const std::string &ofname){
         pcap_writer *pcw = new pcap_writer();
         pcw->open(ofname);
-        pcw->write_header();
+        pcw->write_header(DLT_EN10MB); // static for temporary regression
         return pcw;
     }
     static pcap_writer *open_copy(const std::string &ofname,const std::string &ifname){
@@ -87,9 +87,9 @@ public:
         size_t count = fwrite(p,1,h->caplen,fcap);	// the packet
         if(count!=h->caplen) throw new write_error();
     }
-    void refresh_sink(const std::string &fname) {
+    void refresh_sink(const std::string &fname, const int pcap_dlt) {
         open(fname);
-        write_header();
+        write_header(pcap_dlt);
     }
     void update_sink(FILE *sink) {
         fcap = sink;
