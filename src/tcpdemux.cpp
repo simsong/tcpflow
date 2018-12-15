@@ -363,7 +363,7 @@ int tcpdemux::dissect_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     else {
         flow fn_gen_vehicle(this_flow, 0, pi); // impromptu flow name generator
         std::string fn = fn_gen_vehicle.new_pcap_filename();
-        flow_sorter->refresh_sink(fn);
+        flow_sorter->refresh_sink(fn, pi.pcap_dlt);
         FILE *sink= flow_sorter->yield_sink();
         sparse_saved_flow *ssf = new sparse_saved_flow(this_flow, sink);
         flow_fd_cache_map[ssf->addr] = ssf;
