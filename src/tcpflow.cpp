@@ -469,8 +469,8 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
             die("%s", errbuf);
         }
 
-        if (0 == sizeof(alldevs)/sizeof(pcap_if_t)) {
-            die("found 0 devices, maybe you don't have permissions, switch to root or equivalent user instead");
+        if (alldevs == 0) {
+            die("found 0 devices, maybe you don't have permissions, switch to root or equivalent user instead.");
         }
 
         device=strdup(alldevs[0].name);
