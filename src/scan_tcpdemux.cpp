@@ -44,6 +44,8 @@ void  scan_tcpdemux(const class scanner_params &sp,const recursion_control_block
 	sp.info->packet_cb = packet_handler;
         
         sp.info->get_config("tcp_timeout",&tcpdemux::getInstance()->tcp_timeout,"Timeout for TCP connections");
+        sp.info->get_config("tcp_cmd",&tcpdemux::getInstance()->tcp_cmd,"Command to execute on each TCP flow");
+        sp.info->get_config("tcp_alert_fd",&tcpdemux::getInstance()->tcp_alert_fd,"File descriptor to send information about completed TCP flows");
 
         return;     /* No feature files created */
     }
