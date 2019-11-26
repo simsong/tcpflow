@@ -19,9 +19,17 @@
 #include <sstream>
 #include <vector>
 
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
 /* static */ uint32_t tcpdemux::max_saved_flows = 100;
 /* static */ uint32_t tcpdemux::tcp_timeout = 0;
-
+/* static */ int tcpdemux::tcp_subproc_max = 10;
+/* static */ int tcpdemux::tcp_subproc = 0;
+/* static */ int tcpdemux::tcp_alert_fd = -1; 
+/* static */ std::string tcpdemux::tcp_cmd = ""; 
+    
 tcpdemux::tcpdemux():
 #ifdef HAVE_SQLITE3
     db(),insert_flow(),
@@ -215,6 +223,39 @@ void tcpdemux::post_process(tcpip *tcp)
      * Before we delete the tcp structure, save information about the saved flow
      */
     save_flow(tcp);
+
+    if(opt.store_output && tcp_alert_fd>=0){
+	std::stringstream ss;
+	ss << "close\t" << tcp->flow_pathname.c_str() << "\n";
+	const std::string &sso = ss.str();
+	if(write(tcp_alert_fd,sso.c_str(),sso.size()) != (int)sso.size()){
+	    perror("write");
+	}
+    }
+    
+    if(tcp_cmd.size()>0 && tcp->flow_pathname.size()>0){
+	/* If we are at maximum number of subprocesses, wait for one to exit */
+	std::string cmd = tcp_cmd + " " + tcp->flow_pathname;
+#ifdef HAVE_FORK
+	int status=0;
+	pid_t pid = 0;
+	while(tcp_subproc >= tcp_subproc_max){
+	    pid = wait(&status);
+	    tcp_subproc--;
+	}
+	/* Fork off a child */
+	pid = fork();
+	if(pid<0) die("Cannot fork child");
+	if(pid==0){
+	    /* We are the child */
+	    exit(system(cmd.c_str()));
+	}
+	tcp_subproc++;
+#else
+	system(cmd.c_str());
+#endif            
+    }
+	
     delete tcp;
 }
 
@@ -577,7 +618,19 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 	    tcp->print_packet(tcp_data, tcp_datalen);
 	} else {
 	    if (opt.store_output){
+		bool new_file = false;
+		if (tcp->fd < 0) new_file = true;
+		
 		tcp->store_packet(tcp_data, tcp_datalen, delta,pi.ts);
+		
+		if(new_file && tcp_alert_fd>=0){
+		    std::stringstream ss;
+		    ss << "open\t" << tcp->flow_pathname.c_str() << "\n";
+		    const std::string &sso = ss.str();
+		    if(write(tcp_alert_fd,sso.c_str(),sso.size())!=(int)sso.size()){
+			perror("write");
+		    }
+		}
 	    }
 	}
     }

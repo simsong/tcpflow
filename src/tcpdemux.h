@@ -86,6 +86,11 @@ class tcpdemux {
 
 public:
     static uint32_t tcp_timeout;
+    static std::string tcp_cmd;                   // command to run on each tcp flow
+    static int tcp_subproc_max;              // how many subprocesses are we allowed?
+    static int tcp_subproc;                   // how many do we currently have?
+    static int tcp_alert_fd; 
+    
     static unsigned int get_max_fds(void);             // returns the max
     virtual ~tcpdemux(){
         delete xreport;
