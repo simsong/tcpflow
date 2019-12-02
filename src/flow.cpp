@@ -42,6 +42,7 @@ void flow::usage()
     std::cout << "  %K - (connection_number / 1000)       % 1000\n";
     std::cout << "  %M - (connection_number / 1000000)    % 1000\n";
     std::cout << "  %G - (connection_number / 1000000000) % 1000\n";
+    std::cout << "  %S - session ID\n";
     std::cout << "  %% - Output a '%'\n";
     std::cout << "\n";
     std::cout << "Default value is: '"<< flow::filename_template <<"'\n";
@@ -134,6 +135,9 @@ std::string flow::filename(uint32_t connection_count, bool is_pcap)
 		break;
 	    case 'c': // connection_count if connection_count >0
 		if(connection_count>0) ss << connection_count;
+		break;
+	    case 'S': // session ID
+		ss << std::setfill('0') << std::setw(20) << session_id;
 		break;
 	    case '#': // always output connection count
 		ss << connection_count;

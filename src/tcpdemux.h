@@ -138,6 +138,7 @@ public:
     pcap_writer *pwriter;               // where we should write packets
     unsigned int max_open_flows;        // how large did it ever get?
     unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux
+    uint64_t unique_id;                 // next unique id to assign
 
     flow_map_t  flow_map;               // db of open tcpip objects, indexed by flow
     intrusive_list<tcpip> open_flows; // the tcpip flows with open files in access order
