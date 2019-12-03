@@ -182,6 +182,7 @@ public:;
     uint64_t len;     		        // off-wire length
     uint64_t caplen;    		// captured length
     uint64_t packet_count;		// packet count
+    uint64_t session_id;      // session unique id (used to match client->server and server->client flows
 
     // return a filename for a flow based on the template and the connection count
     std::string filename(uint32_t connection_count, bool);

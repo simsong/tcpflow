@@ -37,7 +37,7 @@ tcpdemux::tcpdemux():
     outdir("."),flow_counter(0),packet_counter(0),
     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
     flow_map(),open_flows(),saved_flow_map(),flow_fd_cache_map(0),
-    saved_flows(),start_new_connections(false),opt(),fs()
+    saved_flows(),start_new_connections(false),opt(),fs(),unique_id(0)
 {
     tcp_processor = &tcpdemux::process_tcp;
 }
@@ -553,12 +553,28 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 
         /* Don't process if this is not a SYN and there is no data. */
         if(syn_set==false && tcp_datalen==0) return 0;
+	
+	/* Check if this is the server->client flow related to a client->server flow that is being demultiplexed */
+	flow_addr reverse_flow(dst,src,ntohs(tcp_header->th_dport),ntohs(tcp_header->th_sport),family);
+	tcpip   *reverse_tcp = find_tcpip(reverse_flow);
+	uint64_t uid;
+	if (reverse_tcp)
+	{
+	    /* We found a matching client->server flow. Copy its session ID */
+	    uid = reverse_tcp->myflow.session_id;
+	}
+	else
+	{
+	    /* Assign a new unique ID */
+	    uid = unique_id++;
+	}
 
 	/* Create a new connection.
 	 * delta will be 0, because it's a new connection!
 	 */
         be13::tcp_seq isn = syn_set ? seq : seq-1;
 	tcp = create_tcpip(this_flow, isn, pi);
+	tcp->myflow.session_id = uid;
     }
 
     /* Now tcp is valid */
