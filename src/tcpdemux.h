@@ -46,10 +46,6 @@
  * This is a singleton class; we only need a single demultiplexer.
  */
 class tcpdemux {
-    /* These are not implemented */
-    tcpdemux(const tcpdemux &t);
-    tcpdemux &operator=(const tcpdemux &that);
-
     /* see http://mikecvet.wordpress.com/tag/hashing/ */
     typedef struct {
         long operator() (const flow_addr &k) const {return k.hash(); }
@@ -76,7 +72,6 @@ class tcpdemux {
     sqlite3 *db;
     sqlite3_stmt *insert_flow;
 #endif
-
     pcap_writer *flow_sorter;
 
     /* facility logic hinge */
@@ -131,16 +126,16 @@ public:
 
     enum { WARN_TOO_MANY_FILES=10000};  // warn if more than this number of files in a directory
 
-    std::string outdir;                 /* output directory */
-    uint64_t    flow_counter;           // how many flows have we seen?
-    uint64_t    packet_counter;         // monotomically increasing 
-    dfxml_writer  *xreport;               // DFXML output file
-    pcap_writer *pwriter;               // where we should write packets
+    std::string  outdir;                 /* output directory */
+    uint64_t     flow_counter;           // how many flows have we seen?
+    uint64_t     packet_counter;         // monotomically increasing 
+    dfxml_writer *xreport;               // DFXML output file
+    pcap_writer  *pwriter;               // where we should write packets
     unsigned int max_open_flows;        // how large did it ever get?
     unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux
-    uint64_t unique_id;                 // next unique id to assign
+    uint64_t     unique_id;                 // next unique id to assign
 
-    flow_map_t  flow_map;               // db of open tcpip objects, indexed by flow
+    flow_map_t   flow_map;               // db of open tcpip objects, indexed by flow
     intrusive_list<tcpip> open_flows; // the tcpip flows with open files in access order
 
     saved_flow_map_t saved_flow_map;  // db of saved flows, indexed by flow
@@ -148,8 +143,8 @@ public:
     saved_flows_t    saved_flows;     // the flows that were saved
     bool             start_new_connections;  // true if we should start new connections
 
-    options     opt;
-    class       feature_recorder_set *fs; // where features extracted from each flow should be stored
+    options      opt;
+    class feature_recorder_set *fs; // where features extracted from each flow should be stored
     
     static uint32_t max_saved_flows;       // how many saved flows are kept in the saved_flow_map
 
@@ -201,6 +196,11 @@ public:
     int  process_ip4(const be13::packet_info &pi);
     int  process_ip6(const be13::packet_info &pi);
     int  process_pkt(const be13::packet_info &pi);
+private:;
+    /* These are not implemented */
+    tcpdemux(const tcpdemux &t);
+    tcpdemux &operator=(const tcpdemux &that);
+
 };
 
 

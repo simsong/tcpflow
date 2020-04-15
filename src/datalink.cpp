@@ -97,9 +97,14 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* Handle basic VLAN packets */
-    while (ntohs(*ether_type) == ETHERTYPE_VLAN ||
-    		ntohs(*ether_type) == ETH_P_QINQ1 ||
-		ntohs(*ether_type) == ETH_P_8021AD) {
+    while (ntohs(*ether_type) == ETHERTYPE_VLAN
+#ifdef ETH_P_QINQ1
+           || ntohs(*ether_type) == ETH_P_QINQ1
+#endif
+#ifdef ETH_P_8021AD
+           || ntohs(*ether_type) == ETH_P_8021AD
+#endif
+           ) {
 	//vlan = ntohs(*(u_short *)(p+sizeof(struct ether_header)));
 	ether_type += 2;			/* skip past VLAN header (note it skips by 2s) */
 	ether_data += 4;			/* skip past VLAN header */

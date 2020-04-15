@@ -34,10 +34,12 @@ tcpdemux::tcpdemux():
 #ifdef HAVE_SQLITE3
     db(),insert_flow(),
 #endif
+    flow_sorter(0),tcp_processor(0),
     outdir("."),flow_counter(0),packet_counter(0),
     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
+    unique_id(0),
     flow_map(),open_flows(),saved_flow_map(),flow_fd_cache_map(0),
-    saved_flows(),start_new_connections(false),opt(),fs(),unique_id(0)
+    saved_flows(),start_new_connections(false),opt(),fs()
 {
     tcp_processor = &tcpdemux::process_tcp;
 }

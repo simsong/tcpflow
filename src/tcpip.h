@@ -158,7 +158,7 @@ public:;
     static void usage();			// print information on flow notation
     static std::string filename_template;	// 
     static std::string outdir;                  // where the output gets written
-    flow():id(),vlan(),mac_daddr(),mac_saddr(),tstart(),tlast(),len(),caplen(),packet_count(){};
+    flow():id(),vlan(),mac_daddr(),mac_saddr(),tstart(),tlast(),len(),caplen(),packet_count(),session_id(){};
     flow(const flow_addr &flow_addr_,uint64_t id_,const be13::packet_info &pi):
 	flow_addr(flow_addr_),id(id_),vlan(pi.vlan()),
         mac_daddr(),
@@ -166,7 +166,8 @@ public:;
         tstart(pi.ts),tlast(pi.ts),
         len(0),
         caplen(0),
-	packet_count(0){
+	packet_count(0),
+        session_id(0) {
         if(pi.pcap_hdr){
             memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
             memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
@@ -377,6 +378,10 @@ public:
     {
         if(fcap) fclose(fcap);
     }
+    /* these are not implemented */
+private:
+    sparse_saved_flow(const sparse_saved_flow &t);
+    sparse_saved_flow &operator=(const sparse_saved_flow &that);
 };
 
 
