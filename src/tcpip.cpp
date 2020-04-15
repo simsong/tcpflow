@@ -135,9 +135,17 @@ void tcpip::close_file()
 	DEBUG(5) ("%s: closing file in tcpip::close_file", flow_pathname.c_str());
 	/* close the file and remember that it's closed */
 #if defined(HAVE_FUTIMES)
-	if(futimes(fd,times)){
-	    fprintf(stderr,"%s: futimes(fd=%d)\n",strerror(errno),fd);
-            abort();
+        /* fix microseconds if they are invalid */
+        for ( int i=0; i<2; i++){
+            if ( times[i].tv_usec < 0 || times[i].tv_usec >= 1000000 ){
+                times[i].tv_usec = 0;
+            }
+        }
+	if (futimes(fd,times)){
+	    fprintf(stderr,"%s: futimes(fd=%d,[%ld:%ld,%ld:%ld])\n",
+                    strerror(errno),fd,
+                    times[0].tv_sec,times[1].tv_usec,
+                    times[1].tv_sec,times[1].tv_usec);
 	}
 #elif defined(HAVE_FUTIMENS) 
 	struct timespec tstimes[2];
