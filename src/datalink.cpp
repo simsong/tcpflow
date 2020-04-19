@@ -117,34 +117,41 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* Create a packet_info structure with ip data and data length  */
-    struct timeval tv;
-    be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
-                         ether_data, caplen - sizeof(struct be13::ether_header));
-    switch (ntohs(*ether_type)){
-    case ETHERTYPE_IP:
-    case ETHERTYPE_IPV6:
-        be13::plugin::process_packet(pi);
-        break;
+    try {
+        struct timeval tv;
+        be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
+                             ether_data, caplen - sizeof(struct be13::ether_header));
+        switch (ntohs(*ether_type)){
+        case ETHERTYPE_IP:
+        case ETHERTYPE_IPV6:
+            be13::plugin::process_packet(pi);
+            break;
 
 #ifdef ETHERTYPE_ARP
-    case ETHERTYPE_ARP:
-        /* What should we do for ARP? */
-        break;
+        case ETHERTYPE_ARP:
+            /* What should we do for ARP? */
+            break;
 #endif
 #ifdef ETHERTYPE_LOOPBACK
-    case ETHERTYPE_LOOPBACK:
-        /* What do do for loopback? */
-        break;
+        case ETHERTYPE_LOOPBACK:
+            /* What do do for loopback? */
+            break;
 #endif
 #ifdef ETHERTYPE_REVARP
-    case ETHERTYPE_REVARP:
-        /* What to do for REVARP? */
-        break;
+        case ETHERTYPE_REVARP:
+            /* What to do for REVARP? */
+            break;
 #endif
-    default:
-        /* Unknown Ethernet Frame Type */
-        DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
-	break;
+        default:
+            /* Unknown Ethernet Frame Type */
+            DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
+            break;
+        }
+    } catch( std::logic_error e){
+        std::string s(std::string("warning: caught std::logic_error ")
+                      + e.what()
+                      + std::string(" in packet"));
+        DEBUG(6)(s.c_str());
     }
 }
 
