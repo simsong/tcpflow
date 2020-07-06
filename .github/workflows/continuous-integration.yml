@@ -29,7 +29,7 @@ jobs:
       - name: Install C++ dependencies on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-           sudo apt install libtool autoconf automake
+           sudo apt install libtool autoconf automake g++ libboost-dev libssl-dev libpcap-dev libcairo2-dev
            automake --help
 
       - name: c/c++ test
