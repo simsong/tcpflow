@@ -9,6 +9,7 @@ addons:
     - libpcap-dev
     - libcairo2-dev
 language: cpp
+compiler: clang
 install:
  - ./bootstrap.sh && ./configure && make
 script:
