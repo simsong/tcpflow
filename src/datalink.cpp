@@ -16,6 +16,7 @@
  * For wifi datalink handlers, please see datalink_wifi.cpp
  */
 
+#include <stddef.h>
 #include "tcpflow.h"
 
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
