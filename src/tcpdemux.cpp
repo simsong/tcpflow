@@ -744,7 +744,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    uint16_t ip_payload_len = ip_len - ip_header_len;
+    uint16_t ip_payload_len = pi.ip_datalen - ip_header_len;
     ipaddr src(ip_header->ip_src.addr);
     ipaddr dst(ip_header->ip_dst.addr);
     return (this->*tcp_processor)(src, dst ,AF_INET,
