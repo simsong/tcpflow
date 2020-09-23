@@ -276,9 +276,13 @@ int scan_http_cbo::on_body(const char *at,size_t length)
 
     /* If not decompressing, just write the data and return. */
     if(unzip==false){
-        int rv = write(fd,at,length);
-        if(rv<0) return -1;             // write error; that's bad
-        bytes_written += rv;
+        size_t offset = 0;
+        while (offset < length) {
+                int rv = write(fd, at + offset, length - offset);
+                if (rv < 0) return -1;  // write error; that's bad
+                offset += rv;
+        }
+        bytes_written += offset;
         return 0;
     }
 
