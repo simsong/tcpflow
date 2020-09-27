@@ -1,5 +1,5 @@
 /**
- * 
+ *
  * tcpdemux.cpp
  * A tcpip demultiplier.
  *
@@ -27,17 +27,18 @@
 /* static */ uint32_t tcpdemux::tcp_timeout = 0;
 /* static */ int tcpdemux::tcp_subproc_max = 10;
 /* static */ int tcpdemux::tcp_subproc = 0;
-/* static */ int tcpdemux::tcp_alert_fd = -1; 
-/* static */ std::string tcpdemux::tcp_cmd = ""; 
-    
+/* static */ int tcpdemux::tcp_alert_fd = -1;
+/* static */ std::string tcpdemux::tcp_cmd = "";
+
 tcpdemux::tcpdemux():
 #ifdef HAVE_SQLITE3
     db(),insert_flow(),
 #endif
     outdir("."),flow_counter(0),packet_counter(0),
     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
+    unique_id(0),
     flow_map(),open_flows(),saved_flow_map(),flow_fd_cache_map(0),
-    saved_flows(),start_new_connections(false),opt(),fs(),unique_id(0)
+    saved_flows(),start_new_connections(false),opt(),fs()
 {
     tcp_processor = &tcpdemux::process_tcp;
 }
@@ -61,7 +62,7 @@ void tcpdemux::openDB()
     const char *sql = "CREATE TABLE connections ("
         "starttime TEXT NOT NULL,"
         "endtime TEXT NOT NULL,"
-        "src_ipn TEXT,"  
+        "src_ipn TEXT,"
         "dst_ipn TEXT,"
         "mac_daddr TEXT,"
         "mac_saddr TEXT,"
@@ -162,7 +163,7 @@ tcpip *tcpdemux::find_tcpip(const flow_addr &flow)
  *
  *
  * TK: Note that the flow() is created on the stack and then used in new tcpip().
- * This is resulting in an unnecessary copy. 
+ * This is resulting in an unnecessary copy.
  */
 
 tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be13::packet_info &pi)
@@ -185,11 +186,11 @@ tcpip *tcpdemux::create_tcpip(const flow_addr &flowa, be13::tcp_seq isn,const be
  * Write to the report.xml object.
  * Save in the sqlite database.
  * This is the ONLY place where a tcpip object is deleted so there is no chance of finding it again.
- * 
+ *
  * Flows are post-processed when a FIN is received and all bytes are received.
  * If a FIN is received and bytes are outstanding, they are post-processed when the last byte is received.
  * When the program shut down, all open flows are post-processed.
- * 
+ *
  * Amended to trigger the packet/data location index sort as part of the post-processing.  This sorts
  * the (potentially out of order) index to make it simple for external applications.  No processing is
  * done if the (-I) index generation feature is turned off.  --GDD
@@ -199,7 +200,7 @@ void tcpdemux::post_process(tcpip *tcp)
 {
     std::stringstream xmladd;		// for this <fileobject>
     if(opt.post_processing && tcp->file_created && tcp->last_byte>0){
-        /** 
+        /**
          * After the flow is finished, if more than a byte was
          * written, then put it in an SBUF and process it.  if we are
          * doing post-processing.  This is called from tcpip::~tcpip()
@@ -209,7 +210,7 @@ void tcpdemux::post_process(tcpip *tcp)
         /* Open the fd if it is not already open */
         tcp->open_file();
         if(tcp->fd>=0){
-            sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,tcp->fd);
+            sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,tcp->fd, false);
             if(sbuf){
                 be13::plugin::process_sbuf(scanner_params(scanner_params::PHASE_SCAN,*sbuf,*(fs),&xmladd));
                 delete sbuf;
@@ -232,7 +233,7 @@ void tcpdemux::post_process(tcpip *tcp)
 	    perror("write");
 	}
     }
-    
+
     if(tcp_cmd.size()>0 && tcp->flow_pathname.size()>0){
 	/* If we are at maximum number of subprocesses, wait for one to exit */
 	std::string cmd = tcp_cmd + " " + tcp->flow_pathname;
@@ -253,9 +254,9 @@ void tcpdemux::post_process(tcpip *tcp)
 	tcp_subproc++;
 #else
 	system(cmd.c_str());
-#endif            
+#endif
     }
-	
+
     delete tcp;
 }
 
@@ -284,7 +285,7 @@ void tcpdemux::remove_all_flows()
 }
 
 /****************************************************************
- *** tcpdemultiplexer 
+ *** tcpdemultiplexer
  ****************************************************************/
 
 /* Try to find the maximum number of FDs this system can have open */
@@ -312,7 +313,7 @@ unsigned int tcpdemux::get_max_fds(void)
 	limit.rlim_cur = limit.rlim_max;
 #ifdef OPEN_MAX
         if(limit.rlim_cur > OPEN_MAX) limit.rlim_cur = OPEN_MAX;
-#endif        
+#endif
 
 	if (setrlimit(RLIMIT_NOFILE, &limit) < 0) {
 	    perror("setrlimit");
@@ -422,7 +423,7 @@ int tcpdemux::dissect_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
  * The caller breaks out the ip addresses and finds the start of the tcp header.
  *
  * Skips but otherwise ignores TCP options.
- * 
+ *
  * creates a new tcp connection if necessary, then asks the connection to either
  * print the packet or store it.
  *
@@ -463,7 +464,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     /* Find the beginning of the tcp data.
      */
     const u_char *tcp_data   = ip_data + tcp_header_len;
-    
+
     /* figure out how much tcp data we have, taking into account tcp options */
 
     size_t tcp_datalen = (ip_payload_len > tcp_header_len) ? (ip_payload_len - tcp_header_len) : 0;
@@ -471,12 +472,12 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     /* see if we have state about this flow; if not, create it */
     int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
     tcpip   *tcp = find_tcpip(this_flow);
-    
+
     DEBUG(60)("%s%s%s%s tcp_header_len=%d tcp_datalen=%d seq=%u tcp=%p",
               (syn_set?"SYN ":""),(ack_set?"ACK ":""),(fin_set?"FIN ":""),(rst_set?"RST ":""),(int)tcp_header_len,(int)tcp_datalen,(int)seq,tcp);
 
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
-    if(tcp==0 && start_new_connections==false) return 0; 
+    if(tcp==0 && start_new_connections==false) return 0;
 
     if(syn_set && tcp && tcp->syn_count>0 && tcp->pos>0){
         std::cerr << "SYN TO IGNORE! SYN tcp="<<tcp << " flow="<<this_flow<<"\n";
@@ -526,7 +527,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
          * we are processing the new one. Perhaps we should be able to have
          * multiple flows at the same time with the same quad, and they are
          * at different window areas...
-         * 
+         *
 	 */
 	delta = seq - tcp->nsn;		// notice that signed offset is calculated
 
@@ -553,7 +554,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 
         /* Don't process if this is not a SYN and there is no data. */
         if(syn_set==false && tcp_datalen==0) return 0;
-	
+
 	/* Check if this is the server->client flow related to a client->server flow that is being demultiplexed */
 	flow_addr reverse_flow(dst,src,ntohs(tcp_header->th_dport),ntohs(tcp_header->th_sport),family);
 	tcpip   *reverse_tcp = find_tcpip(reverse_flow);
@@ -597,7 +598,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
      * The first byte in POSIX files have an LSEEK of 0.
      * The original code overcame this issue by introducing an intentional off-by-one
      * error with the statement tcp->isn++.
-     * 
+     *
      * With the new TCP state-machine we simply follow the spec.
      *
      * The new state machine works by examining the SYN and ACK packets
@@ -636,9 +637,9 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 	    if (opt.store_output){
 		bool new_file = false;
 		if (tcp->fd < 0) new_file = true;
-		
+
 		tcp->store_packet(tcp_data, tcp_datalen, delta,pi.ts);
-		
+
 		if(new_file && tcp_alert_fd>=0){
 		    std::stringstream ss;
 		    ss << "open\t" << tcp->flow_pathname.c_str() << "\n";
@@ -652,7 +653,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     }
 
     if (rst_set){
-        remove_flow(this_flow);	// take it out of the map  
+        remove_flow(this_flow);	// take it out of the map
         return 0;
     }
 
@@ -673,7 +674,7 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
 
     if (tcp->fin_count>0 && tcp->seen_bytes() == tcp->fin_size){
         DEBUG(50)("all bytes have been received; removing flow");
-        remove_flow(this_flow);	// take it out of the map  
+        remove_flow(this_flow);	// take it out of the map
     }
 
     DEBUG(50)("fin_set=%d  seq=%u fin_count=%d  seq_count=%d len=%d isn=%u",
@@ -704,7 +705,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
 
     DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)pi.pcap_hdr->caplen,(int)pi.vlan(),(int)ip_header->ip_p);
     if(debug>200){
-	sbuf_t sbuf(pos0_t(),(const uint8_t *)pi.ip_data,pi.ip_datalen,pi.ip_datalen,false);
+	sbuf_t sbuf(pos0_t(),(const uint8_t *)pi.ip_data,pi.ip_datalen,pi.ip_datalen,false, false);
 	sbuf.hex_dump(std::cerr);
     }
 
@@ -779,7 +780,7 @@ int tcpdemux::process_ip6(const be13::packet_info &pi)
     uint16_t ip_payload_len = ntohs(ip_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
     ipaddr src(ip_header->ip6_src.addr.addr8);
     ipaddr dst(ip_header->ip6_dst.addr.addr8);
-    
+
     return (this->*tcp_processor)(src, dst ,AF_INET6,
                                    pi.ip_data + sizeof(struct be13::ip6_hdr),
                                    ip_payload_len,pi);
@@ -826,6 +827,6 @@ int tcpdemux::process_pkt(const be13::packet_info &pi)
             remove_flow(*(*it));
         }
     }
-    return r;     
+    return r;
 }
 #pragma GCC diagnostic warning "-Wcast-align"

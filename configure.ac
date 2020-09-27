@@ -7,7 +7,7 @@
 # and http://www.openismus.com/documents/linux/automake/automake.shtml
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.5.1, simsong@acm.org)
+AC_INIT(TCPFLOW, 1.6.0, simsong@acm.org)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
@@ -227,8 +227,8 @@ AC_CHECK_FUNCS([MD5_Init EVP_get_digestbyname])
 ################################################################
 ## Includes
 
-m4_include([src/dfxml/src/dfxml_configure.m4])
 m4_include([src/be13_api/be13_configure.m4])
+m4_include([src/be13_api/dfxml/src/dfxml_configure.m4])
 
 ################################################################
 # Boost
