@@ -32,9 +32,9 @@ AC_PROG_INSTALL
 m4_include([m4/slg_searchdirs.m4])
 m4_include([m4/slg_gcc_all_warnings.m4])
 
-# Must use C++14 mode. (mandatory)
+# Must use C++17 mode. (mandatory)
 AC_LANG_PUSH(C++)
-AX_CXX_COMPILE_STDCXX([14], [noext], [mandatory])
+AX_CXX_COMPILE_STDCXX([17], [noext], [mandatory])
 AC_LANG_POP()
 
 
@@ -158,19 +158,18 @@ WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
     -Woverloaded-virtual -Wsign-promo \
     -funit-at-a-time"
 
+add_strict_null_sentinel='yes'
 if $CXX -dM -E - < /dev/null | grep -q __clang__ ; then
    AC_MSG_RESULT([Using clang])
-   clang='yes'
- else
-   AC_MSG_RESULT([not using clang])
-   clang='no'
-   # -Wstrict-null-sentinel is not supported under clang or under Darwin's gcc
-   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
+   add_strict_null_sentinel='no'
 fi
 
-if test $mingw = "no" ; then
-  # add the warnings we don't want to do on mingw
-  WARNINGS_TO_TEST="$WARNINGS_TO_TEST  -Weffc++"
+if uname -a | grep -q Darwin; then
+   add_strict_null_sentinel='no'
+fi
+
+if [ $add_strict_null_sentinel = 'yes' ]; then
+   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
 fi
 
 for option in $WARNINGS_TO_TEST

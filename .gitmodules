@@ -3,7 +3,7 @@
 	url = https://github.com/simsong/be13_api.git
 	branch = master
 [submodule "src/dfxml"]
-	path = src/dfxml
+	path = src/dfxml_x
 	url = https://github.com/simsong/dfxml.git
 	branch = master
 [submodule "src/http-parser"]

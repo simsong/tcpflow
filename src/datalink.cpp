@@ -1,5 +1,5 @@
 /**
- * 
+ *
  * This file is part of tcpflow. Originally by Jeremy Elson
  * <jelson@circlemud.org>, rewritten by Simson Garfinkel.
  *
@@ -28,6 +28,15 @@
 #ifndef ETHERTYPE_IPV6
 # define ETHERTYPE_IPV6 0x86DD
 #endif
+
+#ifndef ETH_P_QINQ1
+# define ETH_P_QINQ1	0x9100		/* deprecated QinQ VLAN [ NOT AN OFFICIALLY REGISTERED ID ] */
+#endif
+
+#ifndef ETH_P_8021AD
+# define ETH_P_8021AD	0x88A8          /* 802.1ad Service VLAN		*/
+#endif
+
 
 int32_t datalink_tdelta = 0;
 
@@ -105,7 +114,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	ether_data += 4;			/* skip past VLAN header */
 	caplen     -= 4;
     }
-  
+
     if (caplen < sizeof(struct be13::ether_header)) {
 	DEBUG(6) ("warning: received incomplete ethernet frame");
 	return;
@@ -199,7 +208,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	DEBUG(6) ("warning: received incomplete Linux cooked frame");
 	return;
     }
-  
+
     struct _sll_header {
         u_int16_t   sll_pkttype;    /* packet type */
         u_int16_t   sll_hatype; /* link-layer address type */
@@ -207,7 +216,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         u_int8_t    sll_addr[SLL_ADDRLEN];  /* link-layer address */
         u_int16_t   sll_protocol;   /* protocol */
     };
-    
+
     _sll_header *sllp = (_sll_header*)p;
     u_int mpls_sz = 0;
     if (ntohs(sllp->sll_protocol) == ETHERTYPE_MPLS) {
@@ -221,7 +230,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
             caplen -= 4;
         } while ((p[SLL_HDR_LEN + mpls_sz - 2] & 1) == 0 );
     }
-    
+
     struct timeval tv;
     be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN + mpls_sz, caplen - SLL_HDR_LEN);
     be13::plugin::process_packet(pi);
