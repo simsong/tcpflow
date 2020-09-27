@@ -11,8 +11,8 @@ if test x"${mingw}" != "xyes" ; then
        for spfx in /usr/local /opt/local /sw /usr/local/ssl; do
          AC_MSG_NOTICE([checking ${spfx}/include])
          if test -d ${spfx}/include; then
-           CPPFLAGS="-I${spfx}/include $CPPFLAGS"
-           LDFLAGS="-L${spfx}/lib $LDFLAGS"
+           CPPFLAGS="$CPPFLAGS -I${spfx}/include"
+           LDFLAGS="$LDFLAGS -L${spfx}/lib"
            AC_MSG_NOTICE([ *** ADDING ${spfx}/include to CPPFLAGS *** ])
            AC_MSG_NOTICE([ *** ADDING ${spfx}/lib to LDFLAGS *** ])
          fi
