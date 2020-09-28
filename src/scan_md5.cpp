@@ -34,7 +34,7 @@ void  scan_md5(const class scanner_params &sp,const recursion_control_block &rcb
 	static const std::string hash0("<hashdigest type='MD5'>");
 	static const std::string hash1("</hashdigest>");
 	if(sp.sxml){
-            (*sp.sxml) << hash0 << md5_generator::hash_buf(sp.sbuf.buf,sp.sbuf.bufsize).hexdigest() << hash1;
+            (*sp.sxml) << hash0 << dfxml::md5_generator::hash_buf(sp.sbuf.buf,sp.sbuf.bufsize).hexdigest() << hash1;
         }
 	return;
     }

@@ -86,7 +86,8 @@ scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
     scan_netviz,
-    scan_python,
+// removed scan_python becasue it does not support Python 3
+//    scan_python,
     scan_tcpdemux,
 #ifdef USE_WIFI
     scan_wifiviz,
@@ -520,7 +521,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,std::str
     /* start listening or reading from the input file */
     if (infile == "") DEBUG(1) ("listening on %s", device.c_str());
     int pcap_retval = pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance());
-    
+
     if (pcap_retval < 0 && pcap_retval != -2){
 	DEBUG(1) ("%s: %s", infile.c_str(),pcap_geterr(pd));
 	return -1;
@@ -546,13 +547,13 @@ static std::string be_hash_name("md5");
 static std::string be_hash_func(const uint8_t *buf,size_t bufsize)
 {
     if(be_hash_name=="md5" || be_hash_name=="MD5"){
-        return md5_generator::hash_buf(buf,bufsize).hexdigest();
+        return dfxml::md5_generator::hash_buf(buf,bufsize).hexdigest();
     }
     if(be_hash_name=="sha1" || be_hash_name=="SHA1" || be_hash_name=="sha-1" || be_hash_name=="SHA-1"){
-        return sha1_generator::hash_buf(buf,bufsize).hexdigest();
+        return dfxml::sha1_generator::hash_buf(buf,bufsize).hexdigest();
     }
     if(be_hash_name=="sha256" || be_hash_name=="SHA256" || be_hash_name=="sha-256" || be_hash_name=="SHA-256"){
-        return sha256_generator::hash_buf(buf,bufsize).hexdigest();
+        return dfxml::sha256_generator::hash_buf(buf,bufsize).hexdigest();
     }
     std::cerr << "Invalid hash name: " << be_hash_name << "\n";
     std::cerr << "This version of bulk_extractor only supports MD5, SHA1, and SHA256\n";

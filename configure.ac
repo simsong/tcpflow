@@ -1,13 +1,13 @@
-#                                               -*- Autoconf -*- 
+#                                               -*- Autoconf -*-
 # tcpflow configure.ac
 #
-# Process this file with autoconf to produce a configure script. 
-# Order is largely irrevellant, although it must start with AC_INIT and end with AC_OUTPUT 
-# See http://autotoolset.sourceforge.net/tutorial.html 
-# and http://www.openismus.com/documents/linux/automake/automake.shtml 
+# Process this file with autoconf to produce a configure script.
+# Order is largely irrevellant, although it must start with AC_INIT and end with AC_OUTPUT
+# See http://autotoolset.sourceforge.net/tutorial.html
+# and http://www.openismus.com/documents/linux/automake/automake.shtml
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.5.1, simsong@acm.org)
+AC_INIT(TCPFLOW, 1.6.0, simsong@acm.org)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
@@ -32,11 +32,9 @@ AC_PROG_INSTALL
 m4_include([m4/slg_searchdirs.m4])
 m4_include([m4/slg_gcc_all_warnings.m4])
 
-
-# use C++11 mode if available; HAVE_CXX11 is defined in config.h if so.  Don't
-# use the GNU C++11 extensions for portability's sake (noext).
+# Must use C++17 mode. (mandatory)
 AC_LANG_PUSH(C++)
-AX_CXX_COMPILE_STDCXX_11(noext, optional)
+AX_CXX_COMPILE_STDCXX([17], [noext], [mandatory])
 AC_LANG_POP()
 
 
@@ -56,12 +54,12 @@ AC_LANG_POP()
 
 mingw="no"
 case $host in
-  *-*-*linux*-*) 
+  *-*-*linux*-*)
      AC_DEFINE([__LINUX__],1,[Linux operating system functions])
      ;;
 
-  *-*-mingw32*)   
-     LIBS="-lpsapi -lws2_32 -lgdi32 $LIBS"  
+  *-*-mingw32*)
+     LIBS="-lpsapi -lws2_32 -lgdi32 $LIBS"
      CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -g $CPPFLAGS"
      CPPFLAGS="$CPPFLAGS --static"
      CFLAGS="$CFLAGS --static -static-libgcc -static-libstdc++"
@@ -69,7 +67,7 @@ case $host in
      CXXFLAGS="$CXXFLAGS --static -static-libgcc -static-libstdc++"
      LDFLAGS="$LDFLAGS --static"
      mingw="yes"
-     ;;		 		     
+     ;;
 
    *)
      CXXFLAGS="$CXXFLAGS -Wno-address-of-packed-member"
@@ -88,8 +86,8 @@ if test x"${mingw}" == "xno" ; then
         AC_MSG_NOTICE([ *** ADDING ${spfx}/lib to LDFLAGS *** ])
     fi
   done
-  AC_MSG_NOTICE([ CPPFLAGS = ${CPPFLAGS} ])        
-  AC_MSG_NOTICE([ LDFLAGS = ${LDFLAGS} ])        
+  AC_MSG_NOTICE([ CPPFLAGS = ${CPPFLAGS} ])
+  AC_MSG_NOTICE([ LDFLAGS = ${LDFLAGS} ])
 fi
 
 if test -r /bin/uname.exe ; then
@@ -105,14 +103,14 @@ fi
 # Enable all the compiler debugging we can find
 #
 # This is originally from PhotoRec, but modified substantially by Simson
-# Figure out which flags we can use with the compiler. 
+# Figure out which flags we can use with the compiler.
 #
 # These I don't like:
 # -Wdeclaration-after-statement -Wconversion
-# doesn't work: -Wunreachable-code 
-# causes configure to crash on gcc-4.2.1: -Wsign-compare-Winline 
-# causes warnings with unistd.h:  -Wnested-externs 
-# Just causes too much annoyance: -Wmissing-format-attribute 
+# doesn't work: -Wunreachable-code
+# causes configure to crash on gcc-4.2.1: -Wsign-compare-Winline
+# causes warnings with unistd.h:  -Wnested-externs
+# Just causes too much annoyance: -Wmissing-format-attribute
 # Check GCC
 WARNINGS_TO_TEST="-MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes \
     -Wshadow -Wwrite-strings -Wcast-align -Waggregate-return \
@@ -150,7 +148,7 @@ unset option
 # -Waggregate-return -- aggregate returns are GOOD; they simplify code design
 # We can use these warnings after ZLIB gets upgraded:
 # -Wundef  --- causes problems with zlib
-# -Wcast-qual 
+# -Wcast-qual
 # -Wmissing-format-attribute  --- Just too annoying
 AC_LANG_PUSH(C++)
 WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
@@ -160,19 +158,18 @@ WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
     -Woverloaded-virtual -Wsign-promo \
     -funit-at-a-time"
 
+add_strict_null_sentinel='yes'
 if $CXX -dM -E - < /dev/null | grep -q __clang__ ; then
    AC_MSG_RESULT([Using clang])
-   clang='yes'
- else
-   AC_MSG_RESULT([not using clang])   
-   clang='no'
-   # -Wstrict-null-sentinel is not supported under clang or under Darwin's gcc
-   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
+   add_strict_null_sentinel='no'
 fi
 
-if test $mingw = "no" ; then
-  # add the warnings we don't want to do on mingw
-  WARNINGS_TO_TEST="$WARNINGS_TO_TEST  -Weffc++"
+if uname -a | grep -q Darwin; then
+   add_strict_null_sentinel='no'
+fi
+
+if [ $add_strict_null_sentinel = 'yes' ]; then
+   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
 fi
 
 for option in $WARNINGS_TO_TEST
@@ -188,7 +185,7 @@ do
   unset SAVE_CXXFLAGS
 done
 unset option
-AC_LANG_POP()    
+AC_LANG_POP()
 
 ################################################################
 ##
@@ -214,11 +211,11 @@ AC_CHECK_FUNCS([regcomp tre_regcomp tre_version])
 
 
 ################################################################
-## OpenSSL Support (required for AFFLIB and hash_t )
+## OpenSSL Support (required for hash_t )
 AC_CHECK_HEADERS([openssl/aes.h openssl/bio.h openssl/evp.h openssl/hmac.h openssl/md5.h openssl/pem.h openssl/rand.h openssl/rsa.h openssl/sha.h openssl/pem.h openssl/x509.h])
 AC_CHECK_LIB([dl],[dlopen])                   dnl apparently OpenSSL now needs -ldl on some Linux
 AC_CHECK_LIB([crypto],[EVP_get_digestbyname])	# if crypto is available, get it
-AC_CHECK_LIB([md],[MD5])                        # if libmd is available, get it 
+AC_CHECK_LIB([md],[MD5])                        # if libmd is available, get it
 
 # Need either SSL_library_init or OPENSSL_init_ssl, depending on openssl version
 AC_CHECK_LIB([ssl],[SSL_library_init],,
@@ -230,41 +227,14 @@ AC_CHECK_FUNCS([MD5_Init EVP_get_digestbyname])
 ################################################################
 ## Includes
 
-m4_include([src/dfxml/src/dfxml_configure.m4])
 m4_include([src/be13_api/be13_configure.m4])
-
-################################################################
-# PTHREAD support
-# With special nods to compiling under mingw
-
-if test  x"$mingw" = x"yes";  then
-  #AC_DEFINE([HAVE_STRUCT_TIMESPEC],1,[Required for mingw])
-  CFLAGS="$CFLAGS -mthreads "
-  CPPFLAGS="-DPTW32_STATIC_LIB $CPPFLAGS"
-  CXXFLAGS="$CXXFLAGS -mthreads "
-  AC_DEFINE(HAVE_PTHREAD,1,[Defined to POSIX threads for mingw])
-  #AC_MSG_NOTICE([pthreads now disabled under mingw])
-  AC_CHECK_LIB([pthread],[pthread_create])
-else
-  m4_include([m4/ax_pthread.m4])
-  AX_PTHREAD([
-    echo Using settings from [AX_PTHREAD]
-    LIBS="$PTHREAD_LIBS $LIBS"
-    CFLAGS="  $PTHREAD_CFLAGS $CFLAGS"
-    CXXFLAGS="$PTHREAD_CFLAGS $CXXFLAGS "
-    CPPFLAGS="$PTHREAD_CFLAGS $CPPFLAGS "
-    CC="$PTHREAD_CC"
-  ])
-fi
-
-AC_CHECK_HEADERS([pthread.h])
-AC_CHECK_LIB([pthreadGC2],[pthread_create])
+m4_include([src/be13_api/dfxml/src/dfxml_configure.m4])
 
 ################################################################
 # Boost
 AC_CHECK_HEADERS([boost/version.hpp],,
   AC_MSG_WARN([tcpflow now requires boost interval_map and interval_set.])
-  if test x"$mingw" = x"yes" ; then 
+  if test x"$mingw" = x"yes" ; then
     AC_MSG_ERROR([Please install mingw32-boost and mingw64-boost])
   else
     AC_MSG_ERROR([Please install boost-devel or libboost-dev.])
@@ -290,7 +260,7 @@ Try these commands:
 ... and then re-run configure!
 ])
   fi
-AC_LANG_POP()    
+AC_LANG_POP()
 
 ################################################################
 # drawing support via cairo
@@ -326,13 +296,13 @@ fi
 # pcap support. A bit more involved than normal due to the error message
 #
 AC_CHECK_HEADERS(pcap.h pcap/pcap.h )
-if test x"$mingw" = x"yes" ; then 
+if test x"$mingw" = x"yes" ; then
     AC_MSG_WARN([pcap not supported under mingw])
 else
     AC_CHECK_LIB(pcap, pcap_lookupdev, , [
         enable_pcap=no
 	AC_MSG_WARN([
-Can't find the pcap library (libpcap.a). 
+Can't find the pcap library (libpcap.a).
 tcpflow will not live capture or compile rules without pcap!
 
 If you need rules or live capture, you must install the pcap and/or
@@ -341,7 +311,7 @@ pcap-dev library.  Please execute this command:
   UBUNTU: sudo apt-get install libpcap-dev
   DEBIAN: sudo apt-get install libpcap-dev
   FEDORA: sudo dnf install libpcap-devel
-  MINGW:  Sorry!  libpcap is not currently 
+  MINGW:  Sorry!  libpcap is not currently
           available when cross-compiling.
 
 If your libpcap is installed in a non-standard location, you will need
@@ -360,7 +330,7 @@ AC_ARG_ENABLE([wifi],
               [],
 	      [
                if test x"no" = x"$mingw"; then
-                 AC_DEFINE(USE_WIFI, 1, [Use WIFI decompression]) 
+                 AC_DEFINE(USE_WIFI, 1, [Use WIFI decompression])
                  wifi="yes"
                fi
               ])
@@ -427,7 +397,7 @@ AC_CHECK_HEADERS([\
 	stdio.h \
 	stdlib.h \
 	string.h \
-	syslog.h \ 
+	syslog.h \
 	sys/cdefs.h \
 	sys/mman.h \
 	sys/param.h \
@@ -468,7 +438,7 @@ AC_CHECK_HEADERS([net/if.h], [], [],
 #include <sys/socket.h>
 #endif
 ]])
- 
+
 AC_CHECK_HEADERS([netinet/ip_var.h], [], [],
 [[
 #ifdef HAVE_SYS_TYPES_H
@@ -479,7 +449,7 @@ AC_CHECK_HEADERS([netinet/ip_var.h], [], [],
 #include <netinet/in.h>
 #endif
 ]])
- 
+
 AC_CHECK_HEADERS([netinet/ip.h], [], [],
 [[
 #ifdef HAVE_SYS_TYPES_H
@@ -490,7 +460,7 @@ AC_CHECK_HEADERS([netinet/ip.h], [], [],
 #include <netinet/in.h>
 #endif
 ]])
- 
+
 AC_CHECK_HEADERS([netinet/ip_ether.h], [], [],
 [[
 #ifdef HAVE_SYS_TYPES_H
@@ -501,7 +471,7 @@ AC_CHECK_HEADERS([netinet/ip_ether.h], [], [],
 #include <netinet/in.h>
 #endif
 ]])
- 
+
 
 AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 [[
@@ -521,9 +491,9 @@ AC_CHECK_HEADERS([netinet/tcpip.h], [], [],
 #include <netinet/tcp.h>
 #endif
 ]])
- 
+
 AC_CHECK_FUNCS([inet_ntop sigaction sigset strnstr setuid setgid mmap futimes futimens ])
-AC_CHECK_TYPES([socklen_t], [], [], 
+AC_CHECK_TYPES([socklen_t], [], [],
 [[
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -543,7 +513,7 @@ AC_CHECK_TYPES([socklen_t], [], [],
 ]]
 )
 
-AC_CHECK_TYPES([sa_family_t], [], [], 
+AC_CHECK_TYPES([sa_family_t], [], [],
 [[
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -607,7 +577,7 @@ fi
 
 if test "${with_opt}" = "no" ; then
   AC_MSG_NOTICE([Dropping optimization flags])
-  CFLAGS=`echo "$CFLAGS" | sed s/-O[[0-9]]//`             # note the double quoting! 
+  CFLAGS=`echo "$CFLAGS" | sed s/-O[[0-9]]//`             # note the double quoting!
   CXXFLAGS=`echo "$CXXFLAGS" | sed s/-O[[0-9]]//`
 
   AC_MSG_NOTICE([Removing -D_FORTIFY_SOURCE=2])
@@ -617,7 +587,7 @@ if test "${with_opt}" = "no" ; then
 else
   # and increase optimizer from -O2 to -O3 if not explicitly forbidden
   if test "${with_o3}" != "no" ; then
-      CFLAGS=`echo   -g "$CFLAGS"   | sed s/-O2/-O3/`             # note the double quoting! 
+      CFLAGS=`echo   -g "$CFLAGS"   | sed s/-O2/-O3/`             # note the double quoting!
       CXXFLAGS=`echo -g "$CXXFLAGS" | sed s/-O2/-O3/`
   fi
 fi
@@ -641,4 +611,3 @@ if test "x${Fmissing_library}" != "x" ; then
   AC_MSG_NOTICE([*** Ubuntu:  sudo apt-get install $Umissing_library])
   AC_MSG_NOTICE([*** MacOS:   sudo port install $Mmissing_library])
 fi
-

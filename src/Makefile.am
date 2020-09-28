@@ -11,8 +11,8 @@ AM_CPPFLAGS = -I${top_srcdir}/src/be13_api $(WIFI_INCS)
 
 CONFIG_CLEAN_FILES = config.h		# old location of config.h
 
-include dfxml/src/Makefile.defs
 include be13_api/Makefile.defs
+
 
 # http://stackoverflow.com/questions/11438613/conditional-subdir-objects
 AUTOMAKE_OPTIONS = subdir-objects
@@ -75,6 +75,15 @@ else
 WIFI_FILES =
 endif
 
+DFXML_WRITER = be13_api/dfxml/src/dfxml_writer.cpp \
+      be13_api/dfxml/src/dfxml_writer.h \
+      be13_api/dfxml/src/hash_t.h
+
+DFXML_READER = be13_api/dfxml/src/dfxml_reader.cpp \
+      be13_api/dfxml/src/dfxml_reader.h \
+      be13_api/dfxml/src/hash_t.h
+
+
 tcpflow_SOURCES = \
 	$(DFXML_WRITER) $(NETVIZ) $(BE13_API) $(WIFI_FILES) \
 	datalink.cpp flow.cpp \
@@ -85,7 +94,6 @@ tcpflow_SOURCES = \
 	tcpflow.h util.cpp \
 	scan_md5.cpp \
 	scan_http.cpp \
-	scan_python.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
 	pcap_writer.h \
@@ -93,7 +101,11 @@ tcpflow_SOURCES = \
 	http-parser/http_parser.c \
 	http-parser/http_parser.h \
 	mime_map.cpp \
-	mime_map.h 
+	mime_map.h
+
+# Removed because it hasn't been updated to Python 3:
+	scan_python.cpp \
+
 
 EXTRA_DIST =\
 	inet_ntop.c \
@@ -127,7 +139,7 @@ EXTRA_DIST =\
 	wifipcap/util.cpp \
 	wifipcap/util.h \
 	wifipcap/wifipcap.cpp \
-	wifipcap/wifipcap.h 
+	wifipcap/wifipcap.h
 
 
 testiph: tcpflow
@@ -136,7 +148,7 @@ testiph: tcpflow
 		do /bin/rm -f test-$$i out-$$i.txt ; \
 		./tcpflow -o test1 -S iphtest=1 -S iphtrim=$$i -r /corp/nps/packets/2008-nitroba/nitroba.pcap > iphtest-nitroba-$$i.txt ; \
 		done
-	diff ../tests/iphtest-nitroba-100.txt iphtest-nitroba-100.txt 
-	diff ../tests/iphtest-nitroba-1000.txt iphtest-nitroba-1000.txt 
-	diff ../tests/iphtest-nitroba-10000.txt iphtest-nitroba-10000.txt 
+	diff ../tests/iphtest-nitroba-100.txt iphtest-nitroba-100.txt
+	diff ../tests/iphtest-nitroba-1000.txt iphtest-nitroba-1000.txt
+	diff ../tests/iphtest-nitroba-10000.txt iphtest-nitroba-10000.txt
 	echo iptree appears okay.

@@ -11,7 +11,7 @@ function usage() {
 
 automake --help 1>/dev/null 2>&1 || usage
 
-for sub in be13_api dfxml http-parser
+for sub in be13_api http-parser
 do
   if [ ! -r src/$sub/.git ] ;
   then
