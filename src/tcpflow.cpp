@@ -86,7 +86,8 @@ scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
     scan_netviz,
-    scan_python,
+// removed scan_python becasue it does not support Python 3
+//    scan_python,
     scan_tcpdemux,
 #ifdef USE_WIFI
     scan_wifiviz,

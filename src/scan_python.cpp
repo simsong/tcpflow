@@ -3,6 +3,8 @@
  *
  * scan_python:
  * Use external python scripts to post-process flow files
+ *
+ * 2020-09-27 - slg - removed from build because this is only Python 2.7
  */
 
 #include "config.h"

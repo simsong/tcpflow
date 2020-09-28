@@ -177,12 +177,16 @@ set (tcpflow_cpp datalink.cpp flow.cpp
     util.cpp
     scan_md5.cpp
     scan_http.cpp       # Depends on zlib
-    scan_python.cpp     # Depends on PYTHON_LIBRARIES
     scan_tcpdemux.cpp
     scan_netviz.cpp
     pcap_writer.h
     mime_map.cpp
 )
+
+# removed because it hasn't been updated to Python 3:
+# scan_python.cpp     # Depends on PYTHON_LIBRARIES
+
+
 set (tcpflow_h
     iptree.h
     mime_map.h
