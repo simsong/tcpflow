@@ -11,16 +11,16 @@ function usage() {
 
 automake --help 1>/dev/null 2>&1 || usage
 
-for sub in be13_api http-parser
-do
-  if [ ! -r src/$sub/.git ] ;
-  then
-    echo bringing in submodules
-    echo next time check out with git clone --recursive
-    git submodule init
-    git submodule update
-  fi
-done
+# for sub in be13_api http-parser
+# do
+#  if [ ! -r src/$sub/.git ] ;
+#  then
+#    echo bringing in submodules
+#    echo next time check out with git clone --recursive
+#    git submodule init
+#    git submodule update
+#  fi
+#done
 
 ## The new way:
 # have automake do an initial population iff necessary
