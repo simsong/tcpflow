@@ -35,9 +35,12 @@ jobs:
         run: |
             bash bootstrap.sh
 
-      - name: run configure
+      - name: cat configure
         run: |
             cat configure
+
+      - name: run configure
+        run: |
             bash configure
 
       - name: run make
