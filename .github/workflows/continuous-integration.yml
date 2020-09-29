@@ -24,31 +24,30 @@ jobs:
       - name: Install C++ dependencies on MacOS
         if: startsWith(matrix.os, 'macOS')
         run: |
-           bash etc/install_autotools.sh
+            bash etc/install_autotools.sh
 
       - name: Install C++ dependencies on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-           sudo apt install -y libtool autoconf automake pkg-config
+            sudo apt install -y libtool autoconf automake pkg-config
 
       - name: run boothstrap
         run: |
-          bash bootstrap.sh
+            bash bootstrap.sh
 
       - name: run configure
         run: |
-
-          bash configure
+            bash configure
 
       - name: run make
         run: |
-          make
+            make
 
-      - mame: make check
+      - name: make check
         run: |
-          make check
+            make check
 
       - name: make dist test
         run: |
-          bash bootstrap.sh
-          make dist
+            bash bootstrap.sh
+            make dist
