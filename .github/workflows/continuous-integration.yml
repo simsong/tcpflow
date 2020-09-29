@@ -31,12 +31,13 @@ jobs:
         run: |
             sudo apt install -y libtool autoconf automake pkg-config
 
-      - name: run boothstrap
+      - name: run bootstrap
         run: |
             bash bootstrap.sh
 
       - name: run configure
         run: |
+            cat configure
             bash configure
 
       - name: run make

@@ -9,36 +9,20 @@ function usage() {
   exit 1
 }
 
-automake --help 1>/dev/null 2>&1 || usage
-
-# for sub in be13_api http-parser
-# do
-#  if [ ! -r src/$sub/.git ] ;
-#  then
-#    echo bringing in submodules
-#    echo next time check out with git clone --recursive
-#    git submodule init
-#    git submodule update
-#  fi
-#done
-
 ## The new way:
-# have automake do an initial population iff necessary
+# have automake do an initial population if necessary
 if [ ! -e config.guess -o ! -e config.sub -o ! -e install-sh -o ! -e missing -o ! -e test-driver ]; then
-    /bin/rm -rf aclocal.m4
     autoheader -f
+    touch NEWS README AUTHORS ChangeLog
+    touch stamp-h
     aclocal -I m4
     autoconf -f
     automake --add-missing --copy
 else
     autoreconf -f
 fi
-echo be sure to run ./configure
-## The old way:
 
-# /bin/rm -rf aclocal.m4
-# autoheader -f
-# aclocal -I m4
-# autoconf -f
-# automake --add-missing --copy
-# ./configure
+# bootstrap is complete
+echo
+echo The bootstrap.sh is complete.  Be sure to run ./configure.
+echo
