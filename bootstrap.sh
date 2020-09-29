@@ -2,6 +2,9 @@
 # Hopefully you checked out with:
 # $ git clone --recursive https://github.com/simsong/tcpflow.git
 
+echo turned off
+exit 0
+
 # Make sure we have automake installed
 function usage() {
   echo tcpflow bootstrap:
