@@ -31,10 +31,21 @@ jobs:
         run: |
            sudo apt install -y libtool autoconf automake pkg-config
 
-      - name: c/c++ compile test
+      - name: run boothstrap
         run: |
           bash bootstrap.sh
-          ./configure && make
+
+      - name: run configure
+        run: |
+
+          bash configure
+
+      - name: run make
+        run: |
+          make
+
+      - mame: make check
+        run: |
           make check
 
       - name: make dist test
