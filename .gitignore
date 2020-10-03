@@ -93,3 +93,5 @@ tests/*.pdf
 tests/out
 tests/packet1.pcap
 *.d
+*.cut
+*.lineno
