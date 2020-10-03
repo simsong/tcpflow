@@ -1,7 +1,7 @@
 # Makefile.am for tcpflow
-# 
+#
 SUBDIRS = src doc tests
-EXTRA_DIST = tcpflow.spec.in TODO.txt m4/ax_pthread.m4
+EXTRA_DIST = tcpflow.spec.in TODO.txt
 ACLOCAL_AMFLAGS = -I m4
 AM_CFLAGS = -Wall
 
@@ -21,7 +21,7 @@ grenew:
 
 
 # For testing:
-pdft:	
+pdft:
 	(cd src;make tcpflow)
 	/bin/rm -rf out
 	src/tcpflow -a -o out -r /corp/nps/packets/2008-nitroba/nitroba.pcap -w out/extra.pcap
@@ -53,13 +53,13 @@ the_release: $(RELEASEFN)
 tcpflow32.exe:
 	mingw32-configure
 	make clean
-	make 
+	make
 	mv -f src/tcpflow.exe tcpflow32.exe
 
 tcpflow64.exe:
 	mingw64-configure
 	make clean
-	make 
+	make
 	mv -f src/tcpflow.exe tcpflow64.exe
 
 FN=$(PACKAGE_TARNAME)-$(PACKAGE_VERSION).zip

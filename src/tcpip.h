@@ -48,7 +48,7 @@ public:;
     uint64_t dquad(int i) const {       // gets the first 64-bit half or the second 64-bit half
         return (uint64_t)(quad(i*2+1))<<32 | (uint64_t)(quad(i*2));
     }
-        
+
     inline bool operator ==(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))==0; };
     inline bool operator <=(const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))<=0; };
     inline bool operator > (const ipaddr &b) const { return memcmp(this->addr,b.addr,sizeof(addr))>0; };
@@ -94,10 +94,10 @@ public:
 				  family(f.family){
     }
     virtual ~flow_addr(){};
-    ipaddr	src;		// Source IP address; holds v4 or v6 
-    ipaddr	dst;		// Destination IP address; holds v4 or v6 
-    uint16_t    sport;		// Source port number 
-    uint16_t    dport;		// Destination port number 
+    ipaddr	src;		// Source IP address; holds v4 or v6
+    ipaddr	dst;		// Destination IP address; holds v4 or v6
+    uint16_t    sport;		// Source port number
+    uint16_t    dport;		// Destination port number
     sa_family_t family;		// AF_INET or AF_INET6 */
 
     uint64_t hash() const {
@@ -156,7 +156,7 @@ inline std::ostream & operator <<(std::ostream &os,const flow_addr &f)  {
 class flow : public flow_addr {
 public:;
     static void usage();			// print information on flow notation
-    static std::string filename_template;	// 
+    static std::string filename_template;	//
     static std::string outdir;                  // where the output gets written
     flow():id(),vlan(),mac_daddr(),mac_saddr(),tstart(),tlast(),len(),caplen(),packet_count(){};
     flow(const flow_addr &flow_addr_,uint64_t id_,const be13::packet_info &pi):
@@ -174,7 +174,7 @@ public:;
     }
     virtual ~flow(){};
     uint64_t  id;			// flow_counter when this flow was created
-    int32_t   vlan;			// vlan interface we first observed; -1 means no vlan 
+    int32_t   vlan;			// vlan interface we first observed; -1 means no vlan
     uint8_t mac_daddr[6];               // dst mac address of first packet
     uint8_t mac_saddr[6];               // source mac address of first packet
     struct timeval tstart;		// when first seen
@@ -188,7 +188,7 @@ public:;
     std::string filename(uint32_t connection_count, bool);
     // return a new filename for a flow based on the temlate,
     // optionally opening the file and returning a fd if &fd is provided
-    std::string new_filename(int *fd,int flags,int mode);	
+    std::string new_filename(int *fd,int flags,int mode);
 
     std::string new_pcap_filename();
 
@@ -275,10 +275,10 @@ public:
     /** track the direction of the flow; this is largely unused */
     typedef enum {
 	unknown=0,			// unknown direction
-	dir_sc,				// server-to-client 1 
+	dir_sc,				// server-to-client 1
 	dir_cs				// client-to-server 2
     } dir_t;
-	
+
 private:
     /*** Begin Effective C++ error suppression                ***
      *** This class does not implement assignment or copying. ***
@@ -297,7 +297,7 @@ public:;
     flow	myflow;			/* Description of this flow */
     dir_t	dir;			// direction of flow
     be13::tcp_seq isn;			// Flow's initial sequence number
-    be13::tcp_seq nsn;			// fd - expected next sequence number 
+    be13::tcp_seq nsn;			// fd - expected next sequence number
     uint32_t	syn_count;		// number of SYNs seen
     uint32_t    fin_count;              // number of FINs received
     uint32_t    fin_size;               // length of stream as determined when fin is sent
@@ -305,7 +305,7 @@ public:;
 
     /* Archiving information */
     std::string flow_pathname;		// path where flow is saved
-    int		fd;			// file descriptor for file storing this flow's data 
+    int		fd;			// file descriptor for file storing this flow's data
     bool	file_created;		// true if file was created
 
     /* Flow Index information - only used if flow packet/data indexing is requested --GDD */
@@ -341,7 +341,7 @@ inline std::ostream & operator <<(std::ostream &os,const tcpip &f) {
     os << "tcpip[" << f.myflow
        << " dir:" << int(f.dir) << " isn:" << f.isn << " nsn: " << f.nsn
        << " sc:" << f.syn_count << " fc:" << f.fin_count << " fs:" << f.fin_size
-       << " pos:" << f.pos << " fd: " << f.fd << " cr:" << f.file_created 
+       << " pos:" << f.pos << " fd: " << f.fd << " cr:" << f.file_created
        << " lb:" << f.last_byte << " lpn:" << f.last_packet_number << " ooc:" << f.out_of_order_count
        << "]";
     if(f.fd>0) os << " ftell(" << f.fd << ")=" << lseek(f.fd,0L,SEEK_CUR);
@@ -360,7 +360,7 @@ public:
     saved_flow(tcpip *tcp):addr(tcp->myflow),
                            saved_filename(tcp->flow_pathname),
                            isn(tcp->isn) {}
-                           
+
     flow_addr         addr;                  // flow address
     std::string       saved_filename;        // where the flow was saved
     be13::tcp_seq     isn;                    // the flow's ISN
@@ -368,6 +368,8 @@ public:
 };
 
 class sparse_saved_flow  {
+    sparse_saved_flow &operator=(const sparse_saved_flow &)=delete;
+    sparse_saved_flow(const sparse_saved_flow &)=delete;
 public:
     sparse_saved_flow (const flow_addr &idx, FILE *_fcap):addr(idx),fcap(_fcap) {}
 

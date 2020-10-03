@@ -29,166 +29,13 @@ AC_PROG_CXX
 AM_PROG_CC_C_O                  dnl allow per-product flags
 AC_PROG_INSTALL
 
-m4_include([m4/slg_searchdirs.m4])
-m4_include([m4/slg_gcc_all_warnings.m4])
+#m4_include([m4/slg_searchdirs.m4])
+#m4_include([m4/slg_gcc_all_warnings.m4])
 
 # Must use C++17 mode. (mandatory)
 AC_LANG_PUSH(C++)
 AX_CXX_COMPILE_STDCXX([17], [noext], [mandatory])
 AC_LANG_POP()
-
-
-################################################################
-## See if we are running on mingw
-# http://osdir.com/ml/gnu.mingw.devel/2003-09/msg00040.html
-# Note: Windows 95 WINVER=0x400
-# Windows 98 WINVER=0x400  _WIN32_WINDOWS=0x0410
-# Windows Me WINVER=0x400  _WIN32_WINDOWS=0x0490
-# Windows NT 4.0 WINVER=0x0400  _WIN32_WINNT=0x0400
-# Windows NT 4.0 SP3 WINVER=0x0400 _WIN32_WINNT=0x0403
-# Windows 2000 WINVER=0x500 _WIN32_WINNT=0x0500
-# Windows XP WINVER=0x501 _WIN32_WINNT=0x0501
-# Windows Server 2003 WINVER=0x502 _WIN32_WINNT=0x0502
-#
-# mingw32 includes  i686-w64-mingw32 and  x86_64-w64-mingw32
-
-mingw="no"
-case $host in
-  *-*-*linux*-*)
-     AC_DEFINE([__LINUX__],1,[Linux operating system functions])
-     ;;
-
-  *-*-mingw32*)
-     LIBS="-lpsapi -lws2_32 -lgdi32 $LIBS"
-     CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -g $CPPFLAGS"
-     CPPFLAGS="$CPPFLAGS --static"
-     CFLAGS="$CFLAGS --static -static-libgcc -static-libstdc++"
-     CXXFLAGS="$CXXFLAGS -Wno-format "  # compiler mingw-4.3.0 is broken on I64u formats
-     CXXFLAGS="$CXXFLAGS --static -static-libgcc -static-libstdc++"
-     LDFLAGS="$LDFLAGS --static"
-     mingw="yes"
-     ;;
-
-   *)
-     CXXFLAGS="$CXXFLAGS -Wno-address-of-packed-member"
-     ;;
-esac
-
-if test x"${mingw}" == "xno" ; then
-  # Bring additional directories where things might be found into our
-  # search path. I don't know why autoconf doesn't do this by default
-  for spfx in /usr/local /opt/local /sw /usr/local/ssl /usr/boost/include ; do
-    AC_MSG_NOTICE([checking ${spfx}/include])
-    if test -d ${spfx}/include; then
-        CPPFLAGS="-I${spfx}/include $CPPFLAGS"
-        LDFLAGS="-L${spfx}/lib $LDFLAGS"
-        AC_MSG_NOTICE([ *** ADDING ${spfx}/include to CPPFLAGS *** ])
-        AC_MSG_NOTICE([ *** ADDING ${spfx}/lib to LDFLAGS *** ])
-    fi
-  done
-  AC_MSG_NOTICE([ CPPFLAGS = ${CPPFLAGS} ])
-  AC_MSG_NOTICE([ LDFLAGS = ${LDFLAGS} ])
-fi
-
-if test -r /bin/uname.exe ; then
-  if test "`uname -o`" == "Msys" ; then
-    AC_MSG_NOTICE([Compiling with Msys. Setting flags appropriately.])
-    LIBS="$LIBS -lws2_32 -lgdi32"
-    LDFLAGS="$LDFLAGS -Wl,--enable-auto-import"
-  fi
-fi
-
-################################################################
-#
-# Enable all the compiler debugging we can find
-#
-# This is originally from PhotoRec, but modified substantially by Simson
-# Figure out which flags we can use with the compiler.
-#
-# These I don't like:
-# -Wdeclaration-after-statement -Wconversion
-# doesn't work: -Wunreachable-code
-# causes configure to crash on gcc-4.2.1: -Wsign-compare-Winline
-# causes warnings with unistd.h:  -Wnested-externs
-# Just causes too much annoyance: -Wmissing-format-attribute
-# Check GCC
-WARNINGS_TO_TEST="-MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes \
-    -Wshadow -Wwrite-strings -Wcast-align -Waggregate-return \
-    -Wbad-function-cast -Wcast-qual -Wundef -Wredundant-decls -Wdisabled-optimization \
-    -Wfloat-equal -Wmultichar -Wc++-compat -Wmissing-noreturn "
-
-if test $mingw = "no" ; then
-  # add the warnings we do not want to do on mingw
-  WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wall -Wstrict-prototypes"
-fi
-
-echo "Warnings to test: $WARNINGS_TO_TEST"
-
-for option in $WARNINGS_TO_TEST
-do
-  SAVE_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS $option"
-  AC_MSG_CHECKING([whether gcc understands $option])
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-      [has_option=yes],
-      [has_option=no; CFLAGS="$SAVE_CFLAGS"])
-  AC_MSG_RESULT($has_option)
-  unset has_option
-  unset SAVE_CFLAGS
-  if test $option = "-Wmissing-format-attribute" ; then
-    AC_DEFINE(HAVE_MISSING_FORMAT_ATTRIBUTE_WARNING,1,
-		[Indicates that we have the -Wmissing-format-attribute G++ warning])
-  fi
-done
-unset option
-
-
-# C++
-# We don't use these warnings:
-# -Waggregate-return -- aggregate returns are GOOD; they simplify code design
-# We can use these warnings after ZLIB gets upgraded:
-# -Wundef  --- causes problems with zlib
-# -Wcast-qual
-# -Wmissing-format-attribute  --- Just too annoying
-AC_LANG_PUSH(C++)
-WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
-    -Wshadow -Wwrite-strings -Wcast-align  \
-    -Wredundant-decls -Wdisabled-optimization \
-    -Wfloat-equal -Wmultichar -Wmissing-noreturn \
-    -Woverloaded-virtual -Wsign-promo \
-    -funit-at-a-time"
-
-add_strict_null_sentinel='yes'
-if $CXX -dM -E - < /dev/null | grep -q __clang__ ; then
-   AC_MSG_RESULT([Using clang])
-   add_strict_null_sentinel='no'
-fi
-
-if uname -a | grep -q Darwin; then
-   add_strict_null_sentinel='no'
-fi
-
-if [ $add_strict_null_sentinel = 'yes' ]; then
-   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
-fi
-
-for option in $WARNINGS_TO_TEST
-do
-  SAVE_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS="$CXXFLAGS $option"
-  AC_MSG_CHECKING([whether g++ understands $option])
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-      [has_option=yes],
-      [has_option=no; CXXFLAGS="$SAVE_CXXFLAGS"])
-  AC_MSG_RESULT($has_option)
-  unset has_option
-  unset SAVE_CXXFLAGS
-done
-unset option
-AC_LANG_POP()
-
-################################################################
-##
 
 
 #
@@ -199,15 +46,13 @@ AC_CHECK_LIB([z],[uncompress],,
 AC_CHECK_HEADERS([zlib.h])
 
 ################################################################
-## regex support
-## there are several options
-## tre is better than regex
+## regex support is now provided by C++17, although we still support
+
+################################################################
+## lightgrep support
+
 AC_CHECK_HEADER([lightgrep/api.h])
 AC_CHECK_LIB([lightgrep], [lg_create_pattern])
-AC_CHECK_HEADERS([regex.h tre/tre.h])
-AC_CHECK_LIB([regex],[regcomp])
-AC_CHECK_LIB([tre],[tre_regcomp])
-AC_CHECK_FUNCS([regcomp tre_regcomp tre_version])
 
 
 ################################################################
@@ -219,7 +64,7 @@ m4_include([src/be13_api/dfxml/src/dfxml_configure.m4])
 ################################################################
 # Boost
 AC_CHECK_HEADERS([boost/version.hpp],,
-  AC_MSG_WARN([tcpflow now requires boost interval_map and interval_set.])
+  AC_MSG_WARN([tcpflow requires boost interval_map and interval_set.])
   if test x"$mingw" = x"yes" ; then
     AC_MSG_ERROR([Please install mingw32-boost and mingw64-boost])
   else
@@ -232,19 +77,7 @@ AC_LANG_PUSH(C++)
   have_interval=yes
   AC_CHECK_HEADERS([boost/icl/interval.hpp boost/icl/interval_map.hpp boost/icl/interval_set.hpp],,have_interval=no)
   if test "${have_interval}" != yes ; then
-    AC_MSG_ERROR([
-tcpflow requires a version of Boost that has Boost interval_map and interval_set.
-Your version is too old! Please install a current version of Boost from http://www.boost.org/users/download/.
-
-Try these commands:
-  wget http://downloads.sourceforge.net/project/boost/boost/1.53.0/boost_1_53_0.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fboost%2Ffiles%2Fboost%2F1.53.0%2F&ts=1362359340&use_mirror=hivelocity
-  tar xfz boost_1_53_0.tar.gz
-  cd boost_1_53_0
-  sh bootstrap.sh
-  ./b2
-  sudo ./b2 install
-... and then re-run configure!
-])
+    AC_MSG_ERROR([tcpflow requires a Boost >= 1.53])
   fi
 AC_LANG_POP()
 
@@ -519,35 +352,21 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 ]]
 )
 
+# Re-enable when it is time for Python3
 ################################################################
 # Plugin scan_python.cpp requires header "Python.h"
 # If the header is not present => Disable the source code of the plugin
 #
-AC_CHECK_HEADERS(python2.7/Python.h)  # ==> #define HAVE_PYTHON2_7_PYTHON_H
-AC_CHECK_LIB(python2.7,Py_Initialize,,[
-  AC_MSG_WARN([
-*** Cannot find python library.
-*** Please install python-devel to enable scanner python.
-  ])
-  Fmissing_library="$Fmissing_library python-devel "      # Validated on Fedora 25
-  Umissing_library="$Umissing_library libpython2.7-dev"   # Should be OK: https://packages.ubuntu.com/yakkety/libpython2.7-dev
-  Mmissing_library="$Mmissing_library python27"           # Not sure: https://github.com/macports/macports-ports/blob/master/lang/python27/Portfile
-])
-
-################################################################
-# Plugin scanner_python.cpp requires header "Python.h"
-# If the header is not present => Disable the source code of the plugin
-#
-AC_CHECK_HEADERS(python2.7/Python.h)  # ==> #define HAVE_PYTHON2_7_PYTHON_H
-AC_CHECK_LIB(python2.7,Py_Initialize,,[
-  AC_MSG_WARN([
-*** Cannot find python library.
-*** Please install python-devel to enable scanner python.
-  ])
-  Fmissing_library="$Fmissing_library python-devel "      # Validated on Fedora 25
-  Umissing_library="$Umissing_library libpython2.7-dev"   # Should be OK: https://packages.ubuntu.com/yakkety/libpython2.7-dev
-  Mmissing_library="$Mmissing_library python27"           # Not sure: https://github.com/macports/macports-ports/blob/master/lang/python27/Portfile
-])
+#AC_CHECK_HEADERS(python2.7/Python.h)  # ==> #define HAVE_PYTHON2_7_PYTHON_H
+#AC_CHECK_LIB(python2.7,Py_Initialize,,[
+#  AC_MSG_WARN([
+#*** Cannot find python library.
+#*** Please install python-devel to enable scanner python.
+#  ])
+#  Fmissing_library="$Fmissing_library python-devel "      # Validated on Fedora 25
+#  Umissing_library="$Umissing_library libpython2.7-dev"   # Should be OK: https://packages.ubuntu.com/yakkety/libpython2.7-dev
+#  Mmissing_library="$Mmissing_library python27"           # Not sure: https://github.com/macports/macports-ports/blob/master/lang/python27/Portfile
+#])
 
 ############## drop optimization flags if requested ################
 
