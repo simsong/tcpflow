@@ -26,7 +26,7 @@
 
 
 /* Create a new tcp object.
- * 
+ *
  * Creating a new object creates a new passive TCP/IP decoder.
  * It will *NOT* append to a flow that is already on the disk or in memory.
  *
@@ -71,7 +71,7 @@ void tcpip::dump_xml(class dfxml_writer *xreport,const std::string &xmladd)
     if(flow_pathname.size()) xreport->xmlout(filename_str,flow_pathname);
 
     xreport->xmlout(filesize_str,last_byte);
-	
+
     std::stringstream attrs;
     attrs << "startime='" << dfxml_writer::to8601(myflow.tstart) << "' ";
     attrs << "endtime='"  << dfxml_writer::to8601(myflow.tlast)  << "' ";
@@ -116,14 +116,14 @@ tcpip::~tcpip()
  *
  * Unlike the tcp/ip object, which is created once, the file can be opened, closed, and
  * re-opened depending on the availability of file handles.
- * 
+ *
  * Closing the file does not delete the tcp/ip object.
  */
 
 
 /* Closes the file belonging to a flow.
  * Does not take tcpip out of flow database.
- * Does not change pos. 
+ * Does not change pos.
  */
 void tcpip::close_file()
 {
@@ -139,7 +139,7 @@ void tcpip::close_file()
 	    fprintf(stderr,"%s: futimes(fd=%d)\n",strerror(errno),fd);
             abort();
 	}
-#elif defined(HAVE_FUTIMENS) 
+#elif defined(HAVE_FUTIMENS)
 	struct timespec tstimes[2];
 	for(int i=0;i<2;i++){
 	    tstimes[i].tv_sec = times[i].tv_sec;
@@ -168,22 +168,22 @@ void tcpip::close_file()
 
 int tcpip::open_file()
 {
-	int create_idx_needed = false;
+    int create_idx_needed = false;
     if(fd<0){
         //std::cerr << "open_file0 " << ct << " " << *this << "\n";
         /* If we don't have a filename, create the flow */
         if(flow_pathname.size()==0) {
-            flow_pathname = myflow.new_filename(&fd,O_RDWR|O_BINARY|O_CREAT|O_EXCL,0666);
+            flow_pathname = myflow.new_filename(&fd, O_RDWR|O_BINARY|O_CREAT|O_EXCL, 0666, demux);
             file_created = true;		// remember we made it
             create_idx_needed = true;	// We created a new stream, so we need to create a new flow file. --GDD
             DEBUG(5) ("%s: created new file",flow_pathname.c_str());
         } else {
             /* open an existing flow */
             fd = demux.retrying_open(flow_pathname,O_RDWR | O_BINARY | O_CREAT,0666);
-            lseek(fd,pos,SEEK_SET);  
+            lseek(fd,pos,SEEK_SET);
             DEBUG(5) ("%s: opening existing file", flow_pathname.c_str());
         }
-        
+
         /* If the file isn't open at this point, there's a problem */
         if (fd < 0 ) {
             /* we had some problem opening the file -- set FINISHED so we
@@ -269,7 +269,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
         size_t max_spaces = 0;
         for(u_int i=0;i<length;i+=bytes_per_line){
             size_t spaces=0;
-            
+
             /* Print the offset */
             char b[64];
             size_t count = snprintf(b,sizeof(b),"%04x: ",(int)i);
@@ -277,7 +277,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 	      perror("fwrite");
 	    }
             spaces += count;
-            
+
             /* Print the hext bytes */
             for(size_t j=0;j<bytes_per_line && i+j<length ;j++){
                 unsigned char ch = data[i+j];
@@ -309,11 +309,11 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
         //     "dst_host": "1.1.1.1",
         //     "dst_port": 80,
         //     "payload" : [...]
-        // }    
+        // }
 
         std::string hoststr = std::string();
 
-        putchar('{');   
+        putchar('{');
         printf("\"src_host\":\"");
 
         size_t src_pos = 0;
@@ -341,11 +341,11 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
             }
         }
         printf("\",\"src_port\":%d,\"dst_host\":\"", atoi(flow_pathname.substr(src_pos + 1, src_end_pos - src_pos).c_str()));
-        
+
         size_t dst_pos = src_end_pos + 1;
         size_t dst_end_pos = dst_pos;
         size_t dst_pos_counter = 0;
-        
+
         for(size_t i = dst_pos; i < pathname_len; ++i) {
               if(flow_pathname[i] == '.') {
                 dst_pos_counter++;
@@ -377,7 +377,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
                 if(ret==EOF){
                     std::cerr << "EOF on write to stdout\n";
                     exit(1);
-                
+
                 }
 	    }
 	    else fputc('.',stdout);
@@ -426,7 +426,7 @@ static int shift_file(int fd, size_t inslen)
 
     /* Move data after offset up by inslen bytes */
     size_t bytes_to_move = sb.st_size;
-    off_t read_end_offset = sb.st_size; 
+    off_t read_end_offset = sb.st_size;
     while (bytes_to_move != 0) {
 	ssize_t bytes_this_time = bytes_to_move < BUFFERSIZE ? bytes_to_move : BUFFERSIZE ;
 	ssize_t rd_off = read_end_offset - bytes_this_time;
@@ -438,7 +438,7 @@ static int shift_file(int fd, size_t inslen)
 	if (write(fd, buffer, bytes_this_time) != bytes_this_time)
 	    return -1;
 	bytes_to_move -= bytes_this_time;
-    }   
+    }
     return 0;
 }
 
@@ -452,7 +452,7 @@ void update_seen(recon_set *seen,uint64_t pos,uint32_t length)
 
 /* store the contents of this packet to its place in its file
  * This has to handle out-of-order packets as well as writes
- * past the 4GiB boundary. 
+ * past the 4GiB boundary.
  *
  * 2012-10-24 Originally this code simply computed the 32-bit offset
  * from the beginning of the file using the isn. The new version tracks
@@ -494,7 +494,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
 
 	if(offset >= max_bytes_per_flow){
 	    wlength = 0;
-	} 
+	}
 	if(offset < max_bytes_per_flow &&  offset+length > max_bytes_per_flow){
 	    DEBUG(2) ("packet truncated by max_bytes_per_flow on %s", flow_pathname.c_str());
 	    wlength = max_bytes_per_flow - offset;
@@ -513,7 +513,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
 	    return;
 	}
     }
-    
+
     /* Shift the file now if we were going shift it */
 
     if(insert_bytes>0){
@@ -547,13 +547,13 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
 	pos += delta;			// where we are now
 	nsn += delta;			// what we expect the nsn to be now
     }
-    
+
     /* write the data into the file */
     DEBUG(25) ("%s: %s write %ld bytes @%" PRId64,
                flow_pathname.c_str(),
                fd>=0 ? "will" : "won't",
                (long) wlength, offset);
-    
+
     if(fd>=0){
       if ((uint32_t)write(fd,data, wlength) != wlength) {
 	    DEBUG(1) ("write to %s failed: ", flow_pathname.c_str());
@@ -593,7 +593,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
 
 #ifdef DEBUG_REOPEN_LOGIC
     /* For debugging, force this connection closed */
-    demux.close_tcpip_fd(this);			
+    demux.close_tcpip_fd(this);
 #endif
 }
 

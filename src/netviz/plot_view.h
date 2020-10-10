@@ -11,12 +11,12 @@
 #ifndef PLOT_VIEW_H
 #define PLOT_VIEW_H
 
-#ifdef HAVE_LIBCAIRO
 #ifdef HAVE_CAIRO_H
 #include <cairo.h>
 #elif defined HAVE_CAIRO_CAIRO_H
 #include <cairo/cairo.h>
 #endif
+
 #ifdef HAVE_CAIRO_PDF_H
 #include <cairo-pdf.h>
 #elif defined HAVE_CAIRO_CAIRO_PDF_H
@@ -155,5 +155,4 @@ inline bool operator<(const plot_view::rgb_t &a, const plot_view::rgb_t &b)
     return a.r < b.r || a.g < b.g || a.b < b.b;
 }
 
-#endif
 #endif

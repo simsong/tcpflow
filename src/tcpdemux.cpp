@@ -92,12 +92,6 @@ void  tcpdemux::write_flow_record(const std::string &starttime,const std::string
 
 
 
-/* static */ tcpdemux *tcpdemux::getInstance()
-{
-    static tcpdemux * theInstance = 0;
-    if(theInstance==0) theInstance = new tcpdemux();
-    return theInstance;
-}
 
 /**
  * find the flow that has been written to in the furthest past and close it.

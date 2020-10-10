@@ -9,7 +9,6 @@
 #define ADDRESS_HISTOGRAM_VIEW_H
 
 #include "config.h"
-#ifdef HAVE_LIBCAIRO
 
 #include "plot_view.h"
 #include "address_histogram.h"
@@ -49,5 +48,4 @@ public:
     static std::string compressed_ip6_str(iptree::addr_elem address);
 };
 
-#endif
 #endif

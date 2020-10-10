@@ -160,17 +160,17 @@ std::string flow::filename(uint32_t connection_count, bool is_pcap)
 }
 
 /**
- * Find an unused filename for the flow and optionally open it. 
+ * Find an unused filename for the flow and optionally open it.
  * This is called from tcpip::open_file().
  */
 
-std::string flow::new_filename(int *fd,int flags,int mode)
+std::string flow::new_filename(int *fd, int flags, int mode, tcpdemux &td)
 {
     /* Loop connection count until we find a file that doesn't exist */
     for(uint32_t connection_count=0;;connection_count++){
         std::string nfn = filename(connection_count, false);
         if(nfn.find('/')!=std::string::npos) mkdirs_for_path(nfn.c_str());
-        int nfd = tcpdemux::getInstance()->retrying_open(nfn,flags,mode);
+        int nfd = td.retrying_open(nfn,flags,mode);
         if(nfd>=0){
             *fd = nfd;
             return nfn;

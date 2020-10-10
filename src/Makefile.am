@@ -17,6 +17,7 @@ include be13_api/Makefile.defs
 # http://stackoverflow.com/questions/11438613/conditional-subdir-objects
 AUTOMAKE_OPTIONS = subdir-objects
 
+# Do not include NETVIZ if no CAIRO
 NETVIZ = \
 	netviz/plot_view.cpp \
 	netviz/plot_view.h \

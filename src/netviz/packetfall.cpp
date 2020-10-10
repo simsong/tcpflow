@@ -1,5 +1,5 @@
 /**
- * packetfall.cpp: 
+ * packetfall.cpp:
  * Show packets received vs port
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -10,7 +10,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
 #include "packetfall.h"
@@ -41,4 +40,3 @@ void packetfall::render(cairo_t *cr, const plot_view::bounds_t &bounds)
     cairo_show_text(cr, label.c_str());
 
 }
-#endif

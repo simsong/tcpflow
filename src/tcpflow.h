@@ -5,13 +5,12 @@
  * This source code is under the GNU Public License (GPL).  See
  * LICENSE for details.
  *
- * 
+ *
  *
  */
 
 #ifndef TCPFLOW_H
 #define TCPFLOW_H
-
 
 #include "config.h"
 
@@ -29,7 +28,7 @@
 #endif
 
 /****************************************************************
- *** Windows/mingw compatability seciton.
+ *** Windows/mingw compatability section.
  ***
  *** If we are compiling for Windows, including the Windows-specific
  *** include files first and disable pthread support.
@@ -53,11 +52,6 @@
  *** end of windows compatibility section
  ****************************************************************/
 
-/* If we are including inttypes.h, mmake sure __STDC_FORMAT_MACROS is defined */
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-
 /* We want the BSD flavor of defines if possible */
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
@@ -74,54 +68,32 @@
 #include <cerrno>
 #include <iostream>
 #include <iomanip>
+#include <cinttypes>
+#include <cstring>
+#include <ctime>
 
-#include <fcntl.h>
-#include <assert.h>
+#include <cassert>
 
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
 
 
-// These are the required include files; they better be present
-#include <inttypes.h>			
+/* Include headers not in the C++17 standard */
+#include <fcntl.h>
+#include <pcap.h>
 #include <sys/stat.h>
 
 #ifdef HAVE_SYS_CDEFS_H
 # include <sys/cdefs.h>
 #endif
 
-
-#ifdef HAVE_STRING_H
-# include <string.h>
-#endif
-
-#ifdef HAVE_STRINGS_H
-# include <strings.h>
-#endif
-
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
 
-
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-
 #ifdef HAVE_SYS_BITYPES_H
 # include <sys/bitypes.h>
-#endif
-
-#ifdef TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
 #endif
 
 #ifdef HAVE_SYS_SOCKET_H
@@ -132,49 +104,13 @@
 #include <net/if_var.h>
 #endif
 
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
 #ifdef HAVE_NET_IF_H
 # include <net/if.h>
 #endif
-
-/* We have given up on keeping track of this all and are just including our own definitions. */
-
-
-//#ifdef HAVE_NETINET_IN_SYSTM_H
-//# include <netinet/in_systm.h>
-//#endif
-
-//#ifdef HAVE_NETINET_IP6_H
-//#include <netinet/ip6.h>		
-//#endif
-
-//#ifdef HAVE_NETINET_IP_VAR_H
-//# include <netinet/ip_var.h>		// FREEBSD
-//#endif
-
-//#ifdef HAVE_NETINET_IF_ETHER_H
-//# include <netinet/if_ether.h>
-//#endif
-
-//#ifdef HAVE_NETINET_TCP_H
-//# include <netinet/tcp.h>
-//#endif
-
-//#ifdef HAVE_NETINET_TCPIP_H
-//# include <netinet/tcpip.h>		// FREEBSD
-//#endif
-
-//#ifdef HAVE_ARPA_INET_H
-//# include <arpa/inet.h>
-//#endif
-
-
-///*
-// * Oracle Enterprise Linux is missing the definition for
-// * ETHERTYPE_VLAN
-// */
-//#ifndef ETHERTYPE_VLAN
-//# define ETHERTYPE_VLAN 0x8100
-//#endif
 
 #ifdef HAVE_SIGNAL_H
 # include <signal.h>
@@ -208,7 +144,7 @@
 #define MAX_IPv4_STR_LEN (3*4+3)
 #endif
 
-#ifndef MAX_IPv6_STR_LEN 
+#ifndef MAX_IPv6_STR_LEN
 #define MAX_IPv6_STR_LEN 256
 #endif
 
@@ -251,14 +187,12 @@ typedef	unsigned char u_int8_t;
 #define NUM_RESERVED_FDS    6    /* number of FDs to set aside; allows files to be opened as necessary */
 
 
-
-#include "be13_api/bulk_extractor_i.h"
-  
 /***************************** Main Support *************************************/
 
 /* tcpflow.cpp - CLI */
 extern const char *progname;
 void    terminate(int sig);
+
 #include "inet_ntop.h"
 
 #ifdef HAVE_PTHREAD
@@ -272,9 +206,10 @@ extern int debug;
 
 #define DEBUG(message_level) if (debug >= message_level) debug_real
 
-/************************* per-file globals  ****************************/
 
 /* datalink.cpp - callback for libpcap */
+
+
 extern int32_t datalink_tdelta;                                   // time delta to add to each packet
 pcap_handler find_handler(int datalink_type, const char *device); // callback for pcap
 typedef struct {
@@ -297,7 +232,14 @@ inline const timeval &tvshift(struct timeval &tv,const struct timeval &tv_)
     return tv;
 }
 
+#ifndef HAVE_TIMEVAL_OUT
+#define HAVE_TIMEVAL_OUT
+inline std::ostream& operator<<(std::ostream& os, const struct timeval *t)
+{
+    return os << t->tv_sec << "." << std::setw(6) << std::setfill('0') << t->tv_usec;
 
+}
+#endif
 
 /* util.cpp - utility functions */
 extern int debug;
@@ -306,29 +248,30 @@ std::string comma_number_string(int64_t input);
 void mkdirs_for_path(std::string path); // creates any directories necessary for the path
 std::string macaddr(const uint8_t *addr);
 
-#define DEBUG_PEDANTIC    0x0001       // check values more rigorously
 void init_debug(const char *progname,int include_pid);
 void (*portable_signal(int signo, void (*func)(int)))(int);
 void debug_real(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 [[noreturn]] void die(const char *fmt, ...) __attribute__ ((__noreturn__))  __attribute__ ((format (printf, 1, 2)));
 
+/*
+ * bulk_extractor plugin system
+ */
+#include "be13_api/bulk_extractor_i.h"
+
 /* scanners */
 
-extern "C" scanner_t scan_md5;
-extern "C" scanner_t scan_http;
-extern "C" scanner_t scan_python;
-extern "C" scanner_t scan_tcpdemux;
-extern "C" scanner_t scan_netviz;
-extern "C" scanner_t scan_wifiviz;
+extern "C" scanner_set::scanner_t scan_md5;
+extern "C" scanner_set::scanner_t scan_http;
+extern "C" scanner_set::scanner_t scan_python;
+extern "C" scanner_set::scanner_t scan_tcpdemux;
+extern "C" scanner_set::scanner_t scan_netviz;
+extern "C" scanner_set::scanner_t scan_wifiviz;
 
+/*
+ * Finally - project-specific defines
+ */
 
-#ifndef HAVE_TIMEVAL_OUT
-#define HAVE_TIMEVAL_OUT
-inline std::ostream& operator<<(std::ostream& os, const struct timeval *t)
-{
-    return os << t->tv_sec << "." << std::setw(6) << std::setfill('0') << t->tv_usec;
-    
-}
-#endif
+#include "tcpip.h"
+#include "tcpdemux.h"
 
 #endif /* __TCPFLOW_H__ */

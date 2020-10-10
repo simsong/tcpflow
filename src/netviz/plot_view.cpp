@@ -1,5 +1,5 @@
 /**
- * plot_view.cpp: 
+ * plot_view.cpp:
  * Render titles, axes, and legends for various plots
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -12,7 +12,6 @@
 #include "tcpflow.h"                    // for ssprintf
 #include "plot_view.h"
 
-#ifdef HAVE_LIBCAIRO
 #include <math.h>
 
 const double plot_view::rgb_t::epsilon = 1.0 / 256.0;
@@ -363,4 +362,3 @@ std::vector<std::string> plot_view::build_size_suffixes()
     v.push_back("E");
     return v;
 }
-#endif

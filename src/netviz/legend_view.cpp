@@ -1,5 +1,5 @@
 /**
- * legend_view.cpp: 
+ * legend_view.cpp:
  * Show packets received vs port
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -10,7 +10,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
 #include "legend_view.h"
@@ -91,4 +90,3 @@ void legend_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) const
         x += extents.width + inter_item_space;
     }
 }
-#endif

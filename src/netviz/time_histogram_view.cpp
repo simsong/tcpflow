@@ -1,5 +1,5 @@
 /**
- * time_histogram_view.cpp: 
+ * time_histogram_view.cpp:
  * Make fancy time histograms
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -10,7 +10,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBCAIRO
 
 #include "time_histogram_view.h"
 
@@ -135,7 +134,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
         else if(bar_interval >= 1) {
             for(std::vector<time_unit>::const_iterator it = time_units.begin();
                     it != time_units.end(); it++) {
-                
+
                 if(it + 1 == time_units.end() || bar_interval < (it+1)->seconds) {
                     bar_time_unit = it->name;
                     bar_time_value = bar_interval / it->seconds;
@@ -521,5 +520,3 @@ void time_histogram_view::bucket_view::render(cairo_t *cr, const bounds_t &bound
         cairo_stroke(cr);
     }
 }
-
-#endif

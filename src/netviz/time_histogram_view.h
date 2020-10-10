@@ -1,5 +1,5 @@
 /**
- * time_histogram_view.h: 
+ * time_histogram_view.h:
  * Make fancy time histograms
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -13,7 +13,6 @@
 #define TIME_HISTOGRAM_VIEW_H
 
 #include "config.h"
-#ifdef HAVE_LIBCAIRO
 
 #include "plot_view.h"
 #include "time_histogram.h"
@@ -94,5 +93,4 @@ private:
     static std::vector<si_prefix> build_si_prefixes();
 };
 
-#endif
 #endif

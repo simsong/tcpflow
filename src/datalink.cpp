@@ -4,6 +4,7 @@
  * <jelson@circlemud.org>, rewritten by Simson Garfinkel.
  *
  * Initial Release: 7 April 1999.
+ * Revised for BEAPI v2.0 Simson Garfinkel 2020-10-09
  *
  * This source code is under the GNU Public License (GPL).  See
  * COPYING for details.
@@ -40,12 +41,34 @@
 
 int32_t datalink_tdelta = 0;
 
+inline tcpdemux *reinterpret_cast_user(u_char *user)
+{
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
+    return reinterpret_cast<tcpdemux *>(user);
+#pragma GCC diagnostic pop
+}
+
+
+inline uint32_t dereference_ulong(const u_char *p)
+{
+    /* Treat *p as if it is a pointer to a little-endian long and dereference it */
+    return ((p[0])       |
+            (p[1] <<  8) |
+            (p[2] << 16) |
+            (p[3] << 24));
+}
+
+//inline uint16_t dereference_ntohs(const
+
+/* dl_null is a callback that is called for datalink type.
+ */
 void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux *demux = reinterpret_cast_user(user);
     u_int caplen = h->caplen;
     u_int length = h->len;
-    uint32_t family = *(uint32_t *)p;
+    uint32_t family = dereference_ulong(p);
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte null frame",
@@ -65,7 +88,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
     struct timeval tv;
     be13::packet_info pi(DLT_NULL,h,p,tvshift(tv,h->ts),p+NULL_HDRLEN,caplen - NULL_HDRLEN);
-    be13::plugin::process_packet(pi);
+    demux->ss->process_packet(pi);
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
@@ -75,6 +98,7 @@ static uint64_t counter=0;
  * and IRIX. */
 void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux *demux = reinterpret_cast_user(user);
     if (h->caplen != h->len) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte raw frame",
 		  h->caplen, h->len);
@@ -82,7 +106,7 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     struct timeval tv;
     be13::packet_info pi(DLT_RAW,h,p,tvshift(tv,h->ts),p, h->caplen);
     counter++;
-    be13::plugin::process_packet(pi);
+    demux->ss->process_packet(pi);
 }
 
 /* Ethernet datalink handler; used by all 10 and 100 mbit/sec
@@ -92,13 +116,13 @@ void dl_raw(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #pragma GCC diagnostic ignored "-Wcast-align"
 void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
-    u_int caplen = h->caplen;
-    u_int length = h->len;
-    struct be13::ether_header *eth_header = (struct be13::ether_header *) p;
+    tcpdemux *demux = reinterpret_cast_user(user);
+    u_int caplen    = h->caplen;
+    u_int length    = h->len;
 
     /* Variables to support VLAN */
-    const u_short *ether_type = &eth_header->ether_type; /* where the ether type is located */
-    const u_char *ether_data = p+sizeof(struct be13::ether_header); /* where the data is located */
+    //const u_int16_t *ether_type = &eth_header->ether_type; /* where the ether type is located */
+    //const u_char    *ether_data = p+sizeof(struct be13::ether_header); /* where the data is located */
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte ether frame",
@@ -106,13 +130,15 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* Handle basic VLAN packets */
-    while (ntohs(*ether_type) == ETHERTYPE_VLAN ||
-    		ntohs(*ether_type) == ETH_P_QINQ1 ||
-		ntohs(*ether_type) == ETH_P_8021AD) {
-	//vlan = ntohs(*(u_short *)(p+sizeof(struct ether_header)));
-	ether_type += 2;			/* skip past VLAN header (note it skips by 2s) */
-	ether_data += 4;			/* skip past VLAN header */
-	caplen     -= 4;
+    u_int vlan_offset = 0;
+    struct be13::ether_header *eth_header = (struct be13::ether_header *) (p+vlan_offset);
+    while ((ntohs(eth_header->ether_type) == ETHERTYPE_VLAN ||
+            ntohs(eth_header->ether_type) == ETH_P_QINQ1 ||
+            ntohs(eth_header->ether_type) == ETH_P_8021AD) &&
+           caplen >= 4) {
+        vlan_offset += 4;               // skip past this VLAN header
+        caplen -= 4;                    // remove 4 bytes from consideration
+        eth_header = (struct be13::ether_header *) (p+vlan_offset);
     }
 
     if (caplen < sizeof(struct be13::ether_header)) {
@@ -120,14 +146,17 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	return;
     }
 
+    /* find where the data is located */
+    const u_char *ether_data = p+sizeof(struct be13::ether_header)+vlan_offset;
+
     /* Create a packet_info structure with ip data and data length  */
     struct timeval tv;
     be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
                          ether_data, caplen - sizeof(struct be13::ether_header));
-    switch (ntohs(*ether_type)){
+    switch (ntohs(eth_header->ether_type)){
     case ETHERTYPE_IP:
     case ETHERTYPE_IPV6:
-        be13::plugin::process_packet(pi);
+        demux->ss->process_packet(pi);
         break;
 
 #ifdef ETHERTYPE_ARP
@@ -162,6 +191,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux *demux = reinterpret_cast_user(user);
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -177,7 +207,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     struct timeval tv;
     be13::packet_info pi(DLT_PPP,h,p,tvshift(tv,h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
-    be13::plugin::process_packet(pi);
+    demux.ss->process_packet(pi);
 }
 
 
@@ -196,6 +226,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #pragma GCC diagnostic ignored "-Wcast-align"
 void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
+    tcpdemux *demux = reinterpret_cast_user(user);
     u_int caplen = h->caplen;
     u_int length = h->len;
 
@@ -233,7 +264,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     struct timeval tv;
     be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN + mpls_sz, caplen - SLL_HDR_LEN);
-    be13::plugin::process_packet(pi);
+    demux.ss->process_packet(pi);
 }
 #endif
 
@@ -264,6 +295,11 @@ dlt_handler_t handlers[] = {
     { NULL, 0 }
 };
 
+/* Returns the handler for the datalink type. This could be done with a C++ map,
+ * but it is only called once, in tcpflow.cpp.
+ * The handler is then provided to pcap_loop().
+ * The handler takes off the header, find the IP packet, and sends it to process_packet.
+ */
 pcap_handler find_handler(int datalink_type, const char *device)
 {
     int i;

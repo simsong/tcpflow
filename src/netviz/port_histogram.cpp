@@ -1,5 +1,5 @@
 /**
- * port_histogram.cpp: 
+ * port_histogram.cpp:
  * Show packets received vs port
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -10,7 +10,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
 #include "port_histogram.h"
@@ -112,4 +111,3 @@ void port_histogram::refresh_buckets()
 
     buckets_dirty = false;
 }
-#endif

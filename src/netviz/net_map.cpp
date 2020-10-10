@@ -1,5 +1,5 @@
 /**
- * net_map.cpp: 
+ * net_map.cpp:
  * Show map of network traffic by host
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -10,7 +10,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
 #include "net_map.h"
@@ -41,4 +40,3 @@ void net_map::render(cairo_t *cr, const plot_view::bounds_t &bounds)
     cairo_show_text(cr, label.c_str());
 
 }
-#endif

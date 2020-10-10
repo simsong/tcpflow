@@ -11,7 +11,6 @@
 #define PORT_HISTOGRAM_VIEW_H
 
 #include "config.h"
-#ifdef HAVE_LIBCAIRO
 
 #include "plot_view.h"
 #include "port_histogram.h"
@@ -55,5 +54,4 @@ public:
     port_histogram &get_data();
 };
 
-#endif
 #endif

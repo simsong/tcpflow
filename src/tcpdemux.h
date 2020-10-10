@@ -33,14 +33,15 @@
 
 /**
  * the tcp demultiplixer
- * This is a singleton class; we only need a single demultiplexer.
+ * Previously this was a singleton, but no longer.
+ * This class has a packet handler and creates multiple streams of demultiplexed tcp streams.
+ * The class should be refactored into a packet sorter and a stream reassembler.
  */
 class tcpdemux {
     /* These are not implemented */
     tcpdemux(const tcpdemux &t)=delete;
     tcpdemux &operator=(const tcpdemux &that)=delete;
 
-    tcpdemux();
 
     /* see http://mikecvet.wordpress.com/tag/hashing/ */
     typedef struct {
@@ -60,15 +61,14 @@ class tcpdemux {
     sqlite3 *db {};
     sqlite3_stmt *insert_flow {};
 #endif
-
     pcap_writer *flow_sorter {};
 
     /* facility logic hinge */
     int (tcpdemux::*tcp_processor)(const ipaddr &src, const ipaddr &dst,sa_family_t family,
                                    const u_char *tcp_data, uint32_t tcp_length,
                                    const be13::packet_info &pi) {0};
-
 public:
+    tcpdemux();
     static uint32_t tcp_timeout;
     static std::string tcp_cmd;                   // command to run on each tcp flow
     static int tcp_subproc_max;              // how many subprocesses are we allowed?
@@ -124,14 +124,14 @@ public:
     bool             start_new_connections {};  // true if we should start new connections
 
     options     opt {};
+    class       scanner_set          *ss;
     class       feature_recorder_set *fs {}; // where features extracted from each flow should be stored
 
     static uint32_t max_saved_flows ;       // how many saved flows are kept in the saved_flow_map
 
     void alter_processing_core();
-    static tcpdemux *getInstance();
 
-    /* Databse */
+    /* Database */
 
     void  openDB();                    // open the database file if we are using it in outdir directory.
     void  write_flow_record(const std::string &starttime,const std::string &endtime,

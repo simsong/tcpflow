@@ -1,5 +1,5 @@
 /**
- * address_histogram_view.cpp: 
+ * address_histogram_view.cpp:
  * Show packets received vs addr
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -10,7 +10,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 
 #include <math.h>
@@ -184,5 +183,3 @@ void address_histogram_view::bucket_view::render_label(cairo_t *cr, const bounds
 
     cairo_set_matrix(cr, &unrotated_matrix);
 }
-
-#endif

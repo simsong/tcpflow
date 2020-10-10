@@ -11,15 +11,6 @@
 
 #include "config.h"
 
-#include "tcpflow.h"
-
-#include "tcpip.h"
-#include "tcpdemux.h"
-#include "bulk_extractor_i.h"
-#include "iptree.h"
-
-#include "be13_api/utils.h"
-
 #include <string>
 #include <vector>
 #include <sys/types.h>
@@ -30,15 +21,32 @@
 #  include <grp.h>       // initgroups()
 #endif
 
+#ifdef HAVE_CAP_NG_H
+#include <cap-ng.h>
+#endif
+
 /* bring in inet_ntop if it is not present */
 #define ETH_ALEN 6
 #ifndef HAVE_INET_NTOP
 #include "inet_ntop.c"
 #endif
 
-#ifdef HAVE_CAP_NG_H
-#include <cap-ng.h>
+#ifdef HAVE_NETINET_IP_H
+#include <netinet/ip.h>
 #endif
+
+/* semaphore prevents multiple copies from outputing on top of each other */
+#ifdef HAVE_SEMAPHORE_H
+#include <semaphore.h>
+sem_t *semlock = 0;
+#endif
+
+#include "tcpflow.h"
+#include "tcpip.h"
+#include "tcpdemux.h"
+#include "iptree.h"
+#include "bulk_extractor_i.h"
+#include "be13_api/utils.h"
 
 /* droproot is from tcpdump.
  * See https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
@@ -49,8 +57,9 @@ const char *tcpflow_chroot_dir = 0;
 
 int packet_buffer_timeout = 10;
 
-scanner_info::scanner_config be_config; // system configuration
+scanner_set *theScannerSet=nullptr;        // the scanner set used by tcpflow
 
+/* Handle defaults */
 typedef struct {
     const char *name;
     const char *dvalue;
@@ -63,18 +72,8 @@ default_t defaults[] = {
     {0,0,0}
 };
 
-#ifdef HAVE_NETINET_IP_H
-#include <netinet/ip.h>
-#endif
-
 const char *progname = 0;		// name of the program
 int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
-
-/* semaphore prevents multiple copies from outputing on top of each other */
-#ifdef HAVE_PTHREAD_H
-#include <semaphore.h>
-sem_t *semlock = 0;
-#endif
 
 #define DEFAULT_REPORT_FILENAME "report.xml"
 
@@ -82,7 +81,7 @@ sem_t *semlock = 0;
  *** SCANNER PLUG-IN SYSTEM
  ****************************************************************/
 
-scanner_t *scanners_builtin[] = {
+scanner_set::scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
     scan_netviz,
@@ -160,13 +159,13 @@ static void usage(int level)
     std::cout << "\nControl of Scanners:\n";
     std::cout << "   -E scanner   - turn off all scanners except scanner\n";
     std::cout << "   -S name=value  Set a configuration parameter (-hh for info)\n";
-    if(level > 1) {
+    if (level > 1) {
         std::cout << "\n" "Activated options -S name=value:";
         for(int i=0;defaults[i].name;i++){
             std::cout <<"\n   -S "<< defaults[i].name << "=" << defaults[i].dvalue <<'\t'<< defaults[i].help;
         }
         std::cout << '\n';
-        be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
+        theScannerSet->info_scanners(false,true,scanners_builtin,'e','x');
     }
     std::cout << "\n"
                  "Console output options:\n";
@@ -183,7 +182,7 @@ static void usage(int level)
 #endif
     std::cout << "expression: tcpdump-like filtering expression\n";
     std::cout << "\nSee the man page for additional information.\n\n";
-    if(level<2) return;
+    if (level<2) return;
     std::cout << "Filename Prefixes:\n";
     std::cout << "   -Fc : append the connection counter to ALL filenames\n";
     std::cout << "   -Ft : prepend the time_t UTC timestamp to ALL filenames\n";
@@ -220,12 +219,12 @@ static void dfxml_create(class dfxml_writer &xreport,const std::string &command_
 /* String replace. Perhaps not the most efficient, but it works */
 void replace(std::string &str,const std::string &from,const std::string &to)
 {
-    if(from.size()==0) return;
+    if (from.size()==0) return;
     bool changed = false;
 
     std::stringstream ss;
     for(unsigned int i=0;i<str.size();){
-	if(str.substr(i,from.size())==from){
+	if (str.substr(i,from.size())==from){
 	    ss << to;
 	    i+=from.size();
 	    changed = true;
@@ -234,7 +233,7 @@ void replace(std::string &str,const std::string &from,const std::string &to)
 	    i++;
 	}
     }
-    if(changed) str = ss.str();			// copy over original
+    if (changed) str = ss.str();			// copy over original
 }
 
 /* These must be global variables so they are available in the signal handler */
@@ -249,12 +248,17 @@ void terminate(int sig)
         return;
     } else {
         DEBUG(1) ("terminating");
-        be13::plugin::phase_shutdown(*the_fs);	// give plugins a chance to do a clean shutdown
+        theScannerSet->phase_shutdown(*the_fs);	// give plugins a chance to do a clean shutdown
         exit(0); /* libpcap uses onexit to clean up */
     }
 }
 
+/*
+ * If we can fork, then we can run decompresors as a courtesy.
+ */
+
 #ifdef HAVE_FORK
+#define HAVE_INFLATER
 #include <sys/wait.h>
 // transparent decompression for process_infile
 class inflater {
@@ -273,26 +277,26 @@ public:
     {
         std::string invocation = ssprintf(invoc_format.c_str(), file_path.c_str());
         int pipe_fds[2];
-        if(!system(NULL)) {
+        if (!system(NULL)) {
             std::cerr << "no shell available to decompress '" << file_path << "'" << std::endl;
             return -1;
         }
-        if(pipe(pipe_fds)) {
+        if (pipe(pipe_fds)) {
             std::cerr << "failed to create pipe to decompress '" << file_path << "'" << std::endl;
             return -1;
         }
 
         pid_t child_pid;
         child_pid = fork();
-        if(child_pid == -1) {
+        if (child_pid == -1) {
             std::cerr << "failed to fork child to decompress '" << file_path << "'" << std::endl;
             return -1;
         }
-        if(child_pid == 0) {
+        if (child_pid == 0) {
             // decompressor
             close(pipe_fds[0]);
             dup2(pipe_fds[1], 1);
-            if(system(invocation.c_str())) {
+            if (system(invocation.c_str())) {
                 std::cerr << "decompressor reported error inflating '" << file_path << "'" << std::endl;
                 exit(1);
             }
@@ -309,21 +313,14 @@ static inflaters_t *build_inflaters()
 {
     inflaters_t *output = new inflaters_t();
 
-    // gzip
-    output->push_back(new inflater(".gz", "gunzip -c '%s'"));
-    // zip
-    output->push_back(new inflater(".zip", "unzip -p '%s'"));
-    // bz2
-    output->push_back(new inflater(".bz2", "bunzip2 -c '%s'"));
-    // xz
-    output->push_back(new inflater(".xz", "unxz -c '%s'"));
-    // lzma
-    output->push_back(new inflater(".lzma", "unlzma -c '%s'"));
-
+    output->push_back(new inflater(".gz", "gunzip -c '%s'"));    // gzip
+    output->push_back(new inflater(".zip", "unzip -p '%s'"));    // zip
+    output->push_back(new inflater(".bz2", "bunzip2 -c '%s'"));  // bz2
+    output->push_back(new inflater(".xz", "unxz -c '%s'"));      // xz
+    output->push_back(new inflater(".lzma", "unlzma -c '%s'"));  // lzma
     return output;
 }
 
-#define HAVE_INFLATER
 #endif
 
 // https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
@@ -343,9 +340,9 @@ droproot(tcpdemux &demux,const char *username, const char *chroot_dir)
     pw = getpwnam(username);
     if (pw) {
         /* Begin tcpflow add */
-        if(demux.xreport){
+        if (demux.xreport){
             const char *outfilename = demux.xreport->get_outfilename().c_str();
-            if(chown(outfilename,pw->pw_uid,pw->pw_gid)){
+            if (chown(outfilename,pw->pw_uid,pw->pw_gid)){
                 fprintf(stderr, "%s: Coudln't change owner of '%.64s' to %s (uid %d): %s\n",
                         program_name, outfilename, username, pw->pw_uid, strerror(errno));
                 exit(1);
@@ -399,7 +396,6 @@ droproot(tcpdemux &demux,const char *username, const char *chroot_dir)
                   -1);
     capng_apply(CAPNG_SELECT_BOTH);
 #endif /* HAVE_LIBCAP_NG */
-
 }
 #endif /* _WIN32 */
 
@@ -431,22 +427,23 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
     int pipefd = -1;
 
 #ifdef HAVE_INFLATER
-    if(inflaters==0) inflaters = build_inflaters();
+    if (inflaters==0) inflaters = build_inflaters();
 #endif
 
     if (infile!=""){
         std::string file_path = infile;
+
         // decompress input if necessary
 #ifdef HAVE_INFLATER
         for(inflaters_t::const_iterator it = inflaters->begin(); it != inflaters->end(); it++) {
-            if((*it)->appropriate(infile)) {
+            if ((*it)->appropriate(infile)) {
                 pipefd = (*it)->invoke(infile, &waitfor);
-                if(pipefd < 0) {
+                if (pipefd < 0) {
                     std::cerr << "decompression of '" << infile << "' failed: " << strerror (errno) << std::endl;
                     exit(1);
                 }
                 file_path = ssprintf("/dev/fd/%d", pipefd);
-                if(access(file_path.c_str(), R_OK)) {
+                if (access(file_path.c_str(), R_OK)) {
                     std::cerr << "decompression of '" << infile << "' is not available on this system" << std::endl;
                     exit(1);
                 }
@@ -462,28 +459,28 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 	handler = find_handler(dlt, infile.c_str());
     } else {
 	/* if the user didn't specify a device, try to find a reasonable one */
-    if (device == NULL){
+        if (device == NULL){
 #ifdef HAVE_PCAP_FINDALLDEVS
-        char errbuf[PCAP_ERRBUF_SIZE];
-        pcap_if_t *alldevs = 0;
-        if (pcap_findalldevs(&alldevs,errbuf)){
-            die("%s", errbuf);
-        }
+            char errbuf[PCAP_ERRBUF_SIZE];
+            pcap_if_t *alldevs = 0;
+            if (pcap_findalldevs(&alldevs,errbuf)){
+                die("%s", errbuf);
+            }
 
-        if (alldevs == 0) {
-            die("found 0 devices, maybe you don't have permissions, switch to root or equivalent user instead.");
-        }
+            if (alldevs == 0) {
+                die("found 0 devices, maybe you don't have permissions, switch to root or equivalent user instead.");
+            }
 
-        device=strdup(alldevs[0].name);
-        pcap_freealldevs(alldevs);
+            device=strdup(alldevs[0].name);
+            pcap_freealldevs(alldevs);
 #else
-        if ((device = pcap_lookupdev(error)) == NULL){
-            die("%s", error);
-        }
+            if ((device = pcap_lookupdev(error)) == NULL){
+                die("%s", error);
+            }
 #endif
-    }
+        }
 
-	/* make sure we can open the device */
+        /* make sure we can open the device */
 	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, packet_buffer_timeout, error)) == NULL){
 	    die("%s", error);
 	}
@@ -518,7 +515,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 
     /* start listening or reading from the input file */
     if (infile == "") DEBUG(1) ("listening on %s", device);
-    int pcap_retval = pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance());
+    int pcap_retval = pcap_loop(pd, -1, handler, (u_char *)&demux);
 
     if (pcap_retval < 0 && pcap_retval != -2){
 	DEBUG(1) ("%s: %s", infile.c_str(),pcap_geterr(pd));
@@ -544,13 +541,13 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 static std::string be_hash_name("md5");
 static std::string be_hash_func(const uint8_t *buf,size_t bufsize)
 {
-    if(be_hash_name=="md5" || be_hash_name=="MD5"){
+    if (be_hash_name=="md5" || be_hash_name=="MD5"){
         return dfxml::md5_generator::hash_buf(buf,bufsize).hexdigest();
     }
-    if(be_hash_name=="sha1" || be_hash_name=="SHA1" || be_hash_name=="sha-1" || be_hash_name=="SHA-1"){
+    if (be_hash_name=="sha1" || be_hash_name=="SHA1" || be_hash_name=="sha-1" || be_hash_name=="SHA-1"){
         return dfxml::sha1_generator::hash_buf(buf,bufsize).hexdigest();
     }
-    if(be_hash_name=="sha256" || be_hash_name=="SHA256" || be_hash_name=="sha-256" || be_hash_name=="SHA-256"){
+    if (be_hash_name=="sha256" || be_hash_name=="SHA256" || be_hash_name=="sha-256" || be_hash_name=="SHA-256"){
         return dfxml::sha256_generator::hash_buf(buf,bufsize).hexdigest();
     }
     std::cerr << "Invalid hash name: " << be_hash_name << "\n";
@@ -560,20 +557,26 @@ static std::string be_hash_func(const uint8_t *buf,size_t bufsize)
 static feature_recorder_set::hash_def be_hash(be_hash_name,be_hash_func);
 
 
+/*
+ * main() for tcpflow.
+ *
+ */
+
 int main(int argc, char *argv[])
 {
+    /* the tcpdemultiplexer object we use. Holds options and state */
+    tcpdemux demux;
+
+    /* be13_api objects */
+    scanner_info::scanner_config be_config;    // system configuration
+    scanner_info si;
+    si.config = &be_config;
+
+    /* Options */
     program_name = argv[0];
     int opt_help = 0;
     int opt_Help = 0;
-    feature_recorder::set_main_threadid();
     sbuf_t::set_map_file_delimiter(""); // no delimiter on carving
-#ifdef BROKEN
-    std::cerr << "WARNING: YOU ARE USING AN EXPERIMENTAL VERSION OF TCPFLOW \n";
-    std::cerr << "THAT DOES NOT WORK PROPERLY. PLEASE USE A RELEASE DOWNLOADED\n";
-    std::cerr << "FROM http://digitalcorpora.org/downloads/tcpflow\n";
-    std::cerr << "\n";
-#endif
-
     bool opt_enable_report = true;
     bool force_binary_output = false;
     const char *device = 0;             // default device
@@ -581,7 +584,6 @@ int main(int argc, char *argv[])
     std::string reportfilename;
     std::vector<std::string> Rfiles;	// files for finishing
     std::vector<std::string> rfiles;	// files to read
-    tcpdemux &demux = *tcpdemux::getInstance();			// the demux object we will be using.
     std::string command_line = dfxml_writer::make_command_line(argc,argv);
     std::string opt_unk_packets;
     bool opt_quiet = false;
@@ -591,7 +593,7 @@ int main(int argc, char *argv[])
     init_debug(progname,1);
 
     /* Make sure that the system was compiled properly */
-    if(sizeof(struct be13::ip4)!=20 || sizeof(struct be13::tcphdr)!=20){
+    if (sizeof(struct be13::ip4)!=20 || sizeof(struct be13::tcphdr)!=20){
 	fprintf(stderr,"COMPILE ERROR.\n");
 	fprintf(stderr,"  sizeof(struct ip)=%d; should be 20.\n", (int)sizeof(struct be13::ip4));
 	fprintf(stderr,"  sizeof(struct tcphdr)=%d; should be 20.\n", (int)sizeof(struct be13::tcphdr));
@@ -599,14 +601,19 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
+    /* We need the scannerSet to process options. But we can't make the scanner set until we know it's output directory!
+     */
+
     bool trailing_input_list = false;
     int arg;
-    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:ZK0J", longopts, NULL)) != EOF) {
+    while ((arg = getopt_long(argc, argv,
+                              "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:"
+                              "m:o:pqR:r:S:sT:U:Vvw:x:X:z:ZK0J", longopts, NULL)) != EOF) {
 	switch (arg) {
 	case 'a':
 	    demux.opt.post_processing = true;
 	    demux.opt.opt_md5 = true;
-            be13::plugin::scanners_enable_all();
+            theScannerSet->scanners_enable_all();
 	    break;
 
 	case 'A':
@@ -615,7 +622,7 @@ int main(int argc, char *argv[])
 
 	case 'b':
 	    demux.opt.max_bytes_per_flow = atoi(optarg);
-	    if(debug > 1) {
+	    if (debug > 1) {
 		std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
 	    }
 	    break;
@@ -630,7 +637,7 @@ int main(int argc, char *argv[])
 	case 'c':
 	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
 	    break;
-    case '0':
+        case '0':
 	    demux.opt.console_output_nonewline = true;
 	    break;
 	case 'd':
@@ -639,16 +646,16 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
 	    }
 	    break;
-    case 'D':
-        demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
+        case 'D':
+            demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
 	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
-        break;
+            break;
 	case 'E':
-	    be13::plugin::scanners_disable_all();
-	    be13::plugin::scanners_enable(optarg);
+	    theScannerSet->scanners_disable_all();
+	    theScannerSet->scanners_enable(optarg);
 	    break;
         case 'e':
-            be13::plugin::scanners_enable(optarg);
+            theScannerSet->scanners_enable(optarg);
             demux.opt.post_processing = true; // enable post processing if anything is turned on
             break;
 	case 'F':
@@ -657,7 +664,8 @@ int main(int argc, char *argv[])
 		case 'c': replace(flow::filename_template,"%c","%C"); break;
                 case 'k': flow::filename_template = "%K/" + flow::filename_template; break;
                 case 'm': flow::filename_template = "%M000-%M999/%M%K/" + flow::filename_template; break;
-                case 'g': flow::filename_template = "%G000000-%G999999/%G%M000-%G%M999/%G%M%K/" + flow::filename_template; break;
+                case 'g': flow::filename_template = "%G000000-%G999999/%G%M000-%G%M999/%G%M%K/"
+                        + flow::filename_template; break;
 		case 't': flow::filename_template = "%tT" + flow::filename_template; break;
 		case 'T': flow::filename_template = "%T"  + flow::filename_template; break;
 		case 'X': demux.opt.store_output = false;break;
@@ -667,30 +675,29 @@ int main(int argc, char *argv[])
 		}
 	    }
 	    break;
-	case 'f':
-        {
-            int mnew = atoi(optarg);
-            DEBUG(1)("changing max_fds from %d to %d",demux.max_fds,mnew);
-            demux.max_fds = mnew;
-	    break;
-        }
+	case 'f': {
+                int mnew = atoi(optarg);
+                DEBUG(1)("changing max_fds from %d to %d",demux.max_fds,mnew);
+                demux.max_fds = mnew;
+                break;
+            }
 	case 'i': device = optarg; break;
  	case 'I':
- 		DEBUG(10) ("creating packet index files");
- 		demux.opt.output_packet_index = true;
- 		break;
+            DEBUG(10) ("creating packet index files");
+            demux.opt.output_packet_index = true;
+            break;
 	case 'g':
 	    demux.opt.use_color  = 1;
 	    DEBUG(10) ("using colors");
 	    break;
         case 'l': trailing_input_list = true; break;
-    case 'J':
-        demux.opt.output_json = true;
-        break;
-    case 'K':;
-        demux.opt.output_pcap = true;
-        demux.alter_processing_core();
-        break;
+        case 'J':
+            demux.opt.output_json = true;
+            break;
+        case 'K':;
+            demux.opt.output_pcap = true;
+            demux.alter_processing_core();
+            break;
 	case 'L': lockname = optarg; break;
 	case 'm':
 	    demux.opt.max_seek = atoi(optarg);
@@ -703,10 +710,9 @@ int main(int argc, char *argv[])
         case 'q': opt_quiet = true; break;
 	case 'R': Rfiles.push_back(optarg); break;
 	case 'r': rfiles.push_back(optarg); break;
-        case 'S':
-	    {
+        case 'S': {
 		std::vector<std::string> params = split(optarg,'=');
-		if(params.size()!=2){
+		if (params.size()!=2){
 		    std::cerr << "Invalid paramter: " << optarg << "\n";
 		    exit(1);
 		}
@@ -719,7 +725,7 @@ int main(int argc, char *argv[])
             break;
 	case 'T':
             flow::filename_template = optarg;
-            if(flow::filename_template.find("%c")==std::string::npos){
+            if (flow::filename_template.find("%c")==std::string::npos){
                 flow::filename_template += std::string("%C%c"); // append %C%c if not present
             }
             break;
@@ -727,7 +733,7 @@ int main(int argc, char *argv[])
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
-	case 'x': be13::plugin::scanners_disable(optarg);break;
+	case 'x': theScannerSet->scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
         case 'z': tcpflow_chroot_dir = optarg; break;
 	case 'Z': demux.opt.gzip_decompress = 0; break;
@@ -740,7 +746,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-    if(tcpflow_chroot_dir && !tcpflow_droproot_username){
+    if (tcpflow_chroot_dir && !tcpflow_droproot_username){
         err(1,"-z option requires -U option");
     }
 
@@ -749,39 +755,37 @@ int main(int argc, char *argv[])
 
 
     /* Load all the scanners and enable the ones we care about */
-    scanner_info si;
-    si.config = &be_config;
 
     si.get_config("enable_report",&opt_enable_report,"Enable report.xml");
-    be13::plugin::load_scanners(scanners_builtin,be_config);
+    theScannerSet->load_scanners(scanners_builtin,be_config);
 
-    if(opt_Help){
-        be13::plugin::info_scanners(true,true,scanners_builtin,'e','x');
+    if (opt_Help){
+        theScannerSet->info_scanners(true,true,scanners_builtin,'e','x');
         exit(0);
     }
 
-    if(opt_help) {
+    if (opt_help) {
         usage(opt_help);
         exit(0);
     }
 
 
-    if(demux.opt.post_processing && !demux.opt.store_output){
+    if (demux.opt.post_processing && !demux.opt.store_output){
         std::cerr << "ERROR: post_processing currently requires storing output.\n";
         exit(1);
     }
 
-    if(demux.opt.opt_md5) be13::plugin::scanners_enable("md5");
-    be13::plugin::scanners_process_enable_disable_commands();
+    if (demux.opt.opt_md5) theScannerSet->scanners_enable("md5");
+    theScannerSet->scanners_process_enable_disable_commands();
 
     /* If there is no report filename, call it report.xml in the output directory */
-    if( reportfilename.size()==0 ){
+    if ( reportfilename.size()==0 ){
 	reportfilename = demux.outdir + "/" + DEFAULT_REPORT_FILENAME;
     }
 
     /* remaining arguments are either an input list (-l flag) or a pcap expression (default) */
     std::string expression = "";
-    if(trailing_input_list) {
+    if (trailing_input_list) {
         for(int ii = 0; ii < argc; ii++) {
             rfiles.push_back(argv[ii]);
         }
@@ -789,7 +793,7 @@ int main(int argc, char *argv[])
     else {
         /* get the user's expression out of remainder of the arg... */
         for(int i=0;i<argc;i++){
-            if(expression.size()>0) expression+=" ";
+            if (expression.size()>0) expression+=" ";
             expression += argv[i];
         }
     }
@@ -797,8 +801,8 @@ int main(int argc, char *argv[])
     /* More option processing */
 
     /* was a semaphore provided for the lock? */
-    if(lockname){
-#if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD_H)
+    if (lockname){
+#if defined(HAVE_SEMAPHORE_H)
 	semlock = sem_open(lockname,O_CREAT,0777,1); // get the semaphore
 #else
 	fprintf(stderr,"%s: attempt to create lock pthreads not present\n",argv[0]);
@@ -806,25 +810,23 @@ int main(int argc, char *argv[])
 #endif
     }
 
-    if(force_binary_output) demux.opt.output_strip_nonprint = false;
+    if (force_binary_output) demux.opt.output_strip_nonprint = false;
+
     /* make sure outdir is a directory. If it isn't, try to make it.*/
-    struct stat stbuf;
-    if(stat(demux.outdir.c_str(),&stbuf)==0){
-	if(!S_ISDIR(stbuf.st_mode)){
+    namespace fs = std::filesystem;
+    if (fs::exists(demux.outdir)) {
+        if (!fs::is_directory(demux.outdir)) {
 	    std::cerr << "outdir is not a directory: " << demux.outdir << "\n";
 	    exit(1);
 	}
     } else {
-	if(MKDIR(demux.outdir.c_str(),0777)){
-	    std::cerr << "cannot create " << demux.outdir << ": " << strerror(errno) << "\n";
-	    exit(1);
-	}
+        fs::create_directory( demux.outdir);
     }
 
     std::string input_fname;
-    if(rfiles.size() > 0) {
+    if (rfiles.size() > 0) {
         input_fname = rfiles.at(0);
-        if(rfiles.size() > 1) {
+        if (rfiles.size() > 1) {
             input_fname += ssprintf(" + %d more", rfiles.size() - 1);
         }
     }
@@ -833,7 +835,7 @@ int main(int argc, char *argv[])
      * Note: If we are going to chroot, we need apply the chroot prefix also,
      * but we need to open the file *now*.
      */
-    if(reportfilename.size()>0 && opt_enable_report){
+    if (reportfilename.size()>0 && opt_enable_report){
         if (tcpflow_chroot_dir){
             reportfilename = std::string(tcpflow_chroot_dir) + std::string("/") + reportfilename;
         }
@@ -842,29 +844,33 @@ int main(int argc, char *argv[])
 	dfxml_create(*xreport,command_line);
 	demux.xreport = xreport;
     }
-    if(opt_unk_packets.size()>0){
-        if(input_fname.size()==0){
+    if (opt_unk_packets.size()>0){
+        if (input_fname.size()==0){
             std::cerr << "currently the -w option requires the -r option\n";
             exit(1);
         }
-        if(access(input_fname.c_str(),R_OK)) die("cannot read: %s: %s",input_fname.c_str(),strerror(errno));
+        if (access(input_fname.c_str(),R_OK)) die("cannot read: %s: %s",input_fname.c_str(),strerror(errno));
         demux.save_unk_packets(opt_unk_packets,input_fname);
     }
 
-
     /* Debug prefix set? */
-    std::string debug_prefix=progname;
-    si.get_config("debug-prefix",&debug_prefix,"Prefix for debug output");
-    init_debug(debug_prefix.c_str(),0);
+    {
+        std::string debug_prefix=progname;
+        si.get_config("debug-prefix",&debug_prefix,"Prefix for debug output");
+        init_debug(debug_prefix.c_str(),0);
+    }
 
     DEBUG(10) ("%s version %s ", PACKAGE_NAME, PACKAGE_VERSION);
 
     const char *name = device;
-    if(input_fname.size()>0) name=input_fname.c_str();
-    if(name==0) name="<default>";
+    if (input_fname.size()>0) name=input_fname.c_str();
+    if (name==0) name="<default>";
+
+    /* set up dfxml */
+
 
     feature_file_names_t feature_file_names;
-    be13::plugin::get_scanner_feature_file_names(feature_file_names);
+    theScannerSet->get_scanner_feature_file_names(feature_file_names);
     feature_recorder_set fs(feature_recorder_set::NO_ALERT,be_hash,name,demux.outdir);
     fs.init(feature_file_names);
     the_fs   = &fs;
@@ -874,7 +880,7 @@ int main(int argc, char *argv[])
     si.get_config("packet-buffer-timeout", &packet_buffer_timeout, "Time in milliseconds between each callback from libpcap");
 
     /* Record the configuration */
-    if(xreport){
+    if (xreport){
         xreport->push("configuration");
         xreport->pop();			// configuration
         xreport->xmlout("tdelta",datalink_tdelta);
@@ -884,10 +890,10 @@ int main(int argc, char *argv[])
 
     /* Process r files and R files */
     int exit_val = 0;
-    if(xreport){
+    if (xreport){
         xreport->push("configuration");
     }
-    if(rfiles.size()==0 && Rfiles.size()==0){
+    if (rfiles.size()==0 && Rfiles.size()==0){
 	/* live capture */
 	demux.start_new_connections = true;
         int err = process_infile(demux,expression,device,"");
@@ -927,7 +933,7 @@ int main(int argc, char *argv[])
 
     demux.remove_all_flows();	// empty the map to capture the state
     std::stringstream ss;
-    be13::plugin::phase_shutdown(fs,xreport ? &ss : 0);
+    theScannerSet->phase_shutdown(fs,xreport ? &ss : 0);
 
     /*
      * Note: funny formats below are a result of mingw problems with PRId64.
@@ -938,7 +944,7 @@ int main(int argc, char *argv[])
     DEBUG(2)(total_flow_processed.c_str(),demux.flow_counter);
     DEBUG(2)(total_packets_processed.c_str(),demux.packet_counter);
 
-    if(xreport){
+    if (xreport){
         xreport->pop();                 // fileobjects
         xreport->xmlout("summary",ss.str(),"",false);
         xreport->xmlout("open_fds_at_end",open_fds);
@@ -952,18 +958,18 @@ int main(int argc, char *argv[])
 	delete xreport;
     }
 
-    if(demux.flow_counter > tcpdemux::WARN_TOO_MANY_FILES){
-        if(!opt_quiet){
+    if (demux.flow_counter > tcpdemux::WARN_TOO_MANY_FILES){
+        if (!opt_quiet){
             /* Start counting how many files we have in the output directory.
              * If we find more than 10,000, print the warning, and keep counting...
              */
             uint64_t filecount=0;
             DIR *dirp = opendir(demux.outdir.c_str());
-            if(dirp){
+            if (dirp){
                 struct dirent *dp=0;
                 while((dp=readdir(dirp))!=NULL){
                     filecount++;
-                    if(filecount==10000){
+                    if (filecount==10000){
                         std::cerr << "*** tcpflow WARNING:\n";
                         std::cerr << "*** Modern operating systems do not perform well \n";
                         std::cerr << "*** with more than 10,000 entries in a directory.\n";
@@ -972,7 +978,7 @@ int main(int argc, char *argv[])
                 }
                 closedir(dirp);
             }
-            if(filecount>=10000){
+            if (filecount>=10000){
                 std::cerr << "*** tcpflow created " << filecount
                           << " files in output directory " << demux.outdir << "\n";
                 std::cerr << "***\n";

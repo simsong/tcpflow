@@ -1,5 +1,5 @@
 /**
- * one_page_report.cpp: 
+ * one_page_report.cpp:
  * Generate a one-page visualization from TCP packets
  *
  * This source file is public domain, as it is not based on the original tcpflow.
@@ -12,7 +12,6 @@
 
 #include "be13_api/utils.h"
 #include "plot_view.h"
-#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 #include "tcpip.h"
 
@@ -55,7 +54,7 @@ const plot_view::rgb_t one_page_report::color_yellow(0.99, 1.00, 0.00);
 const plot_view::rgb_t one_page_report::color_light_orange(1.00, 0.73, 0.00);
 const plot_view::rgb_t one_page_report::cdf_color(0.00, 0.00, 0.00);
 
-one_page_report::one_page_report(int max_histogram_size) : 
+one_page_report::one_page_report(int max_histogram_size) :
     source_identifier(), filename("report.pdf"),
     bounds(0.0, 0.0, 611.0, 792.0), header_font_size(8.0),
     top_list_font_size(8.0), histogram_show_top_n_text(3),
@@ -250,7 +249,7 @@ void one_page_report::render(const string &outdir)
         }
     }
     sort(color_labels.begin(), color_labels.end());
-    
+
     // time histogram
     double condension_factor = (double) packet_histogram.non_sparse_size() / (double) max_bars;
     if(condension_factor > 1.1) {
@@ -601,5 +600,3 @@ void one_page_report::dump(int dbg)
         std::cout << "src_tree:\n" << src_tree << "\n" << "dst_tree:\n" << dst_tree << "\n";
     }
 }
-
-#endif

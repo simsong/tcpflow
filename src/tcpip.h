@@ -173,22 +173,23 @@ public:;
         }
     }
     virtual ~flow(){};
-    uint64_t  id;			// flow_counter when this flow was created
-    int32_t   vlan;			// vlan interface we first observed; -1 means no vlan
-    uint8_t mac_daddr[6];               // dst mac address of first packet
-    uint8_t mac_saddr[6];               // source mac address of first packet
+    uint64_t       id;			// flow_counter when this flow was created
+    int32_t        vlan;		// vlan interface we first observed; -1 means no vlan
+    uint8_t        mac_daddr[6];        // dst mac address of first packet
+    uint8_t        mac_saddr[6];        // source mac address of first packet
     struct timeval tstart;		// when first seen
     struct timeval tlast;		// when last seen
-    uint64_t len;     		        // off-wire length
-    uint64_t caplen;    		// captured length
-    uint64_t packet_count;		// packet count
-    uint64_t session_id;      // session unique id (used to match client->server and server->client flows
+    uint64_t       len;     		// off-wire length
+    uint64_t       caplen;    		// captured length
+    uint64_t       packet_count;	// packet count
+    uint64_t       session_id;          // session unique id (used to match client->server and server->client flows
 
     // return a filename for a flow based on the template and the connection count
     std::string filename(uint32_t connection_count, bool);
+
     // return a new filename for a flow based on the temlate,
     // optionally opening the file and returning a fd if &fd is provided
-    std::string new_filename(int *fd,int flags,int mode);
+    std::string new_filename(int *fd, int flags, int mode, class tcpdemux &demux);
 
     std::string new_pcap_filename();
 

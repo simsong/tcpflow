@@ -1,5 +1,5 @@
 /**
- * address_histogram.cpp: 
+ * address_histogram.cpp:
  *
  * This source file is public domain, as it is not based on the original tcpflow.
  *
@@ -9,7 +9,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
 #include "tcpip.h"
 
@@ -99,5 +98,3 @@ bool address_histogram::iptree_node_comparator::operator()(const iptree::addr_el
     }
     return false;
 }
-
-#endif
