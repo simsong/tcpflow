@@ -218,6 +218,16 @@ MAINTAINER
 ==========
 Simson L. Garfinkel <simsong@acm.org>
 
+TCPFLOW 1.6 STATUS REPORT
+=========================
+I continue to port bulk_extractor, tcpflow, be13_api and dfxml to modern C++. After surveying the standards I’ve decided to go with C++17 and not C++14, as support for 17 is now widespread. (I probably don’t need 20). I am sticking with autotools, although there seems a strong reason to move to CMake. I am keeping be13_api and dfxml as a modules that are included, python-style, rather than making them stand-alone libraries that are linked against. I’m not 100% sure that’s the correct decision, though.
+
+The project is taking longer than anticipated because I am also doing a general code refactoring. The main thing that is taking time is figuring out how to detangle all of the C++ objects having to do with parser options and configuration. 
+
+Given that tcpflow and bulk_extractor both use be13_api, my attention has shifted to using tcpflow to get be13_api operational, as it is a simpler program. I’m about three quarters of the way through now. I anticipate having something finished before the end of 2020.
+
+--- Simson Garfinkel, October 18, 2020
+
 ACKNOWLEDGEMENTS
 ================
 Thanks to: 
