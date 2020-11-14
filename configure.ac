@@ -20,9 +20,6 @@ AM_INIT_AUTOMAKE([foreign])
 AM_MAINTAINER_MODE
 AC_PREFIX_PROGRAM(tcpflow) dnl build for same location
 
-# Endian check is required for MD5 implementation
-AC_C_BIGENDIAN
-
 # Programs we will be using
 AC_PROG_CC
 AC_PROG_CXX

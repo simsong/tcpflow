@@ -115,7 +115,7 @@ static const struct option longopts[] = {
  *** USAGE
  ****************************************************************/
 
-static void usage(int level)
+static void usage(int level, tcpdemux &demux)
 {
     std::cout << PACKAGE_NAME << " version " << PACKAGE_VERSION << "\n\n";
     std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
@@ -165,7 +165,7 @@ static void usage(int level)
             std::cout <<"\n   -S "<< defaults[i].name << "=" << defaults[i].dvalue <<'\t'<< defaults[i].help;
         }
         std::cout << '\n';
-        be13::plugin::info_scanners(false,true,scanners_builtin,'e','x');
+        demux.ss->info_scanners(false,true,scanners_builtin,'e','x');
     }
     std::cout << "\n"
                  "Console output options:\n";
@@ -194,7 +194,7 @@ static void usage(int level)
     std::cout << "   -Fg : Bin output in 1G directories (3 levels)\n";
     flow::usage();
     std::cout << "\n" "Current limitations:"
-                 "\n" "  get_max_fds() = " << tcpdemux::getInstance()->get_max_fds();
+                 "\n" "  get_max_fds() = " << tcpdemux::get_max_fds();
     std::cout << "\n" "  NUM_RESERVED_FDS = " << NUM_RESERVED_FDS;
     std::cout << '\n';
 }
@@ -203,7 +203,7 @@ static void usage(int level)
  * Create the dfxml output
  */
 
-static void dfxml_create(class dfxml_writer &xreport,const std::string &command_line)
+static void dfxml_create(class dfxml_writer &xreport,int argc, char * const *argv)
 {
     xreport.push("dfxml","xmloutputversion='1.0'");
     xreport.push("metadata",
@@ -212,7 +212,7 @@ static void dfxml_create(class dfxml_writer &xreport,const std::string &command_
 		 "\n  xmlns:dc='http://purl.org/dc/elements/1.1/'" );
     xreport.xmlout("dc:type","Feature Extraction","",false);
     xreport.pop();
-    xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"",command_line);
+    xreport.add_DFXML_creator(PACKAGE_NAME, PACKAGE_VERSION, "", argc, argv);
 }
 
 
@@ -237,6 +237,7 @@ void replace(std::string &str,const std::string &from,const std::string &to)
 }
 
 /* These must be global variables so they are available in the signal handler */
+tcpdemux *globalDemux = nullptr;
 feature_recorder_set *the_fs = 0;
 dfxml_writer *xreport = 0;
 pcap_t *pd = 0;
@@ -248,7 +249,9 @@ void terminate(int sig)
         return;
     } else {
         DEBUG(1) ("terminating");
-        be13::plugin::phase_shutdown(*the_fs);	// give plugins a chance to do a clean shutdown
+        if (globalDemux) {
+            globalDemux->ss->phase_shutdown(*the_fs);	// give plugins a chance to do a clean shutdown
+        }
         exit(0); /* libpcap uses onexit to clean up */
     }
 }
@@ -509,6 +512,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
     /* set up signal handlers for graceful exit (pcap uses onexit to put
      * interface back into non-promiscuous mode
      */
+    globalDemux = &demux;
     portable_signal(SIGTERM, terminate);
     portable_signal(SIGINT, terminate);
 #ifdef SIGHUP
@@ -559,22 +563,19 @@ static std::string be_hash_func(const uint8_t *buf,size_t bufsize)
 static feature_recorder_set::hash_def be_hash(be_hash_name,be_hash_func);
 
 
+/*
+ * main() for tcpflow.
+ */
+
 int main(int argc, char *argv[])
 {
+    /* Options */
     program_name = argv[0];
-    int opt_help = 0;
-    int opt_Help = 0;
-    feature_recorder::set_main_threadid();
+    int    opt_help = 0;
+    int    opt_Help = 0;
     sbuf_t::set_map_file_delimiter(""); // no delimiter on carving
-#ifdef BROKEN
-    std::cerr << "WARNING: YOU ARE USING AN EXPERIMENTAL VERSION OF TCPFLOW \n";
-    std::cerr << "THAT DOES NOT WORK PROPERLY. PLEASE USE A RELEASE DOWNLOADED\n";
-    std::cerr << "FROM http://digitalcorpora.org/downloads/tcpflow\n";
-    std::cerr << "\n";
-#endif
-
-    bool opt_enable_report = true;
-    bool force_binary_output = false;
+    bool   opt_enable_report = true;
+    bool   force_binary_output = false;
     const char *device = 0;             // default device
     const char *lockname = 0;
     std::string reportfilename;
@@ -587,25 +588,33 @@ int main(int argc, char *argv[])
 
     /* Set up debug system */
     progname = argv[0];
-    init_debug(progname,1);
+    init_debug( progname, 1 );
 
     /* Make sure that the system was compiled properly */
-    if(sizeof(struct be13::ip4)!=20 || sizeof(struct be13::tcphdr)!=20){
-	fprintf(stderr,"COMPILE ERROR.\n");
-	fprintf(stderr,"  sizeof(struct ip)=%d; should be 20.\n", (int)sizeof(struct be13::ip4));
-	fprintf(stderr,"  sizeof(struct tcphdr)=%d; should be 20.\n", (int)sizeof(struct be13::tcphdr));
-	fprintf(stderr,"CANNOT CONTINUE\n");
-	exit(1);
-    }
+    static_assert( sizeof(struct be13::ip4) == 20 );
+    static_assert( sizeof(struct be13::tcphdr) == 20 );
 
-    bool trailing_input_list = false;
-    int arg;
-    while ((arg = getopt_long(argc, argv, "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:m:o:pqR:r:S:sT:U:Vvw:x:X:z:ZK0J", longopts, NULL)) != EOF) {
+    /* We need the scannerSet to process options. But we can't make the scanner set until we know it's output directory!
+     */
+
+    /* Use the scanner_config for the option processing.
+     * Then, create a demux oobject, giving the scanner_config to the scanner_set.
+     * The scanner_set initializer should process the scanner_config
+     */
+
+    tcpdemux::options opt;
+    scanner_config be_config;    // system configuration
+
+    bool  trailing_input_list = false;
+    int   arg;
+    while ((arg = getopt_long(argc, argv,
+                              "aA:Bb:cCd:DE:e:E:F:f:gHhIi:lL:"
+                              "m:o:pqR:r:S:sT:U:Vvw:x:X:z:ZK0J", longopts, NULL)) != EOF) {
 	switch (arg) {
 	case 'a':
-	    demux.opt.post_processing = true;
-	    demux.opt.opt_md5 = true;
-            be13::plugin::scanners_enable_all();
+	    opt.post_processing = true;
+	    opt.opt_md5 = true;
+            demux.ss->scanners_enable_all();
 	    break;
 
 	case 'A':
@@ -613,24 +622,24 @@ int main(int argc, char *argv[])
 	    break;
 
 	case 'b':
-	    demux.opt.max_bytes_per_flow = atoi(optarg);
-	    if(debug > 1) {
-		std::cout << "capturing max of " << demux.opt.max_bytes_per_flow << " bytes per flow." << std::endl;
+	    opt.max_bytes_per_flow = atoi(optarg);
+	    if (debug > 1) {
+		std::cout << "capturing max of " << opt.max_bytes_per_flow << " bytes per flow." << std::endl;
 	    }
 	    break;
 	case 'B':
             force_binary_output = true;
-	    demux.opt.output_strip_nonprint  = false;	DEBUG(10) ("converting non-printable characters to '.'");
+	    opt.output_strip_nonprint  = false;	DEBUG(10) ("converting non-printable characters to '.'");
 	    break;
 	case 'C':
-	    demux.opt.console_output  = true;	DEBUG(10) ("printing packets to console only");
-	    demux.opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
+	    opt.console_output  = true;	DEBUG(10) ("printing packets to console only");
+	    opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
 	    break;
 	case 'c':
-	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
+	    opt.console_output = true;	DEBUG(10) ("printing packets to console only");
 	    break;
-    case '0':
-	    demux.opt.console_output_nonewline = true;
+        case '0':
+	    opt.console_output_nonewline = true;
 	    break;
 	case 'd':
 	    if ((debug = atoi(optarg)) < 0) {
@@ -638,17 +647,17 @@ int main(int argc, char *argv[])
 		DEBUG(1) ("warning: -d flag with 0 debug level '%s'", optarg);
 	    }
 	    break;
-    case 'D':
-        demux.opt.output_hex = true;DEBUG(10) ("Console output in hex");
-	    demux.opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
-        break;
+        case 'D':
+            opt.output_hex = true;DEBUG(10) ("Console output in hex");
+	    opt.output_strip_nonprint = false;	DEBUG(10) ("Will not convert non-printablesto '.'");
+            break;
 	case 'E':
-	    be13::plugin::scanners_disable_all();
-	    be13::plugin::scanners_enable(optarg);
+	    demux.ss->scanners_disable_all();
+	    demux.ss->scanners_enable(optarg);
 	    break;
         case 'e':
-            be13::plugin::scanners_enable(optarg);
-            demux.opt.post_processing = true; // enable post processing if anything is turned on
+            demux.ss->scanners_enable(optarg);
+            opt.post_processing = true; // enable post processing if anything is turned on
             break;
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
@@ -659,8 +668,8 @@ int main(int argc, char *argv[])
                 case 'g': flow::filename_template = "%G000000-%G999999/%G%M000-%G%M999/%G%M%K/" + flow::filename_template; break;
 		case 't': flow::filename_template = "%tT" + flow::filename_template; break;
 		case 'T': flow::filename_template = "%T"  + flow::filename_template; break;
-		case 'X': demux.opt.store_output = false;break;
-		case 'M': demux.opt.opt_md5 = true;break;
+		case 'X': opt.store_output = false;break;
+		case 'M': opt.opt_md5 = true;break;
 		default:
 		    fprintf(stderr,"-F invalid format specification '%c'\n",*cc);
 		}
@@ -675,25 +684,25 @@ int main(int argc, char *argv[])
         }
 	case 'i': device = optarg; break;
  	case 'I':
- 		DEBUG(10) ("creating packet index files");
- 		demux.opt.output_packet_index = true;
- 		break;
+            DEBUG(10) ("creating packet index files");
+            opt.output_packet_index = true;
+            break;
 	case 'g':
-	    demux.opt.use_color  = 1;
+	    opt.use_color  = 1;
 	    DEBUG(10) ("using colors");
 	    break;
         case 'l': trailing_input_list = true; break;
-    case 'J':
-        demux.opt.output_json = true;
-        break;
-    case 'K':;
-        demux.opt.output_pcap = true;
-        demux.alter_processing_core();
-        break;
+        case 'J':
+            opt.output_json = true;
+            break;
+        case 'K':;
+            opt.output_pcap = true;
+            demux.alter_processing_core();
+            break;
 	case 'L': lockname = optarg; break;
 	case 'm':
-	    demux.opt.max_seek = atoi(optarg);
-	    DEBUG(10) ("max_seek set to %d",demux.opt.max_seek); break;
+	    opt.max_seek = atoi(optarg);
+	    DEBUG(10) ("max_seek set to %d",opt.max_seek); break;
 	case 'o':
             demux.outdir = optarg;
             flow::outdir = optarg;
@@ -709,12 +718,12 @@ int main(int argc, char *argv[])
 		    std::cerr << "Invalid paramter: " << optarg << "\n";
 		    exit(1);
 		}
-		be_config.namevals[params[0]] = params[1];
+		be_config.set_config(params[0],params[1]);
 		continue;
 	    }
 
 	case 's':
-            demux.opt.output_strip_nonprint = 1; DEBUG(10) ("converting non-printable characters to '.'");
+            opt.output_strip_nonprint = 1; DEBUG(10) ("converting non-printable characters to '.'");
             break;
 	case 'T':
             flow::filename_template = optarg;
@@ -726,10 +735,10 @@ int main(int argc, char *argv[])
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
-	case 'x': be13::plugin::scanners_disable(optarg);break;
+	case 'x': demux.ss->scanners_disable(optarg);break;
 	case 'X': reportfilename = optarg;break;
         case 'z': tcpflow_chroot_dir = optarg; break;
-	case 'Z': demux.opt.gzip_decompress = 0; break;
+	case 'Z': opt.gzip_decompress = 0; break;
 	case 'H': opt_Help += 1; break;
 	case 'h': opt_help += 1; break;
 	default:
@@ -739,8 +748,8 @@ int main(int argc, char *argv[])
 	}
     }
 
-    if(tcpflow_chroot_dir && !tcpflow_droproot_username){
-        err(1,"-z option requires -U option");
+    if (tcpflow_chroot_dir && !tcpflow_droproot_username){
+        throw std::runtime_error("-z option requires -U option");
     }
 
     argc -= optind;
@@ -751,27 +760,33 @@ int main(int argc, char *argv[])
     scanner_info si;
     si.config = &be_config;
 
-    si.get_config("enable_report",&opt_enable_report,"Enable report.xml");
-    be13::plugin::load_scanners(scanners_builtin,be_config);
+    /* be13_api objects */
+    //scanner_info si;
+    //si.config = &be_config;
 
-    if(opt_Help){
-        be13::plugin::info_scanners(true,true,scanners_builtin,'e','x');
+    /* the tcpdemultiplexer object we use. Holds options and state */
+    tcpdemux demux(opt, be_config);
+
+    demux.ss->load_scanners(scanners_builtin,be_config);
+
+    if (opt_Help){
+        demux.ss->info_scanners(true,true,scanners_builtin,'e','x');
         exit(0);
     }
 
-    if(opt_help) {
-        usage(opt_help);
+    if (opt_help) {
+        usage(opt_help, 0, demux);
         exit(0);
     }
 
 
-    if(demux.opt.post_processing && !demux.opt.store_output){
+    if (opt.post_processing && !opt.store_output){
         std::cerr << "ERROR: post_processing currently requires storing output.\n";
         exit(1);
     }
 
-    if(demux.opt.opt_md5) be13::plugin::scanners_enable("md5");
-    be13::plugin::scanners_process_enable_disable_commands();
+    if (opt.opt_md5) demux.ss->scanners_enable("md5");
+    demux.ss->process_scanner_commands();
 
     /* If there is no report filename, call it report.xml in the output directory */
     if( reportfilename.size()==0 ){
@@ -805,7 +820,11 @@ int main(int argc, char *argv[])
 #endif
     }
 
-    if(force_binary_output) demux.opt.output_strip_nonprint = false;
+    if (force_binary_output) opt.output_strip_nonprint = false;
+
+    tcpdemux demux(opt);                // create a demuxer
+
+
     /* make sure outdir is a directory. If it isn't, try to make it.*/
     struct stat stbuf;
     if(stat(demux.outdir.c_str(),&stbuf)==0){
@@ -832,13 +851,14 @@ int main(int argc, char *argv[])
      * Note: If we are going to chroot, we need apply the chroot prefix also,
      * but we need to open the file *now*.
      */
-    if(reportfilename.size()>0 && opt_enable_report){
+    si.get_config("enable_report",&opt_enable_report,"Enable report.xml");
+    if (reportfilename.size()>0 && opt_enable_report){
         if (tcpflow_chroot_dir){
             reportfilename = std::string(tcpflow_chroot_dir) + std::string("/") + reportfilename;
         }
         std::cerr << "reportfilename: " << reportfilename << "\n";
 	xreport = new dfxml_writer(reportfilename,false);
-	dfxml_create(*xreport,command_line);
+	dfxml_create(*xreport,argc,argv);
 	demux.xreport = xreport;
     }
     if(opt_unk_packets.size()>0){
@@ -859,11 +879,14 @@ int main(int argc, char *argv[])
     DEBUG(10) ("%s version %s ", PACKAGE_NAME, PACKAGE_VERSION);
 
     const char *name = device;
-    if(input_fname.size()>0) name=input_fname.c_str();
-    if(name==0) name="<default>";
+    if (input_fname.size()>0) name=input_fname.c_str();
+    if (name==0) name="<default>";
+
+    /* set up dfxml */
 
     feature_file_names_t feature_file_names;
-    be13::plugin::get_scanner_feature_file_names(feature_file_names);
+    demux.ss->get_scanner_feature_file_names(feature_file_names);
+TODO: Need to see how be_hash is passed into the scanner_set object
     feature_recorder_set fs(feature_recorder_set::NO_ALERT,be_hash,name,demux.outdir);
     fs.init(feature_file_names);
     the_fs   = &fs;
@@ -926,7 +949,7 @@ int main(int argc, char *argv[])
 
     demux.remove_all_flows();	// empty the map to capture the state
     std::stringstream ss;
-    be13::plugin::phase_shutdown(fs,xreport ? &ss : 0);
+    demux.ss->phase_shutdown(fs,xreport ? &ss : 0);
 
     /*
      * Note: funny formats below are a result of mingw problems with PRId64.

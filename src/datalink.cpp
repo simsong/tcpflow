@@ -177,7 +177,7 @@ void dl_ppp(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     struct timeval tv;
     be13::packet_info pi(DLT_PPP,h,p,tvshift(tv,h->ts),p + PPP_HDRLEN, caplen - PPP_HDRLEN);
-    be13::plugin::process_packet(pi);
+    demux->ss->process_packet(pi);
 }
 
 
@@ -233,7 +233,7 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
     struct timeval tv;
     be13::packet_info pi(DLT_LINUX_SLL,h,p,tvshift(tv,h->ts),p + SLL_HDR_LEN + mpls_sz, caplen - SLL_HDR_LEN);
-    be13::plugin::process_packet(pi);
+    demux->ss->process_packet(pi);
 }
 #endif
 

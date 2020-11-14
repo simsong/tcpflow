@@ -30,6 +30,7 @@
 /* static */ int tcpdemux::tcp_alert_fd = -1;
 /* static */ std::string tcpdemux::tcp_cmd = "";
 
+<<<<<<< Updated upstream
 tcpdemux::tcpdemux():
 #ifdef HAVE_SQLITE3
     db(),insert_flow(),
@@ -39,6 +40,11 @@ tcpdemux::tcpdemux():
     unique_id(0),
     flow_map(),open_flows(),saved_flow_map(),flow_fd_cache_map(0),
     saved_flows(),start_new_connections(false),opt(),fs()
+=======
+
+tcpdemux::tcpdemux(const struct options &opts_, const struct scanner_config & config):
+    opt(opts_),ss(config)
+>>>>>>> Stashed changes
 {
     tcp_processor = &tcpdemux::process_tcp;
 }
