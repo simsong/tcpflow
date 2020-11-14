@@ -94,7 +94,6 @@ tcpflow_SOURCES = \
 	tcpflow.h util.cpp \
 	scan_md5.cpp \
 	scan_http.cpp \
-	scan_python.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
 	pcap_writer.h \
@@ -103,6 +102,10 @@ tcpflow_SOURCES = \
 	http-parser/http_parser.h \
 	mime_map.cpp \
 	mime_map.h
+
+# Removed because it hasn't been updated to Python 3:
+#	scan_python.cpp
+
 
 EXTRA_DIST =\
 	inet_ntop.c \

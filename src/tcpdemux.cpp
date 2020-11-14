@@ -30,21 +30,17 @@
 /* static */ int tcpdemux::tcp_alert_fd = -1;
 /* static */ std::string tcpdemux::tcp_cmd = "";
 
-<<<<<<< Updated upstream
 tcpdemux::tcpdemux():
-#ifdef HAVE_SQLITE3
     db(),insert_flow(),
-#endif
+    flow_sorter(0),tcp_processor(0),
     outdir("."),flow_counter(0),packet_counter(0),
     xreport(0),pwriter(0),max_open_flows(),max_fds(get_max_fds()-NUM_RESERVED_FDS),
     unique_id(0),
     flow_map(),open_flows(),saved_flow_map(),flow_fd_cache_map(0),
-    saved_flows(),start_new_connections(false),opt(),fs()
-=======
+    saved_flows(),start_new_connections(false),opt(),fs(){}
 
 tcpdemux::tcpdemux(const struct options &opts_, const struct scanner_config & config):
     opt(opts_),ss(config)
->>>>>>> Stashed changes
 {
     tcp_processor = &tcpdemux::process_tcp;
 }
@@ -749,7 +745,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    uint16_t ip_payload_len = ip_len - ip_header_len;
+    uint16_t ip_payload_len = pi.ip_datalen - ip_header_len;
     ipaddr src(ip_header->ip_src.addr);
     ipaddr dst(ip_header->ip_dst.addr);
     return (this->*tcp_processor)(src, dst ,AF_INET,

@@ -46,10 +46,13 @@
  * This is a singleton class; we only need a single demultiplexer.
  */
 class tcpdemux {
+<<<<<<< HEAD
     /* These are not implemented */
     tcpdemux(const tcpdemux &t)=delete;
     tcpdemux &operator=(const tcpdemux &that)=delete;
 
+=======
+>>>>>>> origin/master
     /* see http://mikecvet.wordpress.com/tag/hashing/ */
     typedef struct {
         long operator() (const flow_addr &k) const {return k.hash(); }
@@ -76,7 +79,6 @@ class tcpdemux {
     sqlite3 *db;
     sqlite3_stmt *insert_flow;
 #endif
-
     pcap_writer *flow_sorter;
 
     /* facility logic hinge */
@@ -124,6 +126,7 @@ public:
 
     enum { WARN_TOO_MANY_FILES=10000};  // warn if more than this number of files in a directory
 
+<<<<<<< HEAD
     std::string   outdir {};              // output directory
     uint64_t      flow_counter {};        // how many flows have we seen?
     uint64_t      packet_counter {};         // monotomically increasing
@@ -135,16 +138,32 @@ public:
 
     flow_map_t    flow_map {};               // db of open tcpip objects, indexed by flow
     intrusive_list<tcpip> open_flows {}; // the tcpip flows with open files in access order
+=======
+    std::string  outdir;                 /* output directory */
+    uint64_t     flow_counter;           // how many flows have we seen?
+    uint64_t     packet_counter;         // monotomically increasing 
+    dfxml_writer *xreport;               // DFXML output file
+    pcap_writer  *pwriter;               // where we should write packets
+    unsigned int max_open_flows;        // how large did it ever get?
+    unsigned int max_fds;               // maximum number of file descriptors for this tcpdemux
+    uint64_t     unique_id;                 // next unique id to assign
+>>>>>>> origin/master
 
-    flow_map_t  flow_map;               // db of open tcpip objects, indexed by flow
+    flow_map_t   flow_map;               // db of open tcpip objects, indexed by flow
     intrusive_list<tcpip> open_flows; // the tcpip flows with open files in access order
 
     options     opt {};
     class       scanner_set          ss; // the scanner set. It contains the feature recordset set
 
+<<<<<<< HEAD
     options     opt;
     class       feature_recorder_set *fs; // where features extracted from each flow should be stored
 
+=======
+    options      opt;
+    class feature_recorder_set *fs; // where features extracted from each flow should be stored
+    
+>>>>>>> origin/master
     static uint32_t max_saved_flows;       // how many saved flows are kept in the saved_flow_map
 
     void alter_processing_core();
@@ -195,6 +214,11 @@ public:
     int  process_ip4(const be13::packet_info &pi);
     int  process_ip6(const be13::packet_info &pi);
     int  process_pkt(const be13::packet_info &pi);
+private:;
+    /* These are not implemented */
+    tcpdemux(const tcpdemux &t);
+    tcpdemux &operator=(const tcpdemux &that);
+
 };
 
 

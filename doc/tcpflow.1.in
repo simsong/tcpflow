@@ -613,14 +613,14 @@ used to indicate the function within the python module)
 To record all packets arriving at or departing from \fIsundown\fP and extract all of the HTTP attachments:
 .RS
 .nf
-\fBtcpflow -e scan_http -o outdir host sundown\fP
+\fBtcpflow -e http -o outdir host sundown\fP
 .fi
 .RE
 .LP
 To record traffic between \fIhelios\fR and either \fIhot\fR or \fIace\fR and bin the results into 1000 files per directory and calculate the MD5 of each flow:
 .RS
 .nf
-\fBtcpflow -X report.xml -e scan_md5 -o outdir -Fk host helios and \\( hot or ace \\)\fP
+\fBtcpflow -X report.xml -e md5 -o outdir -Fk host helios and \\( hot or ace \\)\fP
 .fi
 .SH BUGS
 Please send bug reports to simsong@acm.org.

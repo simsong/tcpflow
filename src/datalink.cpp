@@ -16,6 +16,7 @@
  * For wifi datalink handlers, please see datalink_wifi.cpp
  */
 
+#include <stddef.h>
 #include "tcpflow.h"
 
 /* The DLT_NULL packet header is 4 bytes long. It contains a network
@@ -45,7 +46,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
     u_int length = h->len;
-    uint32_t family = *(uint32_t *)p;
+    uint32_t family = (uint32_t)*p;
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte null frame",
@@ -95,10 +96,19 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     u_int caplen = h->caplen;
     u_int length = h->len;
     struct be13::ether_header *eth_header = (struct be13::ether_header *) p;
+    u_int ether_type_offset = offsetof(struct be13::ether_header, ether_type);
 
     /* Variables to support VLAN */
-    const u_short *ether_type = &eth_header->ether_type; /* where the ether type is located */
-    const u_char *ether_data = p+sizeof(struct be13::ether_header); /* where the data is located */
+    const u_short *ether_type = NULL;
+    const u_char *ether_data = NULL;
+
+    if (caplen < ether_type_offset) {
+        DEBUG(0) ("error: the captured packet header bytes are shorter than the ether_type offset");
+        return;
+    }
+
+    ether_type = &eth_header->ether_type; /* where the ether type is located */
+    ether_data = p+sizeof(struct be13::ether_header); /* where the data is located */
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte ether frame",
@@ -106,13 +116,22 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* Handle basic VLAN packets */
-    while (ntohs(*ether_type) == ETHERTYPE_VLAN ||
-    		ntohs(*ether_type) == ETH_P_QINQ1 ||
-		ntohs(*ether_type) == ETH_P_8021AD) {
+    while (ntohs(*ether_type) == ETHERTYPE_VLAN
+#ifdef ETH_P_QINQ1
+           || ntohs(*ether_type) == ETH_P_QINQ1
+#endif
+#ifdef ETH_P_8021AD
+           || ntohs(*ether_type) == ETH_P_8021AD
+#endif
+           ) {
 	//vlan = ntohs(*(u_short *)(p+sizeof(struct ether_header)));
 	ether_type += 2;			/* skip past VLAN header (note it skips by 2s) */
 	ether_data += 4;			/* skip past VLAN header */
 	caplen     -= 4;
+        if (caplen < ether_type_offset) {
+            DEBUG(0) ("error: the captured packet header bytes are shorter than the ether_type offset");
+            return;
+        }
     }
 
     if (caplen < sizeof(struct be13::ether_header)) {
@@ -121,34 +140,41 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* Create a packet_info structure with ip data and data length  */
-    struct timeval tv;
-    be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
-                         ether_data, caplen - sizeof(struct be13::ether_header));
-    switch (ntohs(*ether_type)){
-    case ETHERTYPE_IP:
-    case ETHERTYPE_IPV6:
-        be13::plugin::process_packet(pi);
-        break;
+    try {
+        struct timeval tv;
+        be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
+                             ether_data, caplen - sizeof(struct be13::ether_header));
+        switch (ntohs(*ether_type)){
+        case ETHERTYPE_IP:
+        case ETHERTYPE_IPV6:
+            be13::plugin::process_packet(pi);
+            break;
 
 #ifdef ETHERTYPE_ARP
-    case ETHERTYPE_ARP:
-        /* What should we do for ARP? */
-        break;
+        case ETHERTYPE_ARP:
+            /* What should we do for ARP? */
+            break;
 #endif
 #ifdef ETHERTYPE_LOOPBACK
-    case ETHERTYPE_LOOPBACK:
-        /* What do do for loopback? */
-        break;
+        case ETHERTYPE_LOOPBACK:
+            /* What do do for loopback? */
+            break;
 #endif
 #ifdef ETHERTYPE_REVARP
-    case ETHERTYPE_REVARP:
-        /* What to do for REVARP? */
-        break;
+        case ETHERTYPE_REVARP:
+            /* What to do for REVARP? */
+            break;
 #endif
-    default:
-        /* Unknown Ethernet Frame Type */
-        DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
-	break;
+        default:
+            /* Unknown Ethernet Frame Type */
+            DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
+            break;
+        }
+    } catch( std::logic_error e){
+        std::string s(std::string("warning: caught std::logic_error ")
+                      + e.what()
+                      + std::string(" in packet"));
+        DEBUG(6)(s.c_str());
     }
 }
 

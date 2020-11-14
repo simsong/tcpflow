@@ -1,0 +1,39 @@
+# This file based on https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
+# See: https://help.github.com/en/actions/reference/software-installed-on-github-hosted-runners
+# 2020-06-22 - slg - customized
+# 2020-06-27 - slg - expanded to G++ for MacOS
+# 2020-07-03 - slg - ported to be13_api; removed python (be13_api doesn't use python)
+
+name: BE13_API CI (c++14)
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-18.04', 'ubuntu-20.04', 'macos-10.15']
+
+    steps:
+      # https://github.com/actions/checkout
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install C++ dependencies on MacOS
+        if: startsWith(matrix.os, 'macOS')
+        run: |
+           bash etc/install_autotools.sh
+
+      - name: Install C++ dependencies on Ubuntu
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+           sudo apt install libtool autoconf automake g++ libboost-dev libssl-dev libpcap-dev libcairo2-dev
+           automake --help
+
+      - name: c/c++ test
+        run: |
+          bash bootstrap.sh
+          ./configure && make && make check 
+

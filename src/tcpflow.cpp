@@ -86,7 +86,8 @@ scanner_t *scanners_builtin[] = {
     scan_md5,
     scan_http,
     scan_netviz,
-    scan_python,
+// removed scan_python becasue it does not support Python 3
+//    scan_python,
     scan_tcpdemux,
 #ifdef USE_WIFI
     scan_wifiviz,
@@ -424,7 +425,7 @@ void tcpflow_droproot(tcpdemux &demux)
 #ifdef HAVE_INFLATER
 static inflaters_t *inflaters = 0;
 #endif
-static int process_infile(tcpdemux &demux,const std::string &expression,const char *device,const std::string &infile)
+static int process_infile(tcpdemux &demux,const std::string &expression,std::string &device,const std::string &infile)
 {
     char error[PCAP_ERRBUF_SIZE];
     int dlt=0;
@@ -464,7 +465,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 	handler = find_handler(dlt, infile.c_str());
     } else {
 	/* if the user didn't specify a device, try to find a reasonable one */
-    if (device == NULL){
+    if (device.empty()){
 #ifdef HAVE_PCAP_FINDALLDEVS
         char errbuf[PCAP_ERRBUF_SIZE];
         pcap_if_t *alldevs = 0;
@@ -476,23 +477,25 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
             die("found 0 devices, maybe you don't have permissions, switch to root or equivalent user instead.");
         }
 
-        device=strdup(alldevs[0].name);
+        device.assign(alldevs[0].name);
         pcap_freealldevs(alldevs);
 #else
-        if ((device = pcap_lookupdev(error)) == NULL){
+        const char* dev = pcap_lookupdev(error);
+        if (dev == NULL)
             die("%s", error);
-        }
+
+        device.assign(dev);
 #endif
     }
 
 	/* make sure we can open the device */
-	if ((pd = pcap_open_live(device, SNAPLEN, !opt_no_promisc, packet_buffer_timeout, error)) == NULL){
+	if ((pd = pcap_open_live(device.c_str(), SNAPLEN, !opt_no_promisc, packet_buffer_timeout, error)) == NULL){
 	    die("%s", error);
 	}
         tcpflow_droproot(demux);                     // drop root if requested
 	/* get the handler for this kind of packets */
 	dlt = pcap_datalink(pd);
-	handler = find_handler(dlt, device);
+	handler = find_handler(dlt, device.c_str());
     }
 
     DEBUG(20) ("filter expression: '%s'",expression.c_str());
@@ -520,7 +523,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,const ch
 #endif
 
     /* start listening or reading from the input file */
-    if (infile == "") DEBUG(1) ("listening on %s", device);
+    if (infile == "") DEBUG(1) ("listening on %s", device.c_str());
     int pcap_retval = pcap_loop(pd, -1, handler, (u_char *)tcpdemux::getInstance());
 
     if (pcap_retval < 0 && pcap_retval != -2){
@@ -682,7 +685,7 @@ int main(int argc, char *argv[])
             demux.max_fds = mnew;
 	    break;
         }
-	case 'i': device = optarg; break;
+    case 'i': device = std::string(optarg); break;
  	case 'I':
             DEBUG(10) ("creating packet index files");
             opt.output_packet_index = true;
@@ -886,7 +889,7 @@ int main(int argc, char *argv[])
 
     feature_file_names_t feature_file_names;
     demux.ss->get_scanner_feature_file_names(feature_file_names);
-TODO: Need to see how be_hash is passed into the scanner_set object
+    //TODO: Need to see how be_hash is passed into the scanner_set object
     feature_recorder_set fs(feature_recorder_set::NO_ALERT,be_hash,name,demux.outdir);
     fs.init(feature_file_names);
     the_fs   = &fs;

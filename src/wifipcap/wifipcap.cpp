@@ -1444,6 +1444,14 @@ void WifiPacket::handle_radiotap(const u_char *p,size_t caplen)
 
     const u_char *iter = (u_char*)(last_presentp + 1);
     struct cpack_state cpacker;
+
+
+    /* Handle malformed data */
+    if ((ssize_t)(len - (iter - p)) <= 0) {
+        cbs->HandleRadiotap( *this, NULL, p, caplen);
+        return;// caplen;
+    }
+
     if (cpack_init(&cpacker, (u_int8_t*)iter, len - (iter - p)) != 0) {
         /* XXX */
         //printf("[|802.11]");
