@@ -19,8 +19,8 @@
 #define DEBUG_DUMP_DATA   0x0010        // dump data as it is seen
 #define DEBUG_DECODING    0x0020        // debug decoders in scanner
 #define DEBUG_INFO        0x0040        // print extra info
-#define DEBUG_EXIT_EARLY  1000          // just print the size of the volume and exis 
-#define DEBUG_ALLOCATE_512MiB 1002      // Allocate 512MiB, but don't set any flags 
+#define DEBUG_EXIT_EARLY  1000          // just print the size of the volume and exis
+#define DEBUG_ALLOCATE_512MiB 1002      // Allocate 512MiB, but don't set any flags
 
 /* We need netinet/in.h or windowsx.h */
 #ifdef HAVE_NETINET_IN_H
@@ -65,10 +65,10 @@
  * Scanners are called with two parameters:
  * A reference to a scanner_params (SP) object.
  * A reference to a recursion_control_block (RCB) object.
- * 
+ *
  * On startup, each scanner is called with a special SP and RCB.
  * The scanners respond by setting fields in the SP and returning.
- * 
+ *
  * When executing, once again each scanner is called with the SP and RCB.
  * This is the only file that needs to be included for a scanner.
  *
@@ -134,7 +134,7 @@
 /**
  * \class scanner_params
  * The scanner params class is the primary way that the bulk_extractor framework
- * communicates with the scanners. 
+ * communicates with the scanners.
  * @param sbuf - the buffer to be scanned
  * @param feature_names - if fs==0, add to feature_names the feature file types that this
  *                        scanner records.. The names can have a /c appended to indicate
@@ -144,7 +144,7 @@
 
 /*****************************************************************
  *** bulk_extractor has a private implementation of IPv4 and IPv6,
- *** UDP and TCP. 
+ *** UDP and TCP.
  ***
  *** We did this becuase we found slightly different versions on
  *** MacOS, Ubuntu Linux, Fedora Linux, Centos, Mingw, and Cygwin.
@@ -185,7 +185,7 @@ namespace be13 {
     typedef uint32_t ip4_addr_t;         // historical
 
     // on windows we use the definition that's in winsock
-    struct ip4_addr {   
+    struct ip4_addr {
         ip4_addr_t addr;
     };
 
@@ -284,8 +284,8 @@ namespace be13 {
  * The packet_info structure records packets after they are read from the pcap library.
  * It preserves the original pcap information and information decoded from the MAC and
  * VLAN (IEEE 802.1Q) layers, as well as information that might be present from 802.11
- * interfaces. However it does not preserve the full radiotap information. 
- * 
+ * interfaces. However it does not preserve the full radiotap information.
+ *
  * packet_info is created to make it easier to write network forensic software. It encapsulates
  * much of the common knowledge needed to operate on packet-based IP networks.
  *
@@ -293,7 +293,7 @@ namespace be13 {
  * @param pcap_data - Original data offset point from pcap
  * @param data - the actual packet data, minus the MAC layer
  * @param datalen - How much data is available at the datalen pointer
- * 
+ *
  */
 class packet_info {
 public:
@@ -373,7 +373,7 @@ public:
         return 0;
     }
 #endif
-    
+
 #ifndef ETHERTYPE_PUP
 #define ETHERTYPE_PUP           0x0200          /* Xerox PUP */
 #endif
@@ -418,8 +418,8 @@ public:
 #define ETHERTYPE_LOOPBACK      0x9000          /* used to test interfaces */
 #endif
 
-    
-    inline u_short packet_info::nshort(const u_char *buf,size_t pos) 
+
+    inline u_short packet_info::nshort(const u_char *buf,size_t pos)
     {
         return (buf[pos]<<8) | (buf[pos+1]);
     }
@@ -431,7 +431,7 @@ public:
         }
         return -1;
     }
-    
+
     inline int packet_info::ip_version() const
     {
         /* This takes advantage of the fact that ip4 and ip6 put the version number in the same place */
@@ -575,7 +575,7 @@ public:
             throw new frame_too_short();
         }
         //return ntohs(*((uint16_t *) (ip_data + sizeof(struct ip4) + tcp_dport_off)));
-        return nshort(ip_data,sizeof(struct ip4) + tcp_dport_off); // 
+        return nshort(ip_data,sizeof(struct ip4) + tcp_dport_off); //
 
     }
     inline uint16_t packet_info::get_ip6_tcp_sport() const
@@ -584,7 +584,7 @@ public:
             throw new frame_too_short();
         }
         //return ntohs(*((uint16_t *) (ip_data + sizeof(struct ip6_hdr) + tcp_sport_off)));
-        return nshort(ip_data,sizeof(struct ip6_hdr) + tcp_sport_off); // 
+        return nshort(ip_data,sizeof(struct ip6_hdr) + tcp_sport_off); //
     }
     inline uint16_t packet_info::get_ip6_tcp_dport() const
     {
@@ -592,15 +592,15 @@ public:
             throw new frame_too_short();
         }
         //return ntohs(*((uint16_t *) (ip_data + sizeof(struct ip6_hdr) + tcp_dport_off)));
-        return nshort(ip_data,sizeof(struct ip6_hdr) + tcp_dport_off); // 
+        return nshort(ip_data,sizeof(struct ip6_hdr) + tcp_dport_off); //
     }
 };
 
 
 typedef void scanner_t(const class scanner_params &sp,const class recursion_control_block &rcb);
-typedef void process_t(const class scanner_params &sp); 
+typedef void process_t(const class scanner_params &sp);
 typedef void packet_callback_t(void *user,const be13::packet_info &pi);
-    
+
 /** scanner_info gets filled in by the scanner to tell the caller about the scanner.
  *
  */
@@ -617,16 +617,16 @@ private:
     typedef std::map<std::string,std::string>  config_t; // configuration for scanner passed in
 
     /* scanner flags */
-    static const int SCANNER_DISABLED       = 0x001; // v1: enabled by default 
-    static const int SCANNER_NO_USAGE       = 0x002; // v1: do not show scanner in usage 
-    static const int SCANNER_NO_ALL         = 0x004; // v2: do not enable with -eall 
-    static const int SCANNER_FIND_SCANNER   = 0x008; // v2: this scanner uses the find_list 
+    static const int SCANNER_DISABLED       = 0x001; // v1: enabled by default
+    static const int SCANNER_NO_USAGE       = 0x002; // v1: do not show scanner in usage
+    static const int SCANNER_NO_ALL         = 0x004; // v2: do not enable with -eall
+    static const int SCANNER_FIND_SCANNER   = 0x008; // v2: this scanner uses the find_list
     static const int SCANNER_RECURSE        = 0x010; // v3: this scanner will recurse
     static const int SCANNER_RECURSE_EXPAND = 0x020; // v3: recurses AND result is >= original size
     static const int SCANNER_WANTS_NGRAMS   = 0x040; // v3: Scanner gets buffers that are constant n-grams
     static const int SCANNER_FAST_FIND      = 0x080; // v3: This scanner is a very fast FIND scanner
     static const int SCANNER_DEPTH_0        = 0x100; // v3: scanner only runs at depth 0 by default
-    static const int CURRENT_SI_VERSION     = 4;     
+    static const int CURRENT_SI_VERSION     = 4;
 
     static const std::string flag_to_string(const int flag){
         std::string ret;
@@ -652,7 +652,7 @@ private:
     };
 
     // never change the order or delete old fields, or else you will
-    // break backwards compatability 
+    // break backwards compatability
     scanner_info():si_version(CURRENT_SI_VERSION),
                    name(),author(),description(),url(),scanner_version(),flags(0),feature_names(),
                    histogram_defs(),packet_user(),packet_cb(),config(){}
@@ -801,7 +801,7 @@ class recursion_control_block {
     process_t *callback;
     std::string partName;            /* eg "ZIP", "GZIP" */
 };
-    
+
 /* plugin.cpp. This will become a class...  */
 class scanner_def {
 public:;
@@ -831,16 +831,16 @@ namespace be13 {
         static void load_scanner_directory(const std::string &dirname,const scanner_info::scanner_config &sc); // load scanners in the directory
         static void load_scanner_directories(const std::vector<std::string> &dirnames,const scanner_info::scanner_config &sc);
         static void load_scanner_packet_handlers();
-        
+
         // send every enabled scanner the phase message
         static void message_enabled_scanners(scanner_params::phase_t phase,feature_recorder_set &fs);
 
         // returns the named scanner, or 0 if no scanner of that name
-        static scanner_t *find_scanner(const std::string &name); 
+        static scanner_t *find_scanner(const std::string &name);
         static void get_enabled_scanners(std::vector<std::string> &svector); // put the enabled scanners into the vector
-        static void add_enabled_scanner_histograms_to_feature_recorder_set(feature_recorder_set &fs); 
+        static void add_enabled_scanner_histograms_to_feature_recorder_set(feature_recorder_set &fs);
         static bool find_scanner_enabled(); // return true if a find scanner is enabled
-        
+
         // print info about the scanners:
         static void scanners_disable_all();                    // saves a command to disable all
         static void scanners_enable_all();                    // enable all of them
@@ -854,7 +854,7 @@ namespace be13 {
         static void info_scanners(bool detailed_info,
                                   bool detailed_settings,
                                   scanner_t * const *scanners_builtin,const char enable_opt,const char disable_opt);
-        
+
 
         /* Run the phases on the scanners */
         static void phase_shutdown(feature_recorder_set &fs,std::stringstream *sxml=0); // sxml is where to put XML from scanners that shutdown
@@ -877,7 +877,7 @@ inline std::string safe_utf16to8(std::wstring s){ // needs to be cleaned up
     std::string utf8_line;
     try {
         utf8::utf16to8(s.begin(),s.end(),back_inserter(utf8_line));
-    } catch(utf8::invalid_utf16){
+    } catch(utf8::invalid_utf16 const &){
         /* Exception thrown: bad UTF16 encoding */
         utf8_line = "";
     }
@@ -888,7 +888,7 @@ inline std::wstring safe_utf8to16(std::string s){ // needs to be cleaned up
     std::wstring utf16_line;
     try {
         utf8::utf8to16(s.begin(),s.end(),back_inserter(utf16_line));
-    } catch(utf8::invalid_utf8){
+    } catch(utf8::invalid_utf8 const &){
         /* Exception thrown: bad UTF16 encoding */
         utf16_line = L"";
     }
@@ -922,7 +922,7 @@ inline int isxdigit(int c)
 inline std::string microsoftDateToISODate(const uint64_t &time)
 {
     time_t tmp = (time / ONE_HUNDRED_NANO_SEC_TO_SECONDS) - SECONDS_BETWEEN_WIN32_EPOCH_AND_UNIX_EPOCH;
-    
+
     struct tm time_tm;
     gmtime_r(&tmp, &time_tm);
     char buf[256];
