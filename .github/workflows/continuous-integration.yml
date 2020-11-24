@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-18.04', 'ubuntu-20.04', 'macos-10.15']
+        os: ['ubuntu-18.04', 'ubuntu-20.04']
 
     steps:
       # https://github.com/actions/checkout
@@ -35,5 +35,4 @@ jobs:
       - name: c/c++ test
         run: |
           bash bootstrap.sh
-          ./configure && make && make check 
-
+          ./configure && make && make check
