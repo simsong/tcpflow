@@ -204,7 +204,7 @@ static void usage(int level)
  * Create the dfxml output
  */
 
-static void dfxml_create(class dfxml_writer &xreport,const std::string &command_line)
+static void dfxml_create(class dfxml_writer &xreport,int argc,char * const *argv)
 {
     xreport.push("dfxml","xmloutputversion='1.0'");
     xreport.push("metadata",
@@ -213,7 +213,7 @@ static void dfxml_create(class dfxml_writer &xreport,const std::string &command_
 		 "\n  xmlns:dc='http://purl.org/dc/elements/1.1/'" );
     xreport.xmlout("dc:type","Feature Extraction","",false);
     xreport.pop();
-    xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"",command_line);
+    xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"",argc,argv);
 }
 
 
