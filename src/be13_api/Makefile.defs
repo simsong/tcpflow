@@ -1,0 +1,36 @@
+BE13_API= \
+        be13_api/atomic_set_map.h \
+        be13_api/aftimer.h \
+        be13_api/beregex.cpp \
+        be13_api/beregex.h \
+        be13_api/bulk_extractor_i.h \
+        be13_api/cppmutex.h \
+        be13_api/feature_recorder.cpp \
+        be13_api/feature_recorder.h \
+        be13_api/feature_recorder_set.cpp \
+        be13_api/feature_recorder_set.h \
+        be13_api/feature_recorder_sql.cpp \
+        be13_api/histogram.h \
+        be13_api/histogram.cpp \
+        be13_api/net_ethernet.h \
+        be13_api/pcap_fake.cpp \
+        be13_api/pcap_fake.h \
+        be13_api/plugin.cpp \
+        be13_api/sbuf.cpp \
+        be13_api/sbuf.h \
+        be13_api/sbuf_private.h \
+        be13_api/sbuf_stream.cpp \
+        be13_api/sbuf_stream.h \
+        be13_api/unicode_escape.cpp \
+        be13_api/unicode_escape.h \
+        be13_api/utf8.h \
+        be13_api/utf8/checked.h \
+        be13_api/utf8/core.h \
+        be13_api/utf8/unchecked.h \
+        be13_api/utils.cpp \
+        be13_api/utils.h \
+        be13_api/word_and_context_list.cpp \
+        be13_api/word_and_context_list.h 
+
+
+

@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-18.04', 'ubuntu-20.04', 'macos-10.15']
+        os: ['ubuntu-20.04']
 
     steps:
       # https://github.com/actions/checkout
@@ -29,11 +29,10 @@ jobs:
       - name: Install C++ dependencies on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-           sudo apt install libtool autoconf automake g++ libboost-dev libssl-dev libpcap-dev libcairo2-dev
+           sudo apt install libtool autoconf automake g++ libboost-all-dev libssl-dev libpcap-dev libcairo2-dev
            automake --help
 
       - name: c/c++ test
         run: |
           bash bootstrap.sh
-          ./configure && make && make check 
-
+          ./configure && make && make check

@@ -1,11 +1,3 @@
-[submodule "src/be13_api"]
-	path = src/be13_api
-	url = https://github.com/simsong/be13_api.git
-	branch = master
-[submodule "src/dfxml"]
-	path = src/dfxml_x
-	url = https://github.com/simsong/dfxml.git
-	branch = master
 [submodule "src/http-parser"]
 	path = src/http-parser
 	url = https://github.com/simsong/http-parser.git

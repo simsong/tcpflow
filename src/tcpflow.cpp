@@ -204,7 +204,7 @@ static void usage(int level)
  * Create the dfxml output
  */
 
-static void dfxml_create(class dfxml_writer &xreport,const std::string &command_line)
+static void dfxml_create(class dfxml_writer &xreport,int argc,char * const *argv)
 {
     xreport.push("dfxml","xmloutputversion='1.0'");
     xreport.push("metadata",
@@ -213,7 +213,7 @@ static void dfxml_create(class dfxml_writer &xreport,const std::string &command_
 		 "\n  xmlns:dc='http://purl.org/dc/elements/1.1/'" );
     xreport.xmlout("dc:type","Feature Extraction","",false);
     xreport.pop();
-    xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"",command_line);
+    xreport.add_DFXML_creator(PACKAGE_NAME,PACKAGE_VERSION,"","command line to be provided");
 }
 
 
@@ -547,13 +547,13 @@ static std::string be_hash_name("md5");
 static std::string be_hash_func(const uint8_t *buf,size_t bufsize)
 {
     if(be_hash_name=="md5" || be_hash_name=="MD5"){
-        return dfxml::md5_generator::hash_buf(buf,bufsize).hexdigest();
+        return md5_generator::hash_buf(buf,bufsize).hexdigest();
     }
     if(be_hash_name=="sha1" || be_hash_name=="SHA1" || be_hash_name=="sha-1" || be_hash_name=="SHA-1"){
-        return dfxml::sha1_generator::hash_buf(buf,bufsize).hexdigest();
+        return sha1_generator::hash_buf(buf,bufsize).hexdigest();
     }
     if(be_hash_name=="sha256" || be_hash_name=="SHA256" || be_hash_name=="sha-256" || be_hash_name=="SHA-256"){
-        return dfxml::sha256_generator::hash_buf(buf,bufsize).hexdigest();
+        return sha256_generator::hash_buf(buf,bufsize).hexdigest();
     }
     std::cerr << "Invalid hash name: " << be_hash_name << "\n";
     std::cerr << "This version of bulk_extractor only supports MD5, SHA1, and SHA256\n";
@@ -564,6 +564,8 @@ static feature_recorder_set::hash_def be_hash(be_hash_name,be_hash_func);
 
 int main(int argc, char *argv[])
 {
+    int argc_original = argc;
+    char **argv_original = argv;
     program_name = argv[0];
     int opt_help = 0;
     int opt_Help = 0;
@@ -841,7 +843,7 @@ int main(int argc, char *argv[])
         }
         std::cerr << "reportfilename: " << reportfilename << "\n";
 	xreport = new dfxml_writer(reportfilename,false);
-	dfxml_create(*xreport,command_line);
+	dfxml_create(*xreport,argc_original,argv_original);
 	demux.xreport = xreport;
     }
     if(opt_unk_packets.size()>0){

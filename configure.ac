@@ -7,7 +7,7 @@
 # and http://www.openismus.com/documents/linux/automake/automake.shtml
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.6.0, simsong@acm.org)
+AC_INIT(TCPFLOW, 1.6.1, simsong@acm.org)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
@@ -143,50 +143,7 @@ done
 unset option
 
 
-# C++
-# We don't use these warnings:
-# -Waggregate-return -- aggregate returns are GOOD; they simplify code design
-# We can use these warnings after ZLIB gets upgraded:
-# -Wundef  --- causes problems with zlib
-# -Wcast-qual
-# -Wmissing-format-attribute  --- Just too annoying
-AC_LANG_PUSH(C++)
-WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
-    -Wshadow -Wwrite-strings -Wcast-align  \
-    -Wredundant-decls -Wdisabled-optimization \
-    -Wfloat-equal -Wmultichar -Wmissing-noreturn \
-    -Woverloaded-virtual -Wsign-promo \
-    -funit-at-a-time"
-
-add_strict_null_sentinel='yes'
-if $CXX -dM -E - < /dev/null | grep -q __clang__ ; then
-   AC_MSG_RESULT([Using clang])
-   add_strict_null_sentinel='no'
-fi
-
-if uname -a | grep -q Darwin; then
-   add_strict_null_sentinel='no'
-fi
-
-if [ $add_strict_null_sentinel = 'yes' ]; then
-   WARNINGS_TO_TEST="$WARNINGS_TO_TEST -Wstrict-null-sentinel"
-fi
-
-for option in $WARNINGS_TO_TEST
-do
-  SAVE_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS="$CXXFLAGS $option"
-  AC_MSG_CHECKING([whether g++ understands $option])
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-      [has_option=yes],
-      [has_option=no; CXXFLAGS="$SAVE_CXXFLAGS"])
-  AC_MSG_RESULT($has_option)
-  unset has_option
-  unset SAVE_CXXFLAGS
-done
-unset option
-AC_LANG_POP()
-
+# CUT1
 ################################################################
 ##
 

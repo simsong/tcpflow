@@ -211,7 +211,7 @@ void tcpdemux::post_process(tcpip *tcp)
         /* Open the fd if it is not already open */
         tcp->open_file();
         if(tcp->fd>=0){
-            sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,tcp->fd, false);
+            sbuf_t *sbuf = sbuf_t::map_file(tcp->flow_pathname,tcp->fd);
             if(sbuf){
                 be13::plugin::process_sbuf(scanner_params(scanner_params::PHASE_SCAN,*sbuf,*(fs),&xmladd));
                 delete sbuf;
@@ -706,7 +706,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
 
     DEBUG(100)("process_ip4. caplen=%d vlan=%d  ip_p=%d",(int)pi.pcap_hdr->caplen,(int)pi.vlan(),(int)ip_header->ip_p);
     if(debug>200){
-	sbuf_t sbuf(pos0_t(),(const uint8_t *)pi.ip_data,pi.ip_datalen,pi.ip_datalen,false, false);
+	sbuf_t sbuf(pos0_t(),(const uint8_t *)pi.ip_data,pi.ip_datalen,pi.ip_datalen,0,false, false,false);
 	sbuf.hex_dump(std::cerr);
     }
 
