@@ -9,6 +9,10 @@ addons:
     - libpcap-dev
     - libcairo2-dev
 language: cpp
+arch:
+  - amd64
+  - ppc64le
+dist: bionic
 compiler: clang
 install:
  - ./bootstrap.sh && ./configure && make
