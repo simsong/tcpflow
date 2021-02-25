@@ -70,7 +70,7 @@ case $host in
      ;;
 
    *)
-     CXXFLAGS="$CXXFLAGS -Wno-address-of-packed-member"
+     CXXFLAGS="$CXXFLAGS -Wno-address-of-packed-member -fno-new-ttp-matching"
      ;;
 esac
 
