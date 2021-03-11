@@ -171,10 +171,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
             break;
         }
     } catch( std::logic_error e){
-        std::string s(std::string("warning: caught std::logic_error ")
-                      + e.what()
-                      + std::string(" in packet"));
-        DEBUG(6)(s.c_str());
+        DEBUG(6)("Warning: caught std::logic_error %s in packet",e.what());
     }
 }
 
