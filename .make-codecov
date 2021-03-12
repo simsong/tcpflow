@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# 2020-10-29 - slg - compile for codecov, run self-test, and upload results.
+#
+export CODECOV_TOKEN='d97f1a9d-88e1-4db4-b14c-5b2edef43cf6'
+bash bootstrap.sh
+./configure CFLAGS='-g -O0 -fprofile-arcs -ftest-coverage' \
+            CXXFLAGS='-g -O0 -fprofile-arcs -ftest-coverage' \
+            LIBS='-lgcov'
+make clean \
+     && make  \
+     && make check \
+     && gcov-9 -n -o . *cpp \
+     && bash <(curl -s https://codecov.io/bash)
+make distclean

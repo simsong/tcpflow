@@ -36,3 +36,13 @@ jobs:
         run: |
           bash bootstrap.sh
           ./configure && make && make check
+
+      - uses: ammaraskar/gcc-problem-matcher@0.1
+        name: GCC Problem Matcher
+
+      - name: codecov report
+        if: startsWith(matrix.os, 'ubuntu')
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+           bash .make-codecov
