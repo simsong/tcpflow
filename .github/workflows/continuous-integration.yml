@@ -42,5 +42,7 @@ jobs:
 
       - name: codecov report
         if: startsWith(matrix.os, 'ubuntu')
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
            bash .make-codecov
