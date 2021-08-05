@@ -474,7 +474,8 @@ int tcpdemux::process_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
     int32_t  delta = 0;			// from current position in tcp connection; must be SIGNED 32 bit!
     tcpip   *tcp = find_tcpip(this_flow);
 
-    DEBUG(60)("%s%s%s%s tcp_header_len=%d tcp_datalen=%d seq=%u tcp=%p",
+    DEBUG(60)("%s %s%s%s%s tcp_header_len=%d tcp_datalen=%d seq=%u tcp=%p",
+              this_flow.str().c_str(),
               (syn_set?"SYN ":""),(ack_set?"ACK ":""),(fin_set?"FIN ":""),(rst_set?"RST ":""),(int)tcp_header_len,(int)tcp_datalen,(int)seq,tcp);
 
     /* If this_flow is not in the database and the start_new_connections flag is false, just return */
