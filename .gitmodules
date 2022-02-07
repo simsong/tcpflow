@@ -1,6 +1,6 @@
 [submodule "src/be13_api"]
 	path = src/be13_api
-	url = https://github.com/simsong/be13_api.git
+	url = https://github.com/simsong/be20_api.git
 	branch = master
 [submodule "src/dfxml"]
 	path = src/dfxml_x
