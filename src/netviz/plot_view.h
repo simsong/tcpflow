@@ -23,6 +23,7 @@
 #include <cairo/cairo-pdf.h>
 #endif
 
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <math.h>
