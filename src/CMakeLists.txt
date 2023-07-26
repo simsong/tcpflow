@@ -85,7 +85,7 @@ check_include_files(unordered_map HAVE_UNORDERED_MAP)
 check_include_files(unordered_set HAVE_UNORDERED_SET)
 check_include_files(winsock2.h HAVE_WINSOCK2_H)
 check_include_files(zlib.h HAVE_ZLIB_H)
-check_include_files(python2.7/Python.h PYTHON2_7_PYTHON_H)  # TODO(olibre): Use instead PYTHON_INCLUDE_DIRS
+
 # There are many other #define not (yet) implemented by above CMake directives.
 # To list the #define use the following command lines:
 # sed 's|/\* ||' config.h | awk '$1 ~ /#undef|#define/{print $2}' | sort -u | while read w ; do grep -wB1 $w config.h | grep '[^ ]*> header' -q && echo $w; done > already-implemented-using-cmake-directives
