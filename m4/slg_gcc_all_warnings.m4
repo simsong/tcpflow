@@ -79,6 +79,7 @@ CXX_WARNINGS_TO_TEST="-Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith \
     -Wredundant-decls -Wdisabled-optimization \
     -Wfloat-equal -Wmultichar -Wmissing-noreturn \
     -Woverloaded-virtual -Wsign-promo \
+    -fno-new-ttp-matching \
     -funit-at-a-time"
 
 if test x"${mingw}" != "xyes" ; then
