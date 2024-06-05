@@ -71,6 +71,32 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #pragma GCC diagnostic warning "-Wcast-align"
 
 static uint64_t counter=0;
+
+#ifdef DLT_PPP_ETHER
+
+#define	PPP_ETHER_HDRLEN 8
+
+void dl_ppp_ether(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+{
+  u_int caplen = h->caplen;
+  u_int length = h->len;
+
+  if (length != caplen) {
+    DEBUG(6) ("warning: only captured %d bytes of %d byte PPPoE frame",
+	  caplen, length);
+  }
+
+  if (caplen < PPP_ETHER_HDRLEN) {
+    DEBUG(6) ("warning: received incomplete PPP frame");
+    return;
+  }
+
+  struct timeval tv;
+  be13::packet_info pi(DLT_PPP_ETHER,h,p,tvshift(tv,h->ts),p+PPP_ETHER_HDRLEN,caplen - PPP_ETHER_HDRLEN);
+  be13::plugin::process_packet(pi);
+}
+#endif
+
 /* DLT_RAW: just a raw IP packet, no encapsulation or link-layer
  * headers.  Used for PPP connections under some OSs including Linux
  * and IRIX. */
@@ -276,6 +302,9 @@ dlt_handler_t handlers[] = {
     { dl_ethernet, DLT_EN10MB },
     { dl_ethernet, DLT_IEEE802 },
     { dl_ppp,           DLT_PPP },
+#ifdef DLT_PPP_ETHER
+    { dl_ppp_ether,     DLT_PPP_ETHER },
+#endif
 #ifdef DLT_LINUX_SLL
     { dl_linux_sll,        DLT_LINUX_SLL },
 #endif
