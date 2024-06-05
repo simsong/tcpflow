@@ -1692,8 +1692,10 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
 {
     /* Record start time if we don't have it */
     if (startTime == TIME_NONE) {
-	startTime = header->ts;
-	lastPrintTime = header->ts;
+	startTime.tv_sec = header->ts.tv_sec;
+	startTime.tv_usec = header->ts.tv_usec;
+	lastPrintTime.tv_sec = header->ts.tv_sec;
+	lastPrintTime.tv_usec = header->ts.tv_usec;
     }
     /* Print stats if necessary */
     if (header->ts.tv_sec > lastPrintTime.tv_sec + Wifipcap::PRINT_TIME_INTERVAL) {
@@ -1704,7 +1706,8 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
 	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10" PRId64 " pkts\n", 
 		    days, left, packetsProcessed);
 	}
-	lastPrintTime = header->ts;
+	lastPrintTime.tv_sec = header->ts.tv_sec;
+	lastPrintTime.tv_usec = header->ts.tv_usec;
     }
     packetsProcessed++;
 

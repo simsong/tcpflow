@@ -296,6 +296,8 @@ namespace be13 {
  *
  */
 class packet_info {
+private:
+    struct timeval _ts;
 public:
     // IPv4 header offsets
     static const size_t ip4_proto_off = 9;
@@ -325,7 +327,10 @@ public:
                 const struct timeval &ts_,const uint8_t *d2,size_t dl2):
         pcap_dlt(dlt),pcap_hdr(h),pcap_data(d),ts(ts_),ip_data(d2),ip_datalen(dl2){}
     packet_info(const int dlt,const struct pcap_pkthdr *h,const u_char *d):
-        pcap_dlt(dlt),pcap_hdr(h),pcap_data(d),ts(h->ts),ip_data(d),ip_datalen(h->caplen){}
+        pcap_dlt(dlt),pcap_hdr(h),pcap_data(d),ts(_ts),ip_data(d),ip_datalen(h->caplen){
+        _ts.tv_sec  = h->ts.tv_sec;
+        _ts.tv_usec = h->ts.tv_usec;
+    }
 
     const int    pcap_dlt;              // data link type; needed by libpcap, not provided
     const struct pcap_pkthdr *pcap_hdr; // provided by libpcap
