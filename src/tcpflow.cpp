@@ -632,6 +632,7 @@ int main(int argc, char *argv[])
 	    demux.opt.suppress_header = 1;	DEBUG(10) ("packet header dump suppressed");
 	    break;
 	case 'c':
+            opt_enable_report = false;
 	    demux.opt.console_output = true;	DEBUG(10) ("printing packets to console only");
 	    break;
     case '0':
