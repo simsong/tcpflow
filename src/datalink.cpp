@@ -282,7 +282,9 @@ dlt_handler_t handlers[] = {
 #if defined(USE_WIFI) && !defined(WIN32)
     { dl_ieee802_11_radio, DLT_IEEE802_11 },
     { dl_ieee802_11_radio, DLT_IEEE802_11_RADIO },
+#ifdef DLT_PRISM_HEADER
     { dl_prism,            DLT_PRISM_HEADER},
+#endif
 #endif
     { NULL, 0 }
 };

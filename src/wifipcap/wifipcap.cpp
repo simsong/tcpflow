@@ -1668,7 +1668,11 @@ void Wifipcap::Init(const char *name, bool live) {
     }
 
     datalink = pcap_datalink(descr);
-    if (datalink != DLT_PRISM_HEADER && datalink != DLT_IEEE802_11_RADIO && datalink != DLT_IEEE802_11) {
+    if (
+#ifdef DLT_PRISM_HEADER
+        datalink != DLT_PRISM_HEADER &&
+#endif
+        datalink != DLT_IEEE802_11_RADIO && datalink != DLT_IEEE802_11) {
 	if (datalink == DLT_EN10MB) {
 	    printf("warning: ethernet datalink type: %s\n",
 		   pcap_datalink_val_to_name(datalink));
@@ -1718,9 +1722,11 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
     cbs->PacketBegin(pkt, packet, header->caplen, header->len);
     //int frameLen = header->caplen;
     switch(header_type) {
+#ifdef DLT_PRISM_HEADER
     case DLT_PRISM_HEADER:
         pkt.handle_prism(packet,header->caplen);
         break;
+#endif
     case DLT_IEEE802_11_RADIO:
         pkt.handle_radiotap(packet,header->caplen);
         break;
