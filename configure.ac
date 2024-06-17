@@ -77,7 +77,7 @@ esac
 if test x"${mingw}" == "xno" ; then
   # Bring additional directories where things might be found into our
   # search path. I don't know why autoconf doesn't do this by default
-  for spfx in /usr/local /opt/local /sw /usr/local/ssl /usr/boost/include ; do
+  for spfx in /usr/local /opt/local /sw /usr/local/ssl /usr/boost/include /usr/X11R6 ; do
     AC_MSG_NOTICE([checking ${spfx}/include])
     if test -d ${spfx}/include; then
         CPPFLAGS="-I${spfx}/include $CPPFLAGS"

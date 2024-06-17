@@ -12,7 +12,11 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include <pcap/pcap.h>
+#if defined(HAVE_PCAP_PCAP_H)
+#  include <pcap/pcap.h>
+#elif defined(HAVE_PCAP_H)
+#  include <pcap.h>
+#endif
 #include <netinet/in.h>
 
 #include "arp.h"

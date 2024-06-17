@@ -1668,7 +1668,11 @@ void Wifipcap::Init(const char *name, bool live) {
     }
 
     datalink = pcap_datalink(descr);
-    if (datalink != DLT_PRISM_HEADER && datalink != DLT_IEEE802_11_RADIO && datalink != DLT_IEEE802_11) {
+    if (
+#ifdef DLT_PRISM_HEADER
+        datalink != DLT_PRISM_HEADER &&
+#endif
+        datalink != DLT_IEEE802_11_RADIO && datalink != DLT_IEEE802_11) {
 	if (datalink == DLT_EN10MB) {
 	    printf("warning: ethernet datalink type: %s\n",
 		   pcap_datalink_val_to_name(datalink));
@@ -1692,8 +1696,10 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
 {
     /* Record start time if we don't have it */
     if (startTime == TIME_NONE) {
-	startTime = header->ts;
-	lastPrintTime = header->ts;
+	startTime.tv_sec = header->ts.tv_sec;
+	startTime.tv_usec = header->ts.tv_usec;
+	lastPrintTime.tv_sec = header->ts.tv_sec;
+	lastPrintTime.tv_usec = header->ts.tv_usec;
     }
     /* Print stats if necessary */
     if (header->ts.tv_sec > lastPrintTime.tv_sec + Wifipcap::PRINT_TIME_INTERVAL) {
@@ -1704,7 +1710,8 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
 	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10" PRId64 " pkts\n", 
 		    days, left, packetsProcessed);
 	}
-	lastPrintTime = header->ts;
+	lastPrintTime.tv_sec = header->ts.tv_sec;
+	lastPrintTime.tv_usec = header->ts.tv_usec;
     }
     packetsProcessed++;
 
@@ -1715,9 +1722,11 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
     cbs->PacketBegin(pkt, packet, header->caplen, header->len);
     //int frameLen = header->caplen;
     switch(header_type) {
+#ifdef DLT_PRISM_HEADER
     case DLT_PRISM_HEADER:
         pkt.handle_prism(packet,header->caplen);
         break;
+#endif
     case DLT_IEEE802_11_RADIO:
         pkt.handle_radiotap(packet,header->caplen);
         break;

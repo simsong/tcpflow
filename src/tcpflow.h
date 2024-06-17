@@ -297,6 +297,14 @@ inline const timeval &tvshift(struct timeval &tv,const struct timeval &tv_)
     return tv;
 }
 
+#if __has_include("net/bpf.h")
+inline const timeval &tvshift(struct timeval &tv,const struct bpf_timeval &tv_)
+{
+    tv.tv_sec  = tv_.tv_sec + datalink_tdelta;
+    tv.tv_usec = tv_.tv_usec;
+    return tv;
+}
+#endif
 
 
 /* util.cpp - utility functions */
