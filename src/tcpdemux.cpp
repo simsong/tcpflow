@@ -718,7 +718,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     /* check and see if we got everything.  NOTE: we must use
-     * ip_total_len after this, because we may have captured bytes
+     * ip_len after this, because we may have captured bytes
      * beyond the end of the packet (e.g. ethernet padding).
      */
     size_t ip_len = ntohs(ip_header->ip_len);
@@ -745,7 +745,7 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
     }
 
     /* do TCP processing, faking an ipv6 address  */
-    uint16_t ip_payload_len = pi.ip_datalen - ip_header_len;
+    uint16_t ip_payload_len = ip_len - ip_header_len;
     ipaddr src(ip_header->ip_src.addr);
     ipaddr dst(ip_header->ip_dst.addr);
     return (this->*tcp_processor)(src, dst ,AF_INET,
