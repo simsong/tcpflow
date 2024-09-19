@@ -70,6 +70,33 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 }
 #pragma GCC diagnostic warning "-Wcast-align"
 
+/* OpenBSD has it's own DLT_LOOP which similar to old DLT_NULL_BROKEN */
+#ifdef DLT_LOOP
+
+#define	LOOP_HDRLEN 4
+
+void dl_loop(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+{
+    u_int caplen = h->caplen;
+    u_int length = h->len;
+
+    if (length != caplen) {
+	DEBUG(6) ("warning: only captured %d bytes of %d byte null frame",
+		  caplen, length);
+    }
+
+    if (caplen < LOOP_HDRLEN) {
+	DEBUG(6) ("warning: received incomplete null frame");
+	return;
+    }
+
+    struct timeval tv;
+    be13::packet_info pi(DLT_LOOP,h,p,tvshift(tv,h->ts),p+LOOP_HDRLEN,caplen - LOOP_HDRLEN);
+    be13::plugin::process_packet(pi);
+}
+
+#endif
+
 static uint64_t counter=0;
 
 #ifdef DLT_PPP_ETHER
@@ -293,6 +320,10 @@ void dl_linux_sll(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 /* List of callbacks for each data link type */
 dlt_handler_t handlers[] = {
     { dl_null,	   DLT_NULL },
+/* OpenBSD uses 12 at DLT_LOOP, so, it should be before constans */
+#ifdef DLT_LOOP
+    { dl_loop,	   DLT_LOOP },
+#endif
 /* Some systems define DLT_RAW as 12, some as 14, and some as 101.
  * So it is hard-coded here.
  */
