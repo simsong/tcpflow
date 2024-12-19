@@ -4,7 +4,7 @@
 # 2020-06-27 - slg - expanded to G++ for MacOS
 # 2020-07-03 - slg - ported to be13_api; removed python (be13_api doesn't use python)
 
-name: TCPFLOW CI ON MAC AND UBUNTU (c++14)
+name: TCPFLOW CI (c++14)
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ on:
     branches:
       - main # Specify the branches for which pull_request events should trigger the action
 jobs:
-  build:
+  native:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -55,3 +55,51 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
            bash .make-codecov
+
+  freebsd:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Test in FreeBSD
+      uses: vmactions/freebsd-vm@v1
+      with:
+        usesh: true
+        prepare: |
+          pkg install -y bash autoconf automake boost-all openssl libpcap cairo
+
+        run: |
+          set -e
+          bash bootstrap.sh
+          ./configure
+          make
+          make check
+
+  openbsd:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Test in OpenBSD
+      uses: vmactions/openbsd-vm@v1
+      with:
+        usesh: true
+        prepare: |
+          pkg_add bash autoconf%2.72 automake%1.16 boost cairo
+
+        # OpenBSD has it's own libpcap which can't read some pcap, nuke it!
+        run: |
+          set -e
+          env AUTOCONF_VERSION=2.72 AUTOMAKE_VERSION=1.16 bash bootstrap.sh
+          ./configure
+          make
+          rm ./tests/test1-out-of-order.pcap
+          rm ./tests/test5-lines-randomized.pcap
+          rm ./tests/test5-lines-randomized2.pcap
+          make check
+
+  # NetBSD VM quite unstable, it hangs on installing cairo, bash bootstrap.sh and so on
