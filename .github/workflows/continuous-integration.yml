@@ -29,11 +29,11 @@ jobs:
       - name: Install C++ dependencies on MacOS
         if: startsWith(matrix.os, 'macOS')
         run: |
-           brew install libtool autoconf automake boost openssl libpcap
-           echo LDFLAGS="-L$(brew --prefix libpcap)/lib -L$(brew --prefix openssl)/lib -L$(brew --prefix boost)/lib" >> $GITHUB_ENV
-           echo CFLAGS="-I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
-           echo CXXFLAGS="-I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
-           echo PKG_CONFIG_PATH="$(brew --prefix libpcap)/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig" >> $GITHUB_ENV
+           brew install libtool autoconf automake boost openssl libpcap cairo
+           echo LDFLAGS="-L$(brew --prefix cairo)/lib -L$(brew --prefix libpcap)/lib -L$(brew --prefix openssl)/lib -L$(brew --prefix boost)/lib" >> $GITHUB_ENV
+           echo CFLAGS="-I$(brew --prefix cairo)/include -I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
+           echo CXXFLAGS="-I$(brew --prefix cairo)/include -I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
+           echo PKG_CONFIG_PATH="$(brew --prefix cairo)/pkgconfig:$(brew --prefix libpcap)/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Install C++ dependencies on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
