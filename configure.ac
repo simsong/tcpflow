@@ -490,6 +490,19 @@ AC_CHECK_TYPES([sa_family_t], [], [],
 ]]
 )
 
+AC_CHECK_HEADERS([net/bpf.h])
+AC_CHECK_TYPES([struct bpf_timeval], [], [],
+[[
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#ifdef HAVE_NET_BPF_H
+#include <net/bpf.h>
+#endif
+]]
+)
+
 ############## drop optimization flags if requested ################
 
 # Should we disable optimization?
