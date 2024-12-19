@@ -4,27 +4,36 @@
 # 2020-06-27 - slg - expanded to G++ for MacOS
 # 2020-07-03 - slg - ported to be13_api; removed python (be13_api doesn't use python)
 
-name: BE13_API CI (c++14)
-on: [push]
-
+name: TCPFLOW CI ON MAC AND UBUNTU (c++14)
+on:
+  push:
+    branches:
+      - '**' # This will trigger the action for all branches
+  pull_request:
+    branches:
+      - main # Specify the branches for which pull_request events should trigger the action
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-20.04']
+        os: ['macos-latest', 'ubuntu-latest']
 
     steps:
       # https://github.com/actions/checkout
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Install C++ dependencies on MacOS
         if: startsWith(matrix.os, 'macOS')
         run: |
-           bash etc/install_autotools.sh
+           brew install libtool autoconf automake boost openssl libpcap
+           echo LDFLAGS="-L$(brew --prefix libpcap)/lib -L$(brew --prefix openssl)/lib -L$(brew --prefix boost)/lib" >> $GITHUB_ENV
+           echo CFLAGS="-I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
+           echo CXXFLAGS="-I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
+           echo PKG_CONFIG_PATH="$(brew --prefix libpcap)/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Install C++ dependencies on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
