@@ -4,15 +4,20 @@
 # 2020-06-27 - slg - expanded to G++ for MacOS
 # 2020-07-03 - slg - ported to be13_api; removed python (be13_api doesn't use python)
 
-name: BE13_API CI (c++14)
-on: [push]
-
+name: TCPFLOW CI ON MAC AND UBUNTU (c++14)
+on:
+  push:
+    branches:
+      - '**' # This will trigger the action for all branches
+  pull_request:
+    branches:
+      - main # Specify the branches for which pull_request events should trigger the action
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-20.04']
+        os: ['macos-latest', 'ubuntu-20.04']
 
     steps:
       # https://github.com/actions/checkout
