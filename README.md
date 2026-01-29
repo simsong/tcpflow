@@ -1,3 +1,5 @@
+[![TCPFLOW CI (c++14)](https://github.com/simsong/tcpflow/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/simsong/tcpflow/actions/workflows/continuous-integration.yml)
+
 TCPFLOW 1.5.0
 =============
 Downloads directory: http://digitalcorpora.org/downloads/tcpflow/
