@@ -1,7 +1,11 @@
+2026-01-29 Simson Garfinkel <simsong@acm.org>
+	* Corrected 1-byte out of bounds error as reported in https://github.com/simsong/tcpflow/security/advisories/GHSA-q5q6-frrv-9rj6
+	* updated version number to 1.6.2
+
 2018-11-18 Simson Garfinkel <simsong@acm.org>
 	* updated for pcap_findalldevs
 	* added -Wno-address-of-packed-member to avoid error
-	
+
 2017-07-12 Simson Garfinkel <simsong@acm.org>
 	* updated to work with Fedora 26 compilers
 	* Found bug in sbuf.cpp
@@ -63,7 +67,7 @@
 
 2013-03-30  Simson Garfinkel  <simsong@Mucha.local>
 
-	* src/scan_tcpdemux.cpp (scan_tcpdemux): added -S tcp_timeout 
+	* src/scan_tcpdemux.cpp (scan_tcpdemux): added -S tcp_timeout
 
 2013-03-03  Simson Garfinkel  <simsong@Mucha.local>
 
@@ -116,7 +120,7 @@
 
 2012-12-22  Simson Garfinkel  <simsong@Mucha.local>
 
-	* src/be13_api/sbuf.cpp (sbuf_t::map_file): 
+	* src/be13_api/sbuf.cpp (sbuf_t::map_file):
 
 	* src/scan_http.cpp (scan_http_cbo::on_headers_complete): changed retrying_open to open() to eliminate dependency on tcpdemux
 
@@ -143,7 +147,7 @@
 
 2012-12-07  Simson Garfinkel  <simsong@Mucha.local>
 
-	* src/tcpdemux.h (class flow_addr): fixed operator< type 
+	* src/tcpdemux.h (class flow_addr): fixed operator< type
 
 2012-11-17  Simson Garfinkel  <simsong@npsair.local>
 
@@ -162,9 +166,9 @@
 	* src/plugin.cpp (process_sbuf): renamed process_extract to process_sbuf and put it here.
 
 2012-11-06  Simson Garfinkel  <simsong@mncrnpsedu.local>
- 
+
  	* src/tcpdemux.cpp (tcpdemux::process_tcp): first packet sense was inverted. Fixed.
- 	
+
 	* src/main.cpp (main): renamed main.cpp to tcpflow.cpp
 
 2012-11-05  Simson Garfinkel  <simsong@npsair.local>
@@ -195,7 +199,7 @@
 	* src/tcpdemux.cpp (tcpdemux::open_tcpfile): now asserts that file is not open
 	(tcpdemux::open_tcpfile): retrying_fopen changed to retrying_open
 	(tcpdemux::process_tcp): completely rewrote the TCP implementation
-	(tcpdemux::process_ip4): 
+	(tcpdemux::process_ip4):
 
 	The old state machine kept tract of each flow's initial sequence
 	number (ISN) and computed the absolute 32-bit position within the
@@ -265,7 +269,7 @@
 2012-08-10  Simson Garfinkel  <simsong@imac3.local>
 
 	* configure.ac (HAVE_PTHREAD): fixed typo in configure.ac
-	
+
 2012-08-08  Simson Garfinkel  <simsong@FC17>
 
 	* src/tcpdemux.h: removed struct ip as it was redundent to struct iphdr
@@ -291,7 +295,7 @@
 2012-06-26  mike  <mike@reem>
 
 	* src/datalink.cpp (dl_null): moved ETHERTYPE_IPV6 from sysdep.h
-	to datalink.cpp 
+	to datalink.cpp
 
 2012-06-18  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
@@ -316,7 +320,7 @@
 2012-04-19  Simson Garfinkel  <simsong@imac3.home>
 
 	* configure.ac: incremented version to 1.2.6 (1.2.5 had a bad tag)
-	
+
 
 	* src/tcpip.cpp (tcpip::print_packet): fixed error in fwrite().
 
@@ -352,7 +356,7 @@
 
 2012-03-11  Simson L. Garfinkel  <simsong@ps14412.dreamhostps.com>
 
-	* configure.ac: added -funit-at-a-time 
+	* configure.ac: added -funit-at-a-time
 
 2012-03-10  Simson Garfinkel  <simsong@imac3.home>
 
@@ -437,7 +441,7 @@
 	    <oublock>4739</oublock>
 	    <clocktime>8.399374</clocktime>
 	  </rusage>
-	
+
 
 2012-01-05  Simson Garfinkel  <simsong@mncrnpsedu.local>
 
@@ -591,12 +595,12 @@
 2003-08-07  Jeremy Elson  <jelson@circlemud.org>
 	* Released v0.21.  Sticking to my strict schedule of releasing at
 	least one minor release per year. :-)
-	
+
 2003-08-07  Jeremy Elson  <jelson@circlemud.org>
 
 	* src/main.c: Fixed format string attack.  Found by David
 	Goldsmith of atstake.com.
-	
+
 2002-03-29  Jeremy Elson  <jelson@concorde.cs.ucla.edu>
 
 	* configure.in: Fixed --with-pcap (was broken since moving sources
@@ -615,16 +619,16 @@
 	says "Otherwise, I can't redirect or pipe the console output. At
 	least on FreeBSD. I will check later today if this also cures the
 	same problems I had on OpenBSD."
-	
+
 
 2001-02-26  Jeremy Elson  <jelson@circlemud.org>
 
 	* Released version 0.20.
-	
+
 	* util.c, main.c: we now catch SIGTERM, SIGINT and SIGHUP, and
 	call exit().  Should give libpcap a chance to reset the interface
 	state (it calls onexit()).
-	
+
 	* main.c, tcpflow.1.in: Added patch from "Jose M. Alcaide" <jose
 	at we.lc.ehu.es> (FreeBSD port maintainer) so that tcpflow can
 	read from tcpdump output files.
@@ -640,7 +644,7 @@
 1999-04-20  Jeremy Elson  <jelson@circlemud.org>
 
 	* Released version 0.12.
-	
+
 1999-04-20  Jeremy Elson  <jelson@circlemud.org>
 
 	* tcpflow.1.in: Updated man page.
@@ -658,15 +662,15 @@
 
 	* tcpflow.h: We use __attribute__ now only if __GNUC__ is defined,
 	so that the code compiles on non-GCC compilers.
-	
+
 	* configure.in: Check for standards.h, for IRIX compatibility.
 	(I have a custom autoconf that I changed to automatically #include
 	standards.h, if the check succeeds, in future header file checks.)
 	* sysdep.h: Conditional #include <standards.h> added.
-	
+
 	* configure.in: Only check for -lnsl if gethostbyaddr() doesn't
 	work without it; same for -lsocket and socket().
-	
+
 	* tcpip.c (process_ip, process_tcp, do_strip_nonprint,
 	print_packet, store_packet): Changed to take a u_char.
 	* tcpflow.h: Changed packet handling function argument prototypes
@@ -686,7 +690,7 @@
 1999-04-13  Jeremy Elson  <jelson@circlemud.org>
 
 	* Released version 0.11.
-	
+
 1999-04-13  Jeremy Elson  <jelson@circlemud.org>
 
 	* tcpip.c (process_ip): Portability: added typecast of an int to a
@@ -700,7 +704,7 @@
 
 	* sysdep.h: Linux libc5 systems have different names for certain
 	structures.  Patch sent by Johnny Tevessen <j.tevessen at gmx.net>
-	
+
 	* configure.in: All system header files are now detected by
 	autoconf and conditionally included in sysdep.h.
 	* sydep.h: Same.
@@ -711,13 +715,9 @@
 	to reflect the fact that tcpflow.1 is now created by 'configure'.
 	* configure.in: Same.
 	* tcpflow.1.in: Same.
-	
+
 	* AUTHORS: Created & added initial entries.
 
 1999-04-12  Jeremy Elson  <jelson@circlemud.org>
 
 	* Initial public release.
-	
-
-	
-

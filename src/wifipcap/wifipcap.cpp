@@ -9,7 +9,7 @@
 
 #include "config.h"		// pull in HAVE_ defines
 
-#define __STDC_FORMAT_MACROS 
+#define __STDC_FORMAT_MACROS
 
 #include <stdint.h>
 #include <inttypes.h>
@@ -55,11 +55,11 @@ int WifiPacket::debug=0;
 int MAC::print_fmt(MAC::PRINT_FMT_COLON);
 
 std::ostream& operator<<(std::ostream& out, const MAC& mac) {
-    const char *fmt = MAC::print_fmt == MAC::PRINT_FMT_COLON ? 
+    const char *fmt = MAC::print_fmt == MAC::PRINT_FMT_COLON ?
 	"%02x:%02x:%02x:%02x:%02x:%02x" :
 	"%02x%02x%02x%02x%02x%02x";
     char buf[24];
-    sprintf(buf, fmt, 
+    sprintf(buf, fmt,
 	    (int)((mac.val>>40)&0xff),
 	    (int)((mac.val>>32)&0xff),
 	    (int)((mac.val>>24)&0xff),
@@ -82,7 +82,7 @@ struct tok {
 };
 
 #if 0
-static const struct tok ethertype_values[] = { 
+static const struct tok ethertype_values[] = {
     { ETHERTYPE_IP,		"IPv4" },
     { ETHERTYPE_MPLS,		"MPLS unicast" },
     { ETHERTYPE_MPLS_MULTI,	"MPLS multicast" },
@@ -411,7 +411,7 @@ void WifiPacket::handle_llc(const mac_hdr_t &mac,const u_char *ptr, size_t len,u
         cbs->HandleLLC(*this,&hdr, ptr+8, len-8);
         return;
     }
-        
+
     cbs->HandleLLCUnknown(*this,ptr, len);
 }
 
@@ -492,7 +492,7 @@ const char *Wifipcap::WifiUtil::MgmtReasonCode2Txt(uint v) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // Jeff: HACK -- tcpdump uses a global variable to check truncation
-#define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= (ssize_t)len) 
+#define TTEST2(_p, _l) ((const u_char *)&(_p) - p + (_l) <= (ssize_t)len)
 
 void WifiPacket::parse_elements(struct mgmt_body_t *pbody, const u_char *p, int offset, size_t len)
 {
@@ -605,7 +605,7 @@ void WifiPacket::parse_elements(struct mgmt_body_t *pbody, const u_char *p, int 
 
             if (pbody->tim.length <= 3)
                 break;
-            if (pbody->rates.length > sizeof pbody->tim.bitmap)
+            if ((pbody->tim.length -3) > sizeof pbody->tim.bitmap)
                 return;
             if (!TTEST2(*(p + offset), pbody->tim.length - 3))
                 return;
@@ -932,7 +932,7 @@ WifiPacket::handle_deauth( const struct mgmt_header_t *pmh, const u_char *p, siz
  *
  * NOTE — this function and all that it calls should be handled as methods in WifipcapCallbacks
  */
- 
+
 int
 WifiPacket::decode_mgmt_body(u_int16_t fc, struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
@@ -1014,13 +1014,13 @@ int WifiPacket::decode_data_frame(const u_char * ptr, size_t len, u_int16_t fc)
     if(FC_TYPE(fc)==2 && FC_SUBTYPE(fc)==8){ // quality of service?
         hdr.qos = 1;
     }
-        
+
     size_t hdrlen=0;
 
     const MAC address1 = MAC::ether2MAC(ptr+4);
     const MAC address2 = MAC::ether2MAC(ptr+10);
     const MAC address3 = MAC::ether2MAC(ptr+16);
-    
+
     /* call the 80211 callback data callback */
 
     if (FC_TO_DS(fc)==0 && FC_FROM_DS(fc)==0) {	/* ad hoc IBSS */
@@ -1061,9 +1061,9 @@ int WifiPacket::decode_data_frame(const u_char * ptr, size_t len, u_int16_t fc)
 
     /* Handle either the WEP or the link layer. This handles the data itself */
     if (FC_WEP(fc)) {
-        handle_wep(ptr+hdrlen, len-hdrlen-4 ); 
+        handle_wep(ptr+hdrlen, len-hdrlen-4 );
     } else {
-        handle_llc(hdr, ptr+hdrlen, len-hdrlen-4, fc); 
+        handle_llc(hdr, ptr+hdrlen, len-hdrlen-4, fc);
     }
     return 0;
 }
@@ -1121,7 +1121,7 @@ int WifiPacket::decode_ctrl_frame(const u_char * ptr, size_t len, u_int16_t fc)
 	cbs->Handle80211CtrlCFEnd( *this, &hdr);
 	break;
     }
-    case CTRL_END_ACK: {	
+    case CTRL_END_ACK: {
 	ctrl_end_ack_t hdr;
 	hdr.fc = fc;
 	hdr.duration = du;
@@ -1145,7 +1145,7 @@ int WifiPacket::decode_ctrl_frame(const u_char * ptr, size_t len, u_int16_t fc)
 #define	roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
 #endif
 
-void WifiPacket::handle_80211(const u_char * pkt, size_t len /* , int pad */)  
+void WifiPacket::handle_80211(const u_char * pkt, size_t len /* , int pad */)
 {
     if (debug) std::cerr << "handle_80211(len= " << len << " ";
     if (len < 2) {
@@ -1174,14 +1174,14 @@ void WifiPacket::handle_80211(const u_char * pkt, size_t len /* , int pad */)
         // assume fcs is last 4 bytes (?)
         u_int32_t fcs_sent = EXTRACT_32BITS(pkt+len-4);
         u_int32_t fcs = crc32_802(pkt, len-4);
-        
+
         /*
           if (fcs != fcs_sent) {
           cerr << "bad fcs: ";
-          fprintf (stderr, "%08x != %08x\n", fcs_sent, fcs); 
+          fprintf (stderr, "%08x != %08x\n", fcs_sent, fcs);
           }
         */
-	
+
         fcs_ok = (fcs == fcs_sent);
     }
     if (cbs->Check80211FCS(*this) && fcs_ok==false){
@@ -1461,7 +1461,7 @@ void WifiPacket::handle_radiotap(const u_char *p,size_t caplen)
 
     radiotap_hdr ohdr;
     memset(&ohdr, 0, sizeof(ohdr));
-	
+
     /* Assume no Atheros padding between 802.11 header and body */
     int pad = 0;
     uint32_t *presentp;
@@ -1633,10 +1633,10 @@ void Wifipcap::Init(const char *name, bool live) {
 
 	bool gzip = !strcmp(name+slen-3, ".gz");
 	bool bzip = !strcmp(name+slen-4, ".bz2");
-	
+
 	char cmd[256];
 	char errbuf[256];
-	if (gzip) 
+	if (gzip)
 	    sprintf(cmd, "zcat %s", name);
 	else if (bzip)
 	    sprintf(cmd, "bzcat %s", name);
@@ -1692,7 +1692,7 @@ void Wifipcap::Init(const char *name, bool live) {
  * It records some stats and then dispatches to the appropriate callback.
  */
 void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
-                             const struct pcap_pkthdr *header, const u_char * packet) 
+                             const struct pcap_pkthdr *header, const u_char * packet)
 {
     /* Record start time if we don't have it */
     if (startTime == TIME_NONE) {
@@ -1707,7 +1707,7 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
 	    int hours = (header->ts.tv_sec - startTime.tv_sec)/3600;
 	    int days  = hours/24;
 	    int left  = hours%24;
-	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10" PRId64 " pkts\n", 
+	    fprintf(stderr, "wifipcap: %2d days %2d hours, %10" PRId64 " pkts\n",
 		    days, left, packetsProcessed);
 	}
 	lastPrintTime.tv_sec = header->ts.tv_sec;
@@ -1739,7 +1739,7 @@ void Wifipcap::handle_packet(WifipcapCallbacks *cbs,int header_type,
     default:
 #if 0
         /// 2018-08-02: slg - I'm also not sure why this is commented out.
-	// try handling it as default IP assuming framing is ethernet 
+	// try handling it as default IP assuming framing is ethernet
 	// (this is for testing)
         pkt.handle_ip(packet,header->caplen);
 #endif
@@ -1756,7 +1756,7 @@ void Wifipcap::handle_packet_callback(u_char *user, const struct pcap_pkthdr *he
     Wifipcap::PcapUserData *data = reinterpret_cast<Wifipcap::PcapUserData *>(user);
     data->wcap->handle_packet(data->cbs,data->header_type,header,packet);
 }
-    
+
 
 const char *Wifipcap::SetFilter(const char *filter)
 {
@@ -1768,12 +1768,12 @@ const char *Wifipcap::SetFilter(const char *filter)
 #endif
 
 
-    if(pcap_compile(descr,&fp,(char *)filter,0,netp) == -1) { 
-	return "Error calling pcap_compile"; 
+    if(pcap_compile(descr,&fp,(char *)filter,0,netp) == -1) {
+	return "Error calling pcap_compile";
     }
-    
-    if(pcap_setfilter(descr,&fp) == -1) { 
-	return "Error setting filter"; 
+
+    if(pcap_setfilter(descr,&fp) == -1) {
+	return "Error setting filter";
     }
 
     return NULL;
@@ -1785,7 +1785,7 @@ void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
     /* NOTE: This needs to be fixed so that the correct handle_packet is called  */
 
     packetsProcessed = 0;
-    
+
     do {
 	PcapUserData data(this,cbs,DLT_IEEE802_11_RADIO);
 	pcap_loop(descr, maxpkts > 0 ? maxpkts - packetsProcessed : 0,
@@ -1795,4 +1795,3 @@ void Wifipcap::Run(WifipcapCallbacks *cbs, int maxpkts)
 
 
 ///////////////////////////////////////////////////////////////////////////////
-
