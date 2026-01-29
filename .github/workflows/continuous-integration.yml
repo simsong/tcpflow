@@ -29,8 +29,9 @@ jobs:
       - name: Install C++ dependencies on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-           sudo apt install libtool autoconf automake g++ libboost-all-dev libssl-dev libpcap-dev libcairo2-dev
-           automake --help
+          sudo apt update -y
+          sudo apt -y install libtool autoconf automake g++ libboost-all-dev libssl-dev libpcap-dev libcairo2-dev
+          automake --help
 
       - name: c/c++ test
         run: |
