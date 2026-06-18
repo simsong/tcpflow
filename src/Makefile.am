@@ -96,6 +96,8 @@ tcpflow_SOURCES = \
 	scan_http.cpp \
 	scan_tcpdemux.cpp \
 	scan_netviz.cpp \
+	scan_tls.cpp \
+	scan_tls.h \
 	pcap_writer.h \
 	iptree.h \
 	http-parser/http_parser.c \

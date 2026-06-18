@@ -328,6 +328,7 @@ extern "C" scanner_t scan_python;
 extern "C" scanner_t scan_tcpdemux;
 extern "C" scanner_t scan_netviz;
 extern "C" scanner_t scan_wifiviz;
+extern "C" scanner_t scan_tls;
 
 
 #ifndef HAVE_TIMEVAL_OUT
