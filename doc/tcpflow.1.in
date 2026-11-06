@@ -310,7 +310,7 @@ This last file \fB*.findx\fP has three columns using the pipe \fB'|'\fP as separ
     \fBbyte-index|timestamp|length\fP
 
 .fi
-The \fBbyte-index\fP column is the postion within the file containing the payload bytes.
+The \fBbyte-index\fP column is the position within the file containing the payload bytes.
 The \fBtimestamp\fP column represents the number of seconds since epoch as a floating point number.
 The precision is the microsecond but may also be the nanosecond in a future \fBtcpflow\fP version.
 The \fBlength\fP column is the number of successive bytes concerned by \fBtimestamp\fP
@@ -464,7 +464,7 @@ prints a "%".
 .TP
 .RE
 When the option \fB\-T\fP is used, \fBtcpflow\fP ignores options \fB\-Fk\fP, \fB\-Fm\fP and \fB\-Fg\fP.
-However, the option \fB\-T\fP handles \fB'/'\fP within the filename template patern to create sub-directories.
+However, the option \fB\-T\fP handles \fB'/'\fP within the filename template pattern to create sub-directories.
 For example the following line will create a directory tree \fBout/IP-src/port-src/IP-dst/port-dst\fP.
 .nf
 
@@ -583,7 +583,7 @@ The XML attributes of \fB<tcpflow>\fP are:
 .IP \(bu
 \fBdstport\fP TCP port destination
 .IP \(bu
-\fBpackets\fP Nummber of packets
+\fBpackets\fP Number of packets
 .IP \(bu
 \fBout_of_order_count\fP Number of times
 .B tcpflow
@@ -642,4 +642,4 @@ An announcement mailing list for this program is at:
 .I http://groups.google.com/group/tcpflow-users
 .RE
 .SH "SEE ALSO"
-tcpdump(1), nit(4P), bpf(4), pcap(3), pcap-savefile(5), pcap-filter(7)
+.BR tcpdump (1), nit (4P), bpf (4), pcap (3), pcap-savefile (5), pcap-filter (7)
