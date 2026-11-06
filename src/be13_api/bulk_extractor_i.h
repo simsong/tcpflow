@@ -279,7 +279,7 @@ namespace be13 {
     uint16_t th_win;            /* window */
     uint16_t th_sum;            /* checksum */
     uint16_t th_urp;            /* urgent pointer */
-};
+} __attribute__ ((__packed__));
 /*
  * The packet_info structure records packets after they are read from the pcap library.
  * It preserves the original pcap information and information decoded from the MAC and
