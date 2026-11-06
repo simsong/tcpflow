@@ -8,7 +8,13 @@
 # About the test files:
 #
 
-SH_TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh test-chroot.sh test-template-escape.sh
+SH_TESTS = test1.sh \
+    test-pdfs.sh \
+    test-multifile.sh \
+    test-iptree.sh \
+    test-chroot.sh \
+    test-template-escape.sh \
+    test-dissect.sh
 
 EXTRA_DIST = $(SH_TESTS) test-subs.sh \
 	airsnort-linux-browser_page_load.pcap \
@@ -37,6 +43,7 @@ EXTRA_DIST = $(SH_TESTS) test-subs.sh \
 	test5-lines-randomized2.pcap \
 	test5-lines.pcap \
 	test7-three-flows.pcap \
+	truncated-tcp.pcap \
 	udp.pcap
 
 TESTS = $(SH_TESTS)
