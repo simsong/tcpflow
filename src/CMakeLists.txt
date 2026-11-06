@@ -183,9 +183,6 @@ set (tcpflow_cpp datalink.cpp flow.cpp
     mime_map.cpp
 )
 
-# removed because it hasn't been updated to Python 3:
-# scan_python.cpp     # Depends on PYTHON_LIBRARIES
-
 
 set (tcpflow_h
     iptree.h
