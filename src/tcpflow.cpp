@@ -848,12 +848,13 @@ int main(int argc, char *argv[])
 	demux.xreport = xreport;
     }
     if(opt_unk_packets.size()>0){
-        if(input_fname.size()==0){
+        if(rfiles.size()==0){
             std::cerr << "currently the -w option requires the -r option\n";
             exit(1);
         }
-        if(access(input_fname.c_str(),R_OK)) die("cannot read: %s: %s",input_fname.c_str(),strerror(errno));
-        demux.save_unk_packets(opt_unk_packets,input_fname);
+        const std::string &first_rfile = rfiles.at(0);
+        if(access(first_rfile.c_str(),R_OK)) die("cannot read: %s: %s",first_rfile.c_str(),strerror(errno));
+        demux.save_unk_packets(opt_unk_packets,first_rfile);
     }
 
 
