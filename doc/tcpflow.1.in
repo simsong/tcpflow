@@ -60,7 +60,7 @@ tcpflow \- TCP flow recorder
 [\c
 .BI \-U\fR\c
 |\c
-.BI \--relinquish-privileges \ username\fR\c
+.BI \--relinquish-privileges \ user\fR[\fB:\fIgroup\fR]\c
 ]
 [\c
 .BI \-v\fR\c
@@ -363,10 +363,29 @@ prints is a warning when more than 10,000 files are created that the user should
 have provided the \fB-Fk\fP, \fB-Fm\fP, or \fB-Fg\fP options. We might have other warnings
 in the future.
 .TP
-.B \--relinquish-privileges\fB=\fIusername\fP
+.BI \-U \ user\fR[\fB:\fIgroup\fR], \ \fB\--relinquish-privileges=\fIuser\fR[\fB:\fIgroup\fR]
 When \fBtcpflow\fP is run as root, this option changes
-the user ID and group ID to write files owned by \fIusername\fP.
-The group ID is the first one from the \fIusername\fP groups list.
+the user ID and group ID, so that output files are owned by them.
+\fIuser\fP and \fIgroup\fP can each be a name or a numeric ID.
+A name is looked up first; if no such name exists, the value is used as a numeric ID.
+The accepted forms are:
+.RS
+.TP
+.I user
+The user ID and primary group of \fIuser\fP, plus the supplementary groups of \fIuser\fP.
+.TP
+.I uid
+The numeric user ID \fIuid\fP and, if \fIuid\fP has a passwd entry, its primary group.
+Otherwise the group ID is not changed, so it stays 0 when \fBtcpflow\fP is run as root.
+.TP
+.IB user : group
+The given user ID and group ID.
+.TP
+.BI : group
+Only the group ID changes. The user ID is not changed.
+.RE
+.IP
+If \fIuser\fP is a numeric ID or is omitted, all supplementary groups are dropped.
 This operation is performed just after opening
 the capture device or just after opening the first input PCAP file.
 This option does not support multi root-only readable input files
@@ -376,11 +395,17 @@ as the root privileges are dropped after opening the first file
 .B \-R \fIroot-only.pcap\fP
 .B \-l \fIroot-only*.pcap\fP\c
 ).
-This option has the same behaviour as the
-.IR tcpdump (1)
-option having the same name
-.B \--relinquish-privileges\fB
-.
+This option is similar to the
+.B \-Z
+option of
+.IR tcpdump (1).
+For example:
+.nf
+
+    \fBtcpflow -U 900:990 -r packets.pcap\fP
+    \fBtcpflow -U nobody -i eth0\fP
+
+.fi
 .TP
 .B \-r
 Read from file.  Read packets from \fIfile\fP, which was created using the

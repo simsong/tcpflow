@@ -44,7 +44,7 @@
  * See https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
  */
 const char *program_name = 0;
-const char *tcpflow_droproot_username = 0;
+const char *tcpflow_relinquish_spec = 0;
 const char *tcpflow_chroot_dir = 0;
 
 int packet_buffer_timeout = 10;
@@ -122,7 +122,7 @@ static void usage(int level)
     std::cout << "usage: " << progname << " [-aBcCDhIpsvVZ] [-b max_bytes] [-d debug_level] \n";
     std::cout << "     [-[eE] scanner] [-f max_fds] [-F[ctTXMkmg]] [-h|--help] [-i iface]\n";
     std::cout << "     [-l files...] [-L semlock] [-m min_bytes] [-o outdir] [-r file] [-R file]\n";
-    std::cout << "     [-S name=value] [-T template] [-U|--relinquish-privileges user] [-v|--verbose]\n";
+    std::cout << "     [-S name=value] [-T template] [-U|--relinquish-privileges user[:group]] [-v|--verbose]\n";
     std::cout << "     [-w file] [-x scanner] [-X xmlfile] [-z|--chroot dir] [expression]\n\n";
     std::cout << "   -a: do ALL post-processing.\n";
     std::cout << "   -b max_bytes: max number of bytes per flow to save\n";
@@ -154,8 +154,9 @@ static void usage(int level)
     std::cout << "   -K: output|keep pcap flow structure.\n";
 
     std::cout << "\nSecurity:\n";
-    std::cout << "   -U user  relinquish privleges and become user (if running as root)\n";
-    std::cout << "   -z dir   chroot to dir (requires that -U be used).\n";
+    std::cout << "   -U user[:group]  relinquish privileges and become user/group (if running as root);\n";
+    std::cout << "            user and group may be names or numeric ids, e.g. -U nobody, -U 900:990, -U :991\n";
+    std::cout << "   -z dir   chroot to dir (requires that -U switch to a non-root user).\n";
 
     std::cout << "\nControl of Scanners:\n";
     std::cout << "   -E scanner   - turn off all scanners except scanner\n";
@@ -328,89 +329,160 @@ static inflaters_t *build_inflaters()
 
 // https://github.com/the-tcpdump-group/tcpdump/blob/master/tcpdump.c#L611
 #ifndef _WIN32
+struct relinquish_target {
+    relinquish_target() : uid(0), gid(0), username() {}
+    uid_t uid;
+    gid_t gid;
+    std::string username;
+};
+
+template <typename id_t>
+static bool parse_numeric_id(const std::string &s, id_t &out)
+{
+    if (s.empty() || s.find_first_not_of("0123456789") != std::string::npos) return false;
+    errno = 0;
+    char *end = 0;
+    unsigned long long v = strtoull(s.c_str(), &end, 10);
+    if (errno != 0 || *end != '\0') return false;
+    id_t id = static_cast<id_t>(v);
+    if (static_cast<unsigned long long>(id) != v || id == static_cast<id_t>(-1)) return false;
+    out = id;
+    return true;
+}
+
+/*
+ * -U accepts user, uid, user:group, uid:gid and :group.
+ * Each part is looked up as a name first, then parsed as a number.
+ */
+static bool parse_relinquish_spec(const std::string &spec, relinquish_target &t, std::string &errmsg)
+{
+    std::string::size_type colon = spec.find(':');
+    std::string user_part  = spec.substr(0, colon);
+    std::string group_part = (colon == std::string::npos) ? "" : spec.substr(colon + 1);
+
+    if (user_part.empty() && group_part.empty()) {
+        errmsg = "empty user and group";
+        return false;
+    }
+
+    t.uid = getuid();
+    t.gid = getgid();
+    t.username.clear();
+
+    if (!user_part.empty()) {
+        if (struct passwd *pw = getpwnam(user_part.c_str())) {
+            t.uid = pw->pw_uid;
+            t.gid = pw->pw_gid;
+            t.username = pw->pw_name;
+        } else if (parse_numeric_id(user_part, t.uid)) {
+            if (struct passwd *upw = getpwuid(t.uid)) {
+                t.gid = upw->pw_gid;
+            } else if (group_part.empty() && t.gid == 0) {
+                warnx("-U %s: uid has no passwd entry, keeping gid 0", spec.c_str());
+            }
+        } else {
+            errmsg = "unknown user '" + user_part + "'";
+            return false;
+        }
+    }
+
+    if (!group_part.empty()) {
+        if (struct group *gr = getgrnam(group_part.c_str())) {
+            t.gid = gr->gr_gid;
+        } else if (!parse_numeric_id(group_part, t.gid)) {
+            errmsg = "unknown group '" + group_part + "'";
+            return false;
+        }
+    }
+    return true;
+}
+
+static std::vector<std::string> tcpflow_created_paths;
+
+static void die_errno(const char *what)
+{
+    fprintf(stderr, "%s: %s: %s\n", program_name, what, strerror(errno));
+    exit(1);
+}
+
 /* Drop root privileges and chroot if necessary */
 static void
-droproot(tcpdemux &demux,const char *username, const char *chroot_dir)
+droproot(tcpdemux &demux, const relinquish_target &t, const char *chroot_dir)
 {
-    struct passwd *pw = NULL;
-
-    if (chroot_dir && !username) {
-        fprintf(stderr, "%s: Chroot without dropping root is insecure\n",
-                program_name);
-        exit(1);
-    }
-
-    pw = getpwnam(username);
-    if (pw) {
-        /* Begin tcpflow add */
-        if(demux.xreport){
-            const char *outfilename = demux.xreport->get_outfilename().c_str();
-            if(chown(outfilename,pw->pw_uid,pw->pw_gid)){
-                fprintf(stderr, "%s: Coudln't change owner of '%.64s' to %s (uid %d): %s\n",
-                        program_name, outfilename, username, pw->pw_uid, strerror(errno));
-                exit(1);
-            }
-        }
-        /* end tcpflow add */
-        if (chroot_dir) {
-            if (chroot(chroot_dir) != 0 || chdir ("/") != 0) {
-                fprintf(stderr, "%s: Couldn't chroot/chdir to '%.64s': %s\n",
-                        program_name, chroot_dir, pcap_strerror(errno));
-                exit(1);
-            }
-        }
-#ifdef HAVE_LIBCAP_NG
-        {
-            int ret = capng_change_id(pw->pw_uid, pw->pw_gid, CAPNG_NO_FLAG);
-            if (ret < 0) {
-                fprintf(stderr, "error : ret %d\n", ret);
-            } else {
-                fprintf(stderr, "dropped privs to %s\n", username);
-            }
-        }
-#else
-        if (initgroups(pw->pw_name, pw->pw_gid) != 0 ||
-            setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {
-            fprintf(stderr, "%s: Couldn't change to '%.32s' uid=%lu gid=%lu: %s\n",
-                    program_name, username,
-                    (unsigned long)pw->pw_uid,
-                    (unsigned long)pw->pw_gid,
-                    pcap_strerror(errno));
+    /* Begin tcpflow add */
+    /* lchown() so that a planted symlink cannot make us give away its target. */
+    std::vector<std::string> paths(tcpflow_created_paths);
+    if (demux.xreport) paths.push_back(demux.xreport->get_outfilename());
+    for (std::vector<std::string>::const_iterator it = paths.begin(); it != paths.end(); ++it) {
+        if (lchown(it->c_str(), t.uid, t.gid) != 0) {
+            fprintf(stderr, "%s: Couldn't change owner of '%.64s' to uid=%lu gid=%lu: %s\n",
+                    program_name, it->c_str(),
+                    (unsigned long)t.uid, (unsigned long)t.gid, strerror(errno));
             exit(1);
         }
-        else {
-            fprintf(stderr, "dropped privs to %s\n", username);
-        }
-#endif /* HAVE_LIBCAP_NG */
     }
-    else {
-        fprintf(stderr, "%s: Couldn't find user '%.32s'\n",
-                program_name, username);
+    /* end tcpflow add */
+
+    if (chroot_dir) {
+        if (chroot(chroot_dir) != 0 || chdir("/") != 0) {
+            fprintf(stderr, "%s: Couldn't chroot/chdir to '%.64s': %s\n",
+                    program_name, chroot_dir, strerror(errno));
+            exit(1);
+        }
+    }
+
+    /* Groups must change before setuid(). A numeric uid drops root's supplementary groups. */
+    if (!t.username.empty()) {
+        if (initgroups(t.username.c_str(), t.gid) != 0) die_errno("initgroups");
+    } else {
+        if (setgroups(1, &t.gid) != 0) die_errno("setgroups");
+    }
+    if (setgid(t.gid) != 0) die_errno("setgid");
+    if (setuid(t.uid) != 0) die_errno("setuid");
+
+    if (t.uid != 0 && (setuid(0) == 0 || seteuid(0) == 0)) {
+        fprintf(stderr, "%s: still able to regain root after dropping privileges\n", program_name);
         exit(1);
     }
+
 #ifdef HAVE_LIBCAP_NG
-    /* We don't need CAP_SETUID, CAP_SETGID and CAP_SYS_CHROOT any more. */
-    capng_updatev(
-                  CAPNG_DROP,
+    /* Only matters when uid stays 0 ("-U :group"); setuid() to non-root already cleared all caps. */
+    if (capng_get_caps_process() != 0) {
+        fprintf(stderr, "%s: Couldn't read process capabilities\n", program_name);
+        exit(1);
+    }
+    capng_updatev(CAPNG_DROP,
                   (capng_type_t)(CAPNG_EFFECTIVE | CAPNG_PERMITTED),
-                  CAP_SETUID,
-                  CAP_SETGID,
-                  CAP_SYS_CHROOT,
-                  -1);
-    capng_apply(CAPNG_SELECT_BOTH);
+                  CAP_SETUID, CAP_SETGID, CAP_SYS_CHROOT, -1);
+    if (capng_apply(CAPNG_SELECT_CAPS) != 0) {
+        fprintf(stderr, "%s: Couldn't drop capabilities\n", program_name);
+        exit(1);
+    }
 #endif /* HAVE_LIBCAP_NG */
 
+    fprintf(stderr, "dropped privs to uid=%lu gid=%lu%s%s\n",
+            (unsigned long)t.uid, (unsigned long)t.gid,
+            t.username.empty() ? "" : " user=", t.username.c_str());
 }
 #endif /* _WIN32 */
 
 /**
  * Perform the droproot operation for tcpflow. This needs to be called immediately after pcap_open()
+ * of the first input; later inputs are opened with the already reduced privileges.
  */
+#ifndef _WIN32
+static relinquish_target tcpflow_relinquish;
+#endif
+
 void tcpflow_droproot(tcpdemux &demux)
 {
-    if (tcpflow_droproot_username){
-        droproot(demux,tcpflow_droproot_username,tcpflow_chroot_dir);
+#ifndef _WIN32
+    static bool dropped = false;
+    if (tcpflow_relinquish_spec && !dropped) {
+        droproot(demux, tcpflow_relinquish, tcpflow_chroot_dir);
+        dropped = true;
     }
+#endif
 }
 
 /*
@@ -728,7 +800,7 @@ int main(int argc, char *argv[])
                 flow::filename_template += std::string("%C%c"); // append %C%c if not present
             }
             break;
-        case 'U': tcpflow_droproot_username = optarg; break;
+        case 'U': tcpflow_relinquish_spec = optarg; break;
 	case 'V': std::cout << PACKAGE_NAME << " " << PACKAGE_VERSION << "\n"; exit (1);
 	case 'v': debug = 10; break;
         case 'w': opt_unk_packets = optarg;break;
@@ -745,9 +817,20 @@ int main(int argc, char *argv[])
 	}
     }
 
-    if(tcpflow_chroot_dir && !tcpflow_droproot_username){
+    if(tcpflow_chroot_dir && !tcpflow_relinquish_spec){
         err(1,"-z option requires -U option");
     }
+#ifndef _WIN32
+    if(tcpflow_relinquish_spec){
+        std::string errmsg;
+        if(!parse_relinquish_spec(tcpflow_relinquish_spec, tcpflow_relinquish, errmsg)){
+            errx(1,"-U %s: %s", tcpflow_relinquish_spec, errmsg.c_str());
+        }
+        if(tcpflow_chroot_dir && tcpflow_relinquish.uid == 0){
+            errx(1,"-z option requires -U to switch to a non-root user");
+        }
+    }
+#endif
 
     argc -= optind;
     argv += optind;
@@ -824,6 +907,9 @@ int main(int argc, char *argv[])
 	    std::cerr << "cannot create " << demux.outdir << ": " << strerror(errno) << "\n";
 	    exit(1);
 	}
+#ifndef _WIN32
+        tcpflow_created_paths.push_back(demux.outdir);
+#endif
     }
 
     std::string input_fname;
@@ -854,6 +940,9 @@ int main(int argc, char *argv[])
         }
         if(access(input_fname.c_str(),R_OK)) die("cannot read: %s: %s",input_fname.c_str(),strerror(errno));
         demux.save_unk_packets(opt_unk_packets,input_fname);
+#ifndef _WIN32
+        tcpflow_created_paths.push_back(opt_unk_packets);
+#endif
     }
 
 
