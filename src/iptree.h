@@ -276,7 +276,7 @@ public:
         uint8_t addr[ADDRBYTES];
         node *ptr;                      // 0 means cache entry is not in use
         cache_element(const uint8_t addr_[ADDRBYTES],size_t addrlen,node *p):addr(),ptr(p){
-            memcpy(addr,addr_,addrlen);
+            if (addrlen) memcpy(addr,addr_,addrlen);
         }
     };
     enum {cache_size=4};
