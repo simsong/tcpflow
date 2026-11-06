@@ -722,6 +722,11 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
      * beyond the end of the packet (e.g. ethernet padding).
      */
     size_t ip_len = ntohs(ip_header->ip_len);
+    /* ip_len is 0 when captured on the sending host with TCP segmentation offload */
+    if (ip_len == 0) {
+        DEBUG(6) ("IP datagram with ip_len 0 (TSO?); using captured length %ld", (long) pi.ip_datalen);
+        ip_len = pi.ip_datalen;
+    }
     if (pi.ip_datalen < ip_len) {
 	DEBUG(6) ("warning: captured only %ld bytes of %ld-byte IP datagram",
 		  (long) pi.ip_datalen, (long) ip_len);
