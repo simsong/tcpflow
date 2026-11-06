@@ -213,25 +213,6 @@ hash value, is also written to the
 .B DFXML report
 file.
 .TP
-.B \-e python \-S py_path=path \-S py_module=module \-S py_function=foo
-Post-process TCP payload by an external python function.
-.RS
-.PP
-The python function must take a single string parameter.
-The python function can return a string (else the function does must not return).
-The returned string (if any) is written in the
-.B DFXML report
-file inside the XML tag \fB<scan_python_result>...</scan_python_result>\fP.
-A sample python script is available within the tcpflow source code
-in directory \fBpython/plugins\fP.
-.PP
-Example:
-.PP
-.nf
-    \fBtcpflow -r my.cap -e python -S py_path=python/plugins -S py_module=samplePlugin -S py_function=sampleFunction\fP
-.fi
-.RE
-.TP
 .B \-F[format]
 Specifies format for output filenames.
 .RS
@@ -539,7 +520,7 @@ defined by project
 .br
 Moreover
 .B tcpflow
-adds two extra XML tags,
+adds an extra XML tag,
 as illustrated by the following example:
 .RS
 .nf
@@ -549,19 +530,13 @@ as illustrated by the following example:
          family='2' mac_daddr='40:3d:78:57:ed:d4' mac_saddr='00:c5:42:d2:cb:f2'
          src_ipn='141.134.34.12' dst_ipn='192.168.0.40' srcport='80' dstport='38797'
          packets='4' len='677' caplen='611' />
-
-<tcpflow:result scanner="python" path="python/plugins" module="samplePlugin"
-                function="sampleFunction">bla bla bla</tcpflow:result>
 \fP
 .fi
 .RE
 .LP
-The first XML tag \fB<tcpflow>\fP provide information about the captured flow.
+The XML tag \fB<tcpflow>\fP provide information about the captured flow.
 This tag should be renamed \fB<tcpflow:cap>\fP in a future version
 in order to conform better to \fBDFXML schema\fP.
-.LP
-The second XML tag \fB<tcpflow:result>\fP collects processing results.
-For the moment, only the scanner \fIpython\fP uses this feature.
 .PP
 The XML attributes of \fB<tcpflow>\fP are:
 .IP \(bu
@@ -597,17 +572,6 @@ for example when capture does not contain the TCP session begin (printed if any)
 .IP \(bu
 \fBcaplen\fP Sum of captured bytes of all packet data
 (including headers, printed if different from \fBlen\fP)
-.PP
-The XML attributes of \fB<tcpflow:result>\fP are:
-.IP \(bu
-\fBscanner\fP Name of the scanner
-.IP \(bu
-\fBpath\fP Directory of the scanner module (printed if relevant)
-.IP \(bu
-\fBmodule\fP Module name (printed if relevant, used to indicate the python script)
-.IP \(bu
-\fBfunction\fP Function name (printed if relevant,
-used to indicate the function within the python module)
 .SH EXAMPLES
 .LP
 To record all packets arriving at or departing from \fIsundown\fP and extract all of the HTTP attachments:
