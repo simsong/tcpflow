@@ -34,8 +34,17 @@ executable is analyzed independently of the incompatible libpcap ABI model.
 Cppcheck uses its Boost/POSIX/OpenSSL models instead of parsing installed
 dependency headers. Its derived database retains project/configuration include
 paths; the original database is built unchanged before analysis.
-CodeQL captures a manual build and uploads security-extended C/C++ results to
-GitHub Code Scanning. Coverage collects lcov data from a fresh instrumented
+Cppcheck explicitly includes the generated `config.h` so older supported
+versions analyze the configured build. Clang-tidy disables only the blanket
+Annex K deprecation warning for standard C memory functions; path-sensitive
+memory and bounds checks remain enabled.
+CodeQL captures a manual C/C++ build and also analyzes Python and Actions,
+preserving the existing default setup's language coverage. It uploads
+security-extended results to GitHub Code Scanning.
+Disable GitHub's repository-level CodeQL default setup
+before using this workflow: GitHub rejects advanced-analysis uploads while
+default setup is enabled, and running both duplicates analysis.
+Coverage collects lcov data from a fresh instrumented
 build and uploads through the supported Codecov action, without an embedded
 token or downloaded shell uploader.
 

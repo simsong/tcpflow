@@ -86,6 +86,7 @@
 #include "utils.h"                      // for gmtime_r
 
 #include <vector>
+#include <memory>
 #include <set>
 #include <map>
 
@@ -823,7 +824,7 @@ namespace be13 {
     /* plugin.cpp */
 
     struct plugin {
-        typedef std::vector<scanner_def *> scanner_vector;
+        typedef std::vector<std::unique_ptr<scanner_def> > scanner_vector;
         static scanner_vector current_scanners;                         // current scanners
         static bool dup_data_alerts;  // notify when duplicate data is not processed
         static uint64_t dup_data_encountered; // amount of dup data encountered

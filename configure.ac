@@ -238,6 +238,8 @@ if test $cairo = test ; then
   AC_CHECK_LIB([bz2],[BZ2_bzDecompress])
   AC_CHECK_LIB([freetype],[FT_Init_FreeType]) # requires bz2
   AC_CHECK_LIB([fontconfig],[FcBlanksCreate]) # requires freetype expat
+  AC_CHECK_HEADERS([fontconfig/fontconfig.h])
+  AC_CHECK_FUNCS([FcFini])
 
   AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
   AC_CHECK_HEADERS([cairo.h cairo-pdf.h])

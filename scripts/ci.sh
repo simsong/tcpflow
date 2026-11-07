@@ -59,11 +59,14 @@ case "$mode" in
                 compile_commands.json > cppcheck-commands.json
             # The standalone reader test and libpcap use intentionally distinct
             # ABI types in separate executables; do not merge their CTU models.
+            # Older cppcheck versions need the generated configuration explicit.
             cppcheck --project=cppcheck-commands.json --library=boost,posix,openssl --enable=warning,performance,portability \
+                --include="$build/config.h" \
                 --inline-suppr --check-level=exhaustive --suppress=missingIncludeSystem \
                 -i"$source_root/src/be13_api/pcap_fake.cpp" -i"$source_root/tests/test_pcap_fake.cpp" \
                 --xml --xml-version=2 --output-file=cppcheck.xml
             cppcheck --project=cppcheck-commands.json --library=boost,posix,openssl --enable=warning,performance,portability \
+                --include="$build/config.h" \
                 --inline-suppr --check-level=exhaustive --suppress=missingIncludeSystem \
                 --file-filter='*pcap_fake*' --xml --xml-version=2 --output-file=cppcheck-reader.xml
             cat cppcheck.xml cppcheck-reader.xml

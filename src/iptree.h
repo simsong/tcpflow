@@ -247,7 +247,7 @@ public:
         }
     }
     
-    virtual ~iptreet(){}                // required per compiler warnings
+    virtual ~iptreet(){delete root;}
     /* copy is a deep copy */
     iptreet(const iptreet &n):root(n.root ? new node(*n.root) : 0),
                               nodes(n.nodes),maxnodes(n.maxnodes),ctr_added(),pruned(),cache(),cachenext(),cache_hits(),cache_misses(){};

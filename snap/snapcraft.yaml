@@ -24,7 +24,6 @@ parts:
   tcpflow:
     plugin: nil
     source: .
-    source-ignore: [.git, .build, .tmp, dist]
     build-packages:
       - autoconf
       - automake

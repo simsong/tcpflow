@@ -32,7 +32,7 @@ check-workflows:
 container-image:
 	$(CONTAINER_ENGINE) build -f etc/Dockerfile.ci -t tcpflow-ci .
 container-check:
-	$(CONTAINER_ENGINE) run --rm -v "$(CURDIR):/src:ro" tcpflow-ci bash -euo pipefail -c 'tar -C /src --exclude=.git --exclude=.build --exclude=.tmp --exclude=dist -cf - . | tar -xf - -C /work; cd /work; make -f Makefile.ci $(CHECK)'
+	$(CONTAINER_ENGINE) run --rm -v "$(CURDIR):/src:ro" tcpflow-ci bash -euo pipefail -c 'cd /src; shopt -s dotglob; entries=(*); tar --exclude=.git --exclude=.build --exclude=.tmp --exclude=dist -cf - "$${entries[@]}" | tar -xf - -C /work; cd /work; make -f Makefile.ci $(CHECK)'
 
 # RELEASE_TAG is an existing annotated v<version> tag; RELEASE_COMMIT is its
 # immutable commit. Neither this target nor test-ci publishes anything.

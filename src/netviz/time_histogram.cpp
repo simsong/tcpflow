@@ -80,7 +80,7 @@ void time_histogram::condense(double factor)
         condensed.insert(reconstructed_ts, 0, bkt.portless_count, F_NON_TCP);
     }
 
-    histograms.at(best_fit_index) = condensed;
+    histograms.at(best_fit_index) = std::move(condensed);
 }
 
 uint64_t time_histogram::usec_per_bucket() const
@@ -125,7 +125,7 @@ size_t time_histogram::size() const
 // calculate the number of buckets if this were a non-sparse data structure like a vector
 size_t time_histogram::non_sparse_size() const
 {
-    histogram_map::buckets_t buckets = histograms.at(best_fit_index).buckets;
+    const histogram_map::buckets_t &buckets = histograms.at(best_fit_index).buckets;
     histogram_map::buckets_t::const_iterator least = buckets.begin();
     if(least == buckets.end()) {
         return 0;
@@ -206,7 +206,7 @@ bool time_histogram::histogram_map::insert(const struct timeval &ts, const in_po
 
     buckets_t::iterator it = buckets.find(target_index);
     if(it==buckets.end()){
-        buckets[target_index] = new bucket();
+        buckets[target_index].reset(new bucket());
     }
     buckets[target_index]->increment(port, count, flags);
 
