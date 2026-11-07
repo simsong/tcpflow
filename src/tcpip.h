@@ -335,6 +335,7 @@ public:;
     static bool compare(std::string a, std::string b);
     void sort_index(std::fstream *idx_file);
     void sort_index();
+    void shift_index(uint64_t n);
 };
 
 /* print a tcpip data structure. Largely for debugging */

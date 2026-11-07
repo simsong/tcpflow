@@ -220,6 +220,9 @@ void tcpdemux::post_process(tcpip *tcp)
         }
     }
     tcp->close_file();
+    if(opt.output_packet_index && tcp->flow_index_pathname.size()){
+        sort_index_file(tcp->flow_index_pathname);
+    }
     if(xreport) tcp->dump_xml(xreport,xmladd.str());
     /**
      * Before we delete the tcp structure, save information about the saved flow

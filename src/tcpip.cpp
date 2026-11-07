@@ -20,6 +20,8 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <fstream>
+#include <algorithm>
 
 #pragma GCC diagnostic ignored "-Weffc++"
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -533,6 +535,11 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
         /* TK: If we have seen packets, everything in the recon set needs to be shifted as well.*/
         delete seen;
         seen = 0;
+
+        /* The bytes already in the index moved up with the data */
+        if (demux.opt.output_packet_index && idx_file.is_open()) {
+            shift_index(insert_bytes);
+        }
     }
 
     /* if we're not at the correct point in the file, seek there */
@@ -657,6 +664,54 @@ void tcpip::sort_index(std::fstream *ix_file) {
  */
 void tcpip::sort_index(){
 	tcpip::sort_index(&(this->idx_file));
+}
+
+/* Read the index lines; offset is the number before the first '|' */
+static std::vector<std::pair<uint64_t,std::string> > read_index(std::istream &in)
+{
+    std::vector<std::pair<uint64_t,std::string> > lines;
+    std::string line;
+    while (std::getline(in, line)) {
+        size_t bar = line.find('|');
+        if (bar == std::string::npos) continue;
+        lines.push_back(std::make_pair(strtoull(line.c_str(), 0, 10), line.substr(bar)));
+    }
+    return lines;
+}
+
+/* Add n to every offset in the open index file */
+void tcpip::shift_index(uint64_t n)
+{
+    idx_file.flush();
+    idx_file.clear();
+    idx_file.seekg(0);
+    std::vector<std::pair<uint64_t,std::string> > lines = read_index(idx_file);
+    idx_file.clear();
+    idx_file.seekp(0);
+    for (size_t i = 0; i < lines.size(); i++) {
+        idx_file << (lines[i].first + n) << lines[i].second << "\n";   // never shorter than before
+    }
+    idx_file.flush();
+}
+
+static bool index_offset_less(const std::pair<uint64_t,std::string> &a,
+                              const std::pair<uint64_t,std::string> &b)
+{
+    return a.first < b.first;
+}
+
+/* Sort a closed index file by offset, keeping arrival order for equal offsets */
+void sort_index_file(const std::string &path)
+{
+    std::ifstream in(path.c_str());
+    if (!in.is_open()) return;
+    std::vector<std::pair<uint64_t,std::string> > lines = read_index(in);
+    in.close();
+    std::stable_sort(lines.begin(), lines.end(), index_offset_less);
+    std::ofstream out(path.c_str(), std::ios::trunc);
+    for (size_t i = 0; i < lines.size(); i++) {
+        out << lines[i].first << lines[i].second << "\n";
+    }
 }
 
 #pragma GCC diagnostic ignored "-Weffc++"

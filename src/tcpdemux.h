@@ -45,6 +45,8 @@
  * the tcp demultiplixer
  * This is a singleton class; we only need a single demultiplexer.
  */
+void sort_index_file(const std::string &path);
+
 class tcpdemux {
     /* see http://mikecvet.wordpress.com/tag/hashing/ */
     typedef struct {
