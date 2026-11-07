@@ -31,7 +31,6 @@ jobs:
     needs: preflight
     permissions:
       contents: read
-      security-events: write
     uses: ./.github/workflows/checks.yml
     secrets: inherit
   windows:

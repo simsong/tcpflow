@@ -11,8 +11,9 @@ The Autotools build is the supported CI and release path. Run checks from a
 checkout with `make -f Makefile.ci bootstrap native`; `distcheck` also rebuilds,
 tests, installs and uninstalls the generated source distribution. Separate
 `asan`, `tsan`, `ubsan`, `clang-analyzer`, `clang-tidy`, `cppcheck`, and `coverage`
-targets use isolated `.build/` directories. CI also runs CodeQL, Windows runtime
-tests, Debian compatibility and FreeBSD/OpenBSD checks. See the detailed
+targets use isolated `.build/` directories. CI also runs Windows runtime
+tests, Debian compatibility and FreeBSD/OpenBSD checks. CodeQL runs separately
+through the repository's existing GitHub default setup. See the detailed
 [CI/release procedure](doc/CI_CD.md) and [comparison with the reference repositories](doc/CI_CD_ANALYSIS.md).
 
 An annotated `v<version>` tag on a commit already merged into `main` triggers

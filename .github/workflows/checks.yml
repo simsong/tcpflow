@@ -8,7 +8,6 @@ on:
   workflow_call:
 permissions:
   contents: read
-  security-events: write
 jobs:
   workflow-lint:
     name: Workflow and shell validation
@@ -108,39 +107,6 @@ jobs:
             .build/**/cppcheck*.xml
             .build/**/compile_commands.json
           if-no-files-found: ignore
-  codeql:
-    name: CodeQL ${{ matrix.name }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: C/C++
-            language: c-cpp
-            build-mode: manual
-          - name: Python
-            language: python
-            build-mode: none
-          - name: Actions
-            language: actions
-            build-mode: none
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          submodules: recursive
-      - uses: ./.github/actions/setup
-        if: matrix.language == 'c-cpp'
-      - uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-          queries: security-extended
-      - run: make -f Makefile.ci bootstrap codeql-build
-        if: matrix.language == 'c-cpp'
-      - uses: github/codeql-action/analyze@v4
-        with:
-          category: /language:${{ matrix.language }}
   coverage:
     name: Coverage
     runs-on: ubuntu-22.04
@@ -172,7 +138,7 @@ jobs:
           submodules: recursive
       - run: |
           docker build --build-arg BASE_IMAGE=debian:bookworm -f etc/Dockerfile.ci -t tcpflow-ci .
-          make -f Makefile.ci container-check CONTAINER_ENGINE=docker CHECK='bootstrap codeql-build'
+          make -f Makefile.ci container-check CONTAINER_ENGINE=docker CHECK='bootstrap build'
   bsd:
     name: ${{ matrix.os }}
     runs-on: ubuntu-24.04

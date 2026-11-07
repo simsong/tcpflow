@@ -37,7 +37,7 @@ case "$mode" in
         export LIBS
         LIBS=$(pkg-config --libs --static openssl zlib)
         configure_args+=(--host=x86_64-w64-mingw32 --enable-cairo=false --disable-wifi --without-cap-ng);;
-    native|distcheck|cppcheck|codeql-build) ;;
+    native|distcheck|cppcheck|build) ;;
     *) echo "Unknown check mode: $mode" >&2; exit 2;;
 esac
 "$source_root/configure" "${configure_args[@]}"
@@ -91,7 +91,7 @@ case "$mode" in
         mkdir -p "$source_root/dist"
         cp "$exe" "$source_root/dist/tcpflow64.exe"
         ;;
-    codeql-build) make -j"$jobs" all;;
+    build) make -j"$jobs" all;;
     *)
         make -j"$jobs" all
         # The historical shell regressions share output names; keep them serial.

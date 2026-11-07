@@ -14,13 +14,13 @@ CONTAINER_ENGINE ?= finch
 CHECK ?= bootstrap native
 export CI_JOBS CI_BUILD_ROOT
 
-.PHONY: bootstrap native distcheck asan tsan ubsan coverage clang-analyzer clang-tidy cppcheck codeql-build windows snap test-ci check-workflows container-image container-check
+.PHONY: bootstrap native distcheck asan tsan ubsan coverage clang-analyzer clang-tidy cppcheck build windows snap test-ci check-workflows container-image container-check
 bootstrap:
 	bash bootstrap.sh
 .PHONY: windows-deps
 windows-deps:
 	bash scripts/windows-deps.sh
-native distcheck asan tsan ubsan coverage clang-analyzer clang-tidy cppcheck codeql-build windows:
+native distcheck asan tsan ubsan coverage clang-analyzer clang-tidy cppcheck build windows:
 	bash scripts/ci.sh $@
 snap:
 	snapcraft pack
