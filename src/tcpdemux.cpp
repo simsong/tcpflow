@@ -250,7 +250,7 @@ void tcpdemux::post_process(tcpip *tcp)
 	if(pid<0) die("Cannot fork child");
 	if(pid==0){
 	    /* We are the child */
-	    exit(system(cmd.c_str()));
+	    _exit(system(cmd.c_str())); // exit() would reposition the input file shared with the parent
 	}
 	tcp_subproc++;
 #else
