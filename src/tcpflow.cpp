@@ -218,6 +218,20 @@ static void dfxml_create(class dfxml_writer &xreport,int argc,char * const *argv
 
 
 /* String replace. Perhaps not the most efficient, but it works */
+/* Does the template contain the %c code? "%%c" is a literal "%c", not the code:
+ * without a counter, flows with the same name would search for a free name forever.
+ */
+static bool template_has_counter(const std::string &t)
+{
+    for(size_t i=0;i+1<t.size();i++){
+        if(t[i]=='%'){
+            if(t[i+1]=='c') return true;
+            i++;                        // skip the code, so "%%" is not read again
+        }
+    }
+    return false;
+}
+
 void replace(std::string &str,const std::string &from,const std::string &to)
 {
     if(from.size()==0) return;
@@ -724,7 +738,7 @@ int main(int argc, char *argv[])
             break;
 	case 'T':
             flow::filename_template = optarg;
-            if(flow::filename_template.find("%c")==std::string::npos){
+            if(!template_has_counter(flow::filename_template)){
                 flow::filename_template += std::string("%C%c"); // append %C%c if not present
             }
             break;
