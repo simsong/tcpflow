@@ -195,7 +195,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     /* Create a packet_info structure with ip data and data length  */
     try {
         struct timeval tv;
-        be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
+        be13::packet_info pi(DLT_EN10MB,h,p,tvshift(tv,h->ts),
                              ether_data, caplen - sizeof(struct be13::ether_header));
         switch (ntohs(*ether_type)){
         case ETHERTYPE_IP:
