@@ -1,0 +1,189 @@
+# Reusable correctness gate for tcpflow PRs, main and release tags.
+# Each compiler/sanitizer/analyzer has an isolated build and visible status.
+# Distribution checks execute the source archive's build/install/test path.
+# Existing BSD coverage is preserved alongside Debian compatibility.
+# Failed logs are retained; missing analyzer runtimes are never passing skips.
+name: Correctness checks
+on:
+  workflow_call:
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  workflow-lint:
+    name: Workflow and shell validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install checksum-verified actionlint and shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          curl -fsSL --retry 3 https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - run: make -f Makefile.ci check-workflows
+  native:
+    name: Native and distribution (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - run: make -f Makefile.ci bootstrap native distcheck test-ci
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: matrix.os == 'ubuntu-24.04'
+        with:
+          name: source-distribution
+          path: .build/distcheck/tcpflow-*.tar.gz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: native-reports-${{ matrix.os }}
+          include-hidden-files: true
+          path: |
+            .build/**/config.log
+            .build/**/test-suite.log
+          if-no-files-found: ignore
+  sanitizers:
+    name: ${{ matrix.mode }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [asan, tsan, ubsan]
+    env:
+      ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+      TSAN_OPTIONS: halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - name: Reserve the address layout required by TSan on this disposable runner
+        if: matrix.mode == 'tsan'
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+      - run: make -f Makefile.ci bootstrap ${{ matrix.mode }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: sanitizer-reports-${{ matrix.mode }}
+          include-hidden-files: true
+          path: |
+            .build/**/config.log
+            .build/**/test-suite.log
+          if-no-files-found: ignore
+  analyzers:
+    name: ${{ matrix.mode }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [clang-analyzer, clang-tidy, cppcheck]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - run: make -f Makefile.ci bootstrap ${{ matrix.mode }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: analyzer-reports-${{ matrix.mode }}
+          include-hidden-files: true
+          path: |
+            .build/**/reports
+            .build/**/cppcheck*.xml
+            .build/**/compile_commands.json
+          if-no-files-found: ignore
+  codeql:
+    name: CodeQL C/C++
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: c-cpp
+          build-mode: manual
+          queries: security-extended
+      - run: make -f Makefile.ci bootstrap codeql-build
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:c-cpp
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - run: make -f Makefile.ci bootstrap coverage
+      - uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: .build/coverage/coverage.filtered.info
+          disable_search: true
+          fail_ci_if_error: true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage
+          path: .build/coverage/coverage.filtered.info
+          if-no-files-found: error
+  debian:
+    name: Debian Bookworm compile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - run: |
+          docker build --build-arg BASE_IMAGE=debian:bookworm -f etc/Dockerfile.ci -t tcpflow-ci .
+          make -f Makefile.ci container-check CONTAINER_ENGINE=docker CHECK='bootstrap codeql-build'
+  bsd:
+    name: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [FreeBSD, OpenBSD]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: vmactions/freebsd-vm@v1
+        if: matrix.os == 'FreeBSD'
+        with:
+          usesh: true
+          prepare: pkg install -y bash autoconf automake boost-all openssl libpcap cairo gmake python3
+          run: gmake -f Makefile.ci bootstrap native
+      - uses: vmactions/openbsd-vm@v1
+        if: matrix.os == 'OpenBSD'
+        with:
+          usesh: true
+          prepare: pkg_add bash autoconf%2.72 automake%1.16 boost cairo gmake python3
+          run: |
+            set -e
+            export AUTOCONF_VERSION=2.72 AUTOMAKE_VERSION=1.16
+            # Preserve the established exclusions for the base libpcap reader.
+            rm tests/test1-out-of-order.pcap tests/test5-lines-randomized.pcap tests/test5-lines-randomized2.pcap
+            gmake -f Makefile.ci bootstrap native

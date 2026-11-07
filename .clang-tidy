@@ -1,0 +1,8 @@
+# Analyze the C/C++ build using the captured compilation database.
+# Clang's path-sensitive checkers cover memory and API correctness.
+# Findings fail the CI job; dependency headers are not separate targets.
+# Formatting and naming preferences are intentionally outside this gate.
+# The full scan-build and cppcheck jobs provide independent analyses.
+Checks: '-*,clang-analyzer-*'
+WarningsAsErrors: 'clang-analyzer-*'
+HeaderFilterRegex: '.*'

@@ -6,6 +6,7 @@
 
 #ifndef HAVE_PCAP_WRITER_H
 #define HAVE_PCAP_WRITER_H
+#include <memory>
 class pcap_writer {
     /* These are not implemented */
     pcap_writer &operator=(const pcap_writer &that);
@@ -48,16 +49,16 @@ class pcap_writer {
     }
     void copy_header(const std::string &ifname){
         /* assert byte order is correct */
-        FILE *f2 = fopen(ifname.c_str(),"rb");
+        std::unique_ptr<FILE, decltype(&fclose)> f2(fopen(ifname.c_str(),"rb"), &fclose);
         if(f2==0) throw new write_error();
         u_char buf[PCAP_HEADER_SIZE];
-        if(fread(buf,1,sizeof(buf),f2)!=sizeof(buf)) throw new write_error();
+        if(fread(buf,1,sizeof(buf),f2.get())!=sizeof(buf)) throw new write_error();
         if((buf[0]!=0xd4) || (buf[1]!=0xc3) || (buf[2]!=0xb2) || (buf[3]!=0xa1)){
             std::cout << "pcap file " << ifname << " is in wrong byte order. Cannot continue.\n";
             throw new write_error();
         }
         if(fwrite(buf,1,sizeof(buf),fcap)!=sizeof(buf)) throw new write_error();
-        if(fclose(f2)!=0) throw new write_error();
+        if(fclose(f2.release())!=0) throw new write_error();
     }
 
 public:

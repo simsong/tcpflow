@@ -172,6 +172,7 @@ private:;
             }
 
             // case 5 - the better node of each child's best node.
+            assert(ptr0 && ptr1); // all absent/leaf combinations returned above
             best ptr0_best = ptr0->best_to_prune(my_depth+1);
             best ptr1_best = ptr1->best_to_prune(my_depth+1);
 
@@ -276,7 +277,7 @@ public:
         uint8_t addr[ADDRBYTES];
         node *ptr;                      // 0 means cache entry is not in use
         cache_element(const uint8_t addr_[ADDRBYTES],size_t addrlen,node *p):addr(),ptr(p){
-            memcpy(addr,addr_,addrlen);
+            if (addrlen) memcpy(addr,addr_,addrlen);
         }
     };
     enum {cache_size=4};

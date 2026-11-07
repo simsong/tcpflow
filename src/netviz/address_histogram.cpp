@@ -11,7 +11,6 @@
 
 #ifdef HAVE_LIBCAIRO
 #include "tcpflow.h"
-#include "tcpip.h"
 
 #include <math.h>
 #include <iomanip>

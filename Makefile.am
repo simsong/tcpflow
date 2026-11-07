@@ -1,7 +1,11 @@
 # Makefile.am for tcpflow
 # 
 SUBDIRS = src doc tests
-EXTRA_DIST = tcpflow.spec.in TODO.txt m4/ax_pthread.m4
+EXTRA_DIST = tcpflow.spec.in TODO.txt m4/ax_pthread.m4 \
+	bootstrap.sh Makefile.ci .clang-tidy etc/Dockerfile.ci \
+	scripts/ci.sh scripts/release.sh scripts/test-windows.ps1 \
+	scripts/verify-authenticode.ps1 scripts/windows-deps.sh snap/snapcraft.yaml \
+	tests/test_ci_release.py doc/CI_CD.md doc/CI_CD_ANALYSIS.md
 ACLOCAL_AMFLAGS = -I m4
 AM_CFLAGS = -Wall
 
@@ -27,59 +31,13 @@ pdft:
 	src/tcpflow -a -o out -r /corp/nps/packets/2008-nitroba/nitroba.pcap -w out/extra.pcap
 	open out/report.pdf
 
-#
-# AFFLIB RELEASE SYSTEM V1.0 FOLLOWS
-#
+# Release publication is owned by the tag-triggered GitHub workflow.
+# This local target validates the source archive without creating a tag.
+.PHONY: release ci
+release: distcheck
+ci:
+	$(MAKE) -C "$(abs_srcdir)" -f Makefile.ci native
 
-RELEASE_USER = simsong@
-RELEASE_HOST = digitalcorpora.org
-RELEASE_DIR  = digitalcorpora.org/
-
-RELEASE_LOC  = $(RELEASE_DIR)/downloads/
-VERSION_FN   = $(PACKAGE)_version.txt
-RELEASE_PATH = $(RELEASE_LOC)/$(VERSION_FN)
-RELEASE_SSH  = $(RELEASE_USER)$(RELEASE_HOST):$(RELEASE_LOC)
-
-
-release:
-	make dist
-	make distcheck
-	make the_release
-
-the_release: $(RELEASEFN)
-	gpg --detach-sign $(RELEASEFN)
-	@echo Release $(RELEASE_VER) uploaded to server
-
-tcpflow32.exe:
-	mingw32-configure
-	make clean
-	make 
-	mv -f src/tcpflow.exe tcpflow32.exe
-
-tcpflow64.exe:
-	mingw64-configure
-	make clean
-	make 
-	mv -f src/tcpflow.exe tcpflow64.exe
-
-FN=$(PACKAGE_TARNAME)-$(PACKAGE_VERSION).zip
-$(FN): tcpflow32.exe tcpflow64.exe
-	/bin/rm -f tcpflow*.exe $(FN)
-	make tcpflow32.exe
-	make tcpflow64.exe
-	zip $(FN) tcpflow32.exe tcpflow64.exe
-
-winrelease: $(FN)
-
-pub: $(FN)
-	scp $(FN) dcorpora@digitalcorpora.org:downloads/tcpflow/
-
-
-.PHONY: pull
-pull:
-	git pull
-	(cd src/dfxml;git pull)
-	(cd src/be13_api;git pull)
-#
-# END OF AFFLIB RELEASE SYSTEM
-#
+.PHONY: analyzer-build
+analyzer-build: all
+	$(MAKE) -C src analysis-tests

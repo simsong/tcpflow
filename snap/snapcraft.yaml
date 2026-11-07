@@ -1,0 +1,50 @@
+# Package tcpflow with native PCAP and PDF support under strict confinement.
+# Autotools supplies the version and installs the same binary tested by CI.
+# Runtime libraries and fonts are staged so no host development files leak in.
+# Home/removable-media plugs support offline captures without capture privileges.
+# Live capture is opt-in through the network-control interface connection.
+name: tcpflow
+base: core22
+adopt-info: tcpflow
+summary: Reconstruct TCP streams from packet captures
+description: |
+  tcpflow extracts transmitted TCP data into one file per flow and can produce
+  DFXML and PDF reports. Offline captures can be read from connected home and
+  removable-media locations. Live capture requires administrator-granted access.
+license: GPL-3.0-or-later
+contact: https://github.com/simsong/tcpflow/issues
+source-code: https://github.com/simsong/tcpflow
+grade: stable
+confinement: strict
+apps:
+  tcpflow:
+    command: usr/bin/tcpflow
+    plugs: [home, removable-media, network-control]
+parts:
+  tcpflow:
+    plugin: nil
+    source: .
+    source-ignore: [.git, .build, .tmp, dist]
+    build-packages:
+      - autoconf
+      - automake
+      - build-essential
+      - libboost-dev
+      - libcairo2-dev
+      - libpcap-dev
+      - libssl-dev
+      - libtool
+      - pkg-config
+      - zlib1g-dev
+    stage-packages: [libcairo2, libfontconfig1, libfreetype6, libpcap0.8, libssl3, zlib1g, fonts-dejavu-core]
+    override-pull: |
+      craftctl default
+      version=$(sed -n 's/^AC_INIT(TCPFLOW, \([^,]*\),.*/\1/p' configure.ac)
+      test -n "$version"
+      craftctl set version="$version"
+    override-build: |
+      bash bootstrap.sh
+      ./configure --prefix=/usr --quiet
+      make -j"$(nproc)"
+      make -j1 check
+      make install DESTDIR="$CRAFT_PART_INSTALL"

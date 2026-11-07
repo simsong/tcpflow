@@ -177,6 +177,7 @@ void HistogramMaker::add(const std::string &key)
     /* Apply the flags */
     // See: http://stackoverflow.com/questions/1081456/wchar-t-vs-wint-t
     if(flags & FLAG_LOWERCASE){
+	assert(tempKey); // the flag preparation above allocated the mutable key
 	/* keyToAdd is UTF-8; convert to UTF-16, downcase, and convert back to UTF-8 */
 	try{
 	    std::wstring utf16key;
@@ -195,6 +196,7 @@ void HistogramMaker::add(const std::string &key)
 	}
     }
     if(flags & FLAG_NUMERIC){
+	assert(tempKey);
 	/* keyToAdd is UTF-8; convert to UTF-16, extract digits, and convert back to UTF-8 */
 	std::string originalTempKey(*tempKey);
 	try{

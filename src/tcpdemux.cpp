@@ -242,7 +242,7 @@ void tcpdemux::post_process(tcpip *tcp)
 	int status=0;
 	pid_t pid = 0;
 	while(tcp_subproc >= tcp_subproc_max){
-	    pid = wait(&status);
+	    wait(&status);
 	    tcp_subproc--;
 	}
 	/* Fork off a child */

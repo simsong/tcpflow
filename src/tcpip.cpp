@@ -271,7 +271,6 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
         if(demux.opt.output_hex) putchar('\n');
     }
 
-    size_t written = 0;
     if(demux.opt.output_hex){
         const size_t bytes_per_line = 32;
         size_t max_spaces = 0;
@@ -309,7 +308,6 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
             }
             fputc('\n',stdout);
         }
-        written = length;               // just fake it.
     } else if (demux.opt.output_json) {
         // {
         //     "src_host": "192.168.0.1",
@@ -351,7 +349,6 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
         printf("\",\"src_port\":%d,\"dst_host\":\"", atoi(flow_pathname.substr(src_pos + 1, src_end_pos - src_pos).c_str()));
         
         size_t dst_pos = src_end_pos + 1;
-        size_t dst_end_pos = dst_pos;
         size_t dst_pos_counter = 0;
         
         for(size_t i = dst_pos; i < pathname_len; ++i) {
@@ -367,7 +364,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
                 break;
             }
         }
-        dst_end_pos = dst_pos;
+        size_t dst_end_pos = dst_pos;
         for(;dst_end_pos < pathname_len; ++dst_end_pos) {
             if(flow_pathname[dst_end_pos] == '-') {
                 break;
@@ -389,11 +386,9 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
                 }
 	    }
 	    else fputc('.',stdout);
-            written += 1; // treat even unprintable characters as "written". It
-                          // really means "processed"
         }
 	} else {
-	    written = fwrite(data,1,length,stdout);
+	    size_t written = fwrite(data,1,length,stdout);
         if(length != written) std::cerr << "\nwrite error to stdout (" << length << "!=" << written << ") \n";
     }
 
@@ -593,7 +588,7 @@ void tcpip::store_packet(const u_char *data, uint32_t length, int32_t delta,stru
 
     if(pos>last_byte) last_byte = pos;
 
-    if(debug>=100){
+    if(debug>=100 && fd>=0){
         uint64_t rpos = lseek(fd,(off_t)0,SEEK_CUR);
         DEBUG(100)("    pos=%" PRId64 "  lseek(fd,0,SEEK_CUR)=%" PRId64,pos,rpos);
         assert(pos==rpos);

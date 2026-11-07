@@ -48,7 +48,7 @@ AC_TRY_COMPILE([#pragma GCC diagnostic ignored "-Wredundant-decls"],
 ## on Win32, crypto requires zlib
 case $host in
   *mingw32*)
-  AC_CHECK_LIB([z], [gzdopen],[LIBS="-lz $LIBS"], [AC_MSG_ERROR([Could not find zlib library])])
+  AC_SEARCH_LIBS([gzdopen], [z zs], [], [AC_MSG_ERROR([Could not find zlib library])])
 esac
 
 ################################################################

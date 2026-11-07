@@ -95,3 +95,8 @@ tests/packet1.pcap
 *.d
 ar-lib
 tcpflow-1.6.1
+.build/
+.tmp/
+dist/
+*.snap
+compile_commands.json

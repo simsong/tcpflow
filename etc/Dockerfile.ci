@@ -1,0 +1,13 @@
+# Linux validation environment for tcpflow's Autotools execution path.
+# The same distribution and packages are used by the hosted Ubuntu jobs.
+# The source tree is mounted read-only and copied by container-check.
+# Build output stays inside the disposable container unless exported.
+# Snap confinement and Windows runtime checks run on their native CI hosts.
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    autoconf automake bear build-essential ca-certificates clang clang-tools clang-tidy \
+    cppcheck curl git jq lcov libboost-dev libcairo2-dev libpcap-dev libssl-dev \
+    libtool libxml2-utils pkg-config python3 shellcheck zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /work

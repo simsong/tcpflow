@@ -5,7 +5,7 @@
 
 . $srcdir/test-subs.sh
 
-for t in 1 2 3 
+for t in 1 2 3 4
 do
   echo 
   echo ========

@@ -109,7 +109,7 @@ uint64_t time_histogram::tallest_bar() const
 }
 
 const time_histogram::bucket &time_histogram::at(uint32_t index) const {
-    const histogram_map::buckets_t hgram = histograms.at(best_fit_index).buckets;
+    const histogram_map::buckets_t &hgram = histograms.at(best_fit_index).buckets;
     histogram_map::buckets_t::const_iterator bkt = hgram.find(index);
     if(bkt == hgram.end()) {
         return empty_bucket;

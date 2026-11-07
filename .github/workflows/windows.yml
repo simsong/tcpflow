@@ -1,0 +1,52 @@
+# Build a standalone x64 Windows executable from the calling source revision.
+# Static MinGW dependencies eliminate redistributable application DLLs.
+# PE import verification enforces that promise before native Windows tests.
+# Ordinary CI uploads an unsigned candidate; only release.yml may sign it.
+# Native tests reconstruct real PCAP fixtures and verify the output bytes.
+name: Standalone Windows
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      VCPKG_COMMIT: 40f3c709db80acf154ac4b17a1f83c564ebd022e
+      VCPKG_ROOT: ${{ github.workspace }}/.build/vcpkg
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - name: Install cross-build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake build-essential cmake curl file \
+            g++-mingw-w64-x86-64-posix libtool ninja-build pkg-config unzip zip
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+      - name: Build pinned static dependencies
+        run: make -f Makefile.ci windows-deps
+      - name: Build and verify standalone EXE
+        env:
+          WINDOWS_DEPS: ${{ env.VCPKG_ROOT }}/installed/x64-mingw-static
+        run: make -f Makefile.ci bootstrap windows
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-unsigned
+          path: dist/tcpflow64.exe
+          if-no-files-found: error
+  test:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-unsigned
+          path: dist
+      - name: Test standalone executable
+        shell: pwsh
+        run: make -f Makefile.ci windows-test EXE=dist/tcpflow64.exe
