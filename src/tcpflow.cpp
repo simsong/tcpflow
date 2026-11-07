@@ -71,7 +71,7 @@ const char *progname = 0;		// name of the program
 int debug = DEFAULT_DEBUG_LEVEL;	// global variable, not clear why
 
 /* semaphore prevents multiple copies from outputing on top of each other */
-#ifdef HAVE_PTHREAD_H
+#ifdef HAVE_SEMAPHORE_H
 #include <semaphore.h>
 sem_t *semlock = 0;
 #endif
@@ -825,10 +825,14 @@ int main(int argc, char *argv[])
 
     /* was a semaphore provided for the lock? */
     if(lockname){
-#if defined(HAVE_SEMAPHORE_H) && defined(HAVE_PTHREAD_H)
+#ifdef HAVE_SEMAPHORE_H
 	semlock = sem_open(lockname,O_CREAT,0777,1); // get the semaphore
+	if(semlock==SEM_FAILED){
+	    fprintf(stderr,"%s: -L %s: %s\n",progname,lockname,strerror(errno));
+	    exit(1);
+	}
 #else
-	fprintf(stderr,"%s: attempt to create lock pthreads not present\n",argv[0]);
+	fprintf(stderr,"%s: -L is not supported on this system\n",progname);
 	exit(1);
 #endif
     }

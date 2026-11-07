@@ -262,7 +262,7 @@ extern const char *progname;
 void    terminate(int sig);
 #include "inet_ntop.h"
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_SEMAPHORE_H
 #include <semaphore.h>
 extern sem_t *semlock;
 #endif
