@@ -71,7 +71,9 @@ offline PCAP processing through the bundled reader. Live capture, BPF filters,
 Wi-Fi decoding and Cairo PDFs are not included in this Windows configuration.
 
 Each Snap is built natively, installed with strict confinement, and run on a
-checked-in packet capture. CI verifies reconstructed bytes, DFXML and a PDF.
+checked-in packet capture. CI verifies reconstructed bytes, DFXML and PDF text,
+and rejects font-configuration errors. The Snap supplies its own Fontconfig
+configuration pointing to bundled fonts, with a writable per-user cache.
 Users can install GitHub downloads with `sudo snap install --dangerous FILE`.
 Connect `tcpflow:home` for ordinary files, `tcpflow:removable-media` for external
 media, and `tcpflow:network-control` only when live capture is needed. Snap

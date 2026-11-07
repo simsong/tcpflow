@@ -7,7 +7,7 @@
 # ASAN_OPTIONS/TSAN_OPTIONS/UBSAN_OPTIONS control diagnostic runtime behavior.
 # GitHub supplies CODECOV_TOKEN for authenticated coverage submissions.
 # AZURE_* and WINDOWS_PUBLISHER select OIDC/public signing; GH_TOKEN publishes.
-# VCPKG_{ROOT,COMMIT} and SNAPCRAFT_BUILD_ENVIRONMENT select package builders.
+# VCPKG_{ROOT,COMMIT}/SNAPCRAFT_BUILD_ENVIRONMENT select builders; FONTCONFIG_FILE/XDG_CACHE_HOME set Snap fonts/cache.
 CI_JOBS ?= 2
 CI_BUILD_ROOT ?= $(CURDIR)/.build
 CONTAINER_ENGINE ?= finch

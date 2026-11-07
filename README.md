@@ -38,6 +38,7 @@ Configuration (never put secret values in source files):
 | `WINDOWS_DEPS` | Static MinGW dependency prefix for the `windows` target. |
 | `VCPKG_ROOT`, `VCPKG_COMMIT` | Windows dependency directory and pinned vcpkg revision in CI. |
 | `SNAPCRAFT_BUILD_ENVIRONMENT` | Snapcraft build provider; CI uses `lxd`. |
+| `FONTCONFIG_FILE`, `XDG_CACHE_HOME` | Snap-provided bundled-font configuration and writable font-cache location for PDF reports. |
 | `RELEASE_TAG`, `RELEASE_COMMIT` | Annotated version tag and exact immutable source commit for preflight. |
 | `EXE` | Standalone executable path for `windows-test`. |
 | `CODECOV_TOKEN` | GitHub secret for authenticated coverage submission. |

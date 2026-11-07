@@ -19,6 +19,9 @@ confinement: strict
 apps:
   tcpflow:
     command: usr/bin/tcpflow
+    environment:
+      FONTCONFIG_FILE: $SNAP/etc/fonts/fonts.conf
+      XDG_CACHE_HOME: $SNAP_USER_COMMON/.cache
     plugs: [home, removable-media, network-control]
 parts:
   tcpflow:
@@ -47,3 +50,4 @@ parts:
       make -j"$(nproc)"
       make -j1 check
       make install DESTDIR="$CRAFT_PART_INSTALL"
+      install -Dm644 "$CRAFT_PROJECT_DIR/snap/fonts.conf" "$CRAFT_PART_INSTALL/etc/fonts/fonts.conf"

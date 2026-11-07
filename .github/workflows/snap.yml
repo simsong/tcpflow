@@ -38,15 +38,24 @@ jobs:
       - name: Install and test the confined package
         run: |
           set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
           shopt -s nullglob
           packages=(tcpflow_*_${{ matrix.arch }}.snap)
           test "${#packages[@]}" -eq 1
           sudo snap install --dangerous "${packages[0]}"
           sudo snap connect tcpflow:home :home
           cp tests/test1.pcap "$HOME/tcpflow.pcap"
-          snap run tcpflow -e netviz -o "$HOME/tcpflow-output" -r "$HOME/tcpflow.pcap"
+          if ! snap run tcpflow -e netviz -o "$HOME/tcpflow-output" -r "$HOME/tcpflow.pcap" 2> "$RUNNER_TEMP/snap-runtime.log"; then
+            cat "$RUNNER_TEMP/snap-runtime.log" >&2
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/snap-runtime.log"
+          if grep -Ei 'Fontconfig (error|warning):' "$RUNNER_TEMP/snap-runtime.log"; then exit 1; fi
           test -s "$HOME/tcpflow-output/report.xml"
           test -s "$HOME/tcpflow-output/report.pdf"
+          pdftotext "$HOME/tcpflow-output/report.pdf" "$RUNNER_TEMP/snap-report.txt"
+          grep -Fq 'Top Source Addresses' "$RUNNER_TEMP/snap-report.txt"
           echo "ae30a88136feb0655492bdb75e078643  $HOME/tcpflow-output/074.125.019.101.00080-192.168.001.102.50956" | md5sum -c -
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
