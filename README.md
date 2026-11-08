@@ -9,7 +9,9 @@ CI and releases
 
 The Autotools build is the supported CI and release path. Run checks from a
 checkout with `make -f Makefile.ci bootstrap native`; `distcheck` also rebuilds,
-tests, installs and uninstalls the generated source distribution. Separate
+tests, installs and uninstalls the generated source distribution.
+After `./configure`, `make ci` builds and tests the current build directory,
+including in-tree builds; its regression tests run serially. Separate
 `asan`, `tsan`, `ubsan`, `clang-analyzer`, `clang-tidy`, `cppcheck`, and `coverage`
 targets use isolated `.build/` directories. CI also runs Windows runtime
 tests, Debian compatibility and FreeBSD/OpenBSD checks. CodeQL runs separately

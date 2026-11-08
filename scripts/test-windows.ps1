@@ -3,6 +3,7 @@
 # Input and output directories contain spaces to exercise command arguments.
 # DFXML must parse successfully and the executable must report its version.
 # Release jobs rerun this check against the final Authenticode-signed bytes.
+# Unsupported BPF filters must produce a failing exit code and useful CLI text.
 param([Parameter(Mandatory=$true)][string]$Executable)
 $ErrorActionPreference = 'Stop'
 $exe = (Resolve-Path -LiteralPath $Executable).Path
@@ -38,6 +39,10 @@ try {
             if ($hash -ine $entry.Value) { throw "Incorrect reconstructed bytes: $($entry.Key)" }
         }
         $null = [xml](Get-Content -Raw -LiteralPath (Join-Path $output 'report.xml'))
+    }
+    $diagnostic = & $exe -o (Join-Path $work 'unsupported filter') -r (Join-Path $work 'test1.pcap') tcp 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0 -or $diagnostic -notmatch 'BPF filters are unsupported') {
+        throw "Missing unsupported-filter diagnostic: $diagnostic"
     }
 } finally { Remove-Item -LiteralPath $work -Recurse -Force }
 exit 0

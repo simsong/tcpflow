@@ -36,7 +36,8 @@ pdft:
 .PHONY: release ci
 release: distcheck
 ci:
-	$(MAKE) -C "$(abs_srcdir)" -f Makefile.ci native
+	$(MAKE) all
+	$(MAKE) -j1 check
 
 .PHONY: analyzer-build
 analyzer-build: all
