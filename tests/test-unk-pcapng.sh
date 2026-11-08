@@ -3,9 +3,9 @@
 # test -w with a pcapng input
 #
 
-[ -f $DMPDIR/test1-out-of-order.pcap ] || { echo "no pcapng capture"; exit 77; }
 
 . $srcdir/test-subs.sh
+[ -f $DMPDIR/test1-out-of-order.pcap ] || { echo "no pcapng capture"; exit 77; }
 
 OUT=out-unk-pcapng
 
