@@ -1,8 +1,13 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+// Provide offline classic-PCAP input when tcpflow is built without libpcap.
+// Validate file headers and packet lengths before handing bytes to callbacks.
+// Support native and swapped byte order with bounded packet-buffer allocation.
+// Empty filters pass; unsupported BPF operations report explicit diagnostics.
+// Keep parser errors intact for the CLI and the native reader regressions.
 
 #include "config.h"
 
-#ifndef HAVE_LIBPCAP
+#if !defined(HAVE_LIBPCAP) || defined(TCPFLOW_TEST_PCAP_FAKE)
 #include "pcap_fake.h"
 
 #include <fcntl.h>
@@ -11,7 +16,8 @@
 #include <stdlib.h>
 #include <iostream>
 
-#ifdef WIN32
+#ifdef _WIN32
+#include <io.h>
 #define SET_BINMODE(f) _setmode(_fileno(f), _O_BINARY)
 #else
 #define SET_BINMODE(f) /* ignore */
@@ -25,6 +31,7 @@ struct pcap {
     FILE *fp;                   // input file we are reading from
     int    swapped;                     // whether magic number was swapped?
     uint32_t linktype;
+    uint32_t snaplen;
     bool   error;                       // an error occured
     bool   break_loop;                  // break_loop was called
     bool   must_close;
@@ -34,7 +41,6 @@ struct pcap {
 
 char *pcap_geterr(pcap_t *p)
 {
-    snprintf(p->err_buf,sizeof(p->err_buf),"not implemented in pcap_fake");
     return p->err_buf;
 }
 
@@ -46,13 +52,15 @@ char *pcap_geterr(pcap_t *p)
  */
 pcap_t *pcap_open_offline(const char *fname, char *errbuf)
 {
-    FILE *fp = strcmp(fname,"-")==0 ? stdin : fopen(fname,"rb");
+    const bool from_stdin = strcmp(fname,"-")==0;
+    FILE *fp = from_stdin ? stdin : fopen(fname,"rb");
     if(!fp){
         snprintf(errbuf,PCAP_ERRBUF_SIZE,"%s:%s",fname,strerror(errno));
         return 0;
     }
     pcap_t *p = pcap_fopen_offline(fp,errbuf);
-    if(p && p->fp!=stdin) p->must_close = true;
+    if(p) p->must_close = !from_stdin;
+    else if(!from_stdin) fclose(fp);
     return p;
 }
 
@@ -117,6 +125,11 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
         return 0;
     }
 
+    // Bound allocation and reject invalid snapshots before accepting records.
+    if(header.snaplen == 0 || header.snaplen > 16U * 1024 * 1024){
+        snprintf(errbuf,PCAP_ERRBUF_SIZE,"Invalid pcap snapshot length");
+        return 0;
+    }
     pcap_t *ret = (pcap_t *)calloc(1,sizeof(pcap_t));
     if(ret==0){
         snprintf(errbuf,
@@ -140,6 +153,7 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
     ret->fp      = fp;
     ret->swapped = swapped;
     ret->linktype = header.linktype;
+    ret->snaplen = header.snaplen;
     return ret;
 }       
 
@@ -149,10 +163,12 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
 
 int pcap_compile(pcap_t *p, struct bpf_program *program,
                  const char *expression, int optimize, uint32_t mask) {
+    program->valid = false;
     if(strlen(expression)==0){
         program->valid = true;
         return 0;       // we can compile the empty expression
     }
+    snprintf(p->err_buf,sizeof(p->err_buf),"BPF filters are unsupported in this offline build");
     return -1;                          // we cannot compile otherwise
 }
 
@@ -162,28 +178,35 @@ int pcap_datalink(pcap_t *p) {
 
 int pcap_setfilter(pcap_t *p, struct bpf_program *prog) {
     if(prog->valid) return 0;
+    snprintf(p->err_buf,sizeof(p->err_buf),"BPF filters are unsupported in this offline build");
     return -1;
+}
+
+void pcap_freecode(struct bpf_program *program)
+{
+    program->valid = false;
 }
 
 
 int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
 {
     while(cnt !=0 && !feof(p->fp) && p->break_loop==false){
-        uint32_t tv_sec;
-        uint32_t tv_usec;
-
         struct pcap_pkthdr hdr;
 
         /* Note: struct timeval is 16 bytes on MacOS and not 8 bytes,
          * so we manually read and set up the structure
          */
-        if(fread(&tv_sec,sizeof(uint32_t),1,p->fp)!=1) break;
-        if(fread(&tv_usec,sizeof(uint32_t),1,p->fp)!=1) break;
-        hdr.ts.tv_sec  = tv_sec;
-        hdr.ts.tv_usec = tv_usec;
-        
-        if(fread(&hdr.caplen,sizeof(uint32_t),1,p->fp)!=1) break;
-        if(fread(&hdr.len,sizeof(uint32_t),1,p->fp)!=1) break;
+        uint32_t record[4];
+        size_t got = fread(record,1,sizeof(record),p->fp);
+        if(got == 0 && feof(p->fp)) break;
+        if(got != sizeof(record)){
+            snprintf(p->err_buf,sizeof(p->err_buf),"Truncated pcap record header");
+            return -1;
+        }
+        hdr.ts.tv_sec = record[0];
+        hdr.ts.tv_usec = record[1];
+        hdr.caplen = record[2];
+        hdr.len = record[3];
 
         /* Swap the header if necessary */
         if(p->swapped){
@@ -194,7 +217,14 @@ int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
         }
 
         /* Read the packet */
-        if(fread(p->pktbuf,hdr.caplen,1,p->fp)!=1) break; // no more to read
+        if(hdr.caplen > p->snaplen || hdr.caplen > hdr.len){
+            snprintf(p->err_buf,sizeof(p->err_buf),"Invalid pcap captured length");
+            return -1;
+        }
+        if(fread(p->pktbuf,1,hdr.caplen,p->fp)!=hdr.caplen){
+            snprintf(p->err_buf,sizeof(p->err_buf),"Truncated pcap packet data");
+            return -1;
+        }
 
         //DEBUG(100) ("pcap_fake: read tv_sec.tv_usec=%d.%06d  caplen=%d  len=%d",
         // (int)hdr.ts.tv_sec,(int)hdr.ts.tv_usec,hdr.caplen,hdr.len);
@@ -210,7 +240,7 @@ int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, uint8_t *user)
     return 0;
 }
 
-void pcap_break_loop(pcap_t *p)
+void pcap_breakloop(pcap_t *p)
 {
     p->break_loop=true;
 }

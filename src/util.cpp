@@ -178,6 +178,7 @@ void debug_real(const char *fmt, ...)
 
     va_start(ap, fmt);
     print_debug_message(fmt, ap);
+    va_end(ap);
     exit(1);
 }
 

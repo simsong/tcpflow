@@ -1,8 +1,23 @@
 # Programs that we compile:
 bin_PROGRAMS = tcpflow
 
+check_PROGRAMS = test_thread_safety test_pcap_fake test_regex test_netviz_memory
+TESTS = $(check_PROGRAMS)
+test_thread_safety_SOURCES = $(top_srcdir)/tests/test_thread_safety.cpp
+test_thread_safety_CXXFLAGS = $(AM_CXXFLAGS) -pthread
+test_thread_safety_LDFLAGS = -pthread
+test_pcap_fake_SOURCES = $(top_srcdir)/tests/test_pcap_fake.cpp be13_api/pcap_fake.cpp
+test_pcap_fake_CPPFLAGS = $(AM_CPPFLAGS) -DTCPFLOW_TEST_PCAP_FAKE
+test_regex_SOURCES = $(top_srcdir)/tests/test_regex.cpp be13_api/beregex.cpp
+test_netviz_memory_SOURCES = $(top_srcdir)/tests/test_netviz_memory.cpp netviz/time_histogram.cpp
+.PHONY: analysis-tests
+analysis-tests: $(check_PROGRAMS)
+
 if WIFI_ENABLED
 WIFI_INCS = -I${top_srcdir}/src/wifipcap
+check_PROGRAMS += test_wifipcap
+test_wifipcap_SOURCES = $(top_srcdir)/tests/test_wifipcap.cpp \
+	wifipcap/wifipcap.cpp wifipcap/TimeVal.cpp wifipcap/cpack.cpp
 else
 WIFI_INCS =
 endif

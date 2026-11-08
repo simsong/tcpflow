@@ -88,7 +88,6 @@ void legend_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) const
         cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
         cairo_move_to(cr, x, label_y);
         cairo_show_text(cr, empty_legend_label.c_str());
-        x += extents.width + inter_item_space;
     }
 }
 #endif

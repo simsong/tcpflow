@@ -198,9 +198,9 @@ public:
     }
     static std::string to8601(const struct timeval &ts) {
         struct tm tm;
-        char buf[64];
+        char buf[64] = {};
 #ifdef HAVE_GMTIME_R
-        gmtime_r(&ts.tv_sec,&tm);
+        if(!gmtime_r(&ts.tv_sec,&tm)) return std::string("INVALID");
 #else
         time_t t = ts.tv_sec;
         struct tm *tmp;
@@ -208,13 +208,12 @@ public:
         if(!tmp) return std::string("INVALID");
         tm = *tmp;
 #endif
-        strftime(buf,sizeof(buf),"%Y-%m-%dT%H:%M:%S",&tm);
+        if(!strftime(buf,sizeof(buf),"%Y-%m-%dT%H:%M:%S",&tm)) return std::string("INVALID");
         if(ts.tv_usec>0){
             int len = strlen(buf);
             snprintf(buf+len,sizeof(buf)-len,".%06d",(int)ts.tv_usec);
         }
-        strcat(buf,"Z");
-        return std::string(buf);
+        return std::string(buf) + 'Z';
     }
 };
 #endif
