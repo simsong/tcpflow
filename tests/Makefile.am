@@ -8,9 +8,15 @@
 # About the test files:
 #
 
-SH_TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh test-chroot.sh test-template-escape.sh
+SH_TESTS = test-wifi-bounds.sh test1.sh \
+    test-pdfs.sh \
+    test-multifile.sh \
+    test-iptree.sh \
+    test-chroot.sh \
+    test-template-escape.sh \
+    test-80211.sh
 
-EXTRA_DIST = $(SH_TESTS) test-subs.sh \
+EXTRA_DIST = $(SH_TESTS) test-wifi-bounds.py test-subs.sh \
 	airsnort-linux-browser_page_load.pcap \
 	bug2.pcap \
 	bug3.pcap \
@@ -37,7 +43,8 @@ EXTRA_DIST = $(SH_TESTS) test-subs.sh \
 	test5-lines-randomized2.pcap \
 	test5-lines.pcap \
 	test7-three-flows.pcap \
-	udp.pcap
+	udp.pcap \
+	wifi-80211.pcap
 
 TESTS = $(SH_TESTS)
 
