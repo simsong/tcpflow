@@ -250,7 +250,7 @@ void tcpdemux::post_process(tcpip *tcp)
 	if(pid<0) die("Cannot fork child");
 	if(pid==0){
 	    /* We are the child */
-	    exit(system(cmd.c_str()));
+	    _exit(system(cmd.c_str())); // exit() would reposition the input file shared with the parent
 	}
 	tcp_subproc++;
 #else
@@ -395,6 +395,11 @@ int tcpdemux::dissect_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                           const be13::packet_info &pi)
 {
     DEBUG(6) ("dissecting pkt *********************");
+    /* only the ports are read, so a capture with a short snaplen still works */
+    if (ip_payload_len < 4) {
+	DEBUG(6) ("received TCP segment without ports! (%u<4)", (u_int)ip_payload_len);
+	return 1;
+    }
     struct be13::tcphdr *tcp_header = (struct be13::tcphdr *) ip_data;
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),
                         ntohs(tcp_header->th_dport),family);
@@ -722,6 +727,11 @@ int tcpdemux::process_ip4(const be13::packet_info &pi)
      * beyond the end of the packet (e.g. ethernet padding).
      */
     size_t ip_len = ntohs(ip_header->ip_len);
+    /* ip_len is 0 when captured on the sending host with TCP segmentation offload */
+    if (ip_len == 0) {
+        DEBUG(6) ("IP datagram with ip_len 0 (TSO?); using captured length %ld", (long) pi.ip_datalen);
+        ip_len = pi.ip_datalen;
+    }
     if (pi.ip_datalen < ip_len) {
 	DEBUG(6) ("warning: captured only %ld bytes of %ld-byte IP datagram",
 		  (long) pi.ip_datalen, (long) ip_len);

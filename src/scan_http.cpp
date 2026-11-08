@@ -404,7 +404,7 @@ int scan_http_cbo::on_message_complete()
             if(pid<0) die("Cannot fork child");
             if(pid==0){
                 /* We are the child */
-                exit(system(cmd.c_str()));
+                _exit(system(cmd.c_str())); // exit() would reposition the input file shared with the parent
             }
             http_subproc++;
 #else
