@@ -66,7 +66,7 @@ public:
     scan_http_cbo(const std::string& path_,const char *base_,std::stringstream *xmlstream_) :
         path(path_), base(base_),xmlstream(xmlstream_),xml_fo(),request_no(0),
         headers(), last_on_header(NOTHING), header_value(), header_field(),
-        output_path(), fd(-1), first_body(true),bytes_written(0),unzip(false),zs(),zinit(false),zfail(false){};
+        output_path(), fd(-1), first_body(true),bytes_written(0),unzip(false),zs(),zinit(false),zfail(false),decompressed(){};
 private:        
         
     const std::string path;             // where data gets written
@@ -91,6 +91,7 @@ private:
     z_stream zs;              // zstream (avoids casting and memory allocation)
     bool     zinit;           // we have initialized the zstream 
     bool     zfail;           // zstream failed in some manner, so ignore the rest of this stream
+    char decompressed[65536]; // zstream pointers remain valid between body callbacks
 
     /* The static functions are callbacks; they wrap the method calls */
 #define CBO (reinterpret_cast<scan_http_cbo*>(parser->data))
@@ -293,7 +294,6 @@ int scan_http_cbo::on_body(const char *at,size_t length)
     /* set up this round of decompression, using a small local buffer */
 
     /* Call init if we are not initialized */
-    char decompressed[65536];           // where decompressed data goes
     if (!zinit) {
         memset(&zs,0,sizeof(zs));
         zs.next_in = (Bytef*)at;
@@ -396,7 +396,7 @@ int scan_http_cbo::on_message_complete()
             int status=0;
             pid_t pid = 0;
             while(http_subproc >= http_subproc_max){
-                pid = wait(&status);
+                wait(&status);
                 http_subproc--;
             }
             /* Fork off a child */

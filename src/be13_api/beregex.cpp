@@ -138,8 +138,8 @@ int regex_list::readfile(std::string fname)
         while(!f.eof()){
             std::string line;
             getline(f,line);
-            if(line.size()>0 && (*line.end())=='\r'){
-                line.erase(line.end()); /* remove the last character while it is a \n or \r */
+            if(!line.empty() && line.back()=='\r'){
+                line.pop_back();
             }
             patterns.push_back(new beregex(line,0));
         }

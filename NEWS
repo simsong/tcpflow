@@ -1,3 +1,17 @@
+1.7.0
+-----
+* Fix make ci in configured in-tree builds, report unsupported Windows BPF
+  filters clearly, and test version mismatches on clean merged Git fixtures.
+* Replace legacy CI/coverage with platform, distribution, sanitizer and static
+  analysis checks, including a real shared-container concurrency regression.
+* Add tag-triggered source, amd64/arm64 Snap and signed standalone x64 Windows
+  release artifacts with runtime tests, public-signature checks and checksums.
+* Include the UBSan alignment/null-copy repairs from PR #285.
+* Repair further sanitizer/static-analysis findings in IPv4 decoding, empty
+  plots, HTTP decompression-buffer lifetime and the offline Windows PCAP reader.
+* Make out-of-tree test paths portable, ship the complete packet corpus, and
+  report unavailable external-corpus tests as skips.
+
 Version 1.3.1 NOV ??
 
 Complete rewrite of the TCP state machine, now handles flows larger
@@ -212,4 +226,4 @@ Version 0.11 (April 13, 1999):
 
 Version 0.10 (April 12, 1999):
 
-* First public release. 
+* First public release.

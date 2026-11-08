@@ -1,0 +1,24 @@
+# Install tcpflow's supported native build and analysis prerequisites.
+# Linux jobs use distribution packages; macOS uses explicit Homebrew paths.
+# The dependency set enables packet reading and Cairo PDF regressions.
+# Tool installation is shared by ordinary checks and release source builds.
+# Signing credentials are handled only by the protected release signing job.
+name: Set up tcpflow build
+description: Install Autotools, native libraries and Linux analysis tools
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y autoconf automake bear build-essential clang clang-tools clang-tidy cppcheck \
+          jq lcov libboost-dev libcairo2-dev libpcap-dev libssl-dev libtool libxml2-utils pkg-config python3 shellcheck zlib1g-dev
+    - shell: bash
+      if: runner.os == 'macOS'
+      run: |
+        brew install autoconf automake boost cairo libpcap openssl@3 pkg-config
+        {
+          echo "CPPFLAGS=-I$(brew --prefix boost)/include -I$(brew --prefix openssl@3)/include -I$(brew --prefix libpcap)/include -I$(brew --prefix cairo)/include"
+          echo "LDFLAGS=-L$(brew --prefix openssl@3)/lib -L$(brew --prefix libpcap)/lib -L$(brew --prefix cairo)/lib"
+        } >> "$GITHUB_ENV"

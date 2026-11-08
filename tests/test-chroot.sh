@@ -43,6 +43,7 @@ if [ -r $NITROBA ]; then
   /bin/rm -rf out1
 else
   echo $NITROBA not present.
+  exit 77
 fi
 exit 0
 

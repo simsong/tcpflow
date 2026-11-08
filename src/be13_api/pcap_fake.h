@@ -4,12 +4,13 @@
  * A fake libpcap implementation that can only read files without a filter.
  */
 
-#include <sys/cdefs.h>
 #include <stdint.h>
 #include <sys/time.h>
 #include <stdio.h>
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Version number of the current version of the pcap file format.
@@ -56,9 +57,11 @@ pcap_t  *pcap_open_live(const char *, int, int, int, char *); // not implemented
 pcap_t  *pcap_open_offline(const char *, char *); // open the file; set f
 pcap_t  *pcap_fopen_offline(FILE *fp,char *errbuf);
 void    pcap_close(pcap_t *);                     // close the file
+void    pcap_breakloop(pcap_t *);                 // interrupt reading
 int     pcap_loop(pcap_t *, int, pcap_handler, uint8_t *); // read the file and call loopback on each packet
 int     pcap_datalink(pcap_t *);                          // noop
 int     pcap_setfilter(pcap_t *, struct bpf_program *);   // noop
+void    pcap_freecode(struct bpf_program *);             // no allocation in this reader
 int     pcap_compile(pcap_t *, struct bpf_program *, const char *, int, uint32_t); // generate error if filter provided
 char    *pcap_geterr(pcap_t *);
 /*
@@ -79,6 +82,8 @@ char    *pcap_geterr(pcap_t *);
 #define DLT_RAW         101     /* just packets */
 
 
-__END_DECLS
+#ifdef __cplusplus
+}
+#endif
 
 

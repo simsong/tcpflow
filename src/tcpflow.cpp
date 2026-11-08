@@ -32,7 +32,7 @@
 
 /* bring in inet_ntop if it is not present */
 #define ETH_ALEN 6
-#ifndef HAVE_INET_NTOP
+#if !defined(HAVE_INET_NTOP) && !defined(_WIN32)
 #include "inet_ntop.c"
 #endif
 
@@ -257,7 +257,11 @@ dfxml_writer *xreport = 0;
 pcap_t *pd = 0;
 void terminate(int sig)
 {
-    if (sig == SIGHUP || sig == SIGINT || sig == SIGTERM) {
+    if (sig == SIGINT || sig == SIGTERM
+#ifdef SIGHUP
+        || sig == SIGHUP
+#endif
+        ) {
         DEBUG(1) ("terminating orderly");
         pcap_breakloop(pd);
         return;
@@ -423,7 +427,11 @@ droproot(tcpdemux &demux,const char *username, const char *chroot_dir)
 void tcpflow_droproot(tcpdemux &demux)
 {
     if (tcpflow_droproot_username){
+#ifdef _WIN32
+        die("-U is unavailable in the offline Windows build");
+#else
         droproot(demux,tcpflow_droproot_username,tcpflow_chroot_dir);
+#endif
     }
 }
 
@@ -517,7 +525,9 @@ static int process_infile(tcpdemux &demux,const std::string &expression,std::str
 	die("%s", pcap_geterr(pd));
     }
 
-    if (pcap_setfilter(pd, &fcode) < 0){
+    int filter_status = pcap_setfilter(pd, &fcode);
+    pcap_freecode(&fcode);
+    if (filter_status < 0){
 	die("%s", pcap_geterr(pd));
     }
 
@@ -538,6 +548,7 @@ static int process_infile(tcpdemux &demux,const std::string &expression,std::str
 
     if (pcap_retval < 0 && pcap_retval != -2){
 	DEBUG(1) ("%s: %s", infile.c_str(),pcap_geterr(pd));
+	pcap_close(pd);
 	return -1;
     }
     pcap_close (pd);
@@ -600,7 +611,6 @@ int main(int argc, char *argv[])
     std::vector<std::string> Rfiles;	// files for finishing
     std::vector<std::string> rfiles;	// files to read
     tcpdemux &demux = *tcpdemux::getInstance();			// the demux object we will be using.
-    std::string command_line = dfxml_writer::make_command_line(argc,argv);
     std::string opt_unk_packets;
     bool opt_quiet = false;
 
@@ -979,8 +989,7 @@ int main(int argc, char *argv[])
             uint64_t filecount=0;
             DIR *dirp = opendir(demux.outdir.c_str());
             if(dirp){
-                struct dirent *dp=0;
-                while((dp=readdir(dirp))!=NULL){
+                while(readdir(dirp)!=NULL){
                     filecount++;
                     if(filecount==10000){
                         std::cerr << "*** tcpflow WARNING:\n";
