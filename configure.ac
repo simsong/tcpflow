@@ -7,7 +7,7 @@
 # and http://www.openismus.com/documents/linux/automake/automake.shtml
 
 AC_PREREQ(2.57)
-AC_INIT(TCPFLOW, 1.6.2, simsong@acm.org)
+AC_INIT(TCPFLOW, 1.7.0, simsong@acm.org)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile doc/Makefile])
@@ -37,6 +37,8 @@ AC_LANG_PUSH(C++)
 AX_CXX_COMPILE_STDCXX([17], [noext], [mandatory])
 AC_LANG_POP()
 
+m4_include([m4/tcpflow_sanitizers.m4])
+
 
 ################################################################
 ## See if we are running on mingw
@@ -60,7 +62,7 @@ case $host in
 
   *-*-mingw32*)
      LIBS="-lpsapi -lws2_32 -lgdi32 $LIBS"
-     CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -g $CPPFLAGS"
+     CPPFLAGS="-DUNICODE -D_UNICODE -DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -g $CPPFLAGS"
      CPPFLAGS="$CPPFLAGS --static"
      CFLAGS="$CFLAGS --static -static-libgcc -static-libstdc++"
      CXXFLAGS="$CXXFLAGS -Wno-format "  # compiler mingw-4.3.0 is broken on I64u formats
@@ -151,7 +153,8 @@ unset option
 #
 # ZLIB is required for decompressing
 #  Note you cannot put comments in the AC_MSG_ERROR for some reason
-AC_CHECK_LIB([z],[uncompress],,
+AC_SEARCH_LIBS([uncompress],[z zs],
+  [AC_DEFINE([HAVE_LIBZ], [1], [zlib compression support])],
   AC_MSG_ERROR([zlib libraries not installed; try installing zlib-dev zlib-devel zlib1g-dev or libz-dev]))
 AC_CHECK_HEADERS([zlib.h])
 
@@ -235,6 +238,8 @@ if test $cairo = test ; then
   AC_CHECK_LIB([bz2],[BZ2_bzDecompress])
   AC_CHECK_LIB([freetype],[FT_Init_FreeType]) # requires bz2
   AC_CHECK_LIB([fontconfig],[FcBlanksCreate]) # requires freetype expat
+  AC_CHECK_HEADERS([fontconfig/fontconfig.h])
+  AC_CHECK_FUNCS([FcFini])
 
   AC_CHECK_HEADERS([cairo/cairo.h cairo/cairo-pdf.h])
   AC_CHECK_HEADERS([cairo.h cairo-pdf.h])

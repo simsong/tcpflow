@@ -1,0 +1,64 @@
+# Build native amd64 and arm64 Snap release candidates.
+# Install each package and exercise reconstruction inside strict confinement.
+# Packages are artifacts of this run, never fetched from a different revision.
+# The release workflow consumes both tested architecture-specific packages.
+# There is deliberately no Snap Store login or publication action.
+name: Snap build and test
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Snap (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - name: Build Snap with LXD
+        run: |
+          sudo groupadd --force --system lxd
+          sudo usermod --append --groups lxd "$USER"
+          sudo snap install lxd
+          sudo lxd init --auto
+          sudo iptables -P FORWARD ACCEPT
+          sudo snap install snapcraft --classic
+          export SNAPCRAFT_BUILD_ENVIRONMENT=lxd
+          sudo -u "$USER" -E make -f Makefile.ci snap
+      - name: Install and test the confined package
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+          shopt -s nullglob
+          packages=(tcpflow_*_${{ matrix.arch }}.snap)
+          test "${#packages[@]}" -eq 1
+          sudo snap install --dangerous "${packages[0]}"
+          sudo snap connect tcpflow:home :home
+          cp tests/test1.pcap "$HOME/tcpflow.pcap"
+          if ! snap run tcpflow -e netviz -o "$HOME/tcpflow-output" -r "$HOME/tcpflow.pcap" 2> "$RUNNER_TEMP/snap-runtime.log"; then
+            cat "$RUNNER_TEMP/snap-runtime.log" >&2
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/snap-runtime.log"
+          if grep -Ei 'Fontconfig (error|warning):' "$RUNNER_TEMP/snap-runtime.log"; then exit 1; fi
+          test -s "$HOME/tcpflow-output/report.xml"
+          test -s "$HOME/tcpflow-output/report.pdf"
+          pdftotext "$HOME/tcpflow-output/report.pdf" "$RUNNER_TEMP/snap-report.txt"
+          grep -Fq 'Top Source Addresses' "$RUNNER_TEMP/snap-report.txt"
+          echo "ae30a88136feb0655492bdb75e078643  $HOME/tcpflow-output/074.125.019.101.00080-192.168.001.102.50956" | md5sum -c -
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: snap-${{ matrix.arch }}
+          path: tcpflow_*_${{ matrix.arch }}.snap
+          if-no-files-found: error

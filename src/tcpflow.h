@@ -35,10 +35,11 @@
  *** include files first and disable pthread support.
  ***/
 #if (defined(WIN32) || defined(__MINGW32__))
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
 #  undef HAVE_PTHREAD_H
 #  undef HAVE_SEMAPHORE_H
 #  undef HAVE_PTHREAD
-#  undef HAVE_INET_NTOP		/* it's not there. Really. */
 #  undef HAVE_EXTERN_PROGNAME	// don't work properly on mingw
 #  define MKDIR(a,b) mkdir(a)    // MKDIR only takes 1 argument on windows
 
@@ -212,15 +213,15 @@
 #define MAX_IPv6_STR_LEN 256
 #endif
 
-#ifndef HAVE_SOCKLEN_T
+#if !defined(HAVE_SOCKLEN_T) && !defined(_WIN32)
 typedef size_t socklen_t;
 #endif
 
-#ifndef IN6_IS_ADDR_V4MAPPED
+#if !defined(_WIN32) && !defined(IN6_IS_ADDR_V4MAPPED)
 #define IN6_IS_ADDR_V4MAPPED(x) 0
 #endif
 
-#ifndef IN6_IS_ADDR_V4COMPAT
+#if !defined(_WIN32) && !defined(IN6_IS_ADDR_V4COMPAT)
 #define IN6_IS_ADDR_V4COMPAT(x) 0
 #endif
 

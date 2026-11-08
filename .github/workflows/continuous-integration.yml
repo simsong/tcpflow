@@ -1,106 +1,24 @@
-# This file based on https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
-# See: https://help.github.com/en/actions/reference/software-installed-on-github-hosted-runners
-# 2020-06-22 - slg - customized
-# 2020-06-27 - slg - expanded to G++ for MacOS
-# 2020-07-03 - slg - ported to be13_api; removed python (be13_api doesn't use python)
-
-name: TCPFLOW CI (c++14)
+# Validate main updates and every PR, including draft PRs and fork changes.
+# Reusable checks are also called by the release workflow at its exact commit.
+# Branch pushes with an open PR do not create a duplicate native build matrix.
+# Windows and Snap jobs test their actual downloadable package formats.
+# No signing or publication privilege is granted to pull-request code.
+name: tcpflow CI
 on:
   push:
-    branches:
-      - '**' # This will trigger the action for all branches
+    branches: [main]
   pull_request:
-    branches:
-      - main # Specify the branches for which pull_request events should trigger the action
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  native:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: ['macos-latest', 'ubuntu-latest']
-
-    steps:
-      # https://github.com/actions/checkout
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install C++ dependencies on MacOS
-        if: startsWith(matrix.os, 'macOS')
-        run: |
-           brew install libtool autoconf automake boost openssl libpcap cairo
-           echo LDFLAGS="-L$(brew --prefix cairo)/lib -L$(brew --prefix libpcap)/lib -L$(brew --prefix openssl)/lib -L$(brew --prefix boost)/lib" >> $GITHUB_ENV
-           echo CFLAGS="-I$(brew --prefix cairo)/include -I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
-           echo CXXFLAGS="-I$(brew --prefix cairo)/include -I$(brew --prefix libpcap)/include -I$(brew --prefix openssl)/include -I$(brew --prefix boost)/include" >> $GITHUB_ENV
-           echo PKG_CONFIG_PATH="$(brew --prefix cairo)/pkgconfig:$(brew --prefix libpcap)/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig" >> $GITHUB_ENV
-
-      - name: Install C++ dependencies on Ubuntu
-        if: startsWith(matrix.os, 'ubuntu')
-        run: |
-          sudo apt update -y
-          sudo apt -y install libtool autoconf automake g++ libboost-all-dev libssl-dev libpcap-dev libcairo2-dev
-          automake --help
-
-      - name: c/c++ test
-        run: |
-          bash bootstrap.sh
-          ./configure && make && make check
-
-      - uses: ammaraskar/gcc-problem-matcher@0.1
-        name: GCC Problem Matcher
-
-      - name: codecov report
-        if: startsWith(matrix.os, 'ubuntu')
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-           bash .make-codecov
-
-  freebsd:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Test in FreeBSD
-      uses: vmactions/freebsd-vm@v1
-      with:
-        usesh: true
-        prepare: |
-          pkg install -y bash autoconf automake boost-all openssl libpcap cairo
-
-        run: |
-          set -e
-          bash bootstrap.sh
-          ./configure
-          make
-          make check
-
-  openbsd:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Test in OpenBSD
-      uses: vmactions/openbsd-vm@v1
-      with:
-        usesh: true
-        prepare: |
-          pkg_add bash autoconf%2.72 automake%1.16 boost cairo
-
-        # OpenBSD has it's own libpcap which can't read some pcap, nuke it!
-        run: |
-          set -e
-          env AUTOCONF_VERSION=2.72 AUTOMAKE_VERSION=1.16 bash bootstrap.sh
-          ./configure
-          make
-          rm ./tests/test1-out-of-order.pcap
-          rm ./tests/test5-lines-randomized.pcap
-          rm ./tests/test5-lines-randomized2.pcap
-          make check
-
-  # NetBSD VM quite unstable, it hangs on installing cairo, bash bootstrap.sh and so on
+  checks:
+    uses: ./.github/workflows/checks.yml
+    secrets: inherit
+  windows:
+    uses: ./.github/workflows/windows.yml
+  snap:
+    uses: ./.github/workflows/snap.yml

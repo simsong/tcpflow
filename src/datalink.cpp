@@ -46,7 +46,6 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
     u_int length = h->len;
-    uint32_t family = (uint32_t)*p;
 
     if (length != caplen) {
 	DEBUG(6) ("warning: only captured %d bytes of %d byte null frame",
@@ -57,6 +56,7 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	DEBUG(6) ("warning: received incomplete null frame");
 	return;
     }
+    uint32_t family = (uint32_t)*p;
 
     /* make sure this is AF_INET */
     if (family != AF_INET && family != AF_INET6) {
@@ -148,19 +148,20 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
     u_int length = h->len;
-    struct be13::ether_header *eth_header = (struct be13::ether_header *) p;
     u_int ether_type_offset = offsetof(struct be13::ether_header, ether_type);
 
     /* Variables to support VLAN */
-    const u_short *ether_type = NULL;
     const u_char *ether_data = NULL;
 
-    if (caplen < ether_type_offset) {
+    if (caplen < sizeof(struct be13::ether_header)) {
         DEBUG(0) ("error: the captured packet header bytes are shorter than the ether_type offset");
         return;
     }
 
-    ether_type = &eth_header->ether_type; /* where the ether type is located */
+    auto read_type = [](const u_char *bytes) -> uint16_t {
+        return (static_cast<uint16_t>(bytes[0]) << 8) | bytes[1];
+    };
+    uint16_t ether_type = read_type(p + ether_type_offset);
     ether_data = p+sizeof(struct be13::ether_header); /* where the data is located */
 
     if (length != caplen) {
@@ -169,22 +170,18 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
 
     /* Handle basic VLAN packets */
-    while (ntohs(*ether_type) == ETHERTYPE_VLAN
+    while (ether_type == ETHERTYPE_VLAN
 #ifdef ETH_P_QINQ1
-           || ntohs(*ether_type) == ETH_P_QINQ1
+           || ether_type == ETH_P_QINQ1
 #endif
 #ifdef ETH_P_8021AD
-           || ntohs(*ether_type) == ETH_P_8021AD
+           || ether_type == ETH_P_8021AD
 #endif
            ) {
-	//vlan = ntohs(*(u_short *)(p+sizeof(struct ether_header)));
-	ether_type += 2;			/* skip past VLAN header (note it skips by 2s) */
+	if (caplen < sizeof(struct be13::ether_header) + 4) return;
+	ether_type = read_type(ether_data + 2);
 	ether_data += 4;			/* skip past VLAN header */
 	caplen     -= 4;
-        if (caplen < ether_type_offset) {
-            DEBUG(0) ("error: the captured packet header bytes are shorter than the ether_type offset");
-            return;
-        }
     }
 
     if (caplen < sizeof(struct be13::ether_header)) {
@@ -197,7 +194,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         struct timeval tv;
         be13::packet_info pi(DLT_IEEE802,h,p,tvshift(tv,h->ts),
                              ether_data, caplen - sizeof(struct be13::ether_header));
-        switch (ntohs(*ether_type)){
+        switch (ether_type){
         case ETHERTYPE_IP:
         case ETHERTYPE_IPV6:
             be13::plugin::process_packet(pi);
@@ -220,7 +217,7 @@ void dl_ethernet(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
         default:
             /* Unknown Ethernet Frame Type */
-            DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ntohs(eth_header->ether_type));
+            DEBUG(6) ("warning: received ethernet frame with unknown type 0x%x", ether_type);
             break;
         }
     } catch( std::logic_error e){

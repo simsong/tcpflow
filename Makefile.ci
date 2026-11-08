@@ -1,0 +1,48 @@
+# Reproducible entry points for CI, analyzers and release verification.
+# This makefile works before configure and uses isolated .build directories.
+# scripts/ci.sh owns build commands; Autotools owns application compilation.
+# CI_JOBS controls compilation parallelism; regression scripts run serially.
+# See README.md for CI_BUILD_ROOT, CONTAINER_ENGINE and release/signing inputs.
+# WINDOWS_DEPS selects static cross-libraries; EXE selects the runtime candidate.
+# ASAN_OPTIONS/TSAN_OPTIONS/UBSAN_OPTIONS control diagnostic runtime behavior.
+# GitHub supplies CODECOV_TOKEN for authenticated coverage submissions.
+# AZURE_* and WINDOWS_PUBLISHER select OIDC/public signing; GH_TOKEN publishes.
+# VCPKG_{ROOT,COMMIT}/SNAPCRAFT_BUILD_ENVIRONMENT select builders; FONTCONFIG_FILE/XDG_CACHE_HOME set Snap fonts/cache.
+CI_JOBS ?= 2
+CI_BUILD_ROOT ?= $(CURDIR)/.build
+CONTAINER_ENGINE ?= finch
+CHECK ?= bootstrap native
+export CI_JOBS CI_BUILD_ROOT
+
+.PHONY: bootstrap native distcheck asan tsan ubsan coverage clang-analyzer clang-tidy cppcheck build windows snap test-ci check-workflows container-image container-check
+bootstrap:
+	bash bootstrap.sh
+.PHONY: windows-deps
+windows-deps:
+	bash scripts/windows-deps.sh
+native distcheck asan tsan ubsan coverage clang-analyzer clang-tidy cppcheck build windows:
+	bash scripts/ci.sh $@
+snap:
+	snapcraft pack
+test-ci:
+	python3 -m unittest discover -s tests -p 'test_ci_*.py' -v
+check-workflows:
+	actionlint
+	shellcheck bootstrap.sh scripts/*.sh
+container-image:
+	$(CONTAINER_ENGINE) build -f etc/Dockerfile.ci -t tcpflow-ci .
+container-check:
+	$(CONTAINER_ENGINE) run --rm -v "$(CURDIR):/src:ro" tcpflow-ci bash -euo pipefail -c 'cd /src; shopt -s dotglob; entries=(*); tar --exclude=.git --exclude=.build --exclude=.tmp --exclude=dist -cf - "$${entries[@]}" | tar -xf - -C /work; cd /work; make -f Makefile.ci $(CHECK)'
+
+# RELEASE_TAG is an existing annotated v<version> tag; RELEASE_COMMIT is its
+# immutable commit. Neither this target nor test-ci publishes anything.
+RELEASE_TAG ?=
+RELEASE_COMMIT ?=
+export RELEASE_TAG RELEASE_COMMIT
+.PHONY: release-tag-check release-assets windows-test
+release-tag-check:
+	bash scripts/release.sh preflight "$$RELEASE_TAG" "$$RELEASE_COMMIT"
+release-assets:
+	bash scripts/release.sh assets "$$RELEASE_TAG" dist
+windows-test:
+	pwsh -NoProfile -File scripts/test-windows.ps1 -Executable "$(EXE)"

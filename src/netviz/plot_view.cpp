@@ -334,7 +334,7 @@ void plot_view::render(cairo_t *cr, const plot_view::bounds_t &bounds) {
 std::string plot_view::pretty_byte_total(uint64_t byte_count, uint8_t precision)
 {
     //// packet count/size
-    uint64_t size_log_1000 = (uint64_t) (log(byte_count) / log(1000));
+    uint64_t size_log_1000 = byte_count ? (uint64_t) (log(byte_count) / log(1000)) : 0;
     if(size_log_1000 >= size_suffixes.size()) {
         size_log_1000 = 0;
     }

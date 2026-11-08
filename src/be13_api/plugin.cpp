@@ -160,7 +160,7 @@ void be13::plugin::load_scanner(scanner_t scanner,const scanner_info::scanner_co
     //
 
     scanner_params sp(scanner_params::PHASE_STARTUP,sbuf,fs); //
-    scanner_def *sd = new scanner_def();
+    std::unique_ptr<scanner_def> sd(new scanner_def());
     sd->scanner = scanner;
     sd->info.config = &sc;
 
@@ -172,7 +172,7 @@ void be13::plugin::load_scanner(scanner_t scanner,const scanner_info::scanner_co
     (*scanner)(sp,rcb);                  // phase 0
 
     sd->enabled      = !(sd->info.flags & scanner_info::SCANNER_DISABLED);
-    current_scanners.push_back(sd);
+    current_scanners.push_back(std::move(sd));
 }
 
 void be13::plugin::load_scanner_file(std::string fn,const scanner_info::scanner_config &sc)
@@ -269,7 +269,7 @@ void be13::plugin::load_scanner_packet_handlers()
 {
     for(scanner_vector::const_iterator it = current_scanners.begin(); it!=current_scanners.end(); it++){
         if((*it)->enabled){
-            const scanner_def *sd = (*it);
+            const scanner_def *sd = it->get();
             if(sd->info.packet_cb){
                 packet_handlers.push_back(packet_plugin_info(sd->info.packet_user,sd->info.packet_cb));
             }
@@ -327,7 +327,7 @@ void be13::plugin::add_enabled_scanner_histograms_to_feature_recorder_set(featur
 {
     for(scanner_vector::const_iterator it = current_scanners.begin(); it!=current_scanners.end(); it++){
         if((*it)->enabled){
-            const scanner_def *sd = (*it);
+            const scanner_def *sd = it->get();
             for(histogram_defs_t::const_iterator i2 = sd->info.histogram_defs.begin();
                 i2 != sd->info.histogram_defs.end(); i2++){
                 fs.add_histogram((*i2));
@@ -415,6 +415,7 @@ std::stringstream scanner_info::helpstream;
 void scanner_info::get_config(const scanner_info::config_t &c,
                               const std::string &n,std::string *val,const std::string &help)
 {
+    if(!val) return;
     /* Check to see if we are being called as part of a help operation */
     helpstream << "   -S " << n << "=" << *val << "    " << help << " (" << name << ")\n";
     scanner_info::config_t::const_iterator it = c.find(n);

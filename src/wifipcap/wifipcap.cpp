@@ -895,7 +895,6 @@ int
 WifiPacket::handle_deauth( const struct mgmt_header_t *pmh, const u_char *p, size_t len)
 {
     struct mgmt_body_t  pbody;
-    int offset = 0;
     //const char *reason = NULL;
 
     memset(&pbody, 0, sizeof(pbody));
@@ -903,7 +902,6 @@ WifiPacket::handle_deauth( const struct mgmt_header_t *pmh, const u_char *p, siz
     if (!TTEST2(*p, IEEE802_11_REASON_LEN))
         return 0;
     pbody.reason_code = EXTRACT_LE_16BITS(p);
-    offset += IEEE802_11_REASON_LEN;
 
     /*
       reason = (pbody.reason_code < NUM_REASONS)
@@ -1411,7 +1409,7 @@ void WifiPacket::handle_radiotap(const u_char *p,size_t caplen)
 #define	BITNO_8(x) (((x) >> 4) ? 4 + BITNO_4((x) >> 4) : BITNO_4((x)))
 #define	BITNO_4(x) (((x) >> 2) ? 2 + BITNO_2((x) >> 2) : BITNO_2((x)))
 #define	BITNO_2(x) (((x) & 2) ? 1 : 0)
-#define	BIT(n)	(1 << n)
+#define	BIT(n)	(1U << n)
 #define	IS_EXTENDED(__p) (EXTRACT_LE_32BITS(__p) & BIT(IEEE80211_RADIOTAP_EXT)) != 0
 
     // If caplen is too small, just give it a try and carry on.
@@ -1424,25 +1422,21 @@ void WifiPacket::handle_radiotap(const u_char *p,size_t caplen)
 
     size_t len = EXTRACT_LE_16BITS(&hdr->it_len); // length of radiotap header
 
-    if (caplen < len) {
+    if (len < sizeof(struct ieee80211_radiotap_header) || caplen < len) {
         //printf("[|802.11]");
         cbs->HandleRadiotap( *this, NULL, p, caplen);
         return;// caplen;
     }
-    uint32_t *last_presentp=0;
-    for (last_presentp = &hdr->it_present;
-         IS_EXTENDED(last_presentp) && (u_char*)(last_presentp + 1) <= p + len;
-         last_presentp++){
+    size_t last_present_offset = 4;
+    while (IS_EXTENDED(p + last_present_offset)) {
+        if (len - last_present_offset < 8) {
+            cbs->HandleRadiotap(*this, NULL, p, caplen);
+            return;
+        }
+        last_present_offset += 4;
     }
 
-    /* are there more bitmap extensions than bytes in header? */
-    if (IS_EXTENDED(last_presentp)) {
-        //printf("[|802.11]");
-        cbs->HandleRadiotap( *this, NULL, p, caplen);
-        return;// caplen;
-    }
-
-    const u_char *iter = (u_char*)(last_presentp + 1);
+    const u_char *iter = p + last_present_offset + 4;
     struct cpack_state cpacker;
 
 
@@ -1464,20 +1458,18 @@ void WifiPacket::handle_radiotap(const u_char *p,size_t caplen)
 
     /* Assume no Atheros padding between 802.11 header and body */
     int pad = 0;
-    uint32_t *presentp;
-    int bit0=0;
-    for (bit0 = 0, presentp = &hdr->it_present; presentp <= last_presentp;
-         presentp++, bit0 += 32) {
+    uint32_t bit0 = 0;
+    for (size_t present_offset = 4; present_offset <= last_present_offset;
+         present_offset += 4, bit0 += 32) {
 
         u_int32_t present, next_present;
-        for (present = EXTRACT_LE_32BITS(presentp); present;
+        for (present = EXTRACT_LE_32BITS(p + present_offset); present;
              present = next_present) {
             /* clear the least significant bit that is set */
             next_present = present & (present - 1);
 
             /* extract the least significant bit that is set */
-            enum ieee80211_radiotap_type bit = (enum ieee80211_radiotap_type)
-                (bit0 + BITNO_32(present ^ next_present));
+            uint32_t bit = bit0 + BITNO_32(present ^ next_present);
 
             /* print the next radiotap field */
             int r = print_radiotap_field(&cpacker, bit, &pad, &ohdr);
