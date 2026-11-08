@@ -3,9 +3,9 @@
 # test -I: index offsets follow the data when it is shifted, and the index is sorted
 #
 
-[ -f $DMPDIR/test1-out-of-order.pcap ] || { echo "no pcapng capture"; exit 77; }
 
 . $srcdir/test-subs.sh
+[ -f $DMPDIR/test1-out-of-order.pcap ] || { echo "no pcapng capture"; exit 77; }
 
 rm -rf out-findx
 cmd "$TCPFLOW -I -o out-findx -r $DMPDIR/test1-out-of-order.pcap"
