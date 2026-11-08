@@ -26,7 +26,8 @@ SH_TESTS = test-wifi-bounds.sh \
     test-null.sh \
     test-mac.sh \
     test-index-rewrite.sh \
-    test-findx.sh
+    test-findx.sh \
+    test-k-linktype.sh
 
 EXTRA_DIST = $(SH_TESTS) \
     test-wifi-bounds.py \
