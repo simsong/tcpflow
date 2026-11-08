@@ -60,7 +60,7 @@ feature_recorder::feature_recorder(class feature_recorder_set &fs_,
     file_number_(0),carve_cache(),carve_mode(CARVE_ENCODED)
 {
     //std::cerr << "feature_recorder(" << name << ") created\n";
-    open();                         // open if we are created
+    feature_recorder::open();        // construction deliberately opens the base recorder
 }
 
 /* Don't have to delete the stop_list_recorder because it is in the
@@ -81,8 +81,8 @@ void feature_recorder::banner_stamp(std::ostream &os,const std::string &header) 
         if(i.is_open()){
             std::string line;
             while(getline(i,line)){
-                if(line.size()>0 && ((*line.end()=='\r') || (*line.end()=='\n'))){
-                    line.erase(line.end()); /* remove the last character while it is a \n or \r */
+                if(!line.empty() && (line.back()=='\r' || line.back()=='\n')){
+                    line.pop_back();
                 }
                 os << "# " << line << "\n";
                 banner_lines++;

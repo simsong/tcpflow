@@ -19,6 +19,7 @@
 
 #include "tcpflow.h"
 #include <map>
+#include <memory>
 
 class time_histogram {
 public:
@@ -66,7 +67,7 @@ public:
 
     class histogram_map {
     public:
-        typedef std::map<uint32_t, bucket *> buckets_t;
+        typedef std::map<uint32_t, std::unique_ptr<bucket> > buckets_t;
         buckets_t buckets;
         histogram_map(span_params span_) :
             buckets(), span(span_), bucket_width(span.usec / span.bucket_count),

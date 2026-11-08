@@ -150,6 +150,10 @@ std::string flow::filename(uint32_t connection_count, bool is_pcap)
 		std::cerr << "unknown character: " << filename_template.at(i+1) << "\n";
 		exit(1);
 	    }
+#ifdef _WIN32
+            // Address, MAC and timestamp components cannot contain Windows colons.
+            for(char *ch = buf; *ch; ++ch) if(*ch == ':') *ch = '_';
+#endif
 	    if(buf[0]) ss << buf;
 	}
     }

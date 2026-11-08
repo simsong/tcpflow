@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(tcpflow VERSION 1.4.6 LANGUAGES CXX C)
+project(tcpflow VERSION 1.7.0 LANGUAGES CXX C)
 # Within the above line, "C" is required for two reasons:
 # 1. find_package(Threads) fails using only CXX on cmake-3.3 and previous
 # 2. CMake files use CMAKE_C_COMPILER_ID instead of CMAKE_CXX_COMPILER_ID

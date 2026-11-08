@@ -27,7 +27,7 @@ public:;
     ipaddr(){
 	memset(addr,0,sizeof(addr));
     }
-    ipaddr(const in_addr_t &a){		// copy operator
+    ipaddr(in_addr_t a){             // copy packed packet fields by value
 	addr[0] = ((uint8_t *)&a)[0];	// copy the bottom 4 octets and blank the top 12
 	addr[1] = ((uint8_t *)&a)[1];
 	addr[2] = ((uint8_t *)&a)[2];

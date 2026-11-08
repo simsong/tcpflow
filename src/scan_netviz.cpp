@@ -13,6 +13,9 @@
 
 #ifdef HAVE_LIBCAIRO
 #include "netviz/one_page_report.h"
+#ifdef HAVE_FONTCONFIG_FONTCONFIG_H
+#include <fontconfig/fontconfig.h>
+#endif
 
 /* These control the size of the iptable histogram
  * and whether or not it is dumped. The histogram should be kept
@@ -74,6 +77,11 @@ void  scan_netviz(const class scanner_params &sp,const recursion_control_block &
         report->render(sp.fs.get_outdir());
         delete report;
         report = 0;
+        // No Cairo objects remain: release process-wide caches before leak checks.
+        cairo_debug_reset_static_data();
+#if defined(HAVE_FONTCONFIG_FONTCONFIG_H) && defined(HAVE_FCFINI)
+        FcFini();
+#endif
     }
 #endif
 }

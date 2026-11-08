@@ -133,7 +133,7 @@ struct MAC {
         ((uint64_t)(ether[4]) <<  8) |
         ((uint64_t)(ether[5]) <<  0)){}
     MAC(const char *str):val(){
-        int ether[6];
+        unsigned int ether[6];
         int ret = sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
                          &ether[0], &ether[1], &ether[2], &ether[3], &ether[4], &ether[5]);
         if (ret != 6) {
