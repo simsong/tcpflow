@@ -395,6 +395,11 @@ int tcpdemux::dissect_tcp(const ipaddr &src, const ipaddr &dst,sa_family_t famil
                           const be13::packet_info &pi)
 {
     DEBUG(6) ("dissecting pkt *********************");
+    /* only the ports are read, so a capture with a short snaplen still works */
+    if (ip_payload_len < 4) {
+	DEBUG(6) ("received TCP segment without ports! (%u<4)", (u_int)ip_payload_len);
+	return 1;
+    }
     struct be13::tcphdr *tcp_header = (struct be13::tcphdr *) ip_data;
     flow_addr this_flow(src,dst,ntohs(tcp_header->th_sport),
                         ntohs(tcp_header->th_dport),family);

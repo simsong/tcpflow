@@ -17,7 +17,8 @@ SH_TESTS = test-wifi-bounds.sh \
     test-template-escape.sh \
     test-80211.sh \
     test-relinquish.sh \
-    test-tso.sh
+    test-tso.sh \
+    test-dissect.sh
 
 EXTRA_DIST = $(SH_TESTS) \
     test-wifi-bounds.py \
@@ -49,7 +50,8 @@ EXTRA_DIST = $(SH_TESTS) \
     test5-lines.pcap \
     test7-three-flows.pcap \
     udp.pcap \
-    wifi-80211.pcap
+    wifi-80211.pcap \
+    truncated-tcp.pcap
 
 TESTS = $(SH_TESTS)
 
