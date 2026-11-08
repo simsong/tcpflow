@@ -607,3 +607,7 @@ An announcement mailing list for this program is at:
 .RE
 .SH "SEE ALSO"
 tcpdump(1), nit(4P), bpf(4), pcap(3), pcap-savefile(5), pcap-filter(7)
+
+.SH COMPRESSED INPUT
+Compressed capture filenames are passed directly to the decompressor without shell interpretation.
+Quotes, spaces, shell metacharacters and leading dashes in filenames are treated literally.
