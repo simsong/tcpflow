@@ -8,7 +8,7 @@
 # About the test files:
 #
 
-SH_TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh test-chroot.sh
+SH_TESTS = test1.sh test-pdfs.sh test-multifile.sh test-iptree.sh test-chroot.sh test-template-escape.sh
 
 EXTRA_DIST = $(SH_TESTS) test-subs.sh \
 	airsnort-linux-browser_page_load.pcap \
