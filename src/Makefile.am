@@ -118,9 +118,6 @@ tcpflow_SOURCES = \
 	mime_map.cpp \
 	mime_map.h
 
-# Removed because it hasn't been updated to Python 3:
-#	scan_python.cpp
-
 
 EXTRA_DIST =\
 	inet_ntop.c \
