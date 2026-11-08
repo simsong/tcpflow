@@ -366,7 +366,8 @@ static size_t extract_header_length(u_int16_t fc)
 	    return 0;
 	}
     case T_DATA:
-	return (FC_TO_DS(fc) && FC_FROM_DS(fc)) ? 30 : 24;
+	return ((FC_TO_DS(fc) && FC_FROM_DS(fc)) ? 30 : 24) +
+            ((FC_SUBTYPE(fc) == 8) ? 2 : 0);
     default:
 	return 0;
     }
@@ -379,7 +380,7 @@ static size_t extract_header_length(u_int16_t fc)
 #pragma GCC diagnostic ignored "-Wcast-align"
 void WifiPacket::handle_llc(const mac_hdr_t &mac,const u_char *ptr, size_t len,u_int16_t fc)
 {
-    if (len < 7) {
+    if (len < 8) {
 	// truncated header!
 	cbs->HandleLLC(*this,NULL, ptr, len);
 	return;
@@ -1056,6 +1057,10 @@ int WifiPacket::decode_data_frame(const u_char * ptr, size_t len, u_int16_t fc)
         cbs->Handle80211( *this, fc, hdr.sa, hdr.da, hdr.ra, hdr.ta, ptr, len);
 	cbs->Handle80211DataWDS( *this, hdr, ptr+hdrlen, len-hdrlen);
     }
+
+    /* A data frame must include its complete MAC header and FCS before
+     * unsigned subtraction or a payload callback is safe. */
+    if (len < hdrlen + IEEE802_11_FCS_LEN) return 0;
 
     /* Handle either the WEP or the link layer. This handles the data itself */
     if (FC_WEP(fc)) {
