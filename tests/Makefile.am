@@ -8,7 +8,7 @@
 # About the test files:
 #
 
-SH_TESTS = test1.sh \
+SH_TESTS = test-index-rewrite.sh test1.sh \
     test-pdfs.sh \
     test-multifile.sh \
     test-iptree.sh \
@@ -16,7 +16,7 @@ SH_TESTS = test1.sh \
     test-template-escape.sh \
     test-findx.sh
 
-EXTRA_DIST = $(SH_TESTS) test-subs.sh \
+EXTRA_DIST = $(SH_TESTS) test-index-rewrite.py test-subs.sh \
 	airsnort-linux-browser_page_load.pcap \
 	bug2.pcap \
 	bug3.pcap \

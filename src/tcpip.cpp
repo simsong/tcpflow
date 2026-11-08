@@ -165,6 +165,7 @@ void tcpip::close_file()
     }
     // Also close the flow_index file, if flow indexing is in use --GDD
     if(demux.opt.output_packet_index && idx_file.is_open()){
+        sort_index();
     	idx_file.close();
     }
     //std::cerr << "close_file1 " << *this << "\n";
@@ -629,33 +630,21 @@ bool tcpip::compare(std::string a, std::string b){
  * in order.
  * --GDD
  */
+static std::vector<std::pair<uint64_t,std::string> > read_index(std::istream &in);
+
 void tcpip::sort_index(std::fstream *ix_file) {
-
-	std::vector<std::string> idx;
-	std::string line;
-
-	if (demux.opt.output_packet_index) {
-		if (!(idx_file.good() && idx_file.is_open())) {
-			DEBUG(5)("Skipping index file sort.  Unusual behavior.\n");
-			return; //Nothing to do
-		}
-		//Make sure we are at the beginning.
-		ix_file->clear();
-		ix_file->seekg(0);
-		do {
-			*ix_file >> line;
-			if (!ix_file->eof()) {
-				idx.push_back(line);
-			}
-		} while (ix_file->good());
-		std::sort(idx.begin(), idx.end(), &tcpip::compare);
-		ix_file->clear();
-		ix_file->seekg(0);
-		for (std::vector<std::string>::iterator s = idx.begin(); s != idx.end();
-				s++) {
-			*ix_file << *s << "\n";
-		}
-	}
+    if (!demux.opt.output_packet_index || !ix_file->is_open()) return;
+    ix_file->flush();
+    ix_file->clear();
+    ix_file->seekg(0);
+    std::vector<std::pair<uint64_t,std::string> > lines = read_index(*ix_file);
+    std::stable_sort(lines.begin(), lines.end(),
+                    [](const std::pair<uint64_t,std::string> &a,
+                       const std::pair<uint64_t,std::string> &b) { return a.first < b.first; });
+    ix_file->clear();
+    ix_file->seekp(0);
+    for (const auto &line : lines) *ix_file << line.first << line.second << "\n";
+    ix_file->flush();
 }
 
 /*
@@ -692,26 +681,6 @@ void tcpip::shift_index(uint64_t n)
         idx_file << (lines[i].first + n) << lines[i].second << "\n";   // never shorter than before
     }
     idx_file.flush();
-}
-
-static bool index_offset_less(const std::pair<uint64_t,std::string> &a,
-                              const std::pair<uint64_t,std::string> &b)
-{
-    return a.first < b.first;
-}
-
-/* Sort a closed index file by offset, keeping arrival order for equal offsets */
-void sort_index_file(const std::string &path)
-{
-    std::ifstream in(path.c_str());
-    if (!in.is_open()) return;
-    std::vector<std::pair<uint64_t,std::string> > lines = read_index(in);
-    in.close();
-    std::stable_sort(lines.begin(), lines.end(), index_offset_less);
-    std::ofstream out(path.c_str(), std::ios::trunc);
-    for (size_t i = 0; i < lines.size(); i++) {
-        out << lines[i].first << lines[i].second << "\n";
-    }
 }
 
 #pragma GCC diagnostic ignored "-Weffc++"
