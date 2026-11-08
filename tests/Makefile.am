@@ -13,6 +13,7 @@ SH_TESTS = test1.sh \
     test-multifile.sh \
     test-iptree.sh \
     test-chroot.sh \
+    test-template-escape.sh \
     test-k-linktype.sh
 
 EXTRA_DIST = $(SH_TESTS) test-subs.sh \
