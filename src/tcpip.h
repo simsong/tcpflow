@@ -168,7 +168,7 @@ public:;
         caplen(0),
 	packet_count(0),
         session_id(0) {
-        if(pi.pcap_hdr){
+        if(pi.pcap_hdr && pi.ether_type()){   // only Ethernet frames have MAC addresses
             memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
             memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
         }
@@ -335,6 +335,7 @@ public:;
     static bool compare(std::string a, std::string b);
     void sort_index(std::fstream *idx_file);
     void sort_index();
+    void shift_index(uint64_t n);
 };
 
 /* print a tcpip data structure. Largely for debugging */

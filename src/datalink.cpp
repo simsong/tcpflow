@@ -42,6 +42,11 @@
 int32_t datalink_tdelta = 0;
 
 #pragma GCC diagnostic ignored "-Wcast-align"
+static bool null_family_is_ip(uint32_t family)
+{
+    return family == 2 || family == 10 || family == 24 || family == 28 || family == 30;
+}
+
 void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
     u_int caplen = h->caplen;
@@ -56,12 +61,16 @@ void dl_null(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	DEBUG(6) ("warning: received incomplete null frame");
 	return;
     }
-    uint32_t family = (uint32_t)*p;
 
-    /* make sure this is AF_INET */
-    if (family != AF_INET && family != AF_INET6) {
-	DEBUG(6)("warning: received null frame with unknown type (type 0x%x) (AF_INET=%x; AF_INET6=%x)",
-		 family,AF_INET,AF_INET6);
+    /* The family is in the byte order of the capturing host, which uses its own
+     * AF_INET6 value: 10 (Linux), 24 (NetBSD, OpenBSD), 28 (FreeBSD) or 30 (macOS).
+     */
+    uint32_t family;
+    memcpy(&family, p, sizeof(family));
+    uint32_t swapped = ((family & 0xff) << 24) | ((family & 0xff00) << 8) |
+                       ((family >> 8) & 0xff00) | (family >> 24);
+    if (!null_family_is_ip(family) && !null_family_is_ip(swapped)) {
+	DEBUG(6)("warning: received null frame with unknown type (type 0x%x)", family);
 	return;
     }
     struct timeval tv;
@@ -337,7 +346,7 @@ dlt_handler_t handlers[] = {
     { dl_linux_sll,        DLT_LINUX_SLL },
 #endif
 #if defined(USE_WIFI) && !defined(WIN32)
-    { dl_ieee802_11_radio, DLT_IEEE802_11 },
+    { dl_ieee802_11,       DLT_IEEE802_11 },
     { dl_ieee802_11_radio, DLT_IEEE802_11_RADIO },
 #ifdef DLT_PRISM_HEADER
     { dl_prism,            DLT_PRISM_HEADER},
