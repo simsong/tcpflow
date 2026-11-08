@@ -16,7 +16,8 @@ SH_TESTS = test-wifi-bounds.sh \
     test-chroot.sh \
     test-template-escape.sh \
     test-80211.sh \
-    test-relinquish.sh
+    test-relinquish.sh \
+    test-tso.sh
 
 EXTRA_DIST = $(SH_TESTS) \
     test-wifi-bounds.py \
