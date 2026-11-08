@@ -48,6 +48,18 @@ class pcap_writer {
         write4(pcap_dlt);             // link layer encapsulation
     }
     void copy_header(const std::string &ifname){
+#ifdef HAVE_LIBPCAP
+        /* let libpcap write the header, so that pcapng and big-endian inputs work */
+        char errbuf[PCAP_ERRBUF_SIZE];
+        pcap_t *p = pcap_open_offline(ifname.c_str(),errbuf);
+        if(p==0){
+            std::cerr << "cannot read " << ifname << ": " << errbuf << "\n";
+            throw new write_error();
+        }
+        pcap_dumper_t *d = pcap_dump_fopen(p,fcap);
+        pcap_close(p);
+        if(d==0 || pcap_dump_flush(d)!=0) throw new write_error();
+#else
         /* assert byte order is correct */
         std::unique_ptr<FILE, decltype(&fclose)> f2(fopen(ifname.c_str(),"rb"), &fclose);
         if(f2==0) throw new write_error();
@@ -59,6 +71,7 @@ class pcap_writer {
         }
         if(fwrite(buf,1,sizeof(buf),fcap)!=sizeof(buf)) throw new write_error();
         if(fclose(f2.release())!=0) throw new write_error();
+#endif
     }
 
 public:

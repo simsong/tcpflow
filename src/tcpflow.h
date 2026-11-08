@@ -262,7 +262,7 @@ extern const char *progname;
 void    terminate(int sig);
 #include "inet_ntop.h"
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_SEMAPHORE_H
 #include <semaphore.h>
 extern sem_t *semlock;
 #endif
@@ -284,6 +284,7 @@ typedef struct {
 } dlt_handler_t;
 
 void dl_ieee802_11_radio(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
+void dl_ieee802_11(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void dl_prism(u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 
 /**
