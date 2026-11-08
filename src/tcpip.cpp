@@ -258,7 +258,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
 	}
     }
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_SEMAPHORE_H
     if(semlock){
 	if(sem_wait(semlock)){
 	    fprintf(stderr,"%s: attempt to acquire semaphore failed: %s\n",progname,strerror(errno));
@@ -402,7 +402,7 @@ void tcpip::print_packet(const u_char *data, uint32_t length)
     if (! demux.opt.console_output_nonewline) putchar('\n');
     fflush(stdout);
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_SEMAPHORE_H
     if(semlock){
 	if(sem_post(semlock)){
 	    fprintf(stderr,"%s: attempt to post semaphore failed: %s\n",progname,strerror(errno));

@@ -168,7 +168,7 @@ public:;
         caplen(0),
 	packet_count(0),
         session_id(0) {
-        if(pi.pcap_hdr){
+        if(pi.pcap_hdr && pi.ether_type()){   // only Ethernet frames have MAC addresses
             memcpy(mac_daddr,pi.get_ether_dhost(),sizeof(mac_daddr));
             memcpy(mac_saddr,pi.get_ether_shost(),sizeof(mac_saddr));
         }
