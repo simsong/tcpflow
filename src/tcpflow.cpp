@@ -275,24 +275,23 @@ void terminate(int sig)
 // transparent decompression for process_infile
 class inflater {
     const std::string suffix;
-    const std::string invoc_format;
+    const std::string program;
+    const std::string option;
 public:
-    inflater(const std::string &suffix_, const std::string &invoc_format_) :
-        suffix(suffix_), invoc_format(invoc_format_) {}
+    inflater(const std::string &suffix_, const std::string &program_, const std::string &option_) :
+        suffix(suffix_), program(program_), option(option_) {}
     // is this inflater appropriate for a given file?
     bool appropriate(const std::string &file_path) const
     {
         return ends_with(file_path,suffix);
     }
-    // invoke the inflater in a shell, and return the file descriptor to read the inflated file from
+    // Execute the decompressor directly; a relative path is prefixed so that
+    // leading dashes cannot be interpreted as decompressor options.
     int invoke(const std::string &file_path, int* ppid) const
     {
-        std::string invocation = ssprintf(invoc_format.c_str(), file_path.c_str());
+        const std::string input_path = (!file_path.empty() && file_path[0] == '/')
+            ? file_path : "./" + file_path;
         int pipe_fds[2];
-        if(!system(NULL)) {
-            std::cerr << "no shell available to decompress '" << file_path << "'" << std::endl;
-            return -1;
-        }
         if(pipe(pipe_fds)) {
             std::cerr << "failed to create pipe to decompress '" << file_path << "'" << std::endl;
             return -1;
@@ -301,18 +300,20 @@ public:
         pid_t child_pid;
         child_pid = fork();
         if(child_pid == -1) {
+            close(pipe_fds[0]);
+            close(pipe_fds[1]);
             std::cerr << "failed to fork child to decompress '" << file_path << "'" << std::endl;
             return -1;
         }
         if(child_pid == 0) {
             // decompressor
             close(pipe_fds[0]);
-            dup2(pipe_fds[1], 1);
-            if(system(invocation.c_str())) {
-                std::cerr << "decompressor reported error inflating '" << file_path << "'" << std::endl;
-                exit(1);
-            }
-            exit(0);
+            if (dup2(pipe_fds[1], STDOUT_FILENO) < 0) _exit(127);
+            if (pipe_fds[1] != STDOUT_FILENO) close(pipe_fds[1]);
+            execlp(program.c_str(), program.c_str(), option.c_str(),
+                   input_path.c_str(), static_cast<char *>(0));
+            perror(program.c_str());
+            _exit(127);
         }
         *ppid = child_pid;
         close(pipe_fds[1]);
@@ -326,15 +327,15 @@ static inflaters_t *build_inflaters()
     inflaters_t *output = new inflaters_t();
 
     // gzip
-    output->push_back(new inflater(".gz", "gunzip -c '%s'"));
+    output->push_back(new inflater(".gz", "gunzip", "-c"));
     // zip
-    output->push_back(new inflater(".zip", "unzip -p '%s'"));
+    output->push_back(new inflater(".zip", "unzip", "-p"));
     // bz2
-    output->push_back(new inflater(".bz2", "bunzip2 -c '%s'"));
+    output->push_back(new inflater(".bz2", "bunzip2", "-c"));
     // xz
-    output->push_back(new inflater(".xz", "unxz -c '%s'"));
+    output->push_back(new inflater(".xz", "unxz", "-c"));
     // lzma
-    output->push_back(new inflater(".lzma", "unlzma -c '%s'"));
+    output->push_back(new inflater(".lzma", "unlzma", "-c"));
 
     return output;
 }
