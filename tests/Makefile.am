@@ -20,7 +20,8 @@ SH_TESTS = test-wifi-bounds.sh \
     test-tso.sh \
     test-dissect.sh \
     test-tcp-cmd.sh \
-    test-fc.sh
+    test-fc.sh \
+    test-unk-pcapng.sh
 
 EXTRA_DIST = $(SH_TESTS) \
     test-wifi-bounds.py \
