@@ -1,0 +1,5 @@
+.git
+.build
+.tmp
+dist
+autom4te.cache

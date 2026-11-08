@@ -160,7 +160,7 @@ void time_histogram_view::render(cairo_t *cr, const bounds_t &bounds)
 
     // scale raw bucket totals
 
-    uint8_t unit_log_1000 = (uint8_t) (log(histogram.tallest_bar()) / log(1000));
+    uint8_t unit_log_1000 = histogram.tallest_bar() ? (uint8_t) (log(histogram.tallest_bar()) / log(1000)) : 0;
     if(unit_log_1000 >= si_prefixes.size()) {
         unit_log_1000 = 0;
     }

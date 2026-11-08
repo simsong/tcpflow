@@ -1,8 +1,58 @@
 [![TCPFLOW CI (c++14)](https://github.com/simsong/tcpflow/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/simsong/tcpflow/actions/workflows/continuous-integration.yml)
 
-TCPFLOW 1.5.0
+TCPFLOW 1.7.0
 =============
-Downloads directory: http://digitalcorpora.org/downloads/tcpflow/
+Downloads: https://github.com/simsong/tcpflow/releases
+
+CI and releases
+---------------
+
+The Autotools build is the supported CI and release path. Run checks from a
+checkout with `make -f Makefile.ci bootstrap native`; `distcheck` also rebuilds,
+tests, installs and uninstalls the generated source distribution.
+After `./configure`, `make ci` builds and tests the current build directory,
+including in-tree builds; its regression tests run serially. Separate
+`asan`, `tsan`, `ubsan`, `clang-analyzer`, `clang-tidy`, `cppcheck`, and `coverage`
+targets use isolated `.build/` directories. CI also runs Windows runtime
+tests, Debian compatibility and FreeBSD/OpenBSD checks. CodeQL runs separately
+through the repository's existing GitHub default setup. See the detailed
+[CI/release procedure](doc/CI_CD.md) and [comparison with the reference repositories](doc/CI_CD_ANALYSIS.md).
+
+An annotated `v<version>` tag on a commit already merged into `main` triggers
+all release gates and produces a source `.tar.gz`, native amd64/arm64 `.snap`
+packages, an Authenticode-signed standalone `tcpflow64.exe`, and `SHA256SUMS`.
+The EXE requires no application DLLs and processes offline PCAP files; its build
+does not include live capture, BPF filters, Wi-Fi decoding or Cairo PDF reports.
+Windows replaces colons in generated IPv6/MAC/timestamp filename components
+with underscores; network address values in reports retain their normal format.
+The Snaps retain native PCAP/PDF support and are published only on GitHub.
+The workflow verifies the complete draft's downloads before publishing it.
+
+Configuration (never put secret values in source files):
+
+| Variable | Purpose |
+| --- | --- |
+| `CI_JOBS` | Parallel compilation jobs, default 2; shell regressions run serially. |
+| `CI_BUILD_ROOT` | Isolated build/report root, default `.build` under the invoking directory. |
+| `CONTAINER_ENGINE`, `CHECK` | Container CLI (default `finch`) and Makefile.ci targets for `container-check`. |
+| `CC`, `CXX`, `CPPFLAGS`, `CFLAGS`, `CXXFLAGS`, `LDFLAGS`, `LIBS`, `PKG_CONFIG_LIBDIR` | Standard compiler, include/library and target pkg-config settings. |
+| `SDKROOT` | Installed macOS SDK selected explicitly for local Clang analysis. |
+| `ASAN_OPTIONS`, `TSAN_OPTIONS`, `UBSAN_OPTIONS` | Sanitizer runtime diagnostics; CI stops on errors and enables Linux leak detection. |
+| `WINDOWS_DEPS` | Static MinGW dependency prefix for the `windows` target. |
+| `VCPKG_ROOT`, `VCPKG_COMMIT` | Windows dependency directory and pinned vcpkg revision in CI. |
+| `SNAPCRAFT_BUILD_ENVIRONMENT` | Snapcraft build provider; CI uses `lxd`. |
+| `FONTCONFIG_FILE`, `XDG_CACHE_HOME` | Snap-provided bundled-font configuration and writable font-cache location for PDF reports. |
+| `RELEASE_TAG`, `RELEASE_COMMIT` | Annotated version tag and exact immutable source commit for preflight. |
+| `EXE` | Standalone executable path for `windows-test`. |
+| `CODECOV_TOKEN` | GitHub secret for authenticated coverage submission. |
+| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | Non-secret identity settings for GitHub OIDC login. |
+| `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE` | Non-secret Artifact Signing service/profile settings. |
+| `WINDOWS_PUBLISHER` | Exact public certificate subject required by the signature verifier. |
+| `GH_TOKEN` | Workflow-provided GitHub token for draft creation, download verification and publication. |
+
+GitHub supplies `GITHUB_*` and `RUNNER_*` context variables. Signing is restricted
+to the protected `windows-signing` environment; no private signing key is stored
+in the repository. CMake remains a legacy build path and is not a release gate.
 
 Installation
 ------------

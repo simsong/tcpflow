@@ -9,7 +9,7 @@ MULTIFILE=/corp/nps/packets/2013-httpxfer/multifile_25_21.pcap
 
 if [ ! -r $MULTIFILE ]; then
   echo missing $MULTIFILE
-  exit 0
+  exit 77
 fi
 
 

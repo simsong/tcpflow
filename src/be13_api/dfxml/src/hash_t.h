@@ -104,6 +104,7 @@ public:
     }
     const char *hexdigest(char *hexbuf,size_t bufsize) const {
 	const char *hexbuf_start = hexbuf;
+        if(bufsize) hexbuf[0] = 0;
 	for(unsigned int i=0;i<SIZE && bufsize>=3;i++){
 	    snprintf(hexbuf,bufsize,"%02x",this->digest[i]);
 	    hexbuf  += 2;

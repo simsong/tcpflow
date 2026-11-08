@@ -35,7 +35,8 @@ feature_recorder_set::feature_recorder_set(uint32_t flags_,const feature_recorde
     scanner_stats(),hasher(hasher_)
 {
     if(flags & SET_DISABLED){
-        create_name(DISABLED_RECORDER_NAME,false);
+        // Construction deliberately uses the base factory before derived state exists.
+        frm[DISABLED_RECORDER_NAME] = feature_recorder_set::create_name_factory(DISABLED_RECORDER_NAME);
         frm[DISABLED_RECORDER_NAME]->set_flag(feature_recorder::FLAG_DISABLED);
     }
 }
