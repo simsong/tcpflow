@@ -1,5 +1,7 @@
 1.7.0
 -----
+* Fix make ci in configured in-tree builds, report unsupported Windows BPF
+  filters clearly, and test version mismatches on clean merged Git fixtures.
 * Replace legacy CI/coverage with platform, distribution, sanitizer and static
   analysis checks, including a real shared-container concurrency regression.
 * Add tag-triggered source, amd64/arm64 Snap and signed standalone x64 Windows

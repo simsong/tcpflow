@@ -60,14 +60,27 @@ class ReleaseValidation(unittest.TestCase):
         self.git("tag", "-a", "v1.7.0", "-m", "Synthetic tag")
         self.run_check("preflight", "v1.7.0", "0" * 40, succeeds=False)
 
-    def test_unmerged_commit_and_version_mismatch_fail(self):
+    def test_unmerged_commit_fails(self):
         self.git("commit", "--quiet", "--allow-empty", "-m", "Unmerged fixture")
         tip = self.git("rev-parse", "HEAD").stdout.strip()
         self.git("tag", "-a", "v1.7.0", "-m", "Synthetic tag")
         self.run_check("preflight", "v1.7.0", tip, succeeds=False)
-        self.git("update-ref", "refs/remotes/origin/main", tip)
-        (self.root / "CMakeLists.txt").write_text("project(tcpflow VERSION 1.6.2 LANGUAGES CXX C)\n")
-        self.run_check("preflight", "v1.7.0", tip, succeeds=False)
+
+    def test_version_mismatch_on_clean_merged_commit_fails(self):
+        for filename, content in (
+            ("configure.ac", "AC_INIT(TCPFLOW, 1.6.2, test@example.invalid)\n"),
+            ("CMakeLists.txt", "project(tcpflow VERSION 1.6.2 LANGUAGES CXX C)\n"),
+        ):
+            with self.subTest(filename=filename):
+                self.git("reset", "--hard", self.commit)
+                (self.root / filename).write_text(content)
+                self.git("add", filename)
+                self.git("commit", "--quiet", "-m", "Mismatched version fixture")
+                tip = self.git("rev-parse", "HEAD").stdout.strip()
+                self.git("update-ref", "refs/remotes/origin/main", tip)
+                self.git("tag", "-f", "-a", "v1.7.0", "-m", "Synthetic tag")
+                self.assertEqual(self.git("status", "--porcelain").stdout, "")
+                self.run_check("preflight", "v1.7.0", tip, succeeds=False)
 
     def make_assets(self):
         assets = self.root / "dist"

@@ -1,4 +1,9 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+// Provide offline classic-PCAP input when tcpflow is built without libpcap.
+// Validate file headers and packet lengths before handing bytes to callbacks.
+// Support native and swapped byte order with bounded packet-buffer allocation.
+// Empty filters pass; unsupported BPF operations report explicit diagnostics.
+// Keep parser errors intact for the CLI and the native reader regressions.
 
 #include "config.h"
 
@@ -158,10 +163,12 @@ pcap_t *pcap_fopen_offline(FILE *fp, char *errbuf)
 
 int pcap_compile(pcap_t *p, struct bpf_program *program,
                  const char *expression, int optimize, uint32_t mask) {
+    program->valid = false;
     if(strlen(expression)==0){
         program->valid = true;
         return 0;       // we can compile the empty expression
     }
+    snprintf(p->err_buf,sizeof(p->err_buf),"BPF filters are unsupported in this offline build");
     return -1;                          // we cannot compile otherwise
 }
 
@@ -171,6 +178,7 @@ int pcap_datalink(pcap_t *p) {
 
 int pcap_setfilter(pcap_t *p, struct bpf_program *prog) {
     if(prog->valid) return 0;
+    snprintf(p->err_buf,sizeof(p->err_buf),"BPF filters are unsupported in this offline build");
     return -1;
 }
 

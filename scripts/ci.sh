@@ -92,6 +92,9 @@ case "$mode" in
         cp "$exe" "$source_root/dist/tcpflow64.exe"
         ;;
     build) make -j"$jobs" all;;
+    native)
+        make -j"$jobs" ci || { cat src/test-suite.log tests/test-suite.log 2>/dev/null; exit 1; }
+        ;;
     *)
         make -j"$jobs" all
         # The historical shell regressions share output names; keep them serial.

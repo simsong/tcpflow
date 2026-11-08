@@ -2,6 +2,7 @@
 // Real temporary streams contain native and swapped classic-PCAP records.
 // Valid data must reach the callback unchanged; invalid lengths must fail.
 // Truncated headers/data and excessive allocations are rejected explicitly.
+// Unsupported filters must fail with useful errors and invalidate reused filters.
 // The same reader runs under native sanitizers without a libpcap dependency.
 #include "config.h"
 #include "pcap_fake.h"
@@ -45,13 +46,19 @@ static bool check(const std::vector<uint8_t> &data, int expected, bool opens = t
     pcap_t *reader = pcap_fopen_offline(file, error);
     if (reader) {
         bpf_program filter = {};
+        if (expected == 0) {
+            valid = pcap_compile(reader, &filter, "", 0, 0) == 0 && valid;
+            valid = pcap_setfilter(reader, &filter) == 0 && valid;
+            valid = pcap_compile(reader, &filter, "tcp", 0, 0) == -1 && !filter.valid && valid;
+        } else valid = pcap_setfilter(reader, &filter) == -1 && valid;
+        valid = std::strstr(pcap_geterr(reader), "BPF filters are unsupported") && valid;
         valid = pcap_compile(reader, &filter, "", 0, 0) == 0 && valid;
         valid = pcap_setfilter(reader, &filter) == 0 && valid;
         pcap_freecode(&filter);
         uint8_t packets = 0;
         int result = pcap_loop(reader, -1, packet, &packets);
         valid = valid && opens && result == expected;
-        valid = valid && (expected == 0 ? packets == 1 : packets == 0 && std::strlen(pcap_geterr(reader)) > 0);
+        valid = valid && (expected == 0 ? packets == 1 : packets == 0 && std::strstr(pcap_geterr(reader), "pcap"));
         pcap_close(reader);
     } else valid = valid && !opens && std::strlen(error) > 0;
     fclose(file);

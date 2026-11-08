@@ -4,6 +4,9 @@ Autotools is the supported path. `make -f Makefile.ci bootstrap native` builds
 and runs the packet/PDF and concurrent atomic-container regressions. Each mode
 uses a separate directory under `.build/`; `make -f Makefile.ci distcheck`
 tests a real source distribution, including its installation and uninstallation.
+In a configured in-tree or out-of-tree build, `make ci` reuses that directory,
+builds the application and runs its regressions serially. The `native` target
+exercises this same entry point rather than configuring a second build.
 Run `make -f Makefile.ci test-ci check-workflows` for release-policy tests,
 actionlint and shellcheck. The three historical tests requiring `/corp` or
 `nitroba.pcap` report SKIP when their external fixtures are absent.
