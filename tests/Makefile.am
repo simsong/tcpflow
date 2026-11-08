@@ -24,7 +24,9 @@ SH_TESTS = test-wifi-bounds.sh \
     test-unk-pcapng.sh \
     test-semlock.sh \
     test-null.sh \
-    test-mac.sh
+    test-mac.sh \
+    test-index-rewrite.sh \
+    test-findx.sh
 
 EXTRA_DIST = $(SH_TESTS) \
     test-wifi-bounds.py \
@@ -58,7 +60,8 @@ EXTRA_DIST = $(SH_TESTS) \
     udp.pcap \
     wifi-80211.pcap \
     truncated-tcp.pcap \
-    tcp-cmd.pcap
+    tcp-cmd.pcap \
+    test-index-rewrite.py
 
 TESTS = $(SH_TESTS)
 

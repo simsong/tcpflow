@@ -296,6 +296,11 @@ The \fBtimestamp\fP column represents the number of seconds since epoch as a flo
 The precision is the microsecond but may also be the nanosecond in a future \fBtcpflow\fP version.
 The \fBlength\fP column is the number of successive bytes concerned by \fBtimestamp\fP
 and can include several TCP frames (TCP packets).
+Index sorting holds the index entries in memory. Long flows can require substantial
+memory, and repeatedly shifting out-of-order data requires rewriting the index.
+The \fB\-b\fP payload limit does not bound the number of index entries or the
+memory needed to sort them. Enable \fB\-I\fP only when these resource costs are acceptable.
+.PP
 The extension \fBfindx\fP may become from the fact that the timestamps are \fBframe indexed\fP.
 .TP
 .B \-L \fIsemlock_name\fP
