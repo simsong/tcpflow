@@ -765,7 +765,11 @@ int main(int argc, char *argv[])
 	case 'F':
 	    for(const char *cc=optarg;*cc;cc++){
 		switch(*cc){
-		case 'c': replace(flow::filename_template,"%c","%C"); break;
+		case 'c':
+		    /* always append the counter: "%C%c" (only if >0) becomes "c%#" */
+		    replace(flow::filename_template,"%C%c","c%#");
+		    replace(flow::filename_template,"%c","%#");
+		    break;
                 case 'k': flow::filename_template = "%K/" + flow::filename_template; break;
                 case 'm': flow::filename_template = "%M000-%M999/%M%K/" + flow::filename_template; break;
                 case 'g': flow::filename_template = "%G000000-%G999999/%G%M000-%G%M999/%G%M%K/" + flow::filename_template; break;
